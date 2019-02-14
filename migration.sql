@@ -50,7 +50,8 @@ COMMENT ON EXTENSION hstore IS 'data type for storing sets of (key, value) pairs
 CREATE TYPE public.task_status AS ENUM (
     'todo',
     'doing',
-    'done'
+    'done',
+    'error'
 );
 
 

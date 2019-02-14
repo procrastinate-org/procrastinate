@@ -26,19 +26,26 @@ def worker(task_manager: tasks.TaskManager, queue: str):
 
 def process_tasks(task_manager: tasks.TaskManager, queue: str, curs):
     while True:
-        curs.execute("select * from fetch_task(%s);", (queue,))
+        curs.execute("""SELECT * FROM fetch_task(%s);""", (queue,))
+        curs.connection.commit()
+
         result = curs.fetchone()
         if result["id"] is None:
             break
 
         task_id = result["id"]
-        state = "done"
-        # TODO: state = "error"
+
+        state = "error"
         try:
+            logger.debug(f"""About to run task from row {result})""")
             call_task(task_manager, result)
             state = "done"
+        except TaskError:
+            pass
         finally:
-            curs.execute("SELECT finish_task(%s, %s);", (task_id, state))
+            curs.execute("""SELECT finish_task(%s, %s);""", (task_id, state))
+            logger.debug(f"Commiting finish_task({task_id}, {state})")
+            curs.connection.commit()
 
 
 class CabbageException(Exception):
@@ -64,8 +71,8 @@ def call_task(task_manager: tasks.TaskManager, result: dict):
     logger.info(f"About to launch task {task.name} with args {kwargs}")
     try:
         task_run.run(**kwargs)
-    except Exception:
-        logger.info(f"Error launched task {task.name} with args {kwargs}")
-        raise TaskError()
+    except Exception as e:
+        logger.exception(f"Error run task {task.name} with args {kwargs}")
+        raise TaskError() from e
     else:
-        logger.info(f"Succesfully launched task {task.name} with args {kwargs}")
+        logger.info(f"Succesfully ran task {task.name} with args {kwargs}")
