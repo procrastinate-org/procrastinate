@@ -1,26 +1,27 @@
 import sys
+import logging
 
 from cabbage import worker, tasks
 
-
+logger = logging.getLogger(__name__)
 task_manager = tasks.TaskManager()
 
 
 @task_manager.task(queue="sums")
-def sum(task, a, b):
-    with open(f"{task.name}-{task.id}", "w") as f:
+def sum(task_run, a, b):
+    with open(f"{task_run.task.name}-{task_run.id}", "w") as f:
         f.write(f"{a + b}")
 
 
 @task_manager.task(queue="sums")
-def sum_plus_one(task, a, b):
-    with open(f"{task.name}-{task.id}", "w") as f:
+def sum_plus_one(task_run, a, b):
+    with open(f"{task_run.task.name}-{task_run.id}", "w") as f:
         f.write(f"{a + b + 1}")
 
 
 @tasks.Task(manager=task_manager, queue="products")
-def product(task, a, b):
-    with open(f"{task.name}-{task.id}", "w") as f:
+def product(task_run, a, b):
+    with open(f"{task_run.task.name}-{task_run.id}", "w") as f:
         f.write(f"{a * b}")
 
 
@@ -32,6 +33,7 @@ def client():
 
 
 def main():
+    logging.basicConfig(level="DEBUG")
     process = sys.argv[1]
     if process == "worker":
         return worker.worker(task_manager, "sums")
