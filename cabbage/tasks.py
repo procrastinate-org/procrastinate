@@ -50,7 +50,7 @@ def register_queue(queue):
 @functools.lru_cache(1)
 def get_global_connection():
     conn = psycopg2.connect("")
-    # conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
+    conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
     psycopg2.extensions.register_adapter(dict, psycopg2.extras.Json)
     return conn
 
