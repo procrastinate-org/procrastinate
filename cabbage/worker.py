@@ -2,6 +2,7 @@ import logging
 import select
 
 from psycopg2.extras import RealDictCursor
+from psycopg2 import sql
 
 from cabbage import tasks
 
@@ -15,8 +16,8 @@ def worker(task_manager: tasks.TaskManager, queue: str):
     conn = tasks.get_global_connection()
 
     with conn.cursor(cursor_factory=RealDictCursor) as curs:
-        # SQL injection !
-        curs.execute(f"""LISTEN "queue#{queue}";""")
+        queue_name = sql.Identifier(f"queue#{queue}")
+        curs.execute(sql.SQL("""LISTEN {queue_name};""").format(queue_name=queue_name))
 
         while True:
             process_tasks(task_manager, queue, curs)
