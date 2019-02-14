@@ -38,9 +38,9 @@ def client():
     # sum.defer(a=5, b="a")
     # sum_plus_one.defer(a=4, b=7)
     # product.defer(a=2, b=8)
-    sleep.defer(lock="a", i=10)
-    sleep.defer(lock="a", i=12)
-    sleep.defer(lock="a", i=14)
+    sleep.defer(lock="a", i=2)
+    sleep.defer(lock="a", i=3)
+    sleep.defer(lock="a", i=4)
 
 
 def main():
