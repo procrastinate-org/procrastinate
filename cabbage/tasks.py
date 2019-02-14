@@ -1,21 +1,3 @@
-"""
-insert into queues (queue_name) values ('toto');
-
-LISTEN "queue#toto";
-
-insert into tasks (queue_id, task_type, targeted_object) values (1, 'expire machin', 'mon:objet#42');
--- Asynchronous notification "queue#toto" with payload "expire machin" received from server process with PID 13917.
-
-select * from fetch_task('toto');
- id | queue_id |   task_type   | targeted_object | status
-----+----------+---------------+-----------------+--------
-  2 |        1 | expire machin | mon:objet#42    | doing
-(1 row)
-
-
-select finish_task(2, 'done');
-
-"""
 import logging
 import functools
 import uuid
