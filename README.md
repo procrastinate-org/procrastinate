@@ -17,12 +17,13 @@ $ createdb && psql -v ON_ERROR_STOP=ON -f migration.sql
 ## Launch a worker
 
 ```console
-$ python -m cabbage worker
+$ python -m cabbage_demo worker sums
+$ python -m cabbage_demo worker products
 ```
 
 
 ## Schedule some tasks
 
 ```console
-$ python -m cabbage client
+$ python -m cabbage_demo client
 ```
