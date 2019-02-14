@@ -165,7 +165,7 @@ ALTER FUNCTION public.notify_queue() OWNER TO postgres;
 
 CREATE TABLE public.queues (
     id integer NOT NULL,
-    queue_name character varying(32)
+    queue_name character varying(32) UNIQUE
 );
 
 
