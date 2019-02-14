@@ -11,7 +11,7 @@ Launch a postgres DB the way you want, e.g. using docker:
 ```console
 $ docker run --rm -it -p 5432:5432 postgres
 $ export PGDATABASE=cabbage PGHOST=localhost PGUSER=postgres
-$ createdb && psql -f migration.sql
+$ createdb && psql -v ON_ERROR_STOP=ON -f migration.sql
 ```
 
 ## Launch a worker
