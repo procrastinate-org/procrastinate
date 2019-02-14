@@ -8,7 +8,7 @@ from cabbage import tasks
 logger = logging.getLogger(__name__)
 
 
-SOCKET_TIMEOUT = 10  # seconds
+SOCKET_TIMEOUT = 5  # seconds
 
 
 def worker(task_manager: tasks.TaskManager, queue: str):
