@@ -2,9 +2,8 @@ import logging
 import select
 
 from psycopg2.extras import RealDictCursor
-from psycopg2 import sql
 
-from cabbage import tasks
+from cabbage import tasks, postgres, exceptions
 
 logger = logging.getLogger(__name__)
 
@@ -13,11 +12,10 @@ SOCKET_TIMEOUT = 5  # seconds
 
 
 def worker(task_manager: tasks.TaskManager, queue: str):
-    conn = tasks.get_global_connection()
+    conn = postgres.get_global_connection()
 
     with conn.cursor(cursor_factory=RealDictCursor) as curs:
-        queue_name = sql.Identifier(f"queue#{queue}")
-        curs.execute(sql.SQL("""LISTEN {queue_name};""").format(queue_name=queue_name))
+        postgres.listen_queue(curs, queue)
 
         while True:
             process_tasks(task_manager, queue, curs)
@@ -41,7 +39,7 @@ def process_tasks(task_manager: tasks.TaskManager, queue: str, curs):
             logger.debug(f"""About to run task from row {result})""")
             call_task(task_manager, result)
             state = "done"
-        except TaskError:
+        except exceptions.TaskError:
             pass
         finally:
             curs.execute("""SELECT finish_task(%s, %s);""", (task_id, state))
@@ -49,23 +47,11 @@ def process_tasks(task_manager: tasks.TaskManager, queue: str, curs):
             curs.connection.commit()
 
 
-class CabbageException(Exception):
-    pass
-
-
-class TaskNotFound(CabbageException):
-    pass
-
-
-class TaskError(CabbageException):
-    pass
-
-
 def call_task(task_manager: tasks.TaskManager, result: dict):
     try:
         task = task_manager.tasks[result["task_type"]]
     except KeyError:
-        raise TaskNotFound(result)
+        raise exceptions.TaskNotFound(result)
 
     task_run = tasks.TaskRun(task=task, id=result["id"], lock=result["targeted_object"])
     kwargs = result["args"]
@@ -74,6 +60,6 @@ def call_task(task_manager: tasks.TaskManager, result: dict):
         task_run.run(**kwargs)
     except Exception as e:
         logger.exception(f"Error run task {task.name} with args {kwargs}")
-        raise TaskError() from e
+        raise exceptions.TaskError() from e
     else:
         logger.info(f"Succesfully ran task {task.name} with args {kwargs}")
