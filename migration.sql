@@ -50,7 +50,8 @@ COMMENT ON EXTENSION hstore IS 'data type for storing sets of (key, value) pairs
 CREATE TYPE public.task_status AS ENUM (
     'todo',
     'doing',
-    'done'
+    'done',
+    'error'
 );
 
 
@@ -87,10 +88,7 @@ DECLARE
 	target_queue_id integer;
 	found_task tasks;
 BEGIN
-	SELECT id INTO target_queue_id FROM queues WHERE queue_name = target_queue_name;
-
-	-- Lock the queue. Could be done with a FOR UPDATE btw...
-	PERFORM pg_advisory_lock(target_queue_id);
+	SELECT id INTO target_queue_id FROM queues WHERE queue_name = target_queue_name FOR UPDATE;
 
 	WITH potential_task AS (
 		SELECT tasks.*
@@ -107,8 +105,6 @@ BEGIN
 		FROM potential_task
 		WHERE tasks.id = potential_task.id
 		RETURNING * INTO found_task;
-
-	PERFORM pg_advisory_unlock(target_queue_id);
 
 	RETURN found_task;
 END;
@@ -165,7 +161,7 @@ ALTER FUNCTION public.notify_queue() OWNER TO postgres;
 
 CREATE TABLE public.queues (
     id integer NOT NULL,
-    queue_name character varying(32)
+    queue_name character varying(32) UNIQUE
 );
 
 

@@ -1,24 +1,9 @@
-"""
-insert into queues (queue_name) values ('toto');
-
-LISTEN "queue#toto";
-
-insert into tasks (queue_id, task_type, targeted_object) values (1, 'expire machin', 'mon:objet#42');
--- Asynchronous notification "queue#toto" with payload "expire machin" received from server process with PID 13917.
-
-select * from fetch_task('toto');
- id | queue_id |   task_type   | targeted_object | status
-----+----------+---------------+-----------------+--------
-  2 |        1 | expire machin | mon:objet#42    | doing
-(1 row)
-
-
-select finish_task(2, 'done');
-
-"""
-import functools
+import logging
 import uuid
-import psycopg2
+
+from cabbage import postgres
+
+logger = logging.getLogger(__name__)
 
 
 class Task:
@@ -34,33 +19,16 @@ class Task:
 
     def defer(self, lock=None, **kwargs):
         lock = lock or f"{uuid.uuid4()}"
-
-        launch_task(queue=self.queue, name=self.name, lock=lock, kwargs=kwargs)
-
-    def run(self, **kwargs):
-        self.func(self, **kwargs)
-
-
-def launch_task(queue, name, lock, kwargs):
-
-    with get_global_connection().cursor() as cursor:
-        cursor.execute(
-            """INSERT INTO tasks (queue_id, task_type, targeted_object, args)
-               SELECT id, %s, %s, %s FROM queues WHERE queue_name=%s;""",
-            (name, lock, kwargs, queue),
+        logger.info(
+            f"Scheduling task {self.name} in queue {self.queue} with args {kwargs}"
         )
-
-
-@functools.lru_cache(1)
-def get_global_connection():
-    conn = psycopg2.connect("")
-    conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
-    return conn
+        postgres.launch_task(queue=self.queue, name=self.name, lock=lock, kwargs=kwargs)
 
 
 class TaskManager:
     def __init__(self):
         self.tasks = {}
+        self.queues = set()
 
     def task(self, *args, **kwargs):
         task = Task(manager=self, *args, **kwargs)
@@ -68,3 +36,17 @@ class TaskManager:
 
     def register(self, task):
         self.tasks[task.name] = task
+        if task.queue not in self.queues:
+            logger.info(f"Creating queue {task.queue} (if not already existing)")
+            postgres.register_queue(task.queue)
+            self.queues.add(task.queue)
+
+
+class TaskRun:
+    def __init__(self, task, id, lock):
+        self.task = task
+        self.id = id
+        self.lock = lock
+
+    def run(self, **kwargs):
+        self.task.func(self, **kwargs)
