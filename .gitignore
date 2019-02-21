@@ -1,1 +1,3 @@
 *.egg-info
+.coverage
+htmlcov

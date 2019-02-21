@@ -235,31 +235,6 @@ ALTER TABLE ONLY public.queues ALTER COLUMN id SET DEFAULT nextval('public.queue
 
 ALTER TABLE ONLY public.tasks ALTER COLUMN id SET DEFAULT nextval('public.tasks_id_seq'::regclass);
 
-
---
--- Data for Name: queues; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY public.queues (id, queue_name) FROM stdin;
-\.
-
-
---
--- Data for Name: task_locks; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY public.task_locks (object) FROM stdin;
-\.
-
-
---
--- Data for Name: tasks; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY public.tasks (id, queue_id, task_type, targeted_object, status) FROM stdin;
-\.
-
-
 --
 -- Name: queues_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
