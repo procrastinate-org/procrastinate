@@ -3,7 +3,7 @@ import select
 
 from psycopg2.extras import RealDictCursor
 
-from cabbage import tasks, postgres, exceptions
+from cabbage import exceptions, postgres, tasks
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +20,7 @@ def worker(task_manager: tasks.TaskManager, queue: str):
         while True:
             process_tasks(task_manager, queue, curs)
             logger.debug("waiting")
-            select.select([conn], [], [], SOCKET_TIMEOUT) == ([], [], [])
+            select.select([conn], [], [], SOCKET_TIMEOUT)
 
 
 def process_tasks(task_manager: tasks.TaskManager, queue: str, curs):

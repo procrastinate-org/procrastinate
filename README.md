@@ -27,6 +27,16 @@ With a running database, in the dev virtualenv:
 $ pytest
 ```
 
+## Code cleaning
+
+In the dev virtualenv, before commiting:
+
+```console
+$ black .
+$ pylint .
+$ isort
+```
+
 ## Demo usage
 
 With a running database, in the dev virtualenv:

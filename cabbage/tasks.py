@@ -1,27 +1,34 @@
 import logging
 import uuid
+from typing import Callable, Optional
 
-from cabbage import postgres
+from cabbage import postgres, types
 
 logger = logging.getLogger(__name__)
 
 
 class Task:
-    def __init__(self, manager, queue):
+    def __init__(
+        self, *, manager: "TaskManager", queue: str, name: Optional[str] = None
+    ):
         self.queue = queue
         self.manager = manager
+        self.func: Optional[Callable] = None
+        self.name = name
 
-    def __call__(self, func):
+    def __call__(self, func: Callable) -> "Task":
         self.func = func
-        self.name = func.__name__
+        if not self.name:
+            self.name = func.__name__
         self.manager.register(self)
         return self
 
-    def defer(self, lock=None, **kwargs):
+    def defer(self, lock: str = None, **kwargs: types.JSON) -> None:
         lock = lock or f"{uuid.uuid4()}"
         logger.info(
             f"Scheduling task {self.name} in queue {self.queue} with args {kwargs}"
         )
+        assert self.name, "Task has no name"
         postgres.launch_task(queue=self.queue, name=self.name, lock=lock, kwargs=kwargs)
 
 
@@ -30,11 +37,12 @@ class TaskManager:
         self.tasks = {}
         self.queues = set()
 
-    def task(self, *args, **kwargs):
-        task = Task(manager=self, *args, **kwargs)
+    def task(self, **kwargs) -> Task:
+        kwargs["manager"] = self
+        task = Task(**kwargs)
         return task
 
-    def register(self, task):
+    def register(self, task: Task) -> None:
         self.tasks[task.name] = task
         if task.queue not in self.queues:
             logger.info(f"Creating queue {task.queue} (if not already existing)")
@@ -43,10 +51,13 @@ class TaskManager:
 
 
 class TaskRun:
-    def __init__(self, task, id, lock):
+    def __init__(
+        self, task: Task, id: int, lock: str
+    ):  # pylint: disable=redefined-builtin
         self.task = task
         self.id = id
         self.lock = lock
 
-    def run(self, **kwargs):
+    def run(self, **kwargs) -> None:
+        assert self.task.func, "Task has no associated function"
         self.task.func(self, **kwargs)
