@@ -23,7 +23,7 @@ class Task:
         self.manager.register(self)
         return self
 
-    def defer(self, lock: str = None, **kwargs: types.JSON) -> None:
+    def defer(self, lock: str = None, **kwargs: types.JSONValue) -> None:
         lock = lock or f"{uuid.uuid4()}"
         logger.info(
             f"Scheduling task {self.name} in queue {self.queue} with args {kwargs}"
