@@ -1,6 +1,6 @@
 import logging
 import uuid
-from typing import Callable, Optional
+from typing import Callable, Optional, Dict, Set
 
 from cabbage import postgres, types
 
@@ -34,8 +34,8 @@ class Task:
 
 class TaskManager:
     def __init__(self):
-        self.tasks = {}
-        self.queues = set()
+        self.tasks: Dict[str, Task] = {}
+        self.queues: Set[str] = set()
 
     def task(self, **kwargs) -> Task:
         kwargs["manager"] = self
@@ -43,6 +43,7 @@ class TaskManager:
         return task
 
     def register(self, task: Task) -> None:
+        assert task.name, "Task has no name"
         self.tasks[task.name] = task
         if task.queue not in self.queues:
             logger.info(f"Creating queue {task.queue} (if not already existing)")
