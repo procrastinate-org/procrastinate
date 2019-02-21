@@ -2,12 +2,13 @@ from typing import Any
 
 import psycopg2
 from psycopg2 import sql
+from psycopg2 import extras
 
 from cabbage import types
 
 
 def init_pg_extensions() -> None:
-    psycopg2.extensions.register_adapter(dict, psycopg2.extras.Json)
+    psycopg2.extensions.register_adapter(dict, extras.Json)
 
 
 def launch_task(queue: str, name: str, lock: str, kwargs: types.JSONValue) -> None:
