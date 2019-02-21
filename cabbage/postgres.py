@@ -1,7 +1,10 @@
-import functools
 import psycopg2
 
 from psycopg2 import sql
+
+
+def init_pg_extensions():
+    psycopg2.extensions.register_adapter(dict, psycopg2.extras.Json)
 
 
 def launch_task(queue, name, lock, kwargs):
@@ -31,13 +34,16 @@ def listen_queue(curs, queue):
     curs.execute(sql.SQL("""LISTEN {queue_name};""").format(queue_name=queue_name))
 
 
-@functools.lru_cache(1)
 def get_global_connection(**kwargs):
-    conn = psycopg2.connect("", **kwargs)
-    # conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
-    psycopg2.extensions.register_adapter(dict, psycopg2.extras.Json)
-    return conn
-
+    global _connection
+    if _connection is None:
+        _connection = psycopg2.connect("", **kwargs)
+    return _connection
 
 def reset_global_connection():
-    get_global_connection.cache_clear()
+    global _connection
+    _connection = None
+    
+    
+init_pg_extensions()
+_connection = None

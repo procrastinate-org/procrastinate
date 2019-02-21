@@ -44,6 +44,8 @@ def db(setup_db):
         )
     params = setup_db.get_dsn_parameters()
     params["dbname"] = "cabbage_test"
+
+    postgres.reset_global_connection()
     with postgres.get_global_connection(**params) as connection:
         yield connection
     postgres.reset_global_connection()

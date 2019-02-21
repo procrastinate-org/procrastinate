@@ -4,7 +4,7 @@ Kind of like Celery but based on elephants (Postgres) instead of rabbits (Rabbit
 
 Currently very alpha stage.
 
-## Database
+## Database creation
 
 Launch a postgres DB the way you want, e.g. using docker:
 
@@ -14,21 +14,34 @@ $ export PGDATABASE=cabbage PGHOST=localhost PGUSER=postgres
 $ createdb && psql -v ON_ERROR_STOP=ON -f init.sql
 ```
 
-## BLAAA
+## Installation for development
 ```console
-$ pip install -e ".[dev,test,lint]"
+$ pip install -r requirements.txt
 ```
 
-## Launch a worker
+## Testing
+
+With a running database, in the dev virtualenv:
+
+```console
+$ pytest
+```
+
+## Demo usage
+
+With a running database, in the dev virtualenv:
+
+### Launch a worker
 
 ```console
 $ python -m cabbage_demo worker sums
 $ python -m cabbage_demo worker products
 ```
 
-
-## Schedule some tasks
+### Schedule some tasks
 
 ```console
 $ python -m cabbage_demo client
 ```
+
+

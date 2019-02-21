@@ -11,7 +11,7 @@ class Task:
         self.queue = queue
         self.manager = manager
 
-    def __call__(self, func=None, **kwargs):
+    def __call__(self, func):
         self.func = func
         self.name = func.__name__
         self.manager.register(self)
