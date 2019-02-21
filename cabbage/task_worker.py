@@ -46,18 +46,19 @@ def process_tasks(task_manager: tasks.TaskManager, queue: str, curs: Any) -> Non
         if task_row["id"] is None:
             break
 
+        assert isinstance(task_row["id"], int)
         task_id = task_row["id"]
 
-        state = "error"
+        status = "error"
         try:
             logger.debug(f"""About to run task from row {task_row})""")
             call_task(task_manager=task_manager, task_row=task_row)
-            state = "done"
+            status = "done"
         except exceptions.TaskError:
             pass
         finally:
-            logger.debug(f"Calling finish_task({task_id}, {state})")
-            postgres.finish_task(cursor=curs, task_id=task_id, state=state)
+            logger.debug(f"Calling finish_task({task_id}, {status})")
+            postgres.finish_task(cursor=curs, task_id=task_id, status=status)
 
 
 def call_task(task_manager: tasks.TaskManager, task_row: dict) -> None:

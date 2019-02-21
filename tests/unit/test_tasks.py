@@ -110,6 +110,7 @@ def test_task_manager_register_queue_already_exists(manager, mocker):
 
 def test_task_run_run(manager, mocker):
 
+    mocker.patch("cabbage.postgres.register_queue")
     job = mocker.MagicMock()
     task = tasks.Task(manager=manager, queue="bla", name="foo")(job)
     task_run = tasks.TaskRun(task=task, id=12, lock="bla")
@@ -118,8 +119,7 @@ def test_task_run_run(manager, mocker):
     job.assert_called_with(task_run, a=1, b=2)
 
 
-def test_task_run_run_no_func(manager, mocker):
-
+def test_task_run_run_no_func(manager):
     task = tasks.Task(manager=manager, queue="bla", name="foo")
     task_run = tasks.TaskRun(task=task, id=12, lock="bla")
 

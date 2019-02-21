@@ -1,3 +1,5 @@
+from contextlib import closing
+
 import psycopg2
 import pytest
 from psycopg2 import sql
@@ -17,7 +19,7 @@ def _execute(cursor, query, *identifiers):
 @pytest.fixture(scope="session")
 def setup_db():
 
-    with psycopg2.connect("", dbname="postgres") as connection:
+    with closing(psycopg2.connect("", dbname="postgres")) as connection:
         connection.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
         with connection.cursor() as cursor:
             _execute(cursor, "DROP DATABASE IF EXISTS {}", "cabbage_test_template")
@@ -30,6 +32,12 @@ def setup_db():
         connection.commit()
         connection.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
         yield connection
+
+    connection.close()
+    with closing(psycopg2.connect("", dbname="postgres")) as connection:
+        connection.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+        with connection.cursor() as cursor:
+            _execute(cursor, "DROP DATABASE IF EXISTS {}", "cabbage_test_template")
 
 
 @pytest.fixture
@@ -46,6 +54,10 @@ def db(setup_db):
     params["dbname"] = "cabbage_test"
 
     postgres.reset_global_connection()
-    with postgres.get_global_connection(**params) as connection:
+    with closing(postgres.get_global_connection(**params)) as connection:
         yield connection
+
     postgres.reset_global_connection()
+
+    with setup_db.cursor() as cursor:
+        _execute(cursor, "DROP DATABASE IF EXISTS {}", "cabbage_test")

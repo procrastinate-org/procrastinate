@@ -11,15 +11,15 @@ def test_nominal(db, mocker):
     product_results = []
 
     @task_manager.task(queue="sum_queue")
-    def sum_task(task_run, a, b):
+    def sum_task(task_run, a, b):  # pytest: disable=unused-argument
         sum_results.append(a + b)
 
     @task_manager.task(queue="sum_queue")
-    def increment_task(task_run, a):
+    def increment_task(task_run, a):  # pytest: disable=unused-argument
         sum_results.append(a + 1)
 
     @task_manager.task(queue="product_queue")
-    def product_task(task_run, a, b):
+    def product_task(task_run, a, b):  # pytest: disable=unused-argument
         product_results.append(a * b)
 
     sum_task.defer(a=5, b=7)

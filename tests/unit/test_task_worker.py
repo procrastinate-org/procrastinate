@@ -1,6 +1,6 @@
 import pytest
 
-from cabbage import task_worker, tasks, exceptions
+from cabbage import exceptions, task_worker, tasks
 
 
 @pytest.fixture
@@ -12,6 +12,9 @@ def manager():
 # way to unit-test it that brings anything to the table.
 # If you do, feel free !
 # It's tested in integration though
+@pytest.mark.skip(reason="How to test this ?")
+def test_worker():
+    raise NotImplementedError
 
 
 def test_infinite_loop():
@@ -55,8 +58,8 @@ def test_process_task(mocker, manager):
     ]
 
     assert finish_task.call_args_list == [
-        mocker.call(cursor="Monkey Island", task_id=42, state="done"),
-        mocker.call(cursor="Monkey Island", task_id=43, state="error"),
+        mocker.call(cursor="Monkey Island", task_id=42, status="done"),
+        mocker.call(cursor="Monkey Island", task_id=43, status="error"),
     ]
 
 
