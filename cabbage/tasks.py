@@ -1,6 +1,6 @@
 import logging
 import uuid
-from typing import Callable, Optional, Dict, Set
+from typing import Callable, Dict, Optional, Set
 
 from cabbage import postgres, types
 

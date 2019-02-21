@@ -1,8 +1,8 @@
 from typing import Any
 
 import psycopg2
-from psycopg2 import sql
-from psycopg2 import extras
+from psycopg2 import extras, sql
+from psycopg2.extras import RealDictCursor
 
 from cabbage import types
 
@@ -48,6 +48,23 @@ def get_global_connection(**kwargs: Any) -> Any:
 def reset_global_connection() -> None:
     global _connection  # pylint: disable=global-statement
     _connection = None
+
+
+def get_dict_cursor(conn: Any) -> Any:
+    return conn.cursor(cursor_factory=RealDictCursor)
+
+
+def get_tasks(cursor: Any, queue: str):
+    while True:
+        cursor.execute("""SELECT * FROM fetch_task(%s);""", (queue,))
+        cursor.connection.commit()
+
+        yield cursor.fetchone()
+
+
+def finish_task(cursor, task_id, state):
+    cursor.execute("""SELECT finish_task(%s, %s);""", (task_id, state))
+    cursor.connection.commit()
 
 
 init_pg_extensions()
