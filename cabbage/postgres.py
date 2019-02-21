@@ -32,8 +32,12 @@ def listen_queue(curs, queue):
 
 
 @functools.lru_cache(1)
-def get_global_connection():
-    conn = psycopg2.connect("")
+def get_global_connection(**kwargs):
+    conn = psycopg2.connect("", **kwargs)
     # conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
     psycopg2.extensions.register_adapter(dict, psycopg2.extras.Json)
     return conn
+
+
+def reset_global_connection():
+    get_global_connection.cache_clear()
