@@ -79,4 +79,4 @@ def call_task(task_manager: tasks.TaskManager, task_row: postgres.TaskRow) -> No
         logger.exception(f"Error - {description}")
         raise exceptions.TaskError() from e
     else:
-        logger.info(f"Succesfully ran task {task.name} with args {kwargs}")
+        logger.info(f"Success - {description}")
