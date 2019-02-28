@@ -18,7 +18,7 @@ def init_pg_extensions() -> None:
     psycopg2.extensions.register_adapter(dict, extras.Json)
 
 
-def launch_task(queue: str, name: str, lock: str, kwargs: types.JSONValue) -> int:
+def launch_task(queue: str, name: str, lock: str, kwargs: types.JSONDict) -> int:
 
     conn = get_global_connection()
     with conn.cursor() as cursor:
