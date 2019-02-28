@@ -43,11 +43,9 @@ def one_loop(task_manager: tasks.TaskManager, queue: str, curs: Any, timeout) ->
 def process_tasks(task_manager: tasks.TaskManager, queue: str, curs: Any) -> None:
 
     for task_row in postgres.get_tasks(cursor=curs, queue=queue):  # pragma: no branch
-        if task_row["id"] is None:
-            break
 
-        assert isinstance(task_row["id"], int)
-        task_id = task_row["id"]
+        assert isinstance(task_row.id, int)
+        task_id = task_row.id
 
         status = "error"
         try:
@@ -61,17 +59,17 @@ def process_tasks(task_manager: tasks.TaskManager, queue: str, curs: Any) -> Non
             postgres.finish_task(cursor=curs, task_id=task_id, status=status)
 
 
-def call_task(task_manager: tasks.TaskManager, task_row: dict) -> None:
-    task_name = task_row["task_type"]
+def call_task(task_manager: tasks.TaskManager, task_row: postgres.TaskRow) -> None:
+    task_name = task_row.task_type
     try:
         task = task_manager.tasks[task_name]
     except KeyError:
         raise exceptions.TaskNotFound(task_row)
 
-    pk = task_row["id"]
+    pk = task_row.id
 
-    task_run = tasks.TaskRun(task=task, id=pk, lock=task_row["targeted_object"])
-    kwargs = task_row["args"]
+    task_run = tasks.TaskRun(task=task, id=pk, lock=task_row.targeted_object)
+    kwargs = task_row.args
 
     description = f"{task.queue}.{task.name}.{pk}({kwargs})"
     logger.info(f"Start - {description}")

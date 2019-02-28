@@ -1,10 +1,17 @@
-from typing import Any, Dict, Iterator, Union
+from typing import Any, Dict, Iterator, Union, NamedTuple
 
 import psycopg2
 from psycopg2 import extras, sql
 from psycopg2.extras import RealDictCursor
 
 from cabbage import exceptions, types
+
+
+class TaskRow(NamedTuple):
+    id: int
+    task_type: str
+    args: types.JSONDict
+    targeted_object: str
 
 
 def init_pg_extensions() -> None:
@@ -30,12 +37,22 @@ def launch_task(queue: str, name: str, lock: str, kwargs: types.JSONValue) -> in
     return row[0]
 
 
-def get_tasks(cursor: Any, queue: str) -> Iterator[Dict[str, Union[str, int]]]:
+def get_tasks(cursor: Any, queue: str) -> Iterator[TaskRow]:
     while True:
-        cursor.execute("""SELECT * FROM fetch_task(%s);""", (queue,))
+        cursor.execute(
+            """SELECT id, args, targeted_object, task_type FROM fetch_task(%s);""",
+            (queue,),
+        )
         cursor.connection.commit()
 
-        yield cursor.fetchone()
+        row = cursor.fetchone()
+
+        # fetch_tasks will always return a row, but is there's no relevant
+        # value, it will all be None
+        if row["id"] is None:
+            return
+
+        yield TaskRow(**row)
 
 
 def finish_task(cursor: Any, task_id: int, status: str) -> None:

@@ -1,6 +1,6 @@
 import pytest
 
-from cabbage import exceptions, task_worker, tasks
+from cabbage import exceptions, task_worker, tasks, postgres
 
 
 @pytest.fixture
@@ -38,10 +38,8 @@ def test_one_loop(manager, mocker):
 
 
 def test_process_task(mocker, manager):
-    mocker.patch(
-        "cabbage.postgres.get_tasks",
-        return_value=[{"id": 42}, {"id": 43}, {"id": None}],
-    )
+    row1, row2 = mocker.Mock(id=42), mocker.Mock(id=43)
+    mocker.patch("cabbage.postgres.get_tasks", return_value=[row1, row2])
     call_task = mocker.patch(
         "cabbage.task_worker.call_task", side_effect=[None, exceptions.TaskError()]
     )
@@ -53,8 +51,8 @@ def test_process_task(mocker, manager):
     assert finish_task.call_count == 2
 
     assert call_task.call_args_list == [
-        mocker.call(task_manager=manager, task_row={"id": 42}),
-        mocker.call(task_manager=manager, task_row={"id": 43}),
+        mocker.call(task_manager=manager, task_row=row1),
+        mocker.call(task_manager=manager, task_row=row2),
     ]
 
     assert finish_task.call_args_list == [
@@ -74,12 +72,9 @@ def test_call_task(manager):
 
     manager.tasks = {"job": task}
 
-    row = {
-        "id": 16,
-        "args": {"a": 9, "b": 3},
-        "targeted_object": "sherlock",
-        "task_type": "job",
-    }
+    row = postgres.TaskRow(
+        id=16, args={"a": 9, "b": 3}, targeted_object="sherlock", task_type="job"
+    )
     task_worker.call_task(task_manager=manager, task_row=row)
 
     assert result == [12]
@@ -94,22 +89,16 @@ def test_call_task_error(manager):
 
     manager.tasks = {"job": task}
 
-    row = {
-        "id": 16,
-        "args": {"a": 9, "b": 3},
-        "targeted_object": "sherlock",
-        "task_type": "job",
-    }
+    row = postgres.TaskRow(
+        id=16, args={"a": 9, "b": 3}, targeted_object="sherlock", task_type="job"
+    )
     with pytest.raises(exceptions.TaskError):
         task_worker.call_task(task_manager=manager, task_row=row)
 
 
 def test_call_task_not_found(manager):
-    row = {
-        "id": 16,
-        "args": {"a": 9, "b": 3},
-        "targeted_object": "sherlock",
-        "task_type": "job",
-    }
+    row = postgres.TaskRow(
+        id=16, args={"a": 9, "b": 3}, targeted_object="sherlock", task_type="job"
+    )
     with pytest.raises(exceptions.TaskNotFound):
         task_worker.call_task(task_manager=manager, task_row=row)

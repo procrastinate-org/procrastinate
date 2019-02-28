@@ -51,16 +51,6 @@ def test_launch_task_no_queue(db):
         )
 
 
-def _check_next_task(it, end=False, **kwargs):
-    row = next(it)
-    if end:
-        assert row["id"] is None, f"iterator didn't end, yielded {row}"
-    else:
-        assert row.pop("id") is not None, f"no task found but expected {kwargs}"
-        row.pop("queue_id")
-        assert row == kwargs
-
-
 def test_get_tasks(db):
     postgres.register_queue("queue_a")
     postgres.register_queue("queue_b")
@@ -72,24 +62,17 @@ def test_get_tasks(db):
     postgres.launch_task("queue_b", "task_4", "lock_3", {"g": "h"})
 
     with postgres.get_dict_cursor(db) as cursor:
-        it = postgres.get_tasks(cursor, "queue_a")
+        result = list(postgres.get_tasks(cursor, "queue_a"))
 
-        _check_next_task(
-            it,
-            args={"a": "b"},
-            status="doing",
-            targeted_object="lock_1",
-            task_type="task_1",
-        )
-
-        _check_next_task(
-            it,
-            args={"e": "f"},
-            status="doing",
-            targeted_object="lock_2",
-            task_type="task_3",
-        )
-        _check_next_task(it, end=True)
+    t1, t2 = result
+    assert result == [
+        postgres.TaskRow(
+            id=t1.id, args={"a": "b"}, targeted_object="lock_1", task_type="task_1"
+        ),
+        postgres.TaskRow(
+            id=t2.id, args={"e": "f"}, targeted_object="lock_2", task_type="task_3"
+        ),
+    ]
 
 
 def test_finish_task(get_all, db):
@@ -98,9 +81,9 @@ def test_finish_task(get_all, db):
     with postgres.get_dict_cursor(db) as cursor:
         task = next(postgres.get_tasks(cursor, "queue_a"))
 
-        assert task["status"] == "doing"
+        assert get_all("tasks", "status") == [{"status": "doing"}]
 
-        postgres.finish_task(cursor=cursor, task_id=task["id"], status="done")
+        postgres.finish_task(cursor=cursor, task_id=task.id, status="done")
 
     assert get_all("tasks", "status") == [{"status": "done"}]
 
