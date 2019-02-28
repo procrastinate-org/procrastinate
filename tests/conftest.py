@@ -25,7 +25,7 @@ def setup_db():
             _execute(cursor, "DROP DATABASE IF EXISTS {}", "cabbage_test_template")
             _execute(cursor, "CREATE DATABASE {}", "cabbage_test_template")
 
-    with psycopg2.connect("", dbname="cabbage_test_template") as connection:
+    with closing(psycopg2.connect("", dbname="cabbage_test_template")) as connection:
         with connection.cursor() as cursor:
             with open("init.sql") as migrations:
                 cursor.execute(migrations.read())
@@ -33,7 +33,6 @@ def setup_db():
         connection.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
         yield connection
 
-    connection.close()
     with closing(psycopg2.connect("", dbname="postgres")) as connection:
         connection.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
         with connection.cursor() as cursor:
