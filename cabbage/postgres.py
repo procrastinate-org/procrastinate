@@ -1,4 +1,4 @@
-from typing import Any, Dict, Iterator, Union, NamedTuple
+from typing import Any, Iterator, NamedTuple
 
 import psycopg2
 from psycopg2 import extras, sql

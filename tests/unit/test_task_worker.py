@@ -1,6 +1,6 @@
 import pytest
 
-from cabbage import exceptions, task_worker, tasks, postgres
+from cabbage import exceptions, postgres, task_worker, tasks
 
 
 @pytest.fixture
