@@ -8,3 +8,7 @@ class TaskNotFound(CabbageException):
 
 class TaskError(CabbageException):
     pass
+
+
+class QueueNotFound(CabbageException):
+    pass
