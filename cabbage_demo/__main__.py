@@ -48,7 +48,7 @@ def main():
     process = sys.argv[1]
     if process == "worker":
         queue = sys.argv[2]
-        return cabbage.worker(task_manager, queue)
+        return cabbage.task_worker.Worker(task_manager, queue).run()
     else:
         return client()
 

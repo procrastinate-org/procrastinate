@@ -7,7 +7,7 @@ from cabbage import tasks
 
 @pytest.fixture
 def manager():
-    return tasks.TaskManager()
+    return tasks.TaskManager(object())
 
 
 def test_task_call(manager, mocker):
@@ -45,7 +45,11 @@ def test_task_defer(manager, mocker):
     task.defer(lock="sherlock", a="b", c=3)
 
     launch_task.assert_called_with(
-        queue="queue", name="job", lock="sherlock", kwargs={"a": "b", "c": 3}
+        manager.connection,
+        queue="queue",
+        name="job",
+        lock="sherlock",
+        kwargs={"a": "b", "c": 3},
     )
 
 
@@ -84,7 +88,7 @@ def test_task_manager_register(manager, mocker):
 
     assert manager.queues == {"queue"}
     assert manager.tasks == {"bla": task}
-    register_queue.assert_called_with("queue")
+    register_queue.assert_called_with(manager.connection, "queue")
 
 
 def test_task_manager_register_no_task_name(manager, mocker):
