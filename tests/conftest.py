@@ -1,11 +1,11 @@
+import os
+import signal as stdlib_signal
 from contextlib import closing
 
 import psycopg2
 import pytest
 from psycopg2 import sql
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
-
-from cabbage import postgres
 
 
 def _execute(cursor, query, *identifiers):
@@ -40,7 +40,7 @@ def setup_db():
 
 
 @pytest.fixture
-def db(setup_db):
+def connection(setup_db):
     with setup_db.cursor() as cursor:
         _execute(cursor, "DROP DATABASE IF EXISTS {}", "cabbage_test")
         _execute(
@@ -49,14 +49,17 @@ def db(setup_db):
             "cabbage_test",
             "cabbage_test_template",
         )
-    params = setup_db.get_dsn_parameters()
-    params["dbname"] = "cabbage_test"
 
-    postgres.reset_global_connection()
-    with closing(postgres.get_global_connection(**params)) as connection:
+    with closing(psycopg2.connect("", dbname="cabbage_test")) as connection:
         yield connection
-
-    postgres.reset_global_connection()
 
     with setup_db.cursor() as cursor:
         _execute(cursor, "DROP DATABASE IF EXISTS {}", "cabbage_test")
+
+
+@pytest.fixture
+def kill_own_pid():
+    def f(signal=stdlib_signal.SIGTERM):
+        os.kill(os.getpid(), signal)
+
+    return f

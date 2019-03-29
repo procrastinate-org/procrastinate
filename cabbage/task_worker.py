@@ -1,9 +1,7 @@
-import functools
 import logging
 import select
-from typing import Any, Callable
 
-from cabbage import exceptions, postgres, tasks
+from cabbage import exceptions, postgres, signals, tasks
 
 logger = logging.getLogger(__name__)
 
@@ -11,72 +9,68 @@ logger = logging.getLogger(__name__)
 SOCKET_TIMEOUT = 5  # seconds
 
 
-def worker(
-    task_manager: tasks.TaskManager, queue: str, timeout: int = SOCKET_TIMEOUT
-) -> None:
-    conn = postgres.get_global_connection()
+class Worker:
+    def __init__(self, task_manager: tasks.TaskManager, queue: str) -> None:
+        self._task_manager = task_manager
+        self._queue = queue
+        self._stop_requested = False
 
-    with postgres.get_dict_cursor(conn) as curs:
-        postgres.listen_queue(curs, queue)
-        infinite_loop(
-            functools.partial(
-                one_loop,
-                task_manager=task_manager,
-                queue=queue,
-                curs=curs,
-                timeout=timeout,
-            )
-        )
+    def run(self, timeout: int = SOCKET_TIMEOUT) -> None:
+        connection = self._task_manager.connection
 
+        postgres.listen_queue(connection=connection, queue=self._queue)
 
-def infinite_loop(func: Callable) -> None:
-    while True:
-        func()
+        while True:
+            with signals.on_stop(self.stop):
+                self.process_tasks()
 
+            if self._stop_requested:
+                break
 
-def one_loop(task_manager: tasks.TaskManager, queue: str, curs: Any, timeout) -> None:
-    process_tasks(task_manager=task_manager, queue=queue, curs=curs)
-    logger.debug("waiting")
-    select.select([curs.connection], [], [], timeout)
+            logger.debug("Waiting")
+            select.select(rlist=[connection], wlist=[], xlist=[], timeout=timeout)
 
+    def process_tasks(self) -> None:
+        for task_row in self._task_manager.get_tasks(self._queue):  # pragma: no branch
+            assert isinstance(task_row.id, int)
+            task_id = task_row.id
 
-def process_tasks(task_manager: tasks.TaskManager, queue: str, curs: Any) -> None:
+            status = "error"
+            try:
+                logger.debug(f"""About to run task from row {task_row})""")
+                self.run_task(task_row=task_row)
+                status = "done"
+            except exceptions.TaskError:
+                pass
+            finally:
+                logger.debug(f"Calling finish_task({task_id}, {status})")
+                self._task_manager.finish_task(task_row, status=status)
 
-    for task_row in postgres.get_tasks(cursor=curs, queue=queue):  # pragma: no branch
+            if self._stop_requested:
+                break
 
-        assert isinstance(task_row.id, int)
-        task_id = task_row.id
-
-        status = "error"
+    def run_task(self, task_row: postgres.TaskRow) -> None:
+        task_name = task_row.task_type
         try:
-            logger.debug(f"""About to run task from row {task_row})""")
-            call_task(task_manager=task_manager, task_row=task_row)
-            status = "done"
-        except exceptions.TaskError:
-            pass
-        finally:
-            logger.debug(f"Calling finish_task({task_id}, {status})")
-            postgres.finish_task(cursor=curs, task_id=task_id, status=status)
+            task = self._task_manager.tasks[task_name]
+        except KeyError:
+            raise exceptions.TaskNotFound(task_row)
 
+        pk = task_row.id
 
-def call_task(task_manager: tasks.TaskManager, task_row: postgres.TaskRow) -> None:
-    task_name = task_row.task_type
-    try:
-        task = task_manager.tasks[task_name]
-    except KeyError:
-        raise exceptions.TaskNotFound(task_row)
+        task_run = tasks.TaskRun(task=task, id=pk, lock=task_row.targeted_object)
+        kwargs = task_row.args
 
-    pk = task_row.id
+        description = f"{task.queue}.{task.name}.{pk}({kwargs})"
+        logger.info(f"Start - {description}")
+        try:
+            task_run.run(**kwargs)
+        except Exception as e:
+            logger.exception(f"Error - {description}")
+            raise exceptions.TaskError() from e
+        else:
+            logger.info(f"Success - {description}")
 
-    task_run = tasks.TaskRun(task=task, id=pk, lock=task_row.targeted_object)
-    kwargs = task_row.args
-
-    description = f"{task.queue}.{task.name}.{pk}({kwargs})"
-    logger.info(f"Start - {description}")
-    try:
-        task_run.run(**kwargs)
-    except Exception as e:
-        logger.exception(f"Error - {description}")
-        raise exceptions.TaskError() from e
-    else:
-        logger.info(f"Success - {description}")
+    def stop(self, signum: signals.Signals, frame: signals.FrameType) -> None:
+        self._stop_requested = True
+        logger.info("Stop requested, waiting for task to finish")
