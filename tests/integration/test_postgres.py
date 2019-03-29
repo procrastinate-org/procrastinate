@@ -14,6 +14,14 @@ def test_init_pg_extensions():
     assert type(json).__name__ == "Json"
 
 
+def test_get_connection(connection):
+    dsn = connection.get_dsn_parameters()
+
+    new_connection = postgres.get_connection(**dsn)
+
+    assert new_connection.get_dsn_parameters() == dsn
+
+
 @pytest.fixture()
 def get_all(connection):
     def f(table, *fields):

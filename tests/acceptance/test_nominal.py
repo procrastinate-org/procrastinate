@@ -1,8 +1,10 @@
+import signal
+
 import cabbage
 
 
-def test_nominal(connection):
-    task_manager = cabbage.TaskManager()
+def test_nominal(connection, kill_own_pid):
+    task_manager = cabbage.TaskManager(connection=connection)
 
     sum_results = []
     product_results = []
@@ -17,7 +19,7 @@ def test_nominal(connection):
 
     @task_manager.task(queue="sum_queue")
     def stop_sum(task_run):
-        raise KeyboardInterrupt()
+        kill_own_pid(signal.SIGINT)
 
     @task_manager.task(queue="product_queue")
     def product_task(task_run, a, b):  # pytest: disable=unused-argument
@@ -25,7 +27,7 @@ def test_nominal(connection):
 
     @task_manager.task(queue="product_queue")
     def stop_product(task_run):
-        raise KeyboardInterrupt()
+        kill_own_pid(signal.SIGTERM)
 
     sum_task.defer(a=5, b=7)
     sum_task.defer(a=3, b=4)

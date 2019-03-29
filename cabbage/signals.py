@@ -1,10 +1,13 @@
 import signal
 from contextlib import contextmanager
-from typing import Any, Callable
+from types import FrameType
+from typing import Callable
+
+Signals = signal.Signals
 
 
 @contextmanager
-def on_stop(callback: Callable[[int, Any], None]) -> None:
+def on_stop(callback: Callable[[signal.Signals, FrameType], None]):
     sigint_handler = signal.getsignal(signal.SIGINT)
     sigterm_handler = signal.getsignal(signal.SIGTERM)
 

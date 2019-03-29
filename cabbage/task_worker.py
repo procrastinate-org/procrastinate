@@ -1,6 +1,5 @@
 import logging
 import select
-from typing import Any
 
 from cabbage import exceptions, postgres, signals, tasks
 
@@ -19,23 +18,17 @@ class Worker:
     def run(self, timeout: int = SOCKET_TIMEOUT) -> None:
         connection = self._task_manager.connection
 
-        postgres.listen_queue(connection, self._queue)
+        postgres.listen_queue(connection=connection, queue=self._queue)
 
-        try:
-            while True:
-                with signals.on_stop(self.stop):
-                    self.process_tasks()
+        while True:
+            with signals.on_stop(self.stop):
+                self.process_tasks()
 
-                if self._stop_requested:
-                    break
+            if self._stop_requested:
+                break
 
-                logger.debug("Waiting")
-                select.select([connection], [], [], timeout)
-        except KeyboardInterrupt:
-            pass
-        except Exception as e:
-            logger.exception(e)
-            raise
+            logger.debug("Waiting")
+            select.select(rlist=[connection], wlist=[], xlist=[], timeout=timeout)
 
     def process_tasks(self) -> None:
         for task_row in self._task_manager.get_tasks(self._queue):  # pragma: no branch
@@ -78,6 +71,6 @@ class Worker:
         else:
             logger.info(f"Success - {description}")
 
-    def stop(self, _signum: int, _frame: Any) -> None:
+    def stop(self, signum: signals.Signals, frame: signals.FrameType) -> None:
         self._stop_requested = True
         logger.info("Stop requested, waiting for task to finish")

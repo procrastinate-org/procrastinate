@@ -129,3 +129,10 @@ def test_task_run_run_no_func(manager):
 
     with pytest.raises(AssertionError):
         task_run.run(a=1, b=2)
+
+
+def test_task_manager_default_connection(mocker):
+    get_connection = mocker.patch("cabbage.postgres.get_connection")
+    manager = tasks.TaskManager()
+
+    assert manager.connection is get_connection.return_value

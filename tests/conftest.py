@@ -1,3 +1,5 @@
+import os
+import signal as stdlib_signal
 from contextlib import closing
 
 import psycopg2
@@ -53,3 +55,11 @@ def connection(setup_db):
 
     with setup_db.cursor() as cursor:
         _execute(cursor, "DROP DATABASE IF EXISTS {}", "cabbage_test")
+
+
+@pytest.fixture
+def kill_own_pid():
+    def f(signal=stdlib_signal.SIGTERM):
+        os.kill(os.getpid(), signal)
+
+    return f
