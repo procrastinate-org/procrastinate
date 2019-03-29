@@ -1,7 +1,7 @@
 import pytest
 
-from cabbage.tasks import TaskManager
 from cabbage.task_worker import Worker
+from cabbage.tasks import TaskManager
 
 
 @pytest.fixture()

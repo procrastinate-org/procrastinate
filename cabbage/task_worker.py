@@ -1,8 +1,8 @@
 import logging
 import select
-import signal
+from typing import Any
 
-from cabbage import exceptions, postgres, tasks
+from cabbage import exceptions, postgres, signals, tasks
 
 logger = logging.getLogger(__name__)
 
@@ -23,9 +23,8 @@ class Worker:
 
         try:
             while True:
-                self._install_signal_handlers()
-                self.process_tasks()
-                self._uninstall_signal_handlers()
+                with signals.on_stop(self.stop):
+                    self.process_tasks()
 
                 if self._stop_requested:
                     break
@@ -79,14 +78,6 @@ class Worker:
         else:
             logger.info(f"Success - {description}")
 
-    def _install_signal_handlers(self) -> None:
-        def stop(_signum, _frame):
-            self._stop_requested = True
-            logger.info("Stop requested, waiting for task to finish")
-
-        signal.signal(signal.SIGINT, stop)
-        signal.signal(signal.SIGTERM, stop)
-
-    def _uninstall_signal_handlers(self) -> None:
-        signal.signal(signal.SIGINT, signal.SIG_DFL)
-        signal.signal(signal.SIGTERM, signal.SIG_DFL)
+    def stop(self, _signum: int, _frame: Any) -> None:
+        self._stop_requested = True
+        logger.info("Stop requested, waiting for task to finish")

@@ -5,8 +5,6 @@ import pytest
 from psycopg2 import sql
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 
-from cabbage.postgres import get_connection
-
 
 def _execute(cursor, query, *identifiers):
     cursor.execute(
@@ -49,11 +47,9 @@ def connection(setup_db):
             "cabbage_test",
             "cabbage_test_template",
         )
-    params = setup_db.get_dsn_parameters()
-    params["dbname"] = "cabbage_test"
 
-    with closing(get_connection(**params)) as conn:
-        yield conn
+    with closing(psycopg2.connect("", dbname="cabbage_test")) as connection:
+        yield connection
 
     with setup_db.cursor() as cursor:
         _execute(cursor, "DROP DATABASE IF EXISTS {}", "cabbage_test")
