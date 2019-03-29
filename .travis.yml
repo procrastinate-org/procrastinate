@@ -1,0 +1,28 @@
+# Config file for automatic testing at travis-ci.org
+language: python
+cache: pip
+
+matrix:
+  include:
+
+  - python: 3.6
+    env:
+      TOX_ENV: py36-unit-tests,py36-integration-tests,py36-acceptance-tests
+
+  - python: 3.7
+    env:
+      TOX_ENV: py37-unit-tests,py37-integration-tests,py37-acceptance-tests
+
+  - python: 3.7
+    env:
+      TOX_ENV: lint
+
+install:
+  - pip install tox codecov
+  - tox --notest -e $TOX_ENV
+
+script:
+  - tox -e $TOX_ENV
+
+after_success:
+- codecov
