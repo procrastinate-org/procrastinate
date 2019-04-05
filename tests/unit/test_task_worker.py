@@ -25,9 +25,7 @@ def test_run(manager, mocker):
     worker.run(timeout=42)
 
     listen_queue.assert_called_with(connection=manager.connection, queue="marsupilami")
-    select.assert_called_with(
-        rlist=[manager.connection], wlist=[], xlist=[], timeout=42
-    )
+    select.assert_called_with([manager.connection], [], [], 42)
 
 
 def test_process_tasks(mocker, manager):
@@ -76,11 +74,10 @@ def test_process_tasks(mocker, manager):
 def test_run_task(manager):
     result = []
 
-    def job(task_run, a, b):  # pylint: disable=unused-argument
+    def job(a, b):  # pylint: disable=unused-argument
         result.append(a + b)
 
-    task = tasks.Task(manager=manager, queue="yay", name="job")
-    task.func = job
+    task = tasks.Task(job, manager=manager, queue="yay", name="job")
 
     manager.tasks = {"job": task}
 
@@ -94,10 +91,10 @@ def test_run_task(manager):
 
 
 def test_run_task_error(manager):
-    def job(task_run, a, b):  # pylint: disable=unused-argument
+    def job(a, b):  # pylint: disable=unused-argument
         raise ValueError("nope")
 
-    task = tasks.Task(manager=manager, queue="yay", name="job")
+    task = tasks.Task(job, manager=manager, queue="yay", name="job")
     task.func = job
 
     manager.tasks = {"job": task}

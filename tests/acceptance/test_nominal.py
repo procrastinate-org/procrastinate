@@ -10,23 +10,23 @@ def test_nominal(connection, kill_own_pid):
     product_results = []
 
     @task_manager.task(queue="sum_queue")
-    def sum_task(task_run, a, b):  # pytest: disable=unused-argument
+    def sum_task(a, b):  # pytest: disable=unused-argument
         sum_results.append(a + b)
 
     @task_manager.task(queue="sum_queue")
-    def increment_task(task_run, a):  # pytest: disable=unused-argument
+    def increment_task(a):  # pytest: disable=unused-argument
         sum_results.append(a + 1)
 
     @task_manager.task(queue="sum_queue")
-    def stop_sum(task_run):
+    def stop_sum():
         kill_own_pid(signal.SIGINT)
 
     @task_manager.task(queue="product_queue")
-    def product_task(task_run, a, b):  # pytest: disable=unused-argument
+    def product_task(a, b):  # pytest: disable=unused-argument
         product_results.append(a * b)
 
     @task_manager.task(queue="product_queue")
-    def stop_product(task_run):
+    def stop_product():
         kill_own_pid(signal.SIGTERM)
 
     sum_task.defer(a=5, b=7)

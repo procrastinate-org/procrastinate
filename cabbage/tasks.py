@@ -9,19 +9,17 @@ logger = logging.getLogger(__name__)
 
 class Task:
     def __init__(
-        self, *, manager: "TaskManager", queue: str, name: Optional[str] = None
+        self,
+        func: Callable,
+        *,
+        manager: "TaskManager",
+        queue: str,
+        name: Optional[str] = None,
     ):
         self.queue = queue
         self.manager = manager
-        self.func: Optional[Callable] = None
-        self.name = name
-
-    def __call__(self, func: Callable) -> "Task":
-        self.func = func
-        if not self.name:
-            self.name = func.__name__
-        self.manager.register(self)
-        return self
+        self.func: Callable = func
+        self.name = name or self.func.__name__
 
     def defer(self, lock: str = None, **kwargs: types.JSONValue) -> None:
         lock = lock or f"{uuid.uuid4()}"
@@ -47,13 +45,32 @@ class TaskManager:
         self.tasks: Dict[str, Task] = {}
         self.queues: Set[str] = set()
 
-    def task(self, **kwargs) -> Task:
-        kwargs["manager"] = self
-        task = Task(**kwargs)
-        return task
+    def task(
+        self,
+        _func: Optional[Callable] = None,
+        queue: str = "default",
+        name: Optional[str] = None,
+    ) -> Callable:
+        """
+        Declare a function as a task.
+
+        Can be used as a decorator or a simple method.
+        """
+
+        def _wrap(func: Callable) -> Callable:
+            task = Task(func, manager=self, queue=queue, name=name)
+            self.register(task)
+
+            func.defer = task.defer
+
+            return func
+
+        if _func is None:
+            return _wrap
+
+        return _wrap(_func)
 
     def register(self, task: Task) -> None:
-        assert task.name, "Task has no name"
         self.tasks[task.name] = task
         if task.queue not in self.queues:
             logger.info(f"Creating queue {task.queue} (if not already existing)")
@@ -65,16 +82,3 @@ class TaskManager:
 
     def finish_task(self, task_row: postgres.TaskRow, status: str) -> None:
         return postgres.finish_task(self.connection, task_row.id, status)
-
-
-class TaskRun:
-    def __init__(
-        self, task: Task, id: int, lock: str
-    ):  # pylint: disable=redefined-builtin
-        self.task = task
-        self.id = id
-        self.lock = lock
-
-    def run(self, **kwargs) -> None:
-        assert self.task.func, "Task has no associated function"
-        self.task.func(self, **kwargs)

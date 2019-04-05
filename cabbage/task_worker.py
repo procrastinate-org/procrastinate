@@ -28,7 +28,7 @@ class Worker:
                 break
 
             logger.debug("Waiting")
-            select.select(rlist=[connection], wlist=[], xlist=[], timeout=timeout)
+            select.select([connection], [], [], timeout)
 
     def process_tasks(self) -> None:
         for task_row in self._task_manager.get_tasks(self._queue):  # pragma: no branch
@@ -58,13 +58,12 @@ class Worker:
 
         pk = task_row.id
 
-        task_run = tasks.TaskRun(task=task, id=pk, lock=task_row.targeted_object)
         kwargs = task_row.args
 
         description = f"{task.queue}.{task.name}.{pk}({kwargs})"
         logger.info(f"Start - {description}")
         try:
-            task_run.run(**kwargs)
+            task.func(**kwargs)
         except Exception as e:
             logger.exception(f"Error - {description}")
             raise exceptions.TaskError() from e

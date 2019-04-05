@@ -8,28 +8,20 @@ task_manager = cabbage.TaskManager()
 
 
 @task_manager.task(queue="sums")
-def sum(task_run, a, b):
-    with open(f"{task_run.task.name}-{task_run.id}", "w") as f:
-        f.write(f"{a + b}")
+def sum(a, b):
+    print(a + b)
 
 
 @task_manager.task(queue="sums")
-def sleep(task_run, i):
+def sleep(i):
     import time
 
     time.sleep(i)
 
 
 @task_manager.task(queue="sums")
-def sum_plus_one(task_run, a, b):
-    with open(f"{task_run.task.name}-{task_run.id}", "w") as f:
-        f.write(f"{a + b + 1}")
-
-
-@cabbage.Task(manager=task_manager, queue="products")
-def product(task_run, a, b):
-    with open(f"{task_run.task.name}-{task_run.id}", "w") as f:
-        f.write(f"{a * b}")
+def sum_plus_one(a, b):
+    print(a + b + 1)
 
 
 def client():
