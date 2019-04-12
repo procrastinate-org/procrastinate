@@ -1,6 +1,9 @@
 import logging
 import uuid
+from datetime import datetime
 from typing import Any, Callable, Dict, Iterator, Optional, Set
+
+import pendulum
 
 from cabbage import postgres, types
 
@@ -21,19 +24,38 @@ class Task:
         self.func: Callable = func
         self.name = name or self.func.__name__
 
-    def defer(self, lock: str = None, **kwargs: types.JSONValue) -> None:
+    def defer(
+        self,
+        lock: str = None,
+        scheduled_time: Optional[datetime] = None,
+        **kwargs: types.JSONValue,
+    ) -> None:
         lock = lock or f"{uuid.uuid4()}"
+        scheduled_time = scheduled_time or pendulum.now()
+
+        if scheduled_time.tzinfo is None:
+            # Make sure we have an explicit timezone on the schedule time
+            # We consider a naive datetime to be in the local timezone
+            scheduled_time = pendulum.instance(scheduled_time).set(tz="local")
+
         logger.info(
-            f"Scheduling task {self.name} in queue {self.queue} with args {kwargs}"
+            f"Scheduling task {self.name} in queue {self.queue} with args {kwargs} at {scheduled_time}"
         )
+
         assert self.name, "Task has no name"
         postgres.launch_task(
             self.manager.connection,
             queue=self.queue,
             name=self.name,
             lock=lock,
+            scheduled_time=scheduled_time,
             kwargs=kwargs,
         )
+
+    def schedule_at(
+        self, scheduled_time: datetime, lock: str = None, **kwargs: types.JSONValue
+    ) -> None:
+        return self.defer(lock=lock, scheduled_time=scheduled_time, **kwargs)
 
 
 class TaskManager:
@@ -62,6 +84,7 @@ class TaskManager:
             self.register(task)
 
             func.defer = task.defer
+            func.schedule_at = task.schedule_at
 
             return func
 

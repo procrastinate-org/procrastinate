@@ -1,6 +1,8 @@
 import logging
 import sys
 
+import pendulum
+
 import cabbage
 
 logger = logging.getLogger(__name__)
@@ -33,6 +35,7 @@ def client():
     sleep.defer(lock="a", i=2)
     sleep.defer(lock="a", i=3)
     sleep.defer(lock="a", i=4)
+    sleep.schedule_at(pendulum.now().add(seconds=15), i=2)
 
 
 def main():

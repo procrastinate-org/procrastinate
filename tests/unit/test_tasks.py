@@ -1,5 +1,6 @@
 import uuid
 
+import pendulum
 import pytest
 
 from cabbage import tasks
@@ -32,13 +33,15 @@ def test_task_defer(manager, mocker):
     launch_task = mocker.patch("cabbage.postgres.launch_task")
     task = tasks.Task(job, manager=manager, queue="queue", name="job")
 
-    task.defer(lock="sherlock", a="b", c=3)
+    with pendulum.test(pendulum.datetime(2019, 4, 12)):
+        task.defer(lock="sherlock", a="b", c=3)
 
     launch_task.assert_called_with(
         manager.connection,
         queue="queue",
         name="job",
         lock="sherlock",
+        scheduled_time=pendulum.datetime(2019, 4, 12),
         kwargs={"a": "b", "c": 3},
     )
 
@@ -52,6 +55,28 @@ def test_task_defer_no_lock(manager, mocker):
     _, kwargs = launch_task.call_args_list[0]
     # Will raise if not a correct uuid
     assert uuid.UUID(kwargs["lock"])
+
+
+def test_task_defer_with_naive_scheduled_time(manager, mocker):
+    now = pendulum.now("UTC").naive()
+    launch_task = mocker.patch("cabbage.postgres.launch_task")
+    task = tasks.Task(job, manager=manager, queue="queue", name="job")
+
+    task.defer(scheduled_time=now, a="b", c=3)
+
+    _, kwargs = launch_task.call_args_list[0]
+
+    assert now.set(tz="local") == kwargs["scheduled_time"]
+
+
+def test_schedule_at(manager, mocker):
+    defer = mocker.patch("cabbage.tasks.Task.defer")
+    dt = pendulum.now()
+    task = tasks.Task(job, manager=manager, queue="queue", name="job")
+
+    task.schedule_at(dt, lock="foo", foo="bar")
+
+    defer.assert_called_with(scheduled_time=dt, lock="foo", foo="bar")
 
 
 def test_task_manager_task_explicit(manager, mocker):

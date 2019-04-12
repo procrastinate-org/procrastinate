@@ -71,7 +71,8 @@ CREATE TABLE public.tasks (
     task_type character varying(32) NOT NULL,
     targeted_object text,
     args jsonb DEFAULT '{}' NOT NULL,
-    status public.task_status DEFAULT 'todo'::public.task_status NOT NULL
+    status public.task_status DEFAULT 'todo'::public.task_status NOT NULL,
+    scheduled_at timestamp with time zone NOT NULL
 );
 
 
@@ -94,7 +95,7 @@ BEGIN
 		SELECT tasks.*
 			FROM tasks
 			LEFT JOIN task_locks ON task_locks.object = tasks.targeted_object
-			WHERE queue_id = target_queue_id AND task_locks.object IS NULL AND status = 'todo'
+			WHERE queue_id = target_queue_id AND task_locks.object IS NULL AND status = 'todo' AND scheduled_at <= now()
 			FOR UPDATE OF tasks SKIP LOCKED LIMIT 1
 	), lock_object AS (
 		INSERT INTO task_locks

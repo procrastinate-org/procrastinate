@@ -1,6 +1,7 @@
 import random
 import string
 
+import pendulum
 import psycopg2
 import pytest
 
@@ -36,7 +37,12 @@ def test_launch_task(connection, get_all):
     queue = "marsupilami"
     postgres.register_queue(connection, queue)
     pk = postgres.launch_task(
-        connection, queue=queue, name="bob", lock="sher", kwargs={"a": 1, "b": 2}
+        connection,
+        queue=queue,
+        name="bob",
+        lock="sher",
+        kwargs={"a": 1, "b": 2},
+        scheduled_time=pendulum.now("UTC"),
     )
 
     result = get_all("tasks", "id", "args", "status", "targeted_object", "task_type")
@@ -55,19 +61,25 @@ def test_launch_task_no_queue(connection):
     queue = "marsupilami"
     with pytest.raises(exceptions.QueueNotFound):
         postgres.launch_task(
-            connection, queue=queue, name="bob", lock="sher", kwargs={"a": 1, "b": 2}
+            connection,
+            queue=queue,
+            name="bob",
+            lock="sher",
+            kwargs={"a": 1, "b": 2},
+            scheduled_time=pendulum.now("UTC"),
         )
 
 
 def test_get_tasks(connection):
+    now = pendulum.now("UTC")
     postgres.register_queue(connection, "queue_a")
     postgres.register_queue(connection, "queue_b")
-    postgres.launch_task(connection, "queue_a", "task_1", "lock_1", {"a": "b"})
+    postgres.launch_task(connection, "queue_a", "task_1", "lock_1", {"a": "b"}, now)
     # We won't see this one because of the lock
-    postgres.launch_task(connection, "queue_a", "task_2", "lock_1", {"c": "d"})
-    postgres.launch_task(connection, "queue_a", "task_3", "lock_2", {"e": "f"})
+    postgres.launch_task(connection, "queue_a", "task_2", "lock_1", {"c": "d"}, now)
+    postgres.launch_task(connection, "queue_a", "task_3", "lock_2", {"e": "f"}, now)
     # We won't see this one because of the queue
-    postgres.launch_task(connection, "queue_b", "task_4", "lock_3", {"g": "h"})
+    postgres.launch_task(connection, "queue_b", "task_4", "lock_3", {"g": "h"}, now)
 
     result = list(postgres.get_tasks(connection, "queue_a"))
 
@@ -84,7 +96,9 @@ def test_get_tasks(connection):
 
 def test_finish_task(get_all, connection):
     postgres.register_queue(connection, "queue_a")
-    postgres.launch_task(connection, "queue_a", "task_1", "lock_1", {"a": "b"})
+    postgres.launch_task(
+        connection, "queue_a", "task_1", "lock_1", {"a": "b"}, pendulum.now("UTC")
+    )
     task = next(postgres.get_tasks(connection, "queue_a"))
 
     assert get_all("tasks", "status") == [{"status": "doing"}]

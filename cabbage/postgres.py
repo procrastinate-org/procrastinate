@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Iterator, NamedTuple, Optional
 
 import psycopg2
@@ -28,13 +29,14 @@ def launch_task(
     name: str,
     lock: str,
     kwargs: types.JSONDict,
+    scheduled_time: datetime,
 ) -> int:
     with connection.cursor() as cursor:
         cursor.execute(
-            """INSERT INTO tasks (queue_id, task_type, targeted_object, args)
-               SELECT id, %s, %s, %s FROM queues WHERE queue_name=%s
+            """INSERT INTO tasks (queue_id, task_type, targeted_object, args, scheduled_at)
+               SELECT id, %s, %s, %s, %s FROM queues WHERE queue_name=%s
                RETURNING id;""",
-            (name, lock, kwargs, queue),
+            (name, lock, kwargs, scheduled_time, queue),
         )
         row = cursor.fetchone()
 
