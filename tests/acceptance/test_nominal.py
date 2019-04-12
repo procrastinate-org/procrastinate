@@ -1,4 +1,6 @@
 import signal
+import threading
+import time
 
 import cabbage
 
@@ -32,16 +34,23 @@ def test_nominal(connection, kill_own_pid):
     sum_task.defer(a=5, b=7)
     sum_task.defer(a=3, b=4)
     increment_task.defer(a=3)
-    stop_sum.defer()
     product_task.defer(a=5, b=4)
     stop_product.defer()
 
+    def stop():
+        time.sleep(1)
+        sum_task.defer(a=2, b=3)
+        stop_sum.defer()
+
+    thread = threading.Thread(target=stop)
+    thread.start()
+
     cabbage.Worker(task_manager, "sum_queue").run(timeout=1e-9)
 
-    assert sum_results == [12, 7, 4]
+    assert sum_results == [12, 7, 4, 5]
     assert product_results == []
 
     cabbage.Worker(task_manager, "product_queue").run(timeout=1e-9)
 
-    assert sum_results == [12, 7, 4]
+    assert sum_results == [12, 7, 4, 5]
     assert product_results == [20]
