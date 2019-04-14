@@ -1,6 +1,15 @@
 # Config file for automatic testing at travis-ci.org
 language: python
+dist: xenial
 cache: pip
+
+addons:
+  postgresql: "10"
+
+env:
+  global:
+  - PGHOST=localhost
+  - PGUSER=postgres
 
 matrix:
   include:
@@ -16,6 +25,12 @@ matrix:
   - python: 3.7
     env:
       TOX_ENV: lint
+
+# Taken from https://github.com/travis-ci/travis-ci/issues/9624
+before_install:
+- sudo sed -i -e '/local.*peer/s/postgres/all/' -e 's/peer\|md5/trust/g' /etc/postgresql/*/main/pg_hba.conf
+- sudo service postgresql restart
+- sleep 1
 
 install:
   - pip install tox codecov
