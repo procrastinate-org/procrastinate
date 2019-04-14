@@ -15,6 +15,9 @@ $ createdb && psql -v ON_ERROR_STOP=ON -f init.sql
 ```
 
 ## Installation for development
+
+Cabbage officially is compatible with *``Python 3.6``* and above, using Postgres 10.
+
 ```console
 $ pip install -r requirements.txt
 ```

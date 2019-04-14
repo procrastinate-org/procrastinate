@@ -61,7 +61,10 @@ class TaskManager:
             task = Task(func, manager=self, queue=queue, name=name)
             self.register(task)
 
-            func.defer = task.defer
+            # Properly typing a callable when adding an attribute to it, especially
+            # a callable attribute, is a hard problem
+            # https://github.com/python/mypy/issues/3882
+            func.defer = task.defer  # type: ignore
 
             return func
 
