@@ -23,16 +23,22 @@ class Task:
 
     def defer(self, lock: str = None, **kwargs: types.JSONValue) -> None:
         lock = lock or f"{uuid.uuid4()}"
-        logger.info(
-            f"Scheduling task {self.name} in queue {self.queue} with args {kwargs}"
-        )
-        assert self.name, "Task has no name"
-        postgres.launch_task(
+        task_id = postgres.launch_task(
             self.manager.connection,
             queue=self.queue,
             name=self.name,
             lock=lock,
             kwargs=kwargs,
+        )
+        logger.info(
+            "Scheduled task",
+            extra={
+                "action": "task_defer",
+                "name": self.name,
+                "queue": self.queue,
+                "kwargs": kwargs,
+                "id": task_id,
+            },
         )
 
 
@@ -76,7 +82,10 @@ class TaskManager:
     def register(self, task: Task) -> None:
         self.tasks[task.name] = task
         if task.queue not in self.queues:
-            logger.info(f"Creating queue {task.queue} (if not already existing)")
+            logger.info(
+                "Creating queue (if not already existing)",
+                extra={"action": "create_queue", "queue": task.queue},
+            )
             postgres.register_queue(self.connection, task.queue)
             self.queues.add(task.queue)
 
