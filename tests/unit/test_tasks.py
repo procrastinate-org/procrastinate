@@ -64,7 +64,8 @@ def test_task_manager_task_explicit(manager, mocker):
     assert "foo" == wrapped()
     assert "b" == manager.tasks["b"].name
     assert "a" == manager.tasks["b"].queue
-    assert manager.tasks["b"].func is wrapped
+    assert manager.tasks["b"] is wrapped
+    assert manager.tasks["b"].func is wrapped.__wrapped__
 
 
 def test_task_manager_task_implicit(manager, mocker):
@@ -77,7 +78,8 @@ def test_task_manager_task_implicit(manager, mocker):
     assert "foo" == wrapped()
     assert "wrapped" == manager.tasks["wrapped"].name
     assert "default" == manager.tasks["wrapped"].queue
-    assert manager.tasks["wrapped"].func is wrapped
+    assert manager.tasks["wrapped"] is wrapped
+    assert manager.tasks["wrapped"].func is wrapped.__wrapped__
 
 
 def test_task_manager_register(manager, mocker):

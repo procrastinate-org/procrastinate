@@ -1,3 +1,4 @@
+import functools
 import logging
 import uuid
 from typing import Any, Callable, Dict, Iterator, Optional, Set
@@ -70,7 +71,7 @@ class TaskManager:
             task = Task(func, manager=self, queue=queue, name=name)
             self.register(task)
 
-            return task
+            return functools.update_wrapper(task, func)
 
         if _func is None:
             return _wrap
