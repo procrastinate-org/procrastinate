@@ -67,7 +67,7 @@ class TaskManager:
         Can be used as a decorator or a simple method.
         """
 
-        def _wrap(func: Callable) -> Task:
+        def _wrap(func: Callable) -> Callable[..., Any]:
             task = Task(func, manager=self, queue=queue, name=name)
             self.register(task)
 
