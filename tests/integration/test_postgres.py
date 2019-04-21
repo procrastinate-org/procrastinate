@@ -1,10 +1,12 @@
 import random
 import string
+import threading
+import time
 
 import psycopg2
 import pytest
 
-from cabbage import exceptions, postgres
+from cabbage import exceptions, jobs, postgres
 
 
 def test_init_pg_extensions():
@@ -73,11 +75,19 @@ def test_get_tasks(connection):
 
     t1, t2 = result
     assert result == [
-        postgres.TaskRow(
-            id=t1.id, args={"a": "b"}, targeted_object="lock_1", task_type="task_1"
+        jobs.Job(
+            id=t1.id,
+            kwargs={"a": "b"},
+            lock="lock_1",
+            task_name="task_1",
+            queue="queue_a",
         ),
-        postgres.TaskRow(
-            id=t2.id, args={"e": "f"}, targeted_object="lock_2", task_type="task_3"
+        jobs.Job(
+            id=t2.id,
+            kwargs={"e": "f"},
+            lock="lock_2",
+            task_name="task_3",
+            queue="queue_a",
         ),
     ]
 
@@ -124,3 +134,39 @@ def test_listen_queue(connection):
             (queue_full_name,),
         )
         assert cursor.fetchone()[0] == 1
+
+
+def test_enum_synced(connection):
+    # If this test breaks, it means you've changed either the task_status PG enum
+    # or the python cabbage.jobs.Status Enum without updating the other.
+    with connection.cursor() as cursor:
+        cursor.execute(
+            """SELECT e.enumlabel FROM pg_enum e
+               JOIN pg_type t ON e.enumtypid = t.oid WHERE t.typname = %s""",
+            ("task_status",),
+        )
+
+        pg_values = {row[0] for row in cursor.fetchall()}
+        python_values = {status.value for status in jobs.Status.__members__.values()}
+        assert pg_values == python_values
+
+
+def test_wait_for_jobs(connection):
+    postgres.register_queue(connection=connection, queue="yay")
+    postgres.listen_queue(connection=connection, queue="yay")
+
+    def stop():
+        time.sleep(0.5)
+        postgres.launch_task(
+            connection=connection, queue="yay", name="oh", lock="sher", kwargs={}
+        )
+
+    thread = threading.Thread(target=stop)
+    thread.start()
+
+    before = time.perf_counter()
+    postgres.wait_for_jobs(connection=connection, timeout=3)
+    after = time.perf_counter()
+
+    # If we wait less than 1 sec, it means the wait didn't reach the timeout.
+    assert after - before < 1
