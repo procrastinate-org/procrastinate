@@ -1,5 +1,5 @@
 import select
-from typing import Any, Dict, Iterator, Optional
+from typing import Iterator, Optional
 
 import psycopg2
 from psycopg2 import extras, sql

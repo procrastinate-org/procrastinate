@@ -1,6 +1,6 @@
 import pytest
 
-from cabbage import exceptions, task_worker, tasks, testing, jobs
+from cabbage import exceptions, jobs, task_worker, tasks, testing
 
 
 @pytest.fixture
