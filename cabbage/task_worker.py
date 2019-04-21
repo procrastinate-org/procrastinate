@@ -25,19 +25,21 @@ class Worker:
 
         self._job_store.listen_for_jobs(queue=self._queue)
 
-        while True:
-            with signals.on_stop(self.stop):
+        with signals.on_stop(self.stop):
+            while True:
                 self.process_tasks()
 
-            if self._stop_requested:
-                logger.debug(
-                    "Finished running task at the end of the batch",
-                    extra={"action": "stopped_end_batch"},
-                )
-                break
+                if self._stop_requested:
+                    logger.debug(
+                        "Finished running task at the end of the batch",
+                        extra={"action": "stopped_end_batch"},
+                    )
+                    break
 
-            logger.debug("Waiting for new tasks", extra={"action": "waiting_for_tasks"})
-            self._job_store.wait_for_jobs(timeout=timeout)
+                logger.debug(
+                    "Waiting for new tasks", extra={"action": "waiting_for_tasks"}
+                )
+                self._job_store.wait_for_jobs(timeout=timeout)
 
     def process_tasks(self) -> None:
         for job in self._job_store.get_tasks(self._queue):  # pragma: no branch
