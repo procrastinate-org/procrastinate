@@ -37,7 +37,7 @@ install:
   - tox --notest -e $TOX_ENV
 
 script:
-  - tox -e $TOX_ENV
+  - tox -e $TOX_ENV -- --cov-append
 
 after_success:
 - codecov
