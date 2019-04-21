@@ -2,12 +2,13 @@ import uuid
 
 import pytest
 
-from cabbage import tasks
+from cabbage import jobs, postgres, tasks, testing
 
 
 @pytest.fixture
-def manager():
-    return tasks.TaskManager(object())
+def manager(mocker):
+    store = testing.InMemoryJobStore()
+    return tasks.TaskManager(job_store=store)
 
 
 def job():
@@ -22,41 +23,38 @@ def test_task_init_with_no_name(manager):
 
 
 def test_task_init_explicit_name(manager, mocker):
-    mocker.patch("cabbage.tasks.TaskManager.register")
     task = tasks.Task(job, manager=manager, queue="queue", name="other")
 
     assert task.name == "other"
 
 
 def test_task_defer(manager, mocker):
-    launch_task = mocker.patch("cabbage.postgres.launch_task")
+    manager.job_store.register_queue("queue")
     task = tasks.Task(job, manager=manager, queue="queue", name="job")
 
     task.defer(lock="sherlock", a="b", c=3)
 
-    launch_task.assert_called_with(
-        manager.connection,
-        queue="queue",
-        name="job",
-        lock="sherlock",
-        kwargs={"a": "b", "c": 3},
-    )
+    assert manager.job_store.jobs["queue"] == [
+        jobs.Job(
+            id=0,
+            queue="queue",
+            task_name="job",
+            lock="sherlock",
+            kwargs={"a": "b", "c": 3},
+        )
+    ]
 
 
 def test_task_defer_no_lock(manager, mocker):
-    launch_task = mocker.patch("cabbage.postgres.launch_task")
+    manager.job_store.register_queue("queue")
     task = tasks.Task(job, manager=manager, queue="queue", name="job")
 
     task.defer(a="b", c=3)
 
-    _, kwargs = launch_task.call_args_list[0]
-    # Will raise if not a correct uuid
-    assert uuid.UUID(kwargs["lock"])
+    assert uuid.UUID(manager.job_store.jobs["queue"][0].lock)
 
 
 def test_task_manager_task_explicit(manager, mocker):
-    mocker.patch("cabbage.postgres.register_queue")
-
     @manager.task(queue="a", name="b")
     def wrapped():
         return "foo"
@@ -69,8 +67,6 @@ def test_task_manager_task_explicit(manager, mocker):
 
 
 def test_task_manager_task_implicit(manager, mocker):
-    mocker.patch("cabbage.postgres.register_queue")
-
     @manager.task
     def wrapped():
         return "foo"
@@ -83,18 +79,16 @@ def test_task_manager_task_implicit(manager, mocker):
 
 
 def test_task_manager_register(manager, mocker):
-    register_queue = mocker.patch("cabbage.postgres.register_queue")
     task = tasks.Task(job, manager=manager, queue="queue", name="bla")
 
     manager.register(task)
 
     assert manager.queues == {"queue"}
     assert manager.tasks == {"bla": task}
-    register_queue.assert_called_with(manager.connection, "queue")
+    assert set(manager.job_store.jobs) == {"queue"}
 
 
 def test_task_manager_register_queue_already_exists(manager, mocker):
-    register_queue = mocker.patch("cabbage.postgres.register_queue")
     manager.queues.add("queue")
     task = tasks.Task(job, manager=manager, queue="queue", name="bla")
 
@@ -102,11 +96,12 @@ def test_task_manager_register_queue_already_exists(manager, mocker):
 
     assert manager.queues == {"queue"}
     assert manager.tasks == {"bla": task}
-    register_queue.assert_not_called()
+    # We never told the store that there were queues to register
+    assert not manager.job_store.jobs
 
 
 def test_task_manager_default_connection(mocker):
-    get_connection = mocker.patch("cabbage.postgres.get_connection")
+    mocker.patch("cabbage.postgres.get_connection")
     manager = tasks.TaskManager()
 
-    assert manager.connection is get_connection.return_value
+    assert isinstance(manager.job_store, postgres.PostgresJobStore)
