@@ -111,8 +111,8 @@ init_pg_extensions()
 
 
 class PostgresJobStore(store.JobStore):
-    def __init__(self, connection_params: Dict[str, Any] = None):
-        self.connection = get_connection(**(connection_params or {}))
+    def __init__(self, connection: Optional[psycopg2._psycopg.connection] = None):
+        self.connection = connection or get_connection()
 
     def register_queue(self, queue: str) -> Optional[int]:
         return register_queue(connection=self.connection, queue=queue)
