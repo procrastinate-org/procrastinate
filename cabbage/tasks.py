@@ -35,10 +35,12 @@ class Task:
             "Scheduled task",
             extra={
                 "action": "task_defer",
-                "name": self.name,
-                "queue": self.queue,
-                "kwargs": kwargs,
-                "id": task_id,
+                "job": {
+                    "name": self.name,
+                    "queue": self.queue,
+                    "kwargs": kwargs,
+                    "id": task_id,
+                },
             },
         )
 
