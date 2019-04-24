@@ -88,7 +88,7 @@ class Worker:
             "Starting task", extra={"action": "task_start", "task": log_context}
         )
         try:
-            task.func(**kwargs)
+            task(**kwargs)
         except Exception as e:
             end_time = log_context["end_time"] = time.time()
             log_context["duration"] = end_time - start_time

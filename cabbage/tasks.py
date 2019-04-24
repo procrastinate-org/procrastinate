@@ -1,3 +1,4 @@
+import functools
 import logging
 import uuid
 from typing import Any, Callable, Dict, Iterator, Optional, Set
@@ -20,6 +21,9 @@ class Task:
         self.manager = manager
         self.func: Callable = func
         self.name = name or self.func.__name__
+
+    def __call__(self, **kwargs: types.JSONValue) -> None:
+        return self.func(**kwargs)
 
     def defer(self, lock: str = None, **kwargs: types.JSONValue) -> None:
         lock = lock or f"{uuid.uuid4()}"
@@ -63,16 +67,11 @@ class TaskManager:
         Can be used as a decorator or a simple method.
         """
 
-        def _wrap(func: Callable) -> Callable:
+        def _wrap(func: Callable) -> Callable[..., Any]:
             task = Task(func, manager=self, queue=queue, name=name)
             self.register(task)
 
-            # Properly typing a callable when adding an attribute to it, especially
-            # a callable attribute, is a hard problem
-            # https://github.com/python/mypy/issues/3882
-            func.defer = task.defer  # type: ignore
-
-            return func
+            return functools.update_wrapper(task, func)
 
         if _func is None:
             return _wrap
