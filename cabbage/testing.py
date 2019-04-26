@@ -31,7 +31,6 @@ class InMemoryJobStore(store.JobStore):
             yield job
 
     def finish_task(self, job: jobs.Job, status: jobs.Status) -> None:
-        print(self.jobs[job.queue])
         j = self.jobs[job.queue].pop(0)
         assert job == j, (job, j)
         self.finished_jobs.append((job, status))
