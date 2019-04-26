@@ -83,7 +83,17 @@ def test_process_tasks(mocker, task_manager, job_factory):
     ]
 
 
-def test_run_task(manager):
+def test_process_tasks_until_no_more_jobs(mocker, task_manager, job_factory):
+    job = job_factory(id=42)
+    task_manager.job_store.jobs["queue"] = [job]
+
+    mocker.patch("cabbage.task_worker.Worker.run_task")
+
+    worker = task_worker.Worker(task_manager, "queue")
+    worker.process_tasks()
+
+    assert task_manager.job_store.finished_jobs == [(job, jobs.Status.DONE)]
+
 
 def test_run_task(task_manager):
     result = []
