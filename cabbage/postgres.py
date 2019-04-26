@@ -7,6 +7,30 @@ from psycopg2.extras import RealDictCursor
 
 from cabbage import exceptions, jobs, store, types
 
+insert_jobs_sql = """
+INSERT INTO cabbage_jobs (queue_id, task_name, lock, args)
+SELECT id, %(task_name)s, %(lock)s, %(args)s
+    FROM cabbage_queues WHERE queue_name=%(queue)s
+RETURNING id;
+"""
+
+select_jobs_sql = """
+SELECT id, task_name, lock, args FROM cabbage_fetch_job(%(queue)s);
+"""
+finish_job_sql = """
+SELECT cabbage_finish_job(%(job_id)s, %(status)s);
+"""
+insert_queue_sql = """
+INSERT INTO cabbage_queues (queue_name)
+VALUES (%(queue)s)
+ON CONFLICT DO NOTHING
+RETURNING id
+"""
+
+listen_queue_raw_sql = """
+LISTEN {queue_name};
+"""
+
 
 def get_connection(**kwargs) -> psycopg2._psycopg.connection:
     return psycopg2.connect("", **kwargs)
@@ -25,10 +49,13 @@ def launch_task(
 ) -> int:
     with connection.cursor() as cursor:
         cursor.execute(
-            """INSERT INTO tasks (queue_id, task_type, targeted_object, args)
-               SELECT id, %s, %s, %s FROM queues WHERE queue_name=%s
-               RETURNING id;""",
-            (name, lock, kwargs, queue),
+            insert_jobs_sql,
+            {
+                "task_name": job.task_name,
+                "lock": job.lock,
+                "args": job.kwargs,
+                "queue": job.queue,
+            },
         )
         row = cursor.fetchone()
 
@@ -44,10 +71,7 @@ def get_tasks(
 ) -> Iterator[jobs.Job]:
     with connection.cursor(cursor_factory=RealDictCursor) as cursor:
         while True:
-            cursor.execute(
-                """SELECT id, args, targeted_object, task_type FROM fetch_task(%s);""",
-                (queue,),
-            )
+            cursor.execute(select_jobs_sql, {"queue": queue})
             connection.commit()
 
             row = cursor.fetchone()
@@ -59,8 +83,8 @@ def get_tasks(
 
             yield jobs.Job(
                 id=row["id"],
-                lock=row["targeted_object"],
-                task_name=row["task_type"],
+                lock=row["lock"],
+                task_name=row["task_name"],
                 kwargs=row["args"],
                 queue=queue,
             )
@@ -70,7 +94,7 @@ def finish_task(
     connection: psycopg2._psycopg.connection, task_id: int, status: str
 ) -> None:
     with connection.cursor() as cursor:
-        cursor.execute("""SELECT finish_task(%s, %s);""", (task_id, status))
+        cursor.execute(finish_job_sql, {"job_id": job.id, "status": status})
 
     connection.commit()
 
@@ -79,14 +103,7 @@ def register_queue(
     connection: psycopg2._psycopg.connection, queue: str
 ) -> Optional[int]:
     with connection.cursor() as cursor:
-        cursor.execute(
-            """INSERT INTO queues (queue_name)
-               VALUES (%s)
-               ON CONFLICT DO NOTHING
-               RETURNING id
-               """,
-            (queue,),
-        )
+        cursor.execute(insert_queue_sql, {"queue": queue})
         row = cursor.fetchone()
 
     connection.commit()
@@ -95,12 +112,11 @@ def register_queue(
 
 
 def listen_queue(connection: psycopg2._psycopg.connection, queue: str) -> None:
-    queue_name = sql.Identifier(f"queue#{queue}")
+    queue_name = sql.Identifier(f"cabbage_queue#{queue}")
+    query = sql.SQL(listen_queue_raw_sql).format(queue_name=queue_name)
 
     with connection.cursor() as cursor:
-        cursor.execute(
-            sql.SQL("""LISTEN {queue_name};""").format(queue_name=queue_name)
-        )
+        cursor.execute(query)
 
 
 def wait_for_jobs(connection: psycopg2._psycopg.connection, timeout: int):

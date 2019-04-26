@@ -30,24 +30,10 @@ COMMENT ON EXTENSION plpgsql IS 'PL/pgSQL procedural language';
 
 
 --
--- Name: hstore; Type: EXTENSION; Schema: -; Owner:
+-- Name: cabbage_job_status; Type: TYPE; Schema: public; Owner: postgres
 --
 
-CREATE EXTENSION IF NOT EXISTS hstore WITH SCHEMA public;
-
-
---
--- Name: EXTENSION hstore; Type: COMMENT; Schema: -; Owner:
---
-
-COMMENT ON EXTENSION hstore IS 'data type for storing sets of (key, value) pairs';
-
-
---
--- Name: task_status; Type: TYPE; Schema: public; Owner: postgres
---
-
-CREATE TYPE public.task_status AS ENUM (
+CREATE TYPE public.cabbage_job_status AS ENUM (
     'todo',
     'doing',
     'done',
@@ -55,123 +41,123 @@ CREATE TYPE public.task_status AS ENUM (
 );
 
 
-ALTER TYPE public.task_status OWNER TO postgres;
+ALTER TYPE public.cabbage_job_status OWNER TO postgres;
 
 SET default_tablespace = '';
 
 SET default_with_oids = false;
 
 --
--- Name: tasks; Type: TABLE; Schema: public; Owner: postgres
+-- Name: cabbage_jobs; Type: TABLE; Schema: public; Owner: postgres
 --
 
-CREATE TABLE public.tasks (
+CREATE TABLE public.cabbage_jobs (
     id integer NOT NULL,
     queue_id integer NOT NULL,
-    task_type character varying(32) NOT NULL,
-    targeted_object text,
+    task_name character varying(32) NOT NULL,
+    lock text,
     args jsonb DEFAULT '{}' NOT NULL,
-    status public.task_status DEFAULT 'todo'::public.task_status NOT NULL
+    status public.cabbage_job_status DEFAULT 'todo'::public.cabbage_job_status NOT NULL
 );
 
 
-ALTER TABLE public.tasks OWNER TO postgres;
+ALTER TABLE public.cabbage_jobs OWNER TO postgres;
 
 --
--- Name: fetch_task(character varying); Type: FUNCTION; Schema: public; Owner: postgres
+-- Name: cabbage_fetch_job(character varying); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
-CREATE FUNCTION public.fetch_task(target_queue_name character varying) RETURNS public.tasks
+CREATE FUNCTION public.cabbage_fetch_job(target_queue_name character varying) RETURNS public.cabbage_jobs
     LANGUAGE plpgsql
     AS $$
 DECLARE
 	target_queue_id integer;
-	found_task tasks;
+	found_jobs cabbage_jobs;
 BEGIN
-	SELECT id INTO target_queue_id FROM queues WHERE queue_name = target_queue_name FOR UPDATE;
+	SELECT id INTO target_queue_id FROM cabbage_queues WHERE queue_name = target_queue_name FOR UPDATE;
 
-	WITH potential_task AS (
-		SELECT tasks.*
-			FROM tasks
-			LEFT JOIN task_locks ON task_locks.object = tasks.targeted_object
-			WHERE queue_id = target_queue_id AND task_locks.object IS NULL AND status = 'todo'
-			FOR UPDATE OF tasks SKIP LOCKED LIMIT 1
+	WITH potential_job AS (
+		SELECT cabbage_jobs.*
+			FROM cabbage_jobs
+			LEFT JOIN cabbage_job_locks ON cabbage_job_locks.object = cabbage_jobs.lock
+			WHERE queue_id = target_queue_id AND cabbage_job_locks.object IS NULL AND status = 'todo'
+			FOR UPDATE OF cabbage_jobs SKIP LOCKED LIMIT 1
 	), lock_object AS (
-		INSERT INTO task_locks
-			SELECT targeted_object FROM potential_task
+		INSERT INTO cabbage_job_locks
+			SELECT lock FROM potential_job
 	)
-	UPDATE tasks
+	UPDATE cabbage_jobs
 		SET status = 'doing'
-		FROM potential_task
-		WHERE tasks.id = potential_task.id
-		RETURNING * INTO found_task;
+		FROM potential_job
+		WHERE cabbage_jobs.id = potential_job.id
+		RETURNING * INTO found_jobs;
 
-	RETURN found_task;
+	RETURN found_jobs;
 END;
 $$;
 
 
-ALTER FUNCTION public.fetch_task(target_queue_name character varying) OWNER TO postgres;
+ALTER FUNCTION public.cabbage_fetch_job(target_queue_name character varying) OWNER TO postgres;
 
 --
--- Name: finish_task(integer, public.task_status); Type: FUNCTION; Schema: public; Owner: postgres
+-- Name: cabbage_finish_job(integer, public.cabbage_job_status); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
-CREATE FUNCTION public.finish_task(task_id integer, end_status public.task_status) RETURNS void
+CREATE FUNCTION public.cabbage_finish_job(job_id integer, end_status public.cabbage_job_status) RETURNS void
     LANGUAGE plpgsql
     AS $$
 DECLARE
 	target_queue_id integer;
 BEGIN
-	SELECT queue_id INTO target_queue_id FROM tasks WHERE id = task_id;
+	SELECT queue_id INTO target_queue_id FROM cabbage_jobs WHERE id = job_id;
 
 	PERFORM pg_advisory_lock(target_queue_id);
 
-	WITH close_task AS (
-		UPDATE tasks SET status = end_status WHERE id = task_id RETURNING targeted_object
+	WITH finished_job AS (
+		UPDATE cabbage_jobs SET status = end_status WHERE id = job_id RETURNING lock
 	)
-	DELETE FROM task_locks WHERE object = (SELECT targeted_object FROM close_task);
+	DELETE FROM cabbage_job_locks WHERE object = (SELECT lock FROM finished_job);
 
 	PERFORM pg_advisory_unlock(target_queue_id);
 END;
 $$;
 
 
-ALTER FUNCTION public.finish_task(task_id integer, end_status public.task_status) OWNER TO postgres;
+ALTER FUNCTION public.cabbage_finish_job(job_id integer, end_status public.cabbage_job_status) OWNER TO postgres;
 
 --
--- Name: notify_queue(); Type: FUNCTION; Schema: public; Owner: postgres
+-- Name: cabbage_notify_queue(); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
-CREATE FUNCTION public.notify_queue() RETURNS trigger
+CREATE FUNCTION public.cabbage_notify_queue() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
 BEGIN
-	PERFORM pg_notify('queue#' || queue_name, NEW.task_type) FROM queues WHERE id = NEW.queue_id;
+	PERFORM pg_notify('cabbage_queue#' || queue_name, NEW.task_name) FROM cabbage_queues WHERE id = NEW.queue_id;
 	RETURN NEW;
 END;
 $$;
 
 
-ALTER FUNCTION public.notify_queue() OWNER TO postgres;
+ALTER FUNCTION public.cabbage_notify_queue() OWNER TO postgres;
 
 --
--- Name: queues; Type: TABLE; Schema: public; Owner: postgres
+-- Name: cabbage_queues; Type: TABLE; Schema: public; Owner: postgres
 --
 
-CREATE TABLE public.queues (
+CREATE TABLE public.cabbage_queues (
     id integer NOT NULL,
     queue_name character varying(32) UNIQUE
 );
 
 
-ALTER TABLE public.queues OWNER TO postgres;
+ALTER TABLE public.cabbage_queues OWNER TO postgres;
 
 --
--- Name: queues_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: cabbage_queues_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
-CREATE SEQUENCE public.queues_id_seq
+CREATE SEQUENCE public.cabbage_queues_id_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -180,31 +166,31 @@ CREATE SEQUENCE public.queues_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.queues_id_seq OWNER TO postgres;
+ALTER TABLE public.cabbage_queues_id_seq OWNER TO postgres;
 
 --
--- Name: queues_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+-- Name: cabbage_queues_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
-ALTER SEQUENCE public.queues_id_seq OWNED BY public.queues.id;
+ALTER SEQUENCE public.cabbage_queues_id_seq OWNED BY public.cabbage_queues.id;
 
 
 --
--- Name: task_locks; Type: TABLE; Schema: public; Owner: postgres
+-- Name: cabbage_job_locks; Type: TABLE; Schema: public; Owner: postgres
 --
 
-CREATE UNLOGGED TABLE public.task_locks (
+CREATE UNLOGGED TABLE public.cabbage_job_locks (
     object text NOT NULL
 );
 
 
-ALTER TABLE public.task_locks OWNER TO postgres;
+ALTER TABLE public.cabbage_job_locks OWNER TO postgres;
 
 --
--- Name: tasks_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: cabbage_jobs_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
-CREATE SEQUENCE public.tasks_id_seq
+CREATE SEQUENCE public.cabbage_jobs_id_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -213,79 +199,79 @@ CREATE SEQUENCE public.tasks_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.tasks_id_seq OWNER TO postgres;
+ALTER TABLE public.cabbage_jobs_id_seq OWNER TO postgres;
 
 --
--- Name: tasks_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+-- Name: cabbage_jobs_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
-ALTER SEQUENCE public.tasks_id_seq OWNED BY public.tasks.id;
-
-
---
--- Name: queues id; Type: DEFAULT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.queues ALTER COLUMN id SET DEFAULT nextval('public.queues_id_seq'::regclass);
+ALTER SEQUENCE public.cabbage_jobs_id_seq OWNED BY public.cabbage_jobs.id;
 
 
 --
--- Name: tasks id; Type: DEFAULT; Schema: public; Owner: postgres
+-- Name: cabbage_queues id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY public.tasks ALTER COLUMN id SET DEFAULT nextval('public.tasks_id_seq'::regclass);
-
---
--- Name: queues_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
---
-
-SELECT pg_catalog.setval('public.queues_id_seq', 2, true);
+ALTER TABLE ONLY public.cabbage_queues ALTER COLUMN id SET DEFAULT nextval('public.cabbage_queues_id_seq'::regclass);
 
 
 --
--- Name: tasks_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: cabbage_jobs id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.tasks_id_seq', 5, true);
-
+ALTER TABLE ONLY public.cabbage_jobs ALTER COLUMN id SET DEFAULT nextval('public.cabbage_jobs_id_seq'::regclass);
 
 --
--- Name: queues queues_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: cabbage_queues_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY public.queues
-    ADD CONSTRAINT queues_pkey PRIMARY KEY (id);
+SELECT pg_catalog.setval('public.cabbage_queues_id_seq', 2, true);
 
 
 --
--- Name: task_locks task_locks_object_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: cabbage_jobs_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY public.task_locks
-    ADD CONSTRAINT task_locks_object_key UNIQUE (object);
-
-
---
--- Name: tasks tasks_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.tasks
-    ADD CONSTRAINT tasks_pkey PRIMARY KEY (id);
+SELECT pg_catalog.setval('public.cabbage_jobs_id_seq', 5, true);
 
 
 --
--- Name: tasks tasks_notify_queue; Type: TRIGGER; Schema: public; Owner: postgres
+-- Name: cabbage_queues cabbage_queues_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-CREATE TRIGGER tasks_notify_queue AFTER INSERT ON public.tasks FOR EACH ROW WHEN ((new.status = 'todo'::public.task_status)) EXECUTE PROCEDURE public.notify_queue();
+ALTER TABLE ONLY public.cabbage_queues
+    ADD CONSTRAINT cabbage_queues_pkey PRIMARY KEY (id);
 
 
 --
--- Name: tasks tasks_queue_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: cabbage_job_locks cabbage_job_locks_object_key; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY public.tasks
-    ADD CONSTRAINT tasks_queue_id_fkey FOREIGN KEY (queue_id) REFERENCES public.queues(id);
+ALTER TABLE ONLY public.cabbage_job_locks
+    ADD CONSTRAINT cabbage_job_locks_object_key UNIQUE (object);
+
+
+--
+-- Name: cabbage_jobs cabbage_jobs_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.cabbage_jobs
+    ADD CONSTRAINT cabbage_jobs_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: cabbage_jobs cabbage_jobs_cabbage_notify_queue; Type: TRIGGER; Schema: public; Owner: postgres
+--
+
+CREATE TRIGGER cabbage_jobs_cabbage_notify_queue AFTER INSERT ON public.cabbage_jobs FOR EACH ROW WHEN ((new.status = 'todo'::public.cabbage_job_status)) EXECUTE PROCEDURE public.cabbage_notify_queue();
+
+
+--
+-- Name: cabbage_jobs cabbage_jobs_queue_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.cabbage_jobs
+    ADD CONSTRAINT cabbage_jobs_queue_id_fkey FOREIGN KEY (queue_id) REFERENCES public.cabbage_queues(id);
 
 
 --

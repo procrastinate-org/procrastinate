@@ -46,7 +46,7 @@ def test_launch_task(job_store, get_all):
         queue=queue, name="bob", lock="sher", kwargs={"a": 1, "b": 2}
     )
 
-    result = get_all("tasks", "id", "args", "status", "targeted_object", "task_type")
+    result = get_all("cabbage_jobs", "id", "args", "status", "lock", "task_name")
     assert result == [
         {
             "id": pk,
@@ -102,11 +102,11 @@ def test_finish_task(get_all, job_store):
     job_store.launch_task("queue_a", "task_1", "lock_1", {"a": "b"})
     job = next(job_store.get_tasks("queue_a"))
 
-    assert get_all("tasks", "status") == [{"status": "doing"}]
+    assert get_all("cabbage_jobs", "status") == [{"status": "doing"}]
 
     job_store.finish_task(job=job, status=jobs.Status.DONE)
 
-    assert get_all("tasks", "status") == [{"status": "done"}]
+    assert get_all("cabbage_jobs", "status") == [{"status": "done"}]
 
 
 def test_register_queue(get_all, job_store):
