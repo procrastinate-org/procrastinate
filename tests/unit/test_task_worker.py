@@ -4,7 +4,7 @@ from cabbage import exceptions, jobs, task_worker, tasks, testing
 
 
 @pytest.fixture
-def manager(mocker):
+def task_manager(mocker):
     return tasks.TaskManager(job_store=testing.InMemoryJobStore())
 
 
@@ -26,7 +26,7 @@ def job_factory():
     return factory
 
 
-def test_run(manager, mocker):
+def test_run(task_manager, mocker):
     class TestTaskWorker(task_worker.Worker):
         i = 0
 
@@ -35,20 +35,20 @@ def test_run(manager, mocker):
                 self.stop(None, None)
             self.i += 1
 
-    worker = TestTaskWorker(task_manager=manager, queue="marsupilami")
+    worker = TestTaskWorker(task_manager=task_manager, queue="marsupilami")
 
     worker.run(timeout=42)
 
-    manager.job_store.listening_queues == {"marsupilami"}
-    manager.job_store.waited == [42]
+    task_manager.job_store.listening_queues == {"marsupilami"}
+    task_manager.job_store.waited == [42]
 
 
-def test_process_tasks(mocker, manager, job_factory):
+def test_process_tasks(mocker, task_manager, job_factory):
     job_1 = job_factory(id=42)
     job_2 = job_factory(id=43)
     job_3 = job_factory(id=44)
-    manager.job_store.jobs["queue"] = [job_1, job_2, job_3]
-    worker = task_worker.Worker(manager, "queue")
+    task_manager.job_store.jobs["queue"] = [job_1, job_2, job_3]
+    worker = task_worker.Worker(task_manager, "queue")
 
     i = 0
 
@@ -76,7 +76,7 @@ def test_process_tasks(mocker, manager, job_factory):
         mocker.call(job=job_3),
     ]
 
-    assert manager.job_store.finished_jobs == [
+    assert task_manager.job_store.finished_jobs == [
         (job_1, jobs.Status.DONE),
         (job_2, jobs.Status.ERROR),
         (job_3, jobs.Status.DONE),
@@ -84,45 +84,47 @@ def test_process_tasks(mocker, manager, job_factory):
 
 
 def test_run_task(manager):
+
+def test_run_task(task_manager):
     result = []
 
     def job(a, b):  # pylint: disable=unused-argument
         result.append(a + b)
 
-    task = tasks.Task(job, manager=manager, queue="yay", name="job")
+    task = tasks.Task(job, manager=task_manager, queue="yay", name="job")
 
-    manager.tasks = {"job": task}
+    task_manager.tasks = {"job": task}
 
     row = jobs.Job(
         id=16, kwargs={"a": 9, "b": 3}, lock="sherlock", task_name="job", queue="yay"
     )
-    worker = task_worker.Worker(manager, "yay")
+    worker = task_worker.Worker(task_manager, "yay")
     worker.run_task(row)
 
     assert result == [12]
 
 
-def test_run_task_error(manager):
+def test_run_task_error(task_manager):
     def job(a, b):  # pylint: disable=unused-argument
         raise ValueError("nope")
 
-    task = tasks.Task(job, manager=manager, queue="yay", name="job")
+    task = tasks.Task(job, manager=task_manager, queue="yay", name="job")
     task.func = job
 
-    manager.tasks = {"job": task}
+    task_manager.tasks = {"job": task}
 
     row = jobs.Job(
         id=16, kwargs={"a": 9, "b": 3}, lock="sherlock", task_name="job", queue="yay"
     )
-    worker = task_worker.Worker(manager, "yay")
+    worker = task_worker.Worker(task_manager, "yay")
     with pytest.raises(exceptions.TaskError):
         worker.run_task(row)
 
 
-def test_run_task_not_found(manager):
+def test_run_task_not_found(task_manager):
     row = jobs.Job(
         id=16, kwargs={"a": 9, "b": 3}, lock="sherlock", task_name="job", queue="yay"
     )
-    worker = task_worker.Worker(manager, "yay")
+    worker = task_worker.Worker(task_manager, "yay")
     with pytest.raises(exceptions.TaskNotFound):
         worker.run_task(row)
