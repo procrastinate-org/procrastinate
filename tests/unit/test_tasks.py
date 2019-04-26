@@ -55,7 +55,7 @@ def test_task_defer_no_lock(task_manager, mocker):
 
 
 def test_task_manager_task_explicit(task_manager, mocker):
-    @manager.task(queue="a", name="b")
+    @task_manager.task(queue="a", name="b")
     def wrapped():
         return "foo"
 

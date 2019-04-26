@@ -2,7 +2,7 @@ import functools
 import importlib
 import logging
 import uuid
-from typing import Callable, Dict, Optional, Set
+from typing import Any, Callable, Dict, Optional, Set
 
 from cabbage import postgres, store, types
 
