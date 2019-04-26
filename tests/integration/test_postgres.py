@@ -39,12 +39,13 @@ def job_store(connection):
     return postgres.PostgresJobStore(connection=connection)
 
 
-def test_launch_task(job_store, get_all):
+def test_launch_job(job_store, get_all):
     queue = "marsupilami"
     job_store.register_queue(queue)
-    pk = job_store.launch_task(
-        queue=queue, name="bob", lock="sher", kwargs={"a": 1, "b": 2}
+    job = jobs.Job(
+        id=0, queue=queue, task_name="bob", lock="sher", kwargs={"a": 1, "b": 2}
     )
+    pk = job_store.launch_job(job=job)
 
     result = get_all("cabbage_jobs", "id", "args", "status", "lock", "task_name")
     assert result == [
@@ -52,31 +53,48 @@ def test_launch_task(job_store, get_all):
             "id": pk,
             "args": {"a": 1, "b": 2},
             "status": "todo",
-            "targeted_object": "sher",
-            "task_type": "bob",
+            "lock": "sher",
+            "task_name": "bob",
         }
     ]
 
 
-def test_launch_task_no_queue(job_store):
+def test_launch_job_no_queue(job_store):
     queue = "marsupilami"
+    job = jobs.Job(
+        id=0, queue=queue, task_name="bob", lock="sher", kwargs={"a": 1, "b": 2}
+    )
     with pytest.raises(exceptions.QueueNotFound):
-        job_store.launch_task(
-            queue=queue, name="bob", lock="sher", kwargs={"a": 1, "b": 2}
-        )
+        job_store.launch_job(job=job)
 
 
-def test_get_tasks(job_store):
+def test_get_jobs(job_store):
     job_store.register_queue("queue_a")
     job_store.register_queue("queue_b")
-    job_store.launch_task("queue_a", "task_1", "lock_1", {"a": "b"})
+    job_store.launch_job(
+        jobs.Job(
+            id=0, queue="queue_a", task_name="task_1", lock="lock_1", kwargs={"a": "b"}
+        )
+    )
     # We won't see this one because of the lock
-    job_store.launch_task("queue_a", "task_2", "lock_1", {"c": "d"})
-    job_store.launch_task("queue_a", "task_3", "lock_2", {"e": "f"})
+    job_store.launch_job(
+        jobs.Job(
+            id=0, queue="queue_a", task_name="task_2", lock="lock_1", kwargs={"c": "d"}
+        )
+    )
+    job_store.launch_job(
+        jobs.Job(
+            id=0, queue="queue_a", task_name="task_3", lock="lock_2", kwargs={"e": "f"}
+        )
+    )
     # We won't see this one because of the queue
-    job_store.launch_task("queue_b", "task_4", "lock_3", {"g": "h"})
+    job_store.launch_job(
+        jobs.Job(
+            id=0, queue="queue_b", task_name="task_4", lock="lock_3", kwargs={"g": "h"}
+        )
+    )
 
-    result = list(job_store.get_tasks("queue_a"))
+    result = list(job_store.get_jobs("queue_a"))
 
     t1, t2 = result
     assert result == [
@@ -97,14 +115,18 @@ def test_get_tasks(job_store):
     ]
 
 
-def test_finish_task(get_all, job_store):
+def test_finish_job(get_all, job_store):
     job_store.register_queue("queue_a")
-    job_store.launch_task("queue_a", "task_1", "lock_1", {"a": "b"})
-    job = next(job_store.get_tasks("queue_a"))
+    job_store.launch_job(
+        jobs.Job(
+            id=0, queue="queue_a", task_name="task_1", lock="lock_1", kwargs={"a": "b"}
+        )
+    )
+    job = next(job_store.get_jobs("queue_a"))
 
     assert get_all("cabbage_jobs", "status") == [{"status": "doing"}]
 
-    job_store.finish_task(job=job, status=jobs.Status.DONE)
+    job_store.finish_job(job=job, status=jobs.Status.DONE)
 
     assert get_all("cabbage_jobs", "status") == [{"status": "done"}]
 
@@ -112,7 +134,7 @@ def test_finish_task(get_all, job_store):
 def test_register_queue(get_all, job_store):
     pk = job_store.register_queue("marsupilami")
 
-    result = get_all("queues", "*")
+    result = get_all("cabbage_queues", "*")
     assert result == [{"id": pk, "queue_name": "marsupilami"}]
 
 
@@ -122,13 +144,13 @@ def test_register_queue_conflict(get_all, job_store):
     pk = job_store.register_queue("marsupilami")
 
     assert pk is None
-    result = get_all("queues", "queue_name")
+    result = get_all("cabbage_queues", "queue_name")
     assert result == [{"queue_name": "marsupilami"}]
 
 
 def test_listen_queue(job_store, connection):
-    queue = random.choices(string.ascii_letters, k=10)
-    queue_full_name = f"queue#{queue}"
+    queue = "".join(random.choices(string.ascii_letters, k=10))
+    queue_full_name = f"cabbage_queue#{queue}"
     job_store.listen_for_jobs(queue=queue)
     connection.commit()
 
@@ -148,7 +170,7 @@ def test_enum_synced(connection):
         cursor.execute(
             """SELECT e.enumlabel FROM pg_enum e
                JOIN pg_type t ON e.enumtypid = t.oid WHERE t.typname = %s""",
-            ("task_status",),
+            ("cabbage_job_status",),
         )
 
         pg_values = {row[0] for row in cursor.fetchall()}
@@ -162,7 +184,9 @@ def test_wait_for_jobs(job_store):
 
     def stop():
         time.sleep(0.5)
-        job_store.launch_task(queue="yay", name="oh", lock="sher", kwargs={})
+        job_store.launch_job(
+            jobs.Job(id=0, queue="yay", task_name="oh", lock="sher", kwargs={})
+        )
 
     thread = threading.Thread(target=stop)
     thread.start()

@@ -5,7 +5,7 @@ import psycopg2
 from psycopg2 import extras, sql
 from psycopg2.extras import RealDictCursor
 
-from cabbage import exceptions, jobs, store, types
+from cabbage import exceptions, jobs, store
 
 insert_jobs_sql = """
 INSERT INTO cabbage_jobs (queue_id, task_name, lock, args)
@@ -40,13 +40,7 @@ def init_pg_extensions() -> None:
     psycopg2.extensions.register_adapter(dict, extras.Json)
 
 
-def launch_task(
-    connection: psycopg2._psycopg.connection,
-    queue: str,
-    name: str,
-    lock: str,
-    kwargs: types.JSONDict,
-) -> int:
+def launch_job(connection: psycopg2._psycopg.connection, job: jobs.Job) -> int:
     with connection.cursor() as cursor:
         cursor.execute(
             insert_jobs_sql,
@@ -60,13 +54,13 @@ def launch_task(
         row = cursor.fetchone()
 
     if not row:
-        raise exceptions.QueueNotFound(queue)
+        raise exceptions.QueueNotFound(job.queue)
 
     connection.commit()
     return row[0]
 
 
-def get_tasks(
+def get_jobs(
     connection: psycopg2._psycopg.connection, queue: str
 ) -> Iterator[jobs.Job]:
     with connection.cursor(cursor_factory=RealDictCursor) as cursor:
@@ -90,8 +84,8 @@ def get_tasks(
             )
 
 
-def finish_task(
-    connection: psycopg2._psycopg.connection, task_id: int, status: str
+def finish_job(
+    connection: psycopg2._psycopg.connection, job: jobs.Job, status: str
 ) -> None:
     with connection.cursor() as cursor:
         cursor.execute(finish_job_sql, {"job_id": job.id, "status": status})
@@ -119,7 +113,7 @@ def listen_queue(connection: psycopg2._psycopg.connection, queue: str) -> None:
         cursor.execute(query)
 
 
-def wait_for_jobs(connection: psycopg2._psycopg.connection, timeout: int):
+def wait_for_jobs(connection: psycopg2._psycopg.connection, timeout: int) -> None:
     select.select([connection], [], [], timeout)
 
 
@@ -133,23 +127,17 @@ class PostgresJobStore(store.JobStore):
     def register_queue(self, queue: str) -> Optional[int]:
         return register_queue(connection=self.connection, queue=queue)
 
-    def launch_task(
-        self, queue: str, name: str, lock: str, kwargs: types.JSONDict
-    ) -> int:
-        return launch_task(
-            connection=self.connection, queue=queue, name=name, lock=lock, kwargs=kwargs
-        )
+    def launch_job(self, job: jobs.Job) -> int:
+        return launch_job(connection=self.connection, job=job)
 
-    def get_tasks(self, queue: str) -> Iterator[jobs.Job]:
-        return get_tasks(connection=self.connection, queue=queue)
+    def get_jobs(self, queue: str) -> Iterator[jobs.Job]:
+        return get_jobs(connection=self.connection, queue=queue)
 
-    def finish_task(self, job: jobs.Job, status: jobs.Status) -> None:
-        return finish_task(
-            connection=self.connection, task_id=job.id, status=status.value
-        )
+    def finish_job(self, job: jobs.Job, status: jobs.Status) -> None:
+        return finish_job(connection=self.connection, job=job, status=status.value)
 
-    def listen_for_jobs(self, queue: str):
+    def listen_for_jobs(self, queue: str) -> None:
         listen_queue(connection=self.connection, queue=queue)
 
-    def wait_for_jobs(self, timeout: int):
+    def wait_for_jobs(self, timeout: int) -> None:
         wait_for_jobs(connection=self.connection, timeout=timeout)

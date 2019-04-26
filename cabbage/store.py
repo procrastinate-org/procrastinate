@@ -1,7 +1,7 @@
 import importlib
 from typing import Iterator, Optional, Type
 
-from cabbage import jobs, types
+from cabbage import jobs
 
 
 def load_store_from_path(path: str) -> Type["JobStore"]:
@@ -22,15 +22,13 @@ class JobStore:
     def register_queue(self, queue: str) -> Optional[int]:
         raise NotImplementedError
 
-    def launch_task(
-        self, queue: str, name: str, lock: str, kwargs: types.JSONDict
-    ) -> int:
+    def launch_job(self, job: jobs.Job) -> int:
         raise NotImplementedError
 
-    def get_tasks(self, queue: str) -> Iterator[jobs.Job]:
+    def get_jobs(self, queue: str) -> Iterator[jobs.Job]:
         raise NotImplementedError
 
-    def finish_task(self, job: jobs.Job, status: jobs.Status) -> None:
+    def finish_job(self, job: jobs.Job, status: jobs.Status) -> None:
         raise NotImplementedError
 
     def listen_for_jobs(self, queue: str):

@@ -6,7 +6,7 @@ class TaskNotFound(CabbageException):
     pass
 
 
-class TaskError(CabbageException):
+class JobError(CabbageException):
     pass
 
 

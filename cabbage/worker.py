@@ -27,56 +27,52 @@ class Worker:
 
         with signals.on_stop(self.stop):
             while True:
-                self.process_tasks()
+                self.process_jobs()
 
                 if self._stop_requested:
                     logger.debug(
-                        "Finished running task at the end of the batch",
+                        "Finished running job at the end of the batch",
                         extra={"action": "stopped_end_batch"},
                     )
                     break
 
                 logger.debug(
-                    "Waiting for new tasks", extra={"action": "waiting_for_tasks"}
+                    "Waiting for new jobs", extra={"action": "waiting_for_jobs"}
                 )
                 self._job_store.wait_for_jobs(timeout=timeout)
 
-    def process_tasks(self) -> None:
-        for job in self._job_store.get_tasks(self._queue):  # pragma: no branch
+    def process_jobs(self) -> None:
+        for job in self._job_store.get_jobs(self._queue):  # pragma: no branch
             assert isinstance(job.id, int)
 
-            log_context = {"row": job._asdict(), "queue": self._queue}
+            log_context = {"job": job._asdict(), "queue": self._queue}
             logger.debug(
-                "Loaded task row, about to start task",
-                extra={"action": "loaded_task_row", **log_context},
+                "Loaded job info, about to start job",
+                extra={"action": "loaded_job_info", **log_context},
             )
 
             status = jobs.Status.ERROR
             try:
-                self.run_task(job=job)
+                self.run_job(job=job)
                 status = jobs.Status.DONE
-            except exceptions.TaskError:
+            except exceptions.JobError:
                 pass
             finally:
-                self._job_store.finish_task(job=job, status=status)
+                self._job_store.finish_job(job=job, status=status)
                 logger.debug(
-                    "Acknowledged task row completion",
+                    "Acknowledged job completion",
                     extra={"action": "finish_task", "status": status, **log_context},
                 )
 
             if self._stop_requested:
                 break
 
-    def run_task(self, job: jobs.Job) -> None:
+    def run_job(self, job: jobs.Job) -> None:
         task_name = job.task_name
         try:
             task = self._task_manager.tasks[task_name]
         except KeyError:
             raise exceptions.TaskNotFound(job)
-
-        pk = job.id
-
-        kwargs = job.kwargs
 
         # We store the log context in self. This way, when requesting
         # a stop, we can get details on the currently running task
@@ -84,29 +80,28 @@ class Worker:
         start_time = time.time()
         log_context = self.log_context = {
             "queue": task.queue,
-            "name": task.name,
-            "id": pk,
-            "kwargs": kwargs,
-            "start_time": time.time(),
+            "task_name": task.name,
+            "id": job.id,
+            "kwargs": job.kwargs,
+            "start_timestamp": time.time(),
         }
-        logger.info(
-            "Starting task", extra={"action": "task_start", "task": log_context}
-        )
+        logger.info("Starting job", extra={"action": "start_job", "job": log_context})
         try:
-            task(**kwargs)
+            task(**job.kwargs)
         except Exception as e:
-            end_time = log_context["end_time"] = time.time()
-            log_context["duration"] = end_time - start_time
+            end_time = log_context["end_timestamp"] = time.time()
+            log_context["duration_seconds"] = end_time - start_time
 
             logger.exception(
-                "Task error", extra={"action": "task_error", "task": log_context}
+                "Job error", extra={"action": "job_error", "job": log_context}
             )
-            raise exceptions.TaskError() from e
+            raise exceptions.JobError() from e
         else:
-            end_time = log_context["end_time"] = time.time()
-            log_context["duration"] = end_time - start_time
+            end_time = log_context["end_timestamp"] = time.time()
+            log_context["duration_seconds"] = end_time - start_time
+
             logger.info(
-                "Task success", extra={"action": "task_success", "task": log_context}
+                "Job success", extra={"action": "job_success", "job": log_context}
             )
 
     def stop(self, signum: signals.Signals, frame: signals.FrameType) -> None:
@@ -114,6 +109,6 @@ class Worker:
         log_context = self.log_context
 
         logger.info(
-            "Stop requested, waiting for current task to finish",
-            extra={"action": "stopping_worker", "task": log_context},
+            "Stop requested, waiting for current job to finish",
+            extra={"action": "stopping_worker", "job": log_context},
         )

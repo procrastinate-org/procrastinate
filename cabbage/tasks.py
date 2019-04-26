@@ -3,7 +3,7 @@ import logging
 import uuid
 from typing import Any, Callable, Dict, Optional, Set
 
-from cabbage import postgres, store, types
+from cabbage import jobs, postgres, store, types
 
 logger = logging.getLogger(__name__)
 
@@ -25,23 +25,25 @@ class Task:
     def __call__(self, **kwargs: types.JSONValue) -> None:
         return self.func(**kwargs)
 
-    def defer(self, lock: str = None, **kwargs: types.JSONValue) -> None:
+    def defer(self, lock: str = None, **kwargs: types.JSONValue) -> int:
         lock = lock or f"{uuid.uuid4()}"
-        task_id = self.manager.job_store.launch_task(
-            queue=self.queue, name=self.name, lock=lock, kwargs=kwargs
+        job = jobs.Job(
+            id=0, queue=self.queue, task_name=self.name, lock=lock, kwargs=kwargs
         )
+        job_id = self.manager.job_store.launch_job(job=job)
         logger.info(
-            "Scheduled task",
+            "Scheduled job",
             extra={
-                "action": "task_defer",
+                "action": "job_defer",
                 "job": {
-                    "name": self.name,
-                    "queue": self.queue,
-                    "kwargs": kwargs,
-                    "id": task_id,
+                    "task_name": job.task_name,
+                    "queue": job.queue,
+                    "kwargs": job.kwargs,
+                    "id": job_id,
                 },
             },
         )
+        return job_id
 
 
 class TaskManager:

@@ -11,26 +11,26 @@ def task_manager(mocker):
     return tasks.TaskManager(job_store=store)
 
 
-def job():
+def task_func():
     pass
 
 
 def test_task_init_with_no_name(task_manager):
-    task = tasks.Task(job, manager=task_manager, queue="queue")
+    task = tasks.Task(task_func, manager=task_manager, queue="queue")
 
-    assert task.func is job
-    assert task.name == "job"
+    assert task.func is task_func
+    assert task.name == "task_func"
 
 
 def test_task_init_explicit_name(task_manager, mocker):
-    task = tasks.Task(job, manager=task_manager, queue="queue", name="other")
+    task = tasks.Task(task_func, manager=task_manager, queue="queue", name="other")
 
     assert task.name == "other"
 
 
 def test_task_defer(task_manager, mocker):
     task_manager.job_store.register_queue("queue")
-    task = tasks.Task(job, manager=task_manager, queue="queue", name="job")
+    task = tasks.Task(task_func, manager=task_manager, queue="queue")
 
     task.defer(lock="sherlock", a="b", c=3)
 
@@ -38,7 +38,7 @@ def test_task_defer(task_manager, mocker):
         jobs.Job(
             id=0,
             queue="queue",
-            task_name="job",
+            task_name="task_func",
             lock="sherlock",
             kwargs={"a": "b", "c": 3},
         )
@@ -47,7 +47,7 @@ def test_task_defer(task_manager, mocker):
 
 def test_task_defer_no_lock(task_manager, mocker):
     task_manager.job_store.register_queue("queue")
-    task = tasks.Task(job, manager=task_manager, queue="queue", name="job")
+    task = tasks.Task(task_func, manager=task_manager, queue="queue")
 
     task.defer(a="b", c=3)
 
@@ -79,7 +79,7 @@ def test_task_manager_task_implicit(task_manager, mocker):
 
 
 def test_task_manager_register(task_manager, mocker):
-    task = tasks.Task(job, manager=task_manager, queue="queue", name="bla")
+    task = tasks.Task(task_func, manager=task_manager, queue="queue", name="bla")
 
     task_manager.register(task)
 
@@ -90,7 +90,7 @@ def test_task_manager_register(task_manager, mocker):
 
 def test_task_manager_register_queue_already_exists(task_manager, mocker):
     task_manager.queues.add("queue")
-    task = tasks.Task(job, manager=task_manager, queue="queue", name="bla")
+    task = tasks.Task(task_func, manager=task_manager, queue="queue", name="bla")
 
     task_manager.register(task)
 
