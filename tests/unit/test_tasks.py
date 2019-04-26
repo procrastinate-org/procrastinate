@@ -105,11 +105,3 @@ def test_task_manager_default_connection(mocker):
     task_manager = tasks.TaskManager()
 
     assert isinstance(task_manager.job_store, postgres.PostgresJobStore)
-
-
-def test_task_manager_with_job_store_class():
-    task_manager = tasks.TaskManager.with_job_store_class(
-        "cabbage.testing.InMemoryJobStore"
-    )
-
-    assert isinstance(task_manager.job_store, testing.InMemoryJobStore)

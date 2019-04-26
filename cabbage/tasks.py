@@ -1,5 +1,4 @@
 import functools
-import importlib
 import logging
 import uuid
 from typing import Any, Callable, Dict, Optional, Set
@@ -46,30 +45,13 @@ class Task:
 
 
 class TaskManager:
-    def __init__(self, job_store: store.JobStore = None):
+    def __init__(self, job_store: Optional[store.JobStore] = None):
         if job_store is None:
             job_store = postgres.PostgresJobStore()
 
         self.job_store = job_store
         self.tasks: Dict[str, Task] = {}
         self.queues: Set[str] = set()
-
-    @classmethod
-    def with_job_store_class(cls, path: str, **kwargs) -> "TaskManager":
-        """
-        Import the JobStore subclass at the given path, instanciates it
-        and returns a TaskManager with this JobStore object.
-        """
-        path, name = path.rsplit(".", 1)
-        module = importlib.import_module(path)
-
-        job_store_class = getattr(module, name)
-
-        assert issubclass(job_store_class, store.JobStore)
-
-        job_store = job_store_class(**kwargs)
-
-        return cls(job_store=job_store)
 
     def task(
         self,
