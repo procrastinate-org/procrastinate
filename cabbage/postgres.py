@@ -1,17 +1,11 @@
-from typing import Iterator, NamedTuple, Optional
+import select
+from typing import Iterator, Optional
 
 import psycopg2
 from psycopg2 import extras, sql
 from psycopg2.extras import RealDictCursor
 
-from cabbage import exceptions, types
-
-
-class TaskRow(NamedTuple):
-    id: int
-    task_type: str
-    args: types.JSONDict
-    targeted_object: str
+from cabbage import exceptions, jobs, store, types
 
 
 def get_connection(**kwargs) -> psycopg2._psycopg.connection:
@@ -47,7 +41,7 @@ def launch_task(
 
 def get_tasks(
     connection: psycopg2._psycopg.connection, queue: str
-) -> Iterator[TaskRow]:
+) -> Iterator[jobs.Job]:
     with connection.cursor(cursor_factory=RealDictCursor) as cursor:
         while True:
             cursor.execute(
@@ -63,7 +57,13 @@ def get_tasks(
             if row["id"] is None:
                 return
 
-            yield TaskRow(**row)
+            yield jobs.Job(
+                id=row["id"],
+                lock=row["targeted_object"],
+                task_name=row["task_type"],
+                kwargs=row["args"],
+                queue=queue,
+            )
 
 
 def finish_task(
@@ -103,4 +103,37 @@ def listen_queue(connection: psycopg2._psycopg.connection, queue: str) -> None:
         )
 
 
+def wait_for_jobs(connection: psycopg2._psycopg.connection, timeout: int):
+    select.select([connection], [], [], timeout)
+
+
 init_pg_extensions()
+
+
+class PostgresJobStore(store.JobStore):
+    def __init__(self, connection: Optional[psycopg2._psycopg.connection] = None):
+        self.connection = connection or get_connection()
+
+    def register_queue(self, queue: str) -> Optional[int]:
+        return register_queue(connection=self.connection, queue=queue)
+
+    def launch_task(
+        self, queue: str, name: str, lock: str, kwargs: types.JSONDict
+    ) -> int:
+        return launch_task(
+            connection=self.connection, queue=queue, name=name, lock=lock, kwargs=kwargs
+        )
+
+    def get_tasks(self, queue: str) -> Iterator[jobs.Job]:
+        return get_tasks(connection=self.connection, queue=queue)
+
+    def finish_task(self, job: jobs.Job, status: jobs.Status) -> None:
+        return finish_task(
+            connection=self.connection, task_id=job.id, status=status.value
+        )
+
+    def listen_for_jobs(self, queue: str):
+        listen_queue(connection=self.connection, queue=queue)
+
+    def wait_for_jobs(self, timeout: int):
+        wait_for_jobs(connection=self.connection, timeout=timeout)

@@ -1,9 +1,9 @@
 import functools
 import logging
 import uuid
-from typing import Any, Callable, Dict, Iterator, Optional, Set
+from typing import Any, Callable, Dict, Optional, Set
 
-from cabbage import postgres, types
+from cabbage import postgres, store, types
 
 logger = logging.getLogger(__name__)
 
@@ -27,31 +27,29 @@ class Task:
 
     def defer(self, lock: str = None, **kwargs: types.JSONValue) -> None:
         lock = lock or f"{uuid.uuid4()}"
-        task_id = postgres.launch_task(
-            self.manager.connection,
-            queue=self.queue,
-            name=self.name,
-            lock=lock,
-            kwargs=kwargs,
+        task_id = self.manager.job_store.launch_task(
+            queue=self.queue, name=self.name, lock=lock, kwargs=kwargs
         )
         logger.info(
             "Scheduled task",
             extra={
                 "action": "task_defer",
-                "name": self.name,
-                "queue": self.queue,
-                "kwargs": kwargs,
-                "id": task_id,
+                "job": {
+                    "name": self.name,
+                    "queue": self.queue,
+                    "kwargs": kwargs,
+                    "id": task_id,
+                },
             },
         )
 
 
 class TaskManager:
-    def __init__(self, connection: Any = None) -> None:
-        if connection is None:
-            connection = postgres.get_connection()
+    def __init__(self, job_store: Optional[store.JobStore] = None):
+        if job_store is None:
+            job_store = postgres.PostgresJobStore()
 
-        self.connection = connection
+        self.job_store = job_store
         self.tasks: Dict[str, Task] = {}
         self.queues: Set[str] = set()
 
@@ -85,11 +83,5 @@ class TaskManager:
                 "Creating queue (if not already existing)",
                 extra={"action": "create_queue", "queue": task.queue},
             )
-            postgres.register_queue(self.connection, task.queue)
+            self.job_store.register_queue(task.queue)
             self.queues.add(task.queue)
-
-    def get_tasks(self, queue: str) -> Iterator[postgres.TaskRow]:
-        return postgres.get_tasks(self.connection, queue)
-
-    def finish_task(self, task_row: postgres.TaskRow, status: str) -> None:
-        return postgres.finish_task(self.connection, task_row.id, status)

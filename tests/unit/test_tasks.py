@@ -2,111 +2,106 @@ import uuid
 
 import pytest
 
-from cabbage import tasks
+from cabbage import jobs, postgres, tasks, testing
 
 
 @pytest.fixture
-def manager():
-    return tasks.TaskManager(object())
+def task_manager(mocker):
+    store = testing.InMemoryJobStore()
+    return tasks.TaskManager(job_store=store)
 
 
 def job():
     pass
 
 
-def test_task_init_with_no_name(manager):
-    task = tasks.Task(job, manager=manager, queue="queue")
+def test_task_init_with_no_name(task_manager):
+    task = tasks.Task(job, manager=task_manager, queue="queue")
 
     assert task.func is job
     assert task.name == "job"
 
 
-def test_task_init_explicit_name(manager, mocker):
-    mocker.patch("cabbage.tasks.TaskManager.register")
-    task = tasks.Task(job, manager=manager, queue="queue", name="other")
+def test_task_init_explicit_name(task_manager, mocker):
+    task = tasks.Task(job, manager=task_manager, queue="queue", name="other")
 
     assert task.name == "other"
 
 
-def test_task_defer(manager, mocker):
-    launch_task = mocker.patch("cabbage.postgres.launch_task")
-    task = tasks.Task(job, manager=manager, queue="queue", name="job")
+def test_task_defer(task_manager, mocker):
+    task_manager.job_store.register_queue("queue")
+    task = tasks.Task(job, manager=task_manager, queue="queue", name="job")
 
     task.defer(lock="sherlock", a="b", c=3)
 
-    launch_task.assert_called_with(
-        manager.connection,
-        queue="queue",
-        name="job",
-        lock="sherlock",
-        kwargs={"a": "b", "c": 3},
-    )
+    assert task_manager.job_store.jobs["queue"] == [
+        jobs.Job(
+            id=0,
+            queue="queue",
+            task_name="job",
+            lock="sherlock",
+            kwargs={"a": "b", "c": 3},
+        )
+    ]
 
 
-def test_task_defer_no_lock(manager, mocker):
-    launch_task = mocker.patch("cabbage.postgres.launch_task")
-    task = tasks.Task(job, manager=manager, queue="queue", name="job")
+def test_task_defer_no_lock(task_manager, mocker):
+    task_manager.job_store.register_queue("queue")
+    task = tasks.Task(job, manager=task_manager, queue="queue", name="job")
 
     task.defer(a="b", c=3)
 
-    _, kwargs = launch_task.call_args_list[0]
-    # Will raise if not a correct uuid
-    assert uuid.UUID(kwargs["lock"])
+    assert uuid.UUID(task_manager.job_store.jobs["queue"][0].lock)
 
 
-def test_task_manager_task_explicit(manager, mocker):
-    mocker.patch("cabbage.postgres.register_queue")
-
-    @manager.task(queue="a", name="b")
+def test_task_manager_task_explicit(task_manager, mocker):
+    @task_manager.task(queue="a", name="b")
     def wrapped():
         return "foo"
 
     assert "foo" == wrapped()
-    assert "b" == manager.tasks["b"].name
-    assert "a" == manager.tasks["b"].queue
-    assert manager.tasks["b"] is wrapped
-    assert manager.tasks["b"].func is wrapped.__wrapped__
+    assert "b" == task_manager.tasks["b"].name
+    assert "a" == task_manager.tasks["b"].queue
+    assert task_manager.tasks["b"] is wrapped
+    assert task_manager.tasks["b"].func is wrapped.__wrapped__
 
 
-def test_task_manager_task_implicit(manager, mocker):
-    mocker.patch("cabbage.postgres.register_queue")
-
-    @manager.task
+def test_task_manager_task_implicit(task_manager, mocker):
+    @task_manager.task
     def wrapped():
         return "foo"
 
     assert "foo" == wrapped()
-    assert "wrapped" == manager.tasks["wrapped"].name
-    assert "default" == manager.tasks["wrapped"].queue
-    assert manager.tasks["wrapped"] is wrapped
-    assert manager.tasks["wrapped"].func is wrapped.__wrapped__
+    assert "wrapped" == task_manager.tasks["wrapped"].name
+    assert "default" == task_manager.tasks["wrapped"].queue
+    assert task_manager.tasks["wrapped"] is wrapped
+    assert task_manager.tasks["wrapped"].func is wrapped.__wrapped__
 
 
-def test_task_manager_register(manager, mocker):
-    register_queue = mocker.patch("cabbage.postgres.register_queue")
-    task = tasks.Task(job, manager=manager, queue="queue", name="bla")
+def test_task_manager_register(task_manager, mocker):
+    task = tasks.Task(job, manager=task_manager, queue="queue", name="bla")
 
-    manager.register(task)
+    task_manager.register(task)
 
-    assert manager.queues == {"queue"}
-    assert manager.tasks == {"bla": task}
-    register_queue.assert_called_with(manager.connection, "queue")
+    assert task_manager.queues == {"queue"}
+    assert task_manager.tasks == {"bla": task}
+    assert set(task_manager.job_store.jobs) == {"queue"}
 
 
-def test_task_manager_register_queue_already_exists(manager, mocker):
-    register_queue = mocker.patch("cabbage.postgres.register_queue")
-    manager.queues.add("queue")
-    task = tasks.Task(job, manager=manager, queue="queue", name="bla")
+def test_task_manager_register_queue_already_exists(task_manager, mocker):
+    task_manager.queues.add("queue")
+    task = tasks.Task(job, manager=task_manager, queue="queue", name="bla")
 
-    manager.register(task)
+    task_manager.register(task)
 
-    assert manager.queues == {"queue"}
-    assert manager.tasks == {"bla": task}
-    register_queue.assert_not_called()
+    assert task_manager.queues == {"queue"}
+    assert task_manager.tasks == {"bla": task}
+    # We never told the store that there were queues to register
+    assert not task_manager.job_store.jobs
 
 
 def test_task_manager_default_connection(mocker):
-    get_connection = mocker.patch("cabbage.postgres.get_connection")
-    manager = tasks.TaskManager()
+    mocker.patch("cabbage.postgres.get_connection")
+    task_manager = tasks.TaskManager()
 
-    assert manager.connection is get_connection.return_value
+    assert isinstance(task_manager.job_store, postgres.PostgresJobStore)

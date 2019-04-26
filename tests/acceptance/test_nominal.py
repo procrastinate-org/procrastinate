@@ -5,8 +5,11 @@ import time
 import cabbage
 
 
-def test_nominal(connection, kill_own_pid):
-    task_manager = cabbage.TaskManager(connection=connection)
+def test_nominal(connection, kill_own_pid, caplog):
+    job_store = cabbage.PostgresJobStore(connection=connection)
+    task_manager = cabbage.TaskManager(job_store=job_store)
+
+    caplog.set_level("DEBUG")
 
     sum_results = []
     product_results = []

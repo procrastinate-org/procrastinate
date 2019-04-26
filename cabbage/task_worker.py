@@ -1,8 +1,7 @@
 import logging
-import select
 import time
 
-from cabbage import exceptions, postgres, signals, tasks, types
+from cabbage import exceptions, jobs, signals, store, tasks, types
 
 logger = logging.getLogger(__name__)
 
@@ -18,42 +17,48 @@ class Worker:
         # Handling the info about the currently running task.
         self.log_context: types.JSONDict = {}
 
+    @property
+    def _job_store(self) -> store.JobStore:
+        return self._task_manager.job_store
+
     def run(self, timeout: int = SOCKET_TIMEOUT) -> None:
-        connection = self._task_manager.connection
 
-        postgres.listen_queue(connection=connection, queue=self._queue)
+        self._job_store.listen_for_jobs(queue=self._queue)
 
-        while True:
-            with signals.on_stop(self.stop):
+        with signals.on_stop(self.stop):
+            while True:
                 self.process_tasks()
 
-            if self._stop_requested:
-                logger.debug(
-                    "Finished running task at the end of the batch",
-                    extra={"action": "stopped_end_batch"},
-                )
-                break
+                if self._stop_requested:
+                    logger.debug(
+                        "Finished running task at the end of the batch",
+                        extra={"action": "stopped_end_batch"},
+                    )
+                    break
 
-            logger.debug("Waiting for new tasks", extra={"action": "waiting_for_tasks"})
-            select.select([connection], [], [], timeout)
+                logger.debug(
+                    "Waiting for new tasks", extra={"action": "waiting_for_tasks"}
+                )
+                self._job_store.wait_for_jobs(timeout=timeout)
 
     def process_tasks(self) -> None:
-        for task_row in self._task_manager.get_tasks(self._queue):  # pragma: no branch
-            assert isinstance(task_row.id, int)
-            log_context = {"row": task_row._asdict(), "queue": self._queue}
+        for job in self._job_store.get_tasks(self._queue):  # pragma: no branch
+            assert isinstance(job.id, int)
+
+            log_context = {"row": job._asdict(), "queue": self._queue}
             logger.debug(
                 "Loaded task row, about to start task",
                 extra={"action": "loaded_task_row", **log_context},
             )
 
-            status = "error"
+            status = jobs.Status.ERROR
             try:
-                self.run_task(task_row=task_row)
-                status = "done"
+                self.run_task(job=job)
+                status = jobs.Status.DONE
             except exceptions.TaskError:
                 pass
             finally:
-                self._task_manager.finish_task(task_row, status=status)
+                self._job_store.finish_task(job=job, status=status)
                 logger.debug(
                     "Acknowledged task row completion",
                     extra={"action": "finish_task", "status": status, **log_context},
@@ -62,16 +67,16 @@ class Worker:
             if self._stop_requested:
                 break
 
-    def run_task(self, task_row: postgres.TaskRow) -> None:
-        task_name = task_row.task_type
+    def run_task(self, job: jobs.Job) -> None:
+        task_name = job.task_name
         try:
             task = self._task_manager.tasks[task_name]
         except KeyError:
-            raise exceptions.TaskNotFound(task_row)
+            raise exceptions.TaskNotFound(job)
 
-        pk = task_row.id
+        pk = job.id
 
-        kwargs = task_row.args
+        kwargs = job.kwargs
 
         # We store the log context in self. This way, when requesting
         # a stop, we can get details on the currently running task

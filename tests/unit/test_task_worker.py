@@ -1,14 +1,32 @@
 import pytest
 
-from cabbage import exceptions, postgres, task_worker, tasks
+from cabbage import exceptions, jobs, task_worker, tasks, testing
 
 
 @pytest.fixture
-def manager():
-    return tasks.TaskManager(connection=object())
+def task_manager(mocker):
+    return tasks.TaskManager(job_store=testing.InMemoryJobStore())
 
 
-def test_run(manager, mocker):
+@pytest.fixture
+def job_factory():
+    defaults = {
+        "id": 42,
+        "task_name": "bla",
+        "kwargs": {},
+        "lock": None,
+        "queue": "queue",
+    }
+
+    def factory(**kwargs):
+        final_kwargs = defaults.copy()
+        final_kwargs.update(kwargs)
+        return jobs.Job(**final_kwargs)
+
+    return factory
+
+
+def test_run(task_manager, mocker):
     class TestTaskWorker(task_worker.Worker):
         i = 0
 
@@ -17,25 +35,24 @@ def test_run(manager, mocker):
                 self.stop(None, None)
             self.i += 1
 
-    listen_queue = mocker.patch("cabbage.postgres.listen_queue")
-    select = mocker.patch("select.select")
-
-    worker = TestTaskWorker(task_manager=manager, queue="marsupilami")
+    worker = TestTaskWorker(task_manager=task_manager, queue="marsupilami")
 
     worker.run(timeout=42)
 
-    listen_queue.assert_called_with(connection=manager.connection, queue="marsupilami")
-    select.assert_called_with([manager.connection], [], [], 42)
+    task_manager.job_store.listening_queues == {"marsupilami"}
+    task_manager.job_store.waited == [42]
 
 
-def test_process_tasks(mocker, manager):
-    row1, row2, row3 = mocker.Mock(id=42), mocker.Mock(id=43), mocker.Mock(id=44)
-    mocker.patch("cabbage.postgres.get_tasks", return_value=[row1, row2, row3])
-    worker = task_worker.Worker(manager, "queue")
+def test_process_tasks(mocker, task_manager, job_factory):
+    job_1 = job_factory(id=42)
+    job_2 = job_factory(id=43)
+    job_3 = job_factory(id=44)
+    task_manager.job_store.jobs["queue"] = [job_1, job_2, job_3]
+    worker = task_worker.Worker(task_manager, "queue")
 
     i = 0
 
-    def side_effect(task_row):
+    def side_effect(job):
         nonlocal i
         i += 1
         if i == 1:
@@ -51,66 +68,73 @@ def test_process_tasks(mocker, manager):
     call_task = mocker.patch(
         "cabbage.task_worker.Worker.run_task", side_effect=side_effect
     )
-    finish_task = mocker.patch("cabbage.postgres.finish_task")
-
     worker.process_tasks()
 
-    assert call_task.call_count == 3
-    assert finish_task.call_count == 3
-
     assert call_task.call_args_list == [
-        mocker.call(task_row=row1),
-        mocker.call(task_row=row2),
-        mocker.call(task_row=row3),
+        mocker.call(job=job_1),
+        mocker.call(job=job_2),
+        mocker.call(job=job_3),
     ]
 
-    assert finish_task.call_args_list == [
-        mocker.call(manager.connection, 42, "done"),
-        mocker.call(manager.connection, 43, "error"),
-        mocker.call(manager.connection, 44, "done"),
+    assert task_manager.job_store.finished_jobs == [
+        (job_1, jobs.Status.DONE),
+        (job_2, jobs.Status.ERROR),
+        (job_3, jobs.Status.DONE),
     ]
 
 
-def test_run_task(manager):
+def test_process_tasks_until_no_more_jobs(mocker, task_manager, job_factory):
+    job = job_factory(id=42)
+    task_manager.job_store.jobs["queue"] = [job]
+
+    mocker.patch("cabbage.task_worker.Worker.run_task")
+
+    worker = task_worker.Worker(task_manager, "queue")
+    worker.process_tasks()
+
+    assert task_manager.job_store.finished_jobs == [(job, jobs.Status.DONE)]
+
+
+def test_run_task(task_manager):
     result = []
 
     def job(a, b):  # pylint: disable=unused-argument
         result.append(a + b)
 
-    task = tasks.Task(job, manager=manager, queue="yay", name="job")
+    task = tasks.Task(job, manager=task_manager, queue="yay", name="job")
 
-    manager.tasks = {"job": task}
+    task_manager.tasks = {"job": task}
 
-    row = postgres.TaskRow(
-        id=16, args={"a": 9, "b": 3}, targeted_object="sherlock", task_type="job"
+    row = jobs.Job(
+        id=16, kwargs={"a": 9, "b": 3}, lock="sherlock", task_name="job", queue="yay"
     )
-    worker = task_worker.Worker(manager, "yay")
+    worker = task_worker.Worker(task_manager, "yay")
     worker.run_task(row)
 
     assert result == [12]
 
 
-def test_run_task_error(manager):
+def test_run_task_error(task_manager):
     def job(a, b):  # pylint: disable=unused-argument
         raise ValueError("nope")
 
-    task = tasks.Task(job, manager=manager, queue="yay", name="job")
+    task = tasks.Task(job, manager=task_manager, queue="yay", name="job")
     task.func = job
 
-    manager.tasks = {"job": task}
+    task_manager.tasks = {"job": task}
 
-    row = postgres.TaskRow(
-        id=16, args={"a": 9, "b": 3}, targeted_object="sherlock", task_type="job"
+    row = jobs.Job(
+        id=16, kwargs={"a": 9, "b": 3}, lock="sherlock", task_name="job", queue="yay"
     )
-    worker = task_worker.Worker(manager, "yay")
+    worker = task_worker.Worker(task_manager, "yay")
     with pytest.raises(exceptions.TaskError):
         worker.run_task(row)
 
 
-def test_run_task_not_found(manager):
-    row = postgres.TaskRow(
-        id=16, args={"a": 9, "b": 3}, targeted_object="sherlock", task_type="job"
+def test_run_task_not_found(task_manager):
+    row = jobs.Job(
+        id=16, kwargs={"a": 9, "b": 3}, lock="sherlock", task_name="job", queue="yay"
     )
-    worker = task_worker.Worker(manager, "yay")
+    worker = task_worker.Worker(task_manager, "yay")
     with pytest.raises(exceptions.TaskNotFound):
         worker.run_task(row)
