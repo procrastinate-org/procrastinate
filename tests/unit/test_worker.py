@@ -1,6 +1,6 @@
 import pytest
 
-from cabbage import exceptions, jobs, task_worker, tasks, testing
+from cabbage import exceptions, jobs, tasks, testing, worker
 
 
 @pytest.fixture
@@ -27,7 +27,7 @@ def job_factory():
 
 
 def test_run(task_manager, mocker):
-    class TestTaskWorker(task_worker.Worker):
+    class TestWorker(worker.Worker):
         i = 0
 
         def process_tasks(self):
@@ -35,9 +35,9 @@ def test_run(task_manager, mocker):
                 self.stop(None, None)
             self.i += 1
 
-    worker = TestTaskWorker(task_manager=task_manager, queue="marsupilami")
+    test_worker = TestWorker(task_manager=task_manager, queue="marsupilami")
 
-    worker.run(timeout=42)
+    test_worker.run(timeout=42)
 
     task_manager.job_store.listening_queues == {"marsupilami"}
     task_manager.job_store.waited == [42]
@@ -48,7 +48,8 @@ def test_process_tasks(mocker, task_manager, job_factory):
     job_2 = job_factory(id=43)
     job_3 = job_factory(id=44)
     task_manager.job_store.jobs["queue"] = [job_1, job_2, job_3]
-    worker = task_worker.Worker(task_manager, "queue")
+
+    test_worker = worker.Worker(task_manager, "queue")
 
     i = 0
 
@@ -63,7 +64,7 @@ def test_process_tasks(mocker, task_manager, job_factory):
             raise exceptions.TaskError()
         else:
             # While the third task runs, a stop signal is received
-            worker.stop(None, None)
+            test_worker.stop(None, None)
 
     call_task = mocker.patch(
         "cabbage.task_worker.Worker.run_task", side_effect=side_effect
@@ -87,10 +88,10 @@ def test_process_tasks_until_no_more_jobs(mocker, task_manager, job_factory):
     job = job_factory(id=42)
     task_manager.job_store.jobs["queue"] = [job]
 
-    mocker.patch("cabbage.task_worker.Worker.run_task")
+    mocker.patch("cabbage.worker.Worker.run_job")
 
-    worker = task_worker.Worker(task_manager, "queue")
-    worker.process_tasks()
+    test_worker = worker.Worker(task_manager, "queue")
+    test_worker.process_jobs()
 
     assert task_manager.job_store.finished_jobs == [(job, jobs.Status.DONE)]
 
@@ -108,8 +109,8 @@ def test_run_task(task_manager):
     row = jobs.Job(
         id=16, kwargs={"a": 9, "b": 3}, lock="sherlock", task_name="job", queue="yay"
     )
-    worker = task_worker.Worker(task_manager, "yay")
-    worker.run_task(row)
+    test_worker = worker.Worker(task_manager, "yay")
+    test_worker.run_job(job)
 
     assert result == [12]
 
@@ -126,15 +127,15 @@ def test_run_task_error(task_manager):
     row = jobs.Job(
         id=16, kwargs={"a": 9, "b": 3}, lock="sherlock", task_name="job", queue="yay"
     )
-    worker = task_worker.Worker(task_manager, "yay")
+    test_worker = worker.Worker(task_manager, "yay")
     with pytest.raises(exceptions.TaskError):
-        worker.run_task(row)
+        test_worker.run_job(job)
 
 
 def test_run_task_not_found(task_manager):
     row = jobs.Job(
         id=16, kwargs={"a": 9, "b": 3}, lock="sherlock", task_name="job", queue="yay"
     )
-    worker = task_worker.Worker(task_manager, "yay")
+    test_worker = worker.Worker(task_manager, "yay")
     with pytest.raises(exceptions.TaskNotFound):
-        worker.run_task(row)
+        test_worker.run_job(job)
