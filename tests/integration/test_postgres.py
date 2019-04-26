@@ -24,7 +24,7 @@ def test_get_connection(connection):
     assert new_connection.get_dsn_parameters() == dsn
 
 
-@pytest.fixture()
+@pytest.fixture
 def get_all(connection):
     def f(table, *fields):
         with connection.cursor(cursor_factory=postgres.RealDictCursor) as cursor:
@@ -34,11 +34,16 @@ def get_all(connection):
     return f
 
 
-def test_launch_task(connection, get_all):
+@pytest.fixture
+def job_store(connection):
+    return postgres.PostgresJobStore(connection=connection)
+
+
+def test_launch_task(job_store, get_all):
     queue = "marsupilami"
-    postgres.register_queue(connection, queue)
-    pk = postgres.launch_task(
-        connection, queue=queue, name="bob", lock="sher", kwargs={"a": 1, "b": 2}
+    job_store.register_queue(queue)
+    pk = job_store.launch_task(
+        queue=queue, name="bob", lock="sher", kwargs={"a": 1, "b": 2}
     )
 
     result = get_all("tasks", "id", "args", "status", "targeted_object", "task_type")
@@ -53,25 +58,25 @@ def test_launch_task(connection, get_all):
     ]
 
 
-def test_launch_task_no_queue(connection):
+def test_launch_task_no_queue(job_store):
     queue = "marsupilami"
     with pytest.raises(exceptions.QueueNotFound):
-        postgres.launch_task(
-            connection, queue=queue, name="bob", lock="sher", kwargs={"a": 1, "b": 2}
+        job_store.launch_task(
+            queue=queue, name="bob", lock="sher", kwargs={"a": 1, "b": 2}
         )
 
 
-def test_get_tasks(connection):
-    postgres.register_queue(connection, "queue_a")
-    postgres.register_queue(connection, "queue_b")
-    postgres.launch_task(connection, "queue_a", "task_1", "lock_1", {"a": "b"})
+def test_get_tasks(job_store):
+    job_store.register_queue("queue_a")
+    job_store.register_queue("queue_b")
+    job_store.launch_task("queue_a", "task_1", "lock_1", {"a": "b"})
     # We won't see this one because of the lock
-    postgres.launch_task(connection, "queue_a", "task_2", "lock_1", {"c": "d"})
-    postgres.launch_task(connection, "queue_a", "task_3", "lock_2", {"e": "f"})
+    job_store.launch_task("queue_a", "task_2", "lock_1", {"c": "d"})
+    job_store.launch_task("queue_a", "task_3", "lock_2", {"e": "f"})
     # We won't see this one because of the queue
-    postgres.launch_task(connection, "queue_b", "task_4", "lock_3", {"g": "h"})
+    job_store.launch_task("queue_b", "task_4", "lock_3", {"g": "h"})
 
-    result = list(postgres.get_tasks(connection, "queue_a"))
+    result = list(job_store.get_tasks("queue_a"))
 
     t1, t2 = result
     assert result == [
@@ -92,39 +97,39 @@ def test_get_tasks(connection):
     ]
 
 
-def test_finish_task(get_all, connection):
-    postgres.register_queue(connection, "queue_a")
-    postgres.launch_task(connection, "queue_a", "task_1", "lock_1", {"a": "b"})
-    task = next(postgres.get_tasks(connection, "queue_a"))
+def test_finish_task(get_all, job_store):
+    job_store.register_queue("queue_a")
+    job_store.launch_task("queue_a", "task_1", "lock_1", {"a": "b"})
+    job = next(job_store.get_tasks("queue_a"))
 
     assert get_all("tasks", "status") == [{"status": "doing"}]
 
-    postgres.finish_task(connection, task_id=task.id, status="done")
+    job_store.finish_task(job=job, status=jobs.Status.DONE)
 
     assert get_all("tasks", "status") == [{"status": "done"}]
 
 
-def test_register_queue(connection, get_all):
-    pk = postgres.register_queue(connection, "marsupilami")
+def test_register_queue(get_all, job_store):
+    pk = job_store.register_queue("marsupilami")
 
     result = get_all("queues", "*")
     assert result == [{"id": pk, "queue_name": "marsupilami"}]
 
 
-def test_register_queue_conflict(connection, get_all):
-    postgres.register_queue(connection, "marsupilami")
+def test_register_queue_conflict(get_all, job_store):
+    job_store.register_queue("marsupilami")
 
-    pk = postgres.register_queue(connection, "marsupilami")
+    pk = job_store.register_queue("marsupilami")
 
     assert pk is None
     result = get_all("queues", "queue_name")
     assert result == [{"queue_name": "marsupilami"}]
 
 
-def test_listen_queue(connection):
+def test_listen_queue(job_store, connection):
     queue = random.choices(string.ascii_letters, k=10)
     queue_full_name = f"queue#{queue}"
-    postgres.listen_queue(connection, queue)
+    job_store.listen_for_jobs(queue=queue)
     connection.commit()
 
     with connection.cursor() as cursor:
@@ -151,21 +156,19 @@ def test_enum_synced(connection):
         assert pg_values == python_values
 
 
-def test_wait_for_jobs(connection):
-    postgres.register_queue(connection=connection, queue="yay")
-    postgres.listen_queue(connection=connection, queue="yay")
+def test_wait_for_jobs(job_store):
+    job_store.register_queue(queue="yay")
+    job_store.listen_for_jobs(queue="yay")
 
     def stop():
         time.sleep(0.5)
-        postgres.launch_task(
-            connection=connection, queue="yay", name="oh", lock="sher", kwargs={}
-        )
+        job_store.launch_task(queue="yay", name="oh", lock="sher", kwargs={})
 
     thread = threading.Thread(target=stop)
     thread.start()
 
     before = time.perf_counter()
-    postgres.wait_for_jobs(connection=connection, timeout=3)
+    job_store.wait_for_jobs(timeout=3)
     after = time.perf_counter()
 
     # If we wait less than 1 sec, it means the wait didn't reach the timeout.
