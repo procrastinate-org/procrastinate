@@ -5,7 +5,7 @@ import psycopg2
 from psycopg2 import extras, sql
 from psycopg2.extras import RealDictCursor
 
-from cabbage import exceptions, jobs, store
+from cabbage import exceptions, jobs, store, types
 
 insert_jobs_sql = """
 INSERT INTO cabbage_jobs (queue_id, task_name, lock, args)
@@ -41,32 +41,32 @@ def init_pg_extensions() -> None:
 
 
 def launch_job(connection: psycopg2._psycopg.connection, job: jobs.Job) -> int:
-    with connection.cursor() as cursor:
-        cursor.execute(
-            insert_jobs_sql,
-            {
-                "task_name": job.task_name,
-                "lock": job.lock,
-                "args": job.kwargs,
-                "queue": job.queue,
-            },
-        )
-        row = cursor.fetchone()
+    with connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                insert_jobs_sql,
+                {
+                    "task_name": job.task_name,
+                    "lock": job.lock,
+                    "args": job.task_kwargs,
+                    "queue": job.queue,
+                },
+            )
+            row = cursor.fetchone()
 
-    if not row:
-        raise exceptions.QueueNotFound(job.queue)
+        if not row:
+            raise exceptions.QueueNotFound(job.queue)
 
-    connection.commit()
     return row[0]
 
 
 def get_jobs(
     connection: psycopg2._psycopg.connection, queue: str
-) -> Iterator[jobs.Job]:
+) -> Iterator[types.JSONDict]:
     with connection.cursor(cursor_factory=RealDictCursor) as cursor:
         while True:
-            cursor.execute(select_jobs_sql, {"queue": queue})
-            connection.commit()
+            with connection:
+                cursor.execute(select_jobs_sql, {"queue": queue})
 
             row = cursor.fetchone()
 
@@ -75,32 +75,30 @@ def get_jobs(
             if row["id"] is None:
                 return
 
-            yield jobs.Job(
-                id=row["id"],
-                lock=row["lock"],
-                task_name=row["task_name"],
-                kwargs=row["args"],
-                queue=queue,
-            )
+            yield {
+                "id": row["id"],
+                "lock": row["lock"],
+                "task_name": row["task_name"],
+                "task_kwargs": row["args"],
+                "queue": queue,
+            }
 
 
 def finish_job(
-    connection: psycopg2._psycopg.connection, job: jobs.Job, status: str
+    connection: psycopg2._psycopg.connection, job_id: int, status: str
 ) -> None:
-    with connection.cursor() as cursor:
-        cursor.execute(finish_job_sql, {"job_id": job.id, "status": status})
-
-    connection.commit()
+    with connection:
+        with connection.cursor() as cursor:
+            cursor.execute(finish_job_sql, {"job_id": job_id, "status": status})
 
 
 def register_queue(
     connection: psycopg2._psycopg.connection, queue: str
 ) -> Optional[int]:
-    with connection.cursor() as cursor:
-        cursor.execute(insert_queue_sql, {"queue": queue})
-        row = cursor.fetchone()
-
-    connection.commit()
+    with connection:
+        with connection.cursor() as cursor:
+            cursor.execute(insert_queue_sql, {"queue": queue})
+            row = cursor.fetchone()
 
     return row[0] if row else None
 
@@ -109,8 +107,9 @@ def listen_queue(connection: psycopg2._psycopg.connection, queue: str) -> None:
     queue_name = sql.Identifier(f"cabbage_queue#{queue}")
     query = sql.SQL(listen_queue_raw_sql).format(queue_name=queue_name)
 
-    with connection.cursor() as cursor:
-        cursor.execute(query)
+    with connection:
+        with connection.cursor() as cursor:
+            cursor.execute(query)
 
 
 def wait_for_jobs(connection: psycopg2._psycopg.connection, timeout: int) -> None:
@@ -131,10 +130,15 @@ class PostgresJobStore(store.JobStore):
         return launch_job(connection=self.connection, job=job)
 
     def get_jobs(self, queue: str) -> Iterator[jobs.Job]:
-        return get_jobs(connection=self.connection, queue=queue)
+        for job_dict in get_jobs(connection=self.connection, queue=queue):
+            # Hard to tell mypy that every element of the dict is typed correctly
+            yield jobs.Job(job_store=self, **job_dict)  # type: ignore
 
     def finish_job(self, job: jobs.Job, status: jobs.Status) -> None:
-        return finish_job(connection=self.connection, job=job, status=status.value)
+        assert job.id
+        return finish_job(
+            connection=self.connection, job_id=job.id, status=status.value
+        )
 
     def listen_for_jobs(self, queue: str) -> None:
         listen_queue(connection=self.connection, queue=queue)

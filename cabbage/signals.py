@@ -1,5 +1,6 @@
 import logging
 import signal
+import threading
 from contextlib import contextmanager
 from types import FrameType
 from typing import Callable
@@ -11,6 +12,14 @@ Signals = signal.Signals
 
 @contextmanager
 def on_stop(callback: Callable[[signal.Signals, FrameType], None]):
+    if threading.current_thread() is not threading.main_thread():
+        logger.debug(
+            "Skipping signal handling, because this is not the main thread",
+            extra={"action": "skip_signal_handlers"},
+        )
+        yield
+        return
+
     sigint_handler = signal.getsignal(signal.SIGINT)
     sigterm_handler = signal.getsignal(signal.SIGTERM)
 

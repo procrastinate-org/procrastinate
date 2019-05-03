@@ -1,5 +1,6 @@
 import logging
 import time
+from typing import Optional
 
 from cabbage import exceptions, jobs, signals, store, tasks, types
 
@@ -45,7 +46,7 @@ class Worker:
         for job in self._job_store.get_jobs(self._queue):  # pragma: no branch
             assert isinstance(job.id, int)
 
-            log_context = {"job": job._asdict(), "queue": self._queue}
+            log_context = {"job": job.get_context(), "queue": self._queue}
             logger.debug(
                 "Loaded job info, about to start job",
                 extra={"action": "loaded_job_info", **log_context},
@@ -78,33 +79,34 @@ class Worker:
         # a stop, we can get details on the currently running task
         # in the logs.
         start_time = time.time()
-        log_context = self.log_context = {
-            "queue": task.queue,
-            "task_name": task.name,
-            "id": job.id,
-            "kwargs": job.kwargs,
-            "start_timestamp": time.time(),
-        }
+        log_context = self.log_context = job.get_context()
+        log_context["start_timestamp"] = time.time()
+
         logger.info("Starting job", extra={"action": "start_job", "job": log_context})
         try:
-            task(**job.kwargs)
+            task(**job.task_kwargs)
         except Exception as e:
-            end_time = log_context["end_timestamp"] = time.time()
-            log_context["duration_seconds"] = end_time - start_time
-
-            logger.exception(
-                "Job error", extra={"action": "job_error", "job": log_context}
-            )
+            log_title = "Job error"
+            log_action = "job_error"
+            log_level = logging.ERROR
+            exc_info = True
             raise exceptions.JobError() from e
         else:
+            log_title = "Job success"
+            log_action = "job_success"
+            log_level = logging.INFO
+            exc_info = False
+        finally:
             end_time = log_context["end_timestamp"] = time.time()
             log_context["duration_seconds"] = end_time - start_time
+            extra = {"action": log_action, "job": log_context}
+            logger.log(log_level, log_title, extra=extra, exc_info=exc_info)
 
-            logger.info(
-                "Job success", extra={"action": "job_success", "job": log_context}
-            )
-
-    def stop(self, signum: signals.Signals, frame: signals.FrameType) -> None:
+    def stop(
+        self,
+        signum: Optional[signals.Signals] = None,
+        frame: Optional[signals.FrameType] = None,
+    ) -> None:
         self._stop_requested = True
         log_context = self.log_context
 

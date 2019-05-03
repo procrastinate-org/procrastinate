@@ -4,18 +4,24 @@ from cabbage import exceptions, jobs, tasks, testing, worker
 
 
 @pytest.fixture
-def task_manager(mocker):
-    return tasks.TaskManager(job_store=testing.InMemoryJobStore())
+def job_store():
+    return testing.InMemoryJobStore()
 
 
 @pytest.fixture
-def job_factory():
+def task_manager(job_store):
+    return tasks.TaskManager(job_store=job_store)
+
+
+@pytest.fixture
+def job_factory(job_store):
     defaults = {
         "id": 42,
         "task_name": "bla",
-        "kwargs": {},
+        "task_kwargs": {},
         "lock": None,
         "queue": "queue",
+        "job_store": job_store,
     }
 
     def factory(**kwargs):
@@ -95,7 +101,7 @@ def test_process_jobs_until_no_more_jobs(mocker, task_manager, job_factory):
     assert task_manager.job_store.finished_jobs == [(job, jobs.Status.DONE)]
 
 
-def test_run_job(task_manager):
+def test_run_job(task_manager, job_store):
     result = []
 
     def task_func(a, b):  # pylint: disable=unused-argument
@@ -107,10 +113,11 @@ def test_run_job(task_manager):
 
     job = jobs.Job(
         id=16,
-        kwargs={"a": 9, "b": 3},
+        task_kwargs={"a": 9, "b": 3},
         lock="sherlock",
         task_name="task_func",
         queue="yay",
+        job_store=job_store,
     )
     test_worker = worker.Worker(task_manager, "yay")
     test_worker.run_job(job)
@@ -118,7 +125,7 @@ def test_run_job(task_manager):
     assert result == [12]
 
 
-def test_run_job_error(task_manager):
+def test_run_job_error(task_manager, job_store):
     def job(a, b):  # pylint: disable=unused-argument
         raise ValueError("nope")
 
@@ -128,16 +135,26 @@ def test_run_job_error(task_manager):
     task_manager.tasks = {"job": task}
 
     job = jobs.Job(
-        id=16, kwargs={"a": 9, "b": 3}, lock="sherlock", task_name="job", queue="yay"
+        id=16,
+        task_kwargs={"a": 9, "b": 3},
+        lock="sherlock",
+        task_name="job",
+        queue="yay",
+        job_store=job_store,
     )
     test_worker = worker.Worker(task_manager, "yay")
     with pytest.raises(exceptions.JobError):
         test_worker.run_job(job)
 
 
-def test_run_job_not_found(task_manager):
+def test_run_job_not_found(task_manager, job_store):
     job = jobs.Job(
-        id=16, kwargs={"a": 9, "b": 3}, lock="sherlock", task_name="job", queue="yay"
+        id=16,
+        task_kwargs={"a": 9, "b": 3},
+        lock="sherlock",
+        task_name="job",
+        queue="yay",
+        job_store=job_store,
     )
     test_worker = worker.Worker(task_manager, "yay")
     with pytest.raises(exceptions.TaskNotFound):
