@@ -216,21 +216,30 @@ def test_enum_synced(connection):
 
 
 def test_wait_for_jobs(job_store):
+
     job_store.register_queue(queue="yay")
     job_store.listen_for_jobs(queue="yay")
 
     def stop():
-        time.sleep(0.5)
-        job_store.launch_job(
-            jobs.Job(
-                id=0,
-                queue="yay",
-                task_name="oh",
-                lock="sher",
-                task_kwargs={},
-                job_store=job_store,
-            )
+        connection = postgres.get_connection(
+            **job_store.connection.get_dsn_parameters()
         )
+        try:
+            inner_job_store = postgres.PostgresJobStore(connection=connection)
+
+            time.sleep(0.5)
+            inner_job_store.launch_job(
+                jobs.Job(
+                    id=0,
+                    queue="yay",
+                    task_name="oh",
+                    lock="sher",
+                    task_kwargs={},
+                    job_store=inner_job_store,
+                )
+            )
+        finally:
+            connection.close()
 
     thread = threading.Thread(target=stop)
     thread.start()

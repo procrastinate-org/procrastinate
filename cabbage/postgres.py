@@ -41,22 +41,22 @@ def init_pg_extensions() -> None:
 
 
 def launch_job(connection: psycopg2._psycopg.connection, job: jobs.Job) -> int:
-    with connection.cursor() as cursor:
-        cursor.execute(
-            insert_jobs_sql,
-            {
-                "task_name": job.task_name,
-                "lock": job.lock,
-                "args": job.task_kwargs,
-                "queue": job.queue,
-            },
-        )
-        row = cursor.fetchone()
+    with connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                insert_jobs_sql,
+                {
+                    "task_name": job.task_name,
+                    "lock": job.lock,
+                    "args": job.task_kwargs,
+                    "queue": job.queue,
+                },
+            )
+            row = cursor.fetchone()
 
-    if not row:
-        raise exceptions.QueueNotFound(job.queue)
+        if not row:
+            raise exceptions.QueueNotFound(job.queue)
 
-    connection.commit()
     return row[0]
 
 
@@ -65,8 +65,8 @@ def get_jobs(
 ) -> Iterator[types.JSONDict]:
     with connection.cursor(cursor_factory=RealDictCursor) as cursor:
         while True:
-            cursor.execute(select_jobs_sql, {"queue": queue})
-            connection.commit()
+            with connection:
+                cursor.execute(select_jobs_sql, {"queue": queue})
 
             row = cursor.fetchone()
 
@@ -87,20 +87,18 @@ def get_jobs(
 def finish_job(
     connection: psycopg2._psycopg.connection, job_id: int, status: str
 ) -> None:
-    with connection.cursor() as cursor:
-        cursor.execute(finish_job_sql, {"job_id": job_id, "status": status})
-
-    connection.commit()
+    with connection:
+        with connection.cursor() as cursor:
+            cursor.execute(finish_job_sql, {"job_id": job_id, "status": status})
 
 
 def register_queue(
     connection: psycopg2._psycopg.connection, queue: str
 ) -> Optional[int]:
-    with connection.cursor() as cursor:
-        cursor.execute(insert_queue_sql, {"queue": queue})
-        row = cursor.fetchone()
-
-    connection.commit()
+    with connection:
+        with connection.cursor() as cursor:
+            cursor.execute(insert_queue_sql, {"queue": queue})
+            row = cursor.fetchone()
 
     return row[0] if row else None
 
@@ -109,8 +107,9 @@ def listen_queue(connection: psycopg2._psycopg.connection, queue: str) -> None:
     queue_name = sql.Identifier(f"cabbage_queue#{queue}")
     query = sql.SQL(listen_queue_raw_sql).format(queue_name=queue_name)
 
-    with connection.cursor() as cursor:
-        cursor.execute(query)
+    with connection:
+        with connection.cursor() as cursor:
+            cursor.execute(query)
 
 
 def wait_for_jobs(connection: psycopg2._psycopg.connection, timeout: int) -> None:
