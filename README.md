@@ -9,7 +9,7 @@ Currently very alpha stage.
 Launch a postgres DB the way you want, e.g. using docker:
 
 ```console
-$ docker run --rm -it -p 5432:5432 postgres
+$ docker-compose up -d
 $ export PGDATABASE=cabbage PGHOST=localhost PGUSER=postgres
 $ createdb && psql -v ON_ERROR_STOP=ON -f init.sql
 ```
@@ -56,5 +56,3 @@ $ python -m cabbage_demo worker products
 ```console
 $ python -m cabbage_demo client
 ```
-
-
