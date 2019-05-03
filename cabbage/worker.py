@@ -1,5 +1,6 @@
 import logging
 import time
+from typing import Optional
 
 from cabbage import exceptions, jobs, signals, store, tasks, types
 
@@ -101,7 +102,11 @@ class Worker:
             extra = {"action": log_action, "job": log_context}
             logger.log(log_level, log_title, extra=extra, exc_info=exc_info)
 
-    def stop(self, signum: signals.Signals, frame: signals.FrameType) -> None:
+    def stop(
+        self,
+        signum: Optional[signals.Signals] = None,
+        frame: Optional[signals.FrameType] = None,
+    ) -> None:
         self._stop_requested = True
         log_context = self.log_context
 
