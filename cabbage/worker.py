@@ -83,22 +83,23 @@ class Worker:
 
         logger.info("Starting job", extra={"action": "start_job", "job": log_context})
         try:
-            task(**job.kwargs)
+            task(**job.task_kwargs)
         except Exception as e:
-            end_time = log_context["end_timestamp"] = time.time()
-            log_context["duration_seconds"] = end_time - start_time
-
-            logger.exception(
-                "Job error", extra={"action": "job_error", "job": log_context}
-            )
+            log_title = "Job error"
+            log_action = "job_error"
+            log_level = logging.ERROR
+            exc_info = True
             raise exceptions.JobError() from e
         else:
+            log_title = "Job success"
+            log_action = "job_success"
+            log_level = logging.INFO
+            exc_info = False
+        finally:
             end_time = log_context["end_timestamp"] = time.time()
             log_context["duration_seconds"] = end_time - start_time
-
-            logger.info(
-                "Job success", extra={"action": "job_success", "job": log_context}
-            )
+            extra = {"action": log_action, "job": log_context}
+            logger.log(log_level, log_title, extra=extra, exc_info=exc_info)
 
     def stop(self, signum: signals.Signals, frame: signals.FrameType) -> None:
         self._stop_requested = True
