@@ -28,30 +28,41 @@ def test_task_init_explicit_name(task_manager, mocker):
     assert task.name == "other"
 
 
-def test_task_defer(task_manager, mocker):
+def test_task_defer(task_manager):
     task_manager.job_store.register_queue("queue")
     task = tasks.Task(task_func, manager=task_manager, queue="queue")
 
-    task.defer(lock="sherlock", a="b", c=3)
+    task.defer(c=3)
 
+    # The lock is the only thing we can't predict
+    lock = task_manager.job_store.jobs["queue"][0].lock
     assert task_manager.job_store.jobs["queue"] == [
         jobs.Job(
             id=0,
             queue="queue",
             task_name="task_func",
-            lock="sherlock",
-            kwargs={"a": "b", "c": 3},
+            lock=lock,
+            task_kwargs={"c": 3},
+            job_store=task_manager.job_store,
         )
     ]
 
 
-def test_task_defer_no_lock(task_manager, mocker):
-    task_manager.job_store.register_queue("queue")
+def test_task_configure(task_manager):
     task = tasks.Task(task_func, manager=task_manager, queue="queue")
 
-    task.defer(a="b", c=3)
+    job = task.configure(lock="sher", task_kwargs={"yay": "ho"})
 
-    assert uuid.UUID(task_manager.job_store.jobs["queue"][0].lock)
+    assert job.lock == "sher"
+    assert job.task_kwargs == {"yay": "ho"}
+
+
+def test_task_configure_no_lock(task_manager):
+    task = tasks.Task(task_func, manager=task_manager, queue="queue")
+
+    job = task.configure()
+
+    assert uuid.UUID(job.lock)
 
 
 def test_task_manager_task_explicit(task_manager, mocker):

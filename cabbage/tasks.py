@@ -25,25 +25,27 @@ class Task:
     def __call__(self, **kwargs: types.JSONValue) -> None:
         return self.func(**kwargs)
 
-    def defer(self, lock: str = None, **kwargs: types.JSONValue) -> int:
-        lock = lock or f"{uuid.uuid4()}"
-        job = jobs.Job(
-            id=0, queue=self.queue, task_name=self.name, lock=lock, kwargs=kwargs
-        )
-        job_id = self.manager.job_store.launch_job(job=job)
-        logger.info(
-            "Scheduled job",
-            extra={
-                "action": "job_defer",
-                "job": {
-                    "task_name": job.task_name,
-                    "queue": job.queue,
-                    "kwargs": job.kwargs,
-                    "id": job_id,
-                },
-            },
-        )
+    def defer(self, **task_kwargs: types.JSONValue) -> int:
+        job_id = self.configure().defer(**task_kwargs)
+
         return job_id
+
+    def configure(
+        self,
+        *,
+        lock: Optional[str] = None,
+        task_kwargs: Optional[types.JSONDict] = None,
+    ) -> jobs.Job:
+        lock = lock or str(uuid.uuid4())
+        task_kwargs = task_kwargs or {}
+        return jobs.Job(
+            id=None,
+            lock=lock,
+            task_name=self.name,
+            queue=self.queue,
+            task_kwargs=task_kwargs,
+            job_store=self.manager.job_store,
+        )
 
 
 class TaskManager:
