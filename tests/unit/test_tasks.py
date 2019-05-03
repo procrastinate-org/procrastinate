@@ -1,14 +1,9 @@
 import uuid
 
+import pendulum
 import pytest
 
-from cabbage import jobs, postgres, tasks, testing
-
-
-@pytest.fixture
-def task_manager(mocker):
-    store = testing.InMemoryJobStore()
-    return tasks.TaskManager(job_store=store)
+from cabbage import jobs, postgres, tasks
 
 
 def task_func():
@@ -63,6 +58,34 @@ def test_task_configure_no_lock(task_manager):
     job = task.configure()
 
     assert uuid.UUID(job.lock)
+
+
+def test_task_configure_schedule_at(task_manager):
+    task = tasks.Task(task_func, manager=task_manager, queue="queue")
+
+    job = task.configure(schedule_at=pendulum.datetime(2000, 1, 1, tz="Europe/Paris"))
+
+    assert job.scheduled_at == pendulum.datetime(2000, 1, 1, tz="Europe/Paris")
+
+
+def test_task_configure_schedule_in(task_manager):
+    task = tasks.Task(task_func, manager=task_manager, queue="queue")
+
+    now = pendulum.datetime(2000, 1, 1, tz="Europe/Paris")
+    with pendulum.test(now):
+        job = task.configure(schedule_in={"hours": 2})
+
+    assert job.scheduled_at == pendulum.datetime(2000, 1, 1, 2, tz="Europe/Paris")
+
+
+def test_task_configure_schedule_in_and_schedule_at(task_manager):
+    task = tasks.Task(task_func, manager=task_manager, queue="queue")
+
+    with pytest.raises(ValueError):
+        task.configure(
+            schedule_at=pendulum.datetime(2000, 1, 1, tz="Europe/Paris"),
+            schedule_in={"hours": 2},
+        )
 
 
 def test_task_manager_task_explicit(task_manager, mocker):
