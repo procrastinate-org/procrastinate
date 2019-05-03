@@ -49,7 +49,28 @@ class Task:
 
 
 class TaskManager:
+    """
+    The TaskManager is the main entrypoint for Cabbage integration.
+
+    Instanciate a single :py:class:`TaskManager` in your code
+    and use it to decorate your tasks with :py:func:`TaskManager.task`.
+
+    Yada yada instanciate worker from task manager yada yada
+
+    """
+
     def __init__(self, job_store: Optional[store.JobStore] = None):
+        """
+        Parameters
+        ----------
+        job_store:
+            The object in charge of :py:class:`cabbage.jobs.Job` persistance.
+            By default, instanciate a :py:class:`cabbage.PostgresJobStore`.
+
+        Returns
+        -------
+        TaskManager
+        """
         if job_store is None:
             job_store = postgres.PostgresJobStore()
 
