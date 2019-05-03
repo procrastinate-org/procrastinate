@@ -5,7 +5,31 @@ import psycopg2
 from psycopg2 import extras, sql
 from psycopg2.extras import RealDictCursor
 
-from cabbage import exceptions, jobs, store, types
+from cabbage import exceptions, jobs, store
+
+insert_jobs_sql = """
+INSERT INTO cabbage_jobs (queue_id, task_name, lock, args)
+SELECT id, %(task_name)s, %(lock)s, %(args)s
+    FROM cabbage_queues WHERE queue_name=%(queue)s
+RETURNING id;
+"""
+
+select_jobs_sql = """
+SELECT id, task_name, lock, args FROM cabbage_fetch_job(%(queue)s);
+"""
+finish_job_sql = """
+SELECT cabbage_finish_job(%(job_id)s, %(status)s);
+"""
+insert_queue_sql = """
+INSERT INTO cabbage_queues (queue_name)
+VALUES (%(queue)s)
+ON CONFLICT DO NOTHING
+RETURNING id
+"""
+
+listen_queue_raw_sql = """
+LISTEN {queue_name};
+"""
 
 
 def get_connection(**kwargs) -> psycopg2._psycopg.connection:
@@ -16,38 +40,32 @@ def init_pg_extensions() -> None:
     psycopg2.extensions.register_adapter(dict, extras.Json)
 
 
-def launch_task(
-    connection: psycopg2._psycopg.connection,
-    queue: str,
-    name: str,
-    lock: str,
-    kwargs: types.JSONDict,
-) -> int:
+def launch_job(connection: psycopg2._psycopg.connection, job: jobs.Job) -> int:
     with connection.cursor() as cursor:
         cursor.execute(
-            """INSERT INTO tasks (queue_id, task_type, targeted_object, args)
-               SELECT id, %s, %s, %s FROM queues WHERE queue_name=%s
-               RETURNING id;""",
-            (name, lock, kwargs, queue),
+            insert_jobs_sql,
+            {
+                "task_name": job.task_name,
+                "lock": job.lock,
+                "args": job.kwargs,
+                "queue": job.queue,
+            },
         )
         row = cursor.fetchone()
 
     if not row:
-        raise exceptions.QueueNotFound(queue)
+        raise exceptions.QueueNotFound(job.queue)
 
     connection.commit()
     return row[0]
 
 
-def get_tasks(
+def get_jobs(
     connection: psycopg2._psycopg.connection, queue: str
 ) -> Iterator[jobs.Job]:
     with connection.cursor(cursor_factory=RealDictCursor) as cursor:
         while True:
-            cursor.execute(
-                """SELECT id, args, targeted_object, task_type FROM fetch_task(%s);""",
-                (queue,),
-            )
+            cursor.execute(select_jobs_sql, {"queue": queue})
             connection.commit()
 
             row = cursor.fetchone()
@@ -59,18 +77,18 @@ def get_tasks(
 
             yield jobs.Job(
                 id=row["id"],
-                lock=row["targeted_object"],
-                task_name=row["task_type"],
+                lock=row["lock"],
+                task_name=row["task_name"],
                 kwargs=row["args"],
                 queue=queue,
             )
 
 
-def finish_task(
-    connection: psycopg2._psycopg.connection, task_id: int, status: str
+def finish_job(
+    connection: psycopg2._psycopg.connection, job: jobs.Job, status: str
 ) -> None:
     with connection.cursor() as cursor:
-        cursor.execute("""SELECT finish_task(%s, %s);""", (task_id, status))
+        cursor.execute(finish_job_sql, {"job_id": job.id, "status": status})
 
     connection.commit()
 
@@ -79,14 +97,7 @@ def register_queue(
     connection: psycopg2._psycopg.connection, queue: str
 ) -> Optional[int]:
     with connection.cursor() as cursor:
-        cursor.execute(
-            """INSERT INTO queues (queue_name)
-               VALUES (%s)
-               ON CONFLICT DO NOTHING
-               RETURNING id
-               """,
-            (queue,),
-        )
+        cursor.execute(insert_queue_sql, {"queue": queue})
         row = cursor.fetchone()
 
     connection.commit()
@@ -95,15 +106,14 @@ def register_queue(
 
 
 def listen_queue(connection: psycopg2._psycopg.connection, queue: str) -> None:
-    queue_name = sql.Identifier(f"queue#{queue}")
+    queue_name = sql.Identifier(f"cabbage_queue#{queue}")
+    query = sql.SQL(listen_queue_raw_sql).format(queue_name=queue_name)
 
     with connection.cursor() as cursor:
-        cursor.execute(
-            sql.SQL("""LISTEN {queue_name};""").format(queue_name=queue_name)
-        )
+        cursor.execute(query)
 
 
-def wait_for_jobs(connection: psycopg2._psycopg.connection, timeout: int):
+def wait_for_jobs(connection: psycopg2._psycopg.connection, timeout: int) -> None:
     select.select([connection], [], [], timeout)
 
 
@@ -117,23 +127,17 @@ class PostgresJobStore(store.JobStore):
     def register_queue(self, queue: str) -> Optional[int]:
         return register_queue(connection=self.connection, queue=queue)
 
-    def launch_task(
-        self, queue: str, name: str, lock: str, kwargs: types.JSONDict
-    ) -> int:
-        return launch_task(
-            connection=self.connection, queue=queue, name=name, lock=lock, kwargs=kwargs
-        )
+    def launch_job(self, job: jobs.Job) -> int:
+        return launch_job(connection=self.connection, job=job)
 
-    def get_tasks(self, queue: str) -> Iterator[jobs.Job]:
-        return get_tasks(connection=self.connection, queue=queue)
+    def get_jobs(self, queue: str) -> Iterator[jobs.Job]:
+        return get_jobs(connection=self.connection, queue=queue)
 
-    def finish_task(self, job: jobs.Job, status: jobs.Status) -> None:
-        return finish_task(
-            connection=self.connection, task_id=job.id, status=status.value
-        )
+    def finish_job(self, job: jobs.Job, status: jobs.Status) -> None:
+        return finish_job(connection=self.connection, job=job, status=status.value)
 
-    def listen_for_jobs(self, queue: str):
+    def listen_for_jobs(self, queue: str) -> None:
         listen_queue(connection=self.connection, queue=queue)
 
-    def wait_for_jobs(self, timeout: int):
+    def wait_for_jobs(self, timeout: int) -> None:
         wait_for_jobs(connection=self.connection, timeout=timeout)

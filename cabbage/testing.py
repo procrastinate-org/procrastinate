@@ -1,7 +1,7 @@
 from itertools import count
 from typing import Dict, Iterator, List, Optional
 
-from cabbage import jobs, store, types
+from cabbage import jobs, store
 
 
 class InMemoryJobStore(store.JobStore):
@@ -17,20 +17,24 @@ class InMemoryJobStore(store.JobStore):
         self.jobs[queue] = []
         return next(self.queues_counter)
 
-    def launch_task(
-        self, queue: str, name: str, lock: str, kwargs: types.JSONDict
-    ) -> int:
+    def launch_job(self, job: jobs.Job) -> int:
         id = next(self.job_counter)
-        self.jobs[queue].append(
-            jobs.Job(id=id, task_name=name, lock=lock, kwargs=kwargs, queue=queue)
+        self.jobs[job.queue].append(
+            jobs.Job(
+                id=id,
+                task_name=job.task_name,
+                lock=job.lock,
+                kwargs=job.kwargs,
+                queue=job.queue,
+            )
         )
         return id
 
-    def get_tasks(self, queue: str) -> Iterator[jobs.Job]:
+    def get_jobs(self, queue: str) -> Iterator[jobs.Job]:
         for job in list(self.jobs[queue]):
             yield job
 
-    def finish_task(self, job: jobs.Job, status: jobs.Status) -> None:
+    def finish_job(self, job: jobs.Job, status: jobs.Status) -> None:
         j = self.jobs[job.queue].pop(0)
         assert job == j, (job, j)
         self.finished_jobs.append((job, status))

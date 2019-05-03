@@ -1,5 +1,5 @@
 from cabbage.postgres import PostgresJobStore
-from cabbage.task_worker import Worker
 from cabbage.tasks import Task, TaskManager
+from cabbage.worker import Worker
 
 __all__ = ["Worker", "Task", "TaskManager", "PostgresJobStore"]
