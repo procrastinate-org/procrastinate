@@ -1,35 +1,6 @@
 import pytest
 
-from cabbage import exceptions, jobs, tasks, testing, worker
-
-
-@pytest.fixture
-def job_store():
-    return testing.InMemoryJobStore()
-
-
-@pytest.fixture
-def task_manager(job_store):
-    return tasks.TaskManager(job_store=job_store)
-
-
-@pytest.fixture
-def job_factory(job_store):
-    defaults = {
-        "id": 42,
-        "task_name": "bla",
-        "task_kwargs": {},
-        "lock": None,
-        "queue": "queue",
-        "job_store": job_store,
-    }
-
-    def factory(**kwargs):
-        final_kwargs = defaults.copy()
-        final_kwargs.update(kwargs)
-        return jobs.Job(**final_kwargs)
-
-    return factory
+from cabbage import exceptions, jobs, tasks, worker
 
 
 def test_run(task_manager, mocker):

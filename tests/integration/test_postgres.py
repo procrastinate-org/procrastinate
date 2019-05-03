@@ -3,6 +3,7 @@ import string
 import threading
 import time
 
+import pendulum
 import psycopg2
 import pytest
 
@@ -123,10 +124,33 @@ def test_get_jobs(job_store):
             job_store=job_store,
         )
     )
+    job_store.launch_job(
+        jobs.Job(
+            id=0,
+            queue="queue_a",
+            task_name="task_5",
+            lock="lock_5",
+            task_kwargs={"i": "j"},
+            scheduled_at=pendulum.datetime(2000, 1, 1),
+            job_store=job_store,
+        )
+    )
+    # We won't see this one because of the scheduled date
+    job_store.launch_job(
+        jobs.Job(
+            id=0,
+            queue="queue_a",
+            task_name="task_6",
+            lock="lock_6",
+            task_kwargs={"k": "l"},
+            scheduled_at=pendulum.datetime(2050, 1, 1),
+            job_store=job_store,
+        )
+    )
 
     result = list(job_store.get_jobs("queue_a"))
 
-    t1, t2 = result
+    t1, t2, t3 = result
     assert result == [
         jobs.Job(
             id=t1.id,
@@ -142,6 +166,15 @@ def test_get_jobs(job_store):
             lock="lock_2",
             task_name="task_3",
             queue="queue_a",
+            job_store=job_store,
+        ),
+        jobs.Job(
+            id=t3.id,
+            queue="queue_a",
+            task_name="task_5",
+            lock="lock_5",
+            task_kwargs={"i": "j"},
+            scheduled_at=pendulum.datetime(2000, 1, 1),
             job_store=job_store,
         ),
     ]
