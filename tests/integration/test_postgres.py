@@ -43,7 +43,12 @@ def test_launch_job(job_store, get_all):
     queue = "marsupilami"
     job_store.register_queue(queue)
     job = jobs.Job(
-        id=0, queue=queue, task_name="bob", lock="sher", kwargs={"a": 1, "b": 2}
+        id=0,
+        queue=queue,
+        task_name="bob",
+        lock="sher",
+        task_kwargs={"a": 1, "b": 2},
+        job_store=job_store,
     )
     pk = job_store.launch_job(job=job)
 
@@ -62,7 +67,12 @@ def test_launch_job(job_store, get_all):
 def test_launch_job_no_queue(job_store):
     queue = "marsupilami"
     job = jobs.Job(
-        id=0, queue=queue, task_name="bob", lock="sher", kwargs={"a": 1, "b": 2}
+        id=0,
+        queue=queue,
+        task_name="bob",
+        lock="sher",
+        task_kwargs={"a": 1, "b": 2},
+        job_store=job_store,
     )
     with pytest.raises(exceptions.QueueNotFound):
         job_store.launch_job(job=job)
@@ -73,24 +83,44 @@ def test_get_jobs(job_store):
     job_store.register_queue("queue_b")
     job_store.launch_job(
         jobs.Job(
-            id=0, queue="queue_a", task_name="task_1", lock="lock_1", kwargs={"a": "b"}
+            id=0,
+            queue="queue_a",
+            task_name="task_1",
+            lock="lock_1",
+            task_kwargs={"a": "b"},
+            job_store=job_store,
         )
     )
     # We won't see this one because of the lock
     job_store.launch_job(
         jobs.Job(
-            id=0, queue="queue_a", task_name="task_2", lock="lock_1", kwargs={"c": "d"}
+            id=0,
+            queue="queue_a",
+            task_name="task_2",
+            lock="lock_1",
+            task_kwargs={"c": "d"},
+            job_store=job_store,
         )
     )
     job_store.launch_job(
         jobs.Job(
-            id=0, queue="queue_a", task_name="task_3", lock="lock_2", kwargs={"e": "f"}
+            id=0,
+            queue="queue_a",
+            task_name="task_3",
+            lock="lock_2",
+            task_kwargs={"e": "f"},
+            job_store=job_store,
         )
     )
     # We won't see this one because of the queue
     job_store.launch_job(
         jobs.Job(
-            id=0, queue="queue_b", task_name="task_4", lock="lock_3", kwargs={"g": "h"}
+            id=0,
+            queue="queue_b",
+            task_name="task_4",
+            lock="lock_3",
+            task_kwargs={"g": "h"},
+            job_store=job_store,
         )
     )
 
@@ -100,17 +130,19 @@ def test_get_jobs(job_store):
     assert result == [
         jobs.Job(
             id=t1.id,
-            kwargs={"a": "b"},
+            task_kwargs={"a": "b"},
             lock="lock_1",
             task_name="task_1",
             queue="queue_a",
+            job_store=job_store,
         ),
         jobs.Job(
             id=t2.id,
-            kwargs={"e": "f"},
+            task_kwargs={"e": "f"},
             lock="lock_2",
             task_name="task_3",
             queue="queue_a",
+            job_store=job_store,
         ),
     ]
 
@@ -119,7 +151,12 @@ def test_finish_job(get_all, job_store):
     job_store.register_queue("queue_a")
     job_store.launch_job(
         jobs.Job(
-            id=0, queue="queue_a", task_name="task_1", lock="lock_1", kwargs={"a": "b"}
+            id=0,
+            queue="queue_a",
+            task_name="task_1",
+            lock="lock_1",
+            task_kwargs={"a": "b"},
+            job_store=job_store,
         )
     )
     job = next(job_store.get_jobs("queue_a"))
@@ -185,7 +222,14 @@ def test_wait_for_jobs(job_store):
     def stop():
         time.sleep(0.5)
         job_store.launch_job(
-            jobs.Job(id=0, queue="yay", task_name="oh", lock="sher", kwargs={})
+            jobs.Job(
+                id=0,
+                queue="yay",
+                task_name="oh",
+                lock="sher",
+                task_kwargs={},
+                job_store=job_store,
+            )
         )
 
     thread = threading.Thread(target=stop)

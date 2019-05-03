@@ -45,7 +45,7 @@ class Worker:
         for job in self._job_store.get_jobs(self._queue):  # pragma: no branch
             assert isinstance(job.id, int)
 
-            log_context = {"job": job._asdict(), "queue": self._queue}
+            log_context = {"job": job.get_context(), "queue": self._queue}
             logger.debug(
                 "Loaded job info, about to start job",
                 extra={"action": "loaded_job_info", **log_context},
@@ -78,13 +78,9 @@ class Worker:
         # a stop, we can get details on the currently running task
         # in the logs.
         start_time = time.time()
-        log_context = self.log_context = {
-            "queue": task.queue,
-            "task_name": task.name,
-            "id": job.id,
-            "kwargs": job.kwargs,
-            "start_timestamp": time.time(),
-        }
+        log_context = self.log_context = job.get_context()
+        log_context["start_timestamp"] = time.time()
+
         logger.info("Starting job", extra={"action": "start_job", "job": log_context})
         try:
             task(**job.kwargs)

@@ -24,8 +24,9 @@ class InMemoryJobStore(store.JobStore):
                 id=id,
                 task_name=job.task_name,
                 lock=job.lock,
-                kwargs=job.kwargs,
+                task_kwargs=job.task_kwargs,
                 queue=job.queue,
+                job_store=self,
             )
         )
         return id
