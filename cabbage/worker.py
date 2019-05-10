@@ -10,13 +10,35 @@ logger = logging.getLogger(__name__)
 SOCKET_TIMEOUT = 5  # seconds
 
 
+def import_all(import_paths: Iterable[str]) -> None:
+    """
+    Given a list of paths, just import them all
+    """
+    for import_path in import_paths:
+        logger.info(
+            f"Importing module {import_path}",
+            extras={"action": "import_module", "module": import_path},
+        )
+        importlib.import_module(import_path)
+
+
 class Worker:
-    def __init__(self, task_manager: tasks.TaskManager, queue: str) -> None:
+    def __init__(
+        self,
+        task_manager: tasks.TaskManager,
+        queue: str,
+        import_paths: Optional[Iterable[str]] = None,
+    ):
         self._task_manager = task_manager
         self._queue = queue
         self._stop_requested = False
         # Handling the info about the currently running task.
         self.log_context: types.JSONDict = {}
+        # Import all the given paths. The registration of tasks
+        # often is a side effect of the import of the module they're
+        # defined in.
+        if import_paths:
+            import_all(import_paths)
 
     @property
     def _job_store(self) -> store.JobStore:
