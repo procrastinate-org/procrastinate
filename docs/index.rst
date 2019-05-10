@@ -1,7 +1,7 @@
 Cabbage: Postgresql-based Task Queue for Python
 ===============================================
 
-Cabbage is an open-source Python distributed task processing library,
+Cabbage is an open-source Python 3.6+ distributed task processing library,
 leveraging postgresql to store task definitions, manage locks and
 dispatch tasks.
 
