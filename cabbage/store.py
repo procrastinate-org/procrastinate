@@ -1,17 +1,13 @@
-import importlib
 from typing import Iterator, Optional, Type
 
-from cabbage import jobs
+from cabbage import jobs, utils
 
 
 def load_store_from_path(path: str) -> Type["JobStore"]:
     """
     Import the JobStore subclass at the given path, return the class.
     """
-    path, name = path.rsplit(".", 1)
-    module = importlib.import_module(path)
-
-    job_store_class = getattr(module, name)
+    job_store_class = utils.load_from_path(path)
 
     assert issubclass(job_store_class, JobStore)
 
