@@ -1,7 +1,10 @@
+import datetime
 import functools
 import logging
 import uuid
 from typing import Any, Callable, Dict, Optional, Set
+
+import pendulum
 
 from cabbage import jobs, postgres, store, types
 
@@ -35,7 +38,15 @@ class Task:
         *,
         lock: Optional[str] = None,
         task_kwargs: Optional[types.JSONDict] = None,
+        schedule_at: Optional[datetime.datetime] = None,
+        schedule_in: Optional[Dict[str, int]] = None,
     ) -> jobs.Job:
+        if schedule_at and schedule_in is not None:
+            raise ValueError("Cannot set both schedule_at and schedule_in")
+
+        if schedule_in is not None:
+            schedule_at = pendulum.now("UTC").add(**schedule_in)
+
         lock = lock or str(uuid.uuid4())
         task_kwargs = task_kwargs or {}
         return jobs.Job(
@@ -44,6 +55,7 @@ class Task:
             task_name=self.name,
             queue=self.queue,
             task_kwargs=task_kwargs,
+            scheduled_at=schedule_at,
             job_store=self.manager.job_store,
         )
 

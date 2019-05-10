@@ -1,6 +1,9 @@
 from itertools import count
 from typing import Dict, Iterator, List, Optional
 
+import attr
+import pendulum
+
 from cabbage import jobs, store
 
 
@@ -19,21 +22,16 @@ class InMemoryJobStore(store.JobStore):
 
     def launch_job(self, job: jobs.Job) -> int:
         id = next(self.job_counter)
-        self.jobs[job.queue].append(
-            jobs.Job(
-                id=id,
-                task_name=job.task_name,
-                lock=job.lock,
-                task_kwargs=job.task_kwargs,
-                queue=job.queue,
-                job_store=self,
-            )
-        )
+        self.jobs[job.queue].append(attr.evolve(job, id=id))
+
         return id
 
     def get_jobs(self, queue: str) -> Iterator[jobs.Job]:
+        # Creating a copy of the iterable so that we can modify it while we iterate
+
         for job in list(self.jobs[queue]):
-            yield job
+            if not job.scheduled_at or job.scheduled_at <= pendulum.now("UTC"):
+                yield job
 
     def finish_job(self, job: jobs.Job, status: jobs.Status) -> None:
         j = self.jobs[job.queue].pop(0)

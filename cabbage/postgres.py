@@ -8,14 +8,14 @@ from psycopg2.extras import RealDictCursor
 from cabbage import exceptions, jobs, store, types
 
 insert_jobs_sql = """
-INSERT INTO cabbage_jobs (queue_id, task_name, lock, args)
-SELECT id, %(task_name)s, %(lock)s, %(args)s
+INSERT INTO cabbage_jobs (queue_id, task_name, lock, args, scheduled_at)
+SELECT id, %(task_name)s, %(lock)s, %(args)s, %(scheduled_at)s
     FROM cabbage_queues WHERE queue_name=%(queue)s
 RETURNING id;
 """
 
 select_jobs_sql = """
-SELECT id, task_name, lock, args FROM cabbage_fetch_job(%(queue)s);
+SELECT id, task_name, lock, args, scheduled_at FROM cabbage_fetch_job(%(queue)s);
 """
 finish_job_sql = """
 SELECT cabbage_finish_job(%(job_id)s, %(status)s);
@@ -49,6 +49,7 @@ def launch_job(connection: psycopg2._psycopg.connection, job: jobs.Job) -> int:
                     "task_name": job.task_name,
                     "lock": job.lock,
                     "args": job.task_kwargs,
+                    "scheduled_at": job.scheduled_at,
                     "queue": job.queue,
                 },
             )
@@ -80,6 +81,7 @@ def get_jobs(
                 "lock": row["lock"],
                 "task_name": row["task_name"],
                 "task_kwargs": row["args"],
+                "scheduled_at": row["scheduled_at"],
                 "queue": queue,
             }
 

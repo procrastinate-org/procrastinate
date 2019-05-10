@@ -43,7 +43,8 @@ CREATE TABLE public.cabbage_jobs (
     task_name character varying(32) NOT NULL,
     lock text,
     args jsonb DEFAULT '{}' NOT NULL,
-    status public.cabbage_job_status DEFAULT 'todo'::public.cabbage_job_status NOT NULL
+    status public.cabbage_job_status DEFAULT 'todo'::public.cabbage_job_status NOT NULL,
+    scheduled_at timestamp with time zone NULL
 );
 
 
@@ -66,7 +67,10 @@ BEGIN
 		SELECT cabbage_jobs.*
 			FROM cabbage_jobs
 			LEFT JOIN cabbage_job_locks ON cabbage_job_locks.object = cabbage_jobs.lock
-			WHERE queue_id = target_queue_id AND cabbage_job_locks.object IS NULL AND status = 'todo'
+			WHERE queue_id = target_queue_id
+			  AND cabbage_job_locks.object IS NULL
+			  AND status = 'todo'
+			  AND (scheduled_at IS NULL OR scheduled_at <= now())
 			FOR UPDATE OF cabbage_jobs SKIP LOCKED LIMIT 1
 	), lock_object AS (
 		INSERT INTO cabbage_job_locks

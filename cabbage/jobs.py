@@ -1,3 +1,4 @@
+import datetime
 import logging
 from enum import Enum
 from typing import Optional
@@ -8,6 +9,13 @@ import cabbage
 from cabbage import types
 
 logger = logging.getLogger(__name__)
+
+
+def check_aware(
+    instance: "Job", attribute: attr.Attribute, value: datetime.datetime
+) -> None:
+    if value and value.utcoffset() is None:
+        raise ValueError("Timezone aware datetime is required")
 
 
 class Status(Enum):
@@ -24,6 +32,9 @@ class Job:
     lock: str
     task_name: str
     task_kwargs: types.JSONDict = attr.ib(factory=dict)
+    scheduled_at: Optional[datetime.datetime] = attr.ib(
+        default=None, validator=check_aware
+    )
     job_store: "cabbage.store.JobStore"
 
     def defer(self, **task_kwargs: types.JSONValue) -> int:
@@ -40,6 +51,11 @@ class Job:
         return id
 
     def get_context(self) -> types.JSONDict:
-        return attr.asdict(
+        context = attr.asdict(
             self, filter=attr.filters.exclude(attr.fields(Job).job_store)
         )
+
+        if context["scheduled_at"]:
+            context["scheduled_at"] = context["scheduled_at"].isoformat()
+
+        return context
