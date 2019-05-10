@@ -40,7 +40,7 @@ SET default_with_oids = false;
 CREATE TABLE public.cabbage_jobs (
     id integer NOT NULL,
     queue_id integer NOT NULL,
-    task_name character varying(32) NOT NULL,
+    task_name character varying(128) NOT NULL,
     lock text,
     args jsonb DEFAULT '{}' NOT NULL,
     status public.cabbage_job_status DEFAULT 'todo'::public.cabbage_job_status NOT NULL,

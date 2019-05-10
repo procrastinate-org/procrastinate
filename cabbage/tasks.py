@@ -36,7 +36,8 @@ class Task:
         self.queue = queue
         self.manager = manager
         self.func: Callable = func
-        if name != self.full_path:
+        self.name: str
+        if name and name != self.full_path:
             logger.warning(
                 f"Task {name} at {self.full_path} has a name that doesn't match "
                 "its import path. Please make sure its module path is provided in "

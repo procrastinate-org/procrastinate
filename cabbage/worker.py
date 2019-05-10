@@ -1,6 +1,6 @@
+import importlib
 import logging
 import time
-import importlib
 from typing import Iterable, Optional, Set
 
 from cabbage import exceptions, jobs, signals, store, tasks, types
@@ -18,7 +18,7 @@ def import_all(import_paths: Iterable[str]) -> None:
     for import_path in import_paths:
         logger.info(
             f"Importing module {import_path}",
-            extras={"action": "import_module", "module": import_path},
+            extra={"action": "import_module", "module_name": import_path},
         )
         importlib.import_module(import_path)
 
@@ -41,7 +41,7 @@ class Worker:
         # often is a side effect of the import of the module they're
         # defined in.
         if import_paths:
-            import_all(import_paths)
+            import_all(import_paths=import_paths)
 
     @property
     def _job_store(self) -> store.JobStore:
@@ -118,7 +118,8 @@ class Worker:
             raise
 
         logger.warning(
-            f"Task at {task_name} was not registered, it's been loaded dynamically."
+            f"Task at {task_name} was not registered, it's been loaded dynamically.",
+            extra={"action": "load_dynamic_task", "task_name": task_name},
         )
 
         self._task_manager.tasks[task_name] = task
