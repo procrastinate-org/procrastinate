@@ -6,9 +6,22 @@ from typing import Any, Callable, Dict, Optional, Set
 
 import pendulum
 
-from cabbage import jobs, postgres, store, types
+from cabbage import exceptions, jobs, postgres, store, types, utils
 
 logger = logging.getLogger(__name__)
+
+
+def load_task(path: str) -> "Task":
+
+    try:
+        task = utils.load_from_path(path)
+    except ImportError:
+        raise exceptions.TaskNotFound(f"Task at {path} cannot be imported")
+
+    if not isinstance(task, Task):
+        raise exceptions.NotATask(f"Object at {path} is not a Task but: {type(task)}")
+
+    return task
 
 
 class Task:
@@ -23,10 +36,28 @@ class Task:
         self.queue = queue
         self.manager = manager
         self.func: Callable = func
-        self.name = name or self.func.__name__
+        self.name: str
+        if name and name != self.full_path:
+            logger.warning(
+                f"Task {name} at {self.full_path} has a name that doesn't match "
+                "its import path. Please make sure its module path is provided in "
+                "the worker's import_paths, or it won't run.",
+                extra={
+                    "action": "task_name_differ_from_path",
+                    "task_name": name,
+                    "task_path": self.full_path,
+                },
+            )
+            self.name = name
+        else:
+            self.name = self.full_path
 
     def __call__(self, **kwargs: types.JSONValue) -> None:
         return self.func(**kwargs)
+
+    @property
+    def full_path(self) -> str:
+        return f"{self.func.__module__}.{self.func.__name__}"
 
     def defer(self, **task_kwargs: types.JSONValue) -> int:
         job_id = self.configure().defer(**task_kwargs)

@@ -1,6 +1,7 @@
+import importlib
 import logging
 import time
-from typing import Optional
+from typing import Iterable, Optional, Set
 
 from cabbage import exceptions, jobs, signals, store, tasks, types
 
@@ -10,13 +11,37 @@ logger = logging.getLogger(__name__)
 SOCKET_TIMEOUT = 5  # seconds
 
 
+def import_all(import_paths: Iterable[str]) -> None:
+    """
+    Given a list of paths, just import them all
+    """
+    for import_path in import_paths:
+        logger.info(
+            f"Importing module {import_path}",
+            extra={"action": "import_module", "module_name": import_path},
+        )
+        importlib.import_module(import_path)
+
+
 class Worker:
-    def __init__(self, task_manager: tasks.TaskManager, queue: str) -> None:
+    def __init__(
+        self,
+        task_manager: tasks.TaskManager,
+        queue: str,
+        import_paths: Optional[Iterable[str]] = None,
+    ):
         self._task_manager = task_manager
         self._queue = queue
         self._stop_requested = False
         # Handling the info about the currently running task.
         self.log_context: types.JSONDict = {}
+        self.known_missing_tasks: Set[str] = set()
+
+        # Import all the given paths. The registration of tasks
+        # often is a side effect of the import of the module they're
+        # defined in.
+        if import_paths:
+            import_all(import_paths=import_paths)
 
     @property
     def _job_store(self) -> store.JobStore:
@@ -58,6 +83,11 @@ class Worker:
                 status = jobs.Status.DONE
             except exceptions.JobError:
                 pass
+            except exceptions.TaskNotFound as exc:
+                logger.exception(
+                    f"Task was not found: {exc}",
+                    extra={"action": "task_not_found", "exception": str(exc)},
+                )
             finally:
                 self._job_store.finish_job(job=job, status=status)
                 logger.debug(
@@ -68,12 +98,37 @@ class Worker:
             if self._stop_requested:
                 break
 
+    def load_task(self, task_name) -> tasks.Task:
+        if task_name in self.known_missing_tasks:
+            raise exceptions.TaskNotFound(
+                f"Cannot run job for task {task_name} previsouly not found"
+            )
+
+        try:
+            # Simple case: the task is already known
+            return self._task_manager.tasks[task_name]
+        except KeyError:
+            pass
+
+        # Will raise if not found or not a task
+        try:
+            task = tasks.load_task(task_name)
+        except exceptions.CabbageException:
+            self.known_missing_tasks.add(task_name)
+            raise
+
+        logger.warning(
+            f"Task at {task_name} was not registered, it's been loaded dynamically.",
+            extra={"action": "load_dynamic_task", "task_name": task_name},
+        )
+
+        self._task_manager.tasks[task_name] = task
+        return task
+
     def run_job(self, job: jobs.Job) -> None:
         task_name = job.task_name
-        try:
-            task = self._task_manager.tasks[task_name]
-        except KeyError:
-            raise exceptions.TaskNotFound(job)
+
+        task = self.load_task(task_name=task_name)
 
         # We store the log context in self. This way, when requesting
         # a stop, we can get details on the currently running task

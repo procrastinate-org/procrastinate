@@ -1,3 +1,5 @@
+import sys
+
 import pytest
 
 from cabbage import exceptions, jobs, tasks, worker
@@ -24,7 +26,8 @@ def test_process_jobs(mocker, task_manager, job_factory):
     job_1 = job_factory(id=42)
     job_2 = job_factory(id=43)
     job_3 = job_factory(id=44)
-    task_manager.job_store.jobs["queue"] = [job_1, job_2, job_3]
+    job_4 = job_factory(id=45)
+    task_manager.job_store.jobs["queue"] = [job_1, job_2, job_3, job_4]
 
     test_worker = worker.Worker(task_manager, "queue")
 
@@ -39,6 +42,9 @@ def test_process_jobs(mocker, task_manager, job_factory):
         elif i == 2:
             # Then the task fails
             raise exceptions.JobError()
+        elif i == 3:
+            # Then the task fails
+            raise exceptions.TaskNotFound()
         else:
             # While the third task runs, a stop signal is received
             test_worker.stop(None, None)
@@ -51,12 +57,14 @@ def test_process_jobs(mocker, task_manager, job_factory):
         mocker.call(job=job_1),
         mocker.call(job=job_2),
         mocker.call(job=job_3),
+        mocker.call(job=job_4),
     ]
 
     assert task_manager.job_store.finished_jobs == [
         (job_1, jobs.Status.DONE),
         (job_2, jobs.Status.ERROR),
-        (job_3, jobs.Status.DONE),
+        (job_3, jobs.Status.ERROR),
+        (job_4, jobs.Status.DONE),
     ]
 
 
@@ -130,3 +138,66 @@ def test_run_job_not_found(task_manager, job_store):
     test_worker = worker.Worker(task_manager, "yay")
     with pytest.raises(exceptions.TaskNotFound):
         test_worker.run_job(job)
+
+
+def test_import_all():
+    module = "tests.unit.unused_module"
+    assert module not in sys.modules
+
+    worker.import_all([module])
+
+    assert module in sys.modules
+
+
+def test_worker_call_import_all(task_manager, mocker):
+
+    import_all = mocker.patch("cabbage.worker.import_all")
+
+    worker.Worker(task_manager=task_manager, queue="yay", import_paths=["hohoho"])
+
+    import_all.assert_called_with(import_paths=["hohoho"])
+
+
+def test_worker_load_task_known_missing(task_manager):
+    task_worker = worker.Worker(task_manager=task_manager, queue="yay")
+
+    task_worker.known_missing_tasks.add("foobarbaz")
+    with pytest.raises(exceptions.TaskNotFound):
+        task_worker.load_task("foobarbaz")
+
+
+def test_worker_load_task_known_task(task_manager):
+    task_worker = worker.Worker(task_manager=task_manager, queue="yay")
+
+    @task_manager.task
+    def task_func():
+        pass
+
+    assert task_worker.load_task("tests.unit.test_worker.task_func") == task_func
+
+
+def test_worker_load_task_new_missing(task_manager):
+    task_worker = worker.Worker(task_manager=task_manager, queue="yay")
+
+    with pytest.raises(exceptions.TaskNotFound):
+        task_worker.load_task("foobarbaz")
+
+    assert task_worker.known_missing_tasks == {"foobarbaz"}
+
+
+unknown_task = None
+
+
+def test_worker_load_task_unknown_task(task_manager, caplog):
+    global unknown_task
+    task_worker = worker.Worker(task_manager=task_manager, queue="yay")
+
+    @task_manager.task
+    def task_func():
+        pass
+
+    unknown_task = task_func
+
+    assert task_worker.load_task("tests.unit.test_worker.unknown_task") == task_func
+
+    assert [record for record in caplog.records if record.action == "load_dynamic_task"]

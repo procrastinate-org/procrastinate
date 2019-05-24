@@ -6,6 +6,10 @@ class TaskNotFound(CabbageException):
     pass
 
 
+class NotATask(TaskNotFound):
+    pass
+
+
 class JobError(CabbageException):
     pass
 
