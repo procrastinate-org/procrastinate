@@ -22,6 +22,12 @@ Cabbage officially is compatible with *``Python 3.6``* and above, using Postgres
 $ pip install -r requirements.txt
 ```
 
+You may need to install some required packages for psycopg:
+
+```console
+$ apt install libpq-dev python-dev
+```
+
 ## Testing
 
 With a running database, in the dev virtualenv:
