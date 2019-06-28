@@ -155,7 +155,7 @@ def test_load_task_not_found():
 
 
 def test_load_task_not_a_task():
-    with pytest.raises(exceptions.NotATask):
+    with pytest.raises(exceptions.TaskNotFound):
         tasks.load_task("json.loads")
 
 

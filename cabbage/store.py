@@ -7,7 +7,7 @@ def load_store_from_path(path: str) -> Type["JobStore"]:
     """
     Import the JobStore subclass at the given path, return the class.
     """
-    job_store_class = utils.load_from_path(path)
+    job_store_class = utils.load_from_path(path, type)
 
     assert issubclass(job_store_class, JobStore)
 

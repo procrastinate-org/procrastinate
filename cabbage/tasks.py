@@ -14,12 +14,9 @@ logger = logging.getLogger(__name__)
 def load_task(path: str) -> "Task":
 
     try:
-        task = utils.load_from_path(path)
-    except ImportError:
-        raise exceptions.TaskNotFound(f"Task at {path} cannot be imported")
-
-    if not isinstance(task, Task):
-        raise exceptions.NotATask(f"Object at {path} is not a Task but: {type(task)}")
+        task = utils.load_from_path(path, Task)
+    except exceptions.LoadFromPathError as exc:
+        raise exceptions.TaskNotFound(f"Task at {path} cannot be imported: {str(exc)}")
 
     return task
 
