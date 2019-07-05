@@ -139,8 +139,9 @@ class Worker:
 
         logger.info("Starting job", extra={"action": "start_job", "job": log_context})
         try:
-            task(**job.task_kwargs)
+            task_result = task(**job.task_kwargs)
         except Exception as e:
+            task_result = None
             log_title = "Job error"
             log_action = "job_error"
             log_level = logging.ERROR
@@ -154,7 +155,7 @@ class Worker:
         finally:
             end_time = log_context["end_timestamp"] = time.time()
             log_context["duration_seconds"] = end_time - start_time
-            extra = {"action": log_action, "job": log_context}
+            extra = {"action": log_action, "job": log_context, "result": task_result}
             logger.log(log_level, log_title, extra=extra, exc_info=exc_info)
 
     def stop(

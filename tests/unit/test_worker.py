@@ -104,6 +104,39 @@ def test_run_job(task_manager, job_store):
     assert result == [12]
 
 
+def test_run_job_log_result(caplog, task_manager, job_store):
+    caplog.set_level("INFO")
+
+    result = []
+
+    def task_func(a, b):  # pylint: disable=unused-argument
+        s = a + b
+        result.append(s)
+        return s
+
+    task = tasks.Task(task_func, manager=task_manager, queue="yay", name="job")
+
+    task_manager.tasks = {"task_func": task}
+
+    job = jobs.Job(
+        id=16,
+        task_kwargs={"a": 9, "b": 3},
+        lock="sherlock",
+        task_name="task_func",
+        queue="yay",
+        job_store=job_store,
+    )
+    test_worker = worker.Worker(task_manager, "yay")
+    test_worker.run_job(job)
+
+    assert result == [12]
+
+    records = [record for record in caplog.records if record.action == "job_success"]
+    assert len(records) == 1
+    record = records[0]
+    assert record.result == 12
+
+
 def test_run_job_error(task_manager, job_store):
     def job(a, b):  # pylint: disable=unused-argument
         raise ValueError("nope")
