@@ -49,7 +49,7 @@ class Task:
         else:
             self.name = self.full_path
 
-    def __call__(self, **kwargs: types.JSONValue) -> None:
+    def __call__(self, **kwargs: types.JSONValue) -> Any:
         return self.func(**kwargs)
 
     @property
