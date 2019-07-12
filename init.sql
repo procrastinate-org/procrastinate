@@ -44,7 +44,8 @@ CREATE TABLE public.cabbage_jobs (
     lock text,
     args jsonb DEFAULT '{}' NOT NULL,
     status public.cabbage_job_status DEFAULT 'todo'::public.cabbage_job_status NOT NULL,
-    scheduled_at timestamp with time zone NULL
+    scheduled_at timestamp with time zone NULL,
+    started_at timestamp with time zone NULL
 );
 
 
@@ -78,7 +79,8 @@ BEGIN
 			SELECT lock FROM potential_job
 	)
 	UPDATE cabbage_jobs
-		SET status = 'doing'
+		SET status = 'doing',
+            started_at = NOW()
 		FROM potential_job
 		WHERE cabbage_jobs.id = potential_job.id
 		RETURNING * INTO found_jobs;

@@ -1,3 +1,4 @@
+import datetime
 import random
 import string
 import threading
@@ -195,10 +196,13 @@ def test_finish_job(get_all, job_store):
     job = next(job_store.get_jobs("queue_a"))
 
     assert get_all("cabbage_jobs", "status") == [{"status": "doing"}]
+    started_at = get_all("cabbage_jobs", "started_at")[0]["started_at"]
+    assert started_at.date() == datetime.date.today()
 
     job_store.finish_job(job=job, status=jobs.Status.DONE)
 
     assert get_all("cabbage_jobs", "status") == [{"status": "done"}]
+    assert get_all("cabbage_jobs", "started_at") == [{"started_at": started_at}]
 
 
 def test_register_queue(get_all, job_store):
