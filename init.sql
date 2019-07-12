@@ -71,6 +71,7 @@ BEGIN
 			  AND cabbage_job_locks.object IS NULL
 			  AND status = 'todo'
 			  AND (scheduled_at IS NULL OR scheduled_at <= now())
+            ORDER BY id ASC
 			FOR UPDATE OF cabbage_jobs SKIP LOCKED LIMIT 1
 	), lock_object AS (
 		INSERT INTO cabbage_job_locks
