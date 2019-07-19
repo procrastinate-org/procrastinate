@@ -181,6 +181,45 @@ def test_get_jobs(job_store):
     ]
 
 
+def test_get_stalled_jobs(connection, get_all, job_store):
+    job_store.register_queue("queue_a")
+    job_store.launch_job(
+        jobs.Job(
+            id=0,
+            queue="queue_a",
+            task_name="task_1",
+            lock="lock_1",
+            task_kwargs={"a": "b"},
+            job_store=job_store,
+        )
+    )
+    job_id = list(get_all("cabbage_jobs", "id"))[0]["id"]
+
+    # No started job
+    assert list(job_store.get_stalled_jobs(nb_seconds=3600)) == []
+
+    # We start a job and fake its `started_at`
+    job = next(job_store.get_jobs("queue_a"))
+    with connection.cursor() as cursor:
+        cursor.execute(
+            f"UPDATE cabbage_jobs SET started_at=NOW() - INTERVAL '30 minutes' "
+            f"WHERE id={job_id}"
+        )
+
+    # Nb_seconds parameter
+    assert list(job_store.get_stalled_jobs(nb_seconds=3600)) == []
+    assert list(job_store.get_stalled_jobs(nb_seconds=1800)) == [job]
+
+    # Queue parameter
+    assert list(job_store.get_stalled_jobs(nb_seconds=1800, queue="queue_a")) == [job]
+    assert list(job_store.get_stalled_jobs(nb_seconds=1800, queue="queue_b")) == []
+    # Task name parameter
+    assert list(job_store.get_stalled_jobs(nb_seconds=1800, task_name="task_1")) == [
+        job
+    ]
+    assert list(job_store.get_stalled_jobs(nb_seconds=1800, task_name="task_2")) == []
+
+
 def test_finish_job(get_all, job_store):
     job_store.register_queue("queue_a")
     job_store.launch_job(
