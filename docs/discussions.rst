@@ -35,7 +35,7 @@ There are 14 standards...
 
 We are aware that Cabbage is an addition to an already crowded market of
 Python task queues, and the aim is not to replace them all, but to provide
-an alternative that fit our need, where we could not find one we were
+an alternative that fits our need, where we could not find one we were
 completely satifified with.
 
 Nethertheless, we acknowledge the impressive Open Source work accomplished by
@@ -58,7 +58,6 @@ some projects that really stand out, to name a few:
 .. _dramatiq-pg: https://pypi.org/project/dramatiq-pg/
 
 
-
 How stable is cabbage ?
 -----------------------
 
@@ -79,11 +78,11 @@ Let's lay down a few words their meaning.
 Asynchronous
     In cabbage, most of the time asynchronoucity is metionned, it's not about
     Python's ``async/await`` features, but about the fact a job is launched
-    in the code, and then the calling code moves on, now waiting for the
-    completion of the job. Because of this, asynchrnous tasks should do
-    something that modifies the world (e.g. compute a costly function **and**
-    store the result somewhere), otherwise the result of the computation will
-    be lost.
+    in the code, and then the calling code moves on, not waiting for the
+    completion of the job. Because of this, asynchronous tasks should have a
+    side effect, and dosomething that modifies the world (e.g. compute a costly
+    function **and** store the result somewhere), otherwise the result of the
+    computation will be lost.
 
 Task
     A task is a function that would be executed asynchronously. It is linked
@@ -95,9 +94,9 @@ Job
     2 points: when you launch them asynchronously, and when their associated
     task is executed using the job's argument values.
 
-Using this wording, you could say there are 2 tasks: washing the dishes and
-doing the laundry. If you did the laundry once and the dishes twice today, you
-did 3 jobs.
+Using this wording, you could say, for example: "there are 2 tasks: washing the
+dishes and doing the laundry. If you did the laundry once and the dishes twice
+today, you did 3 jobs."
 
 Queue
     This is the metaphorical place where jobs await their execution by workers.
