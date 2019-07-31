@@ -7,10 +7,10 @@ Ensure jobs don't run concurrently and run in order
 Let's imagine we have a task like this::
 
     @task_manager.task(queue="queue")
-    def write_alphabet(floor):
+    def write_alphabet(letter):
         time.sleep(random.random() * 5)
         with open("/tmp/alphabet.txt", "a") as f:
-            f.write(floor)
+            f.write(letter)
 
 We write the letter we recieve to a file after wating for a
 random time (this is a simplified version of a real
@@ -19,12 +19,12 @@ and share resources like a database).
 
 We call it::
 
-    write_alphabet.defer("a")
-    write_alphabet.defer("b")
-    write_alphabet.defer("c")
-    write_alphabet.defer("d")
+    write_alphabet.defer(letter="a")
+    write_alphabet.defer(letter="b")
+    write_alphabet.defer(letter="c")
+    write_alphabet.defer(letter="d")
 
-We could expect the following to be written in `pyramid.txt`::
+We could expect the following to be written in `alphabet.txt`::
 
     a
     b
@@ -52,21 +52,24 @@ We can solve this problem by using locks::
 
 In this case, our jobs might still be executed by any of the workers,
 but cabbage will not select a job for completion as long as there is
-a job currently processing with the same log. Note that cabbage will
+a job currently processing with the same lock. Note that cabbage will
 use postgres to search the jobs table for suitable jobs, meaning that
-even if the database contains a high proportion of locked tasks, it wont
-affect cabbages's capacity to execute the free tasks. Also, identical
+even if the database contains a high proportion of locked tasks, it will barely
+affect cabbages's capacity to quickly find the free tasks. Also, identical
 jobs will always be started in creation order, so we can be assured our
 tasks will run sequentially and in order.
 
 A good string identifier for the lock is a string identifier of
 the shared resource, UUIDs are well suited for this.
+If multiple resources are implicated, a combination
+of their identifiers could be used (there's no hard
+limit on the length of a lock string, but stay reasonable)
 
 A task can only take a single lock so there's no dead-lock scenario possible
 where 2 running tasks are waiting one another.
 
 There is no mechanism in place to expire locks yet, but if a task fails
-without the whole Python process to crash, it will free its lock.
+without the whole Python process crashing, it will free its lock.
 
 Launch a job in the future
 ---------------------------
@@ -91,10 +94,11 @@ The details on the parameters you can use are in the pendulum
 Add a task middleware
 ---------------------
 
-There's nothing yet do this, but given you control the decorator
-that you apply to all of the tasks, feel free to add your personal
-touch there. For example, if you want to log something before and
-after the execution of every task, you could do::
+As of today, Cabbage has no specific way of ensuring a piece of code runs
+before or after every job. That being said, you can always decide to use
+your own decorator instead of ``@task_manager.task`` and have this decorator
+implement the actions you need and delegate the rest to ``@task_manager.task``.
+It might look like this::
 
     def task(*args, **kwargs):
         def wrap(func):
@@ -106,7 +110,7 @@ after the execution of every task, you could do::
             return task_manager.task(*args, **kwargs)(new_func)
         return wrap
 
-Then, define your task using you own ``@task`` decorator.
+Then, define all of your tasks using this ``@task`` decorator.
 
 Test your code that uses cabbage
 --------------------------------

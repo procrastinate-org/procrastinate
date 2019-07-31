@@ -80,7 +80,7 @@ Asynchronous
     Python's ``async/await`` features, but about the fact a job is launched
     in the code, and then the calling code moves on, not waiting for the
     completion of the job. Because of this, asynchronous tasks should have a
-    side effect, and dosomething that modifies the world (e.g. compute a costly
+    side effect, and do something that modifies the world (e.g. compute a costly
     function **and** store the result somewhere), otherwise the result of the
     computation will be lost.
 
