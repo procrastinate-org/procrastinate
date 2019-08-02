@@ -27,11 +27,11 @@ class Worker:
     def __init__(
         self,
         task_manager: tasks.TaskManager,
-        queue: str,
+        queues: Iterable[str],
         import_paths: Optional[Iterable[str]] = None,
     ):
         self._task_manager = task_manager
-        self._queue = queue
+        self._queues = queues
         self._stop_requested = False
         # Handling the info about the currently running task.
         self.log_context: types.JSONDict = {}
@@ -49,7 +49,8 @@ class Worker:
 
     def run(self, timeout: int = SOCKET_TIMEOUT) -> None:
 
-        self._job_store.listen_for_jobs(queue=self._queue)
+        for queue in self._queues:
+            self._job_store.listen_for_jobs(queue=queue)
 
         with signals.on_stop(self.stop):
             while True:
@@ -68,10 +69,10 @@ class Worker:
                 self._job_store.wait_for_jobs(timeout=timeout)
 
     def process_jobs(self) -> None:
-        for job in self._job_store.get_jobs(self._queue):  # pragma: no branch
+        for job in self._job_store.get_jobs(self._queues):
             assert isinstance(job.id, int)
 
-            log_context = {"job": job.get_context(), "queue": self._queue}
+            log_context = {"job": job.get_context()}
             logger.debug(
                 "Loaded job info, about to start job",
                 extra={"action": "loaded_job_info", **log_context},

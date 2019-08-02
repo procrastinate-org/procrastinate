@@ -1,4 +1,4 @@
-from typing import Iterator, Optional, Type
+from typing import Iterable, Iterator, Optional, Type
 
 from cabbage import jobs, utils
 
@@ -18,7 +18,7 @@ class JobStore:
     def launch_job(self, job: jobs.Job) -> int:
         raise NotImplementedError
 
-    def get_jobs(self, queue: str) -> Iterator[jobs.Job]:
+    def get_jobs(self, queues: Iterable[str]) -> Iterator[jobs.Job]:
         raise NotImplementedError
 
     def finish_job(self, job: jobs.Job, status: jobs.Status) -> None:

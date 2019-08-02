@@ -1,5 +1,5 @@
 import select
-from typing import Iterator, Optional
+from typing import Iterable, Iterator, Optional
 
 import psycopg2
 from psycopg2 import extras, sql
@@ -14,7 +14,7 @@ RETURNING id;
 """
 
 select_jobs_sql = """
-SELECT id, task_name, lock, args, scheduled_at FROM cabbage_fetch_job(%(queue)s);
+SELECT id, task_name, lock, args, scheduled_at, queue_name FROM cabbage_fetch_job(%(queues)s);
 """
 
 select_stalled_jobs_sql = """
@@ -65,12 +65,12 @@ def launch_job(connection: psycopg2._psycopg.connection, job: jobs.Job) -> int:
 
 
 def get_jobs(
-    connection: psycopg2._psycopg.connection, queue: str
+    connection: psycopg2._psycopg.connection, queues: Iterable[str]
 ) -> Iterator[types.JSONDict]:
     with connection.cursor(cursor_factory=RealDictCursor) as cursor:
         while True:
-            with connection:
-                cursor.execute(select_jobs_sql, {"queue": queue})
+            cursor.execute(select_jobs_sql, {"queues": queues})
+            connection.commit()
 
             row = cursor.fetchone()
 
@@ -85,7 +85,7 @@ def get_jobs(
                 "task_name": row["task_name"],
                 "task_kwargs": row["args"],
                 "scheduled_at": row["scheduled_at"],
-                "queue": queue,
+                "queue": row["queue_name"],
             }
 
 
@@ -145,8 +145,8 @@ class PostgresJobStore(store.JobStore):
     def launch_job(self, job: jobs.Job) -> int:
         return launch_job(connection=self.connection, job=job)
 
-    def get_jobs(self, queue: str) -> Iterator[jobs.Job]:
-        for job_dict in get_jobs(connection=self.connection, queue=queue):
+    def get_jobs(self, queues: Iterable[str]) -> Iterator[jobs.Job]:
+        for job_dict in get_jobs(connection=self.connection, queues=queues):
             # Hard to tell mypy that every element of the dict is typed correctly
             yield jobs.Job(job_store=self, **job_dict)  # type: ignore
 
