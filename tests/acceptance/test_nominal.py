@@ -14,15 +14,15 @@ def test_nominal(connection, kill_own_pid, caplog):
     sum_results = []
     product_results = []
 
-    @task_manager.task(queue="sum_queue")
+    @task_manager.task(queue="default")
     def sum_task(a, b):
         sum_results.append(a + b)
 
-    @task_manager.task(queue="sum_queue")
+    @task_manager.task()
     def increment_task(a):
         sum_results.append(a + 1)
 
-    @task_manager.task(queue="sum_queue")
+    @task_manager.task
     def stop_sum():
         kill_own_pid(signal.SIGINT)
 
@@ -48,7 +48,7 @@ def test_nominal(connection, kill_own_pid, caplog):
     thread = threading.Thread(target=stop)
     thread.start()
 
-    cabbage.Worker(task_manager, queues=["sum_queue"]).run(timeout=1e-9)
+    cabbage.Worker(task_manager, queues=["default"]).run(timeout=1e-9)
 
     assert sum_results == [12, 7, 4, 5]
     assert product_results == []
