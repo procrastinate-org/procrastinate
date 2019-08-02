@@ -95,8 +95,8 @@ def get_stalled_jobs(
     queue: str = None,
     task_name: str = None,
 ) -> Iterator[types.JSONDict]:
-    with connection.cursor(cursor_factory=RealDictCursor) as cursor:
-        with connection:
+    with connection:
+        with connection.cursor(cursor_factory=RealDictCursor) as cursor:
             cursor.execute(
                 select_stalled_jobs_sql,
                 {"nb_seconds": nb_seconds, "queue": queue, "task_name": task_name},
