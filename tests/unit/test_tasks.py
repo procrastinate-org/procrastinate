@@ -35,8 +35,8 @@ def test_task_defer(task_manager):
     task.defer(c=3)
 
     # The lock is the only thing we can't predict
-    lock = task_manager.job_store.jobs["queue"][0].lock
-    assert task_manager.job_store.jobs["queue"] == [
+    lock = task_manager.job_store.jobs[0].lock
+    assert task_manager.job_store.jobs == [
         jobs.Job(
             id=0,
             queue="queue",
@@ -126,7 +126,6 @@ def test_task_manager_register(task_manager, mocker):
 
     assert task_manager.queues == {"queue"}
     assert task_manager.tasks == {"bla": task}
-    assert set(task_manager.job_store.jobs) == {"queue"}
 
 
 def test_task_manager_register_queue_already_exists(task_manager, mocker):

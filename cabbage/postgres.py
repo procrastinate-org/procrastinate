@@ -5,7 +5,7 @@ import psycopg2
 from psycopg2 import extras, sql
 from psycopg2.extras import RealDictCursor
 
-from cabbage import exceptions, jobs, store, types
+from cabbage import jobs, store, types
 
 insert_jobs_sql = """
 INSERT INTO cabbage_jobs (queue_name, task_name, lock, args, scheduled_at)
@@ -61,9 +61,6 @@ def launch_job(connection: psycopg2._psycopg.connection, job: jobs.Job) -> int:
                 },
             )
             row = cursor.fetchone()
-
-        if not row:
-            raise exceptions.QueueNotFound(job.queue)
 
     return row[0]
 
@@ -135,7 +132,7 @@ def listen_queues(
         listen_to = [listen_queue_pattern.format(queue=queue) for queue in queues]
 
     queries = [
-        sql.SQL(listen_queue_raw_sql).format(queue_name=sql.Identifier(listen_to))
+        sql.SQL(listen_queue_raw_sql).format(queue_name=sql.Identifier(element))
         for element in listen_to
     ]
 

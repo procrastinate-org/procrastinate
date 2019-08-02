@@ -61,7 +61,7 @@ def test_job_defer(job_store):
 
     assert id == 0
 
-    assert job_store.jobs["marsupilami"] == [
+    assert job_store.jobs == [
         jobs.Job(
             id=0,
             queue="marsupilami",

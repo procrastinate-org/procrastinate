@@ -25,7 +25,7 @@ class InMemoryJobStore(store.JobStore):
     def get_jobs(self, queues: Optional[Iterable[str]]) -> Iterator[jobs.Job]:
         # Creating a copy of the iterable so that we can modify it while we iterate
 
-        for job in self.jobs:
+        for job in list(self.jobs):
             if queues is None or job.queue in queues:
                 if not job.scheduled_at or job.scheduled_at <= pendulum.now("UTC"):
                     yield job
