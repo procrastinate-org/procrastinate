@@ -148,5 +148,4 @@ class TaskManager:
                 "Creating queue (if not already existing)",
                 extra={"action": "create_queue", "queue": task.queue},
             )
-            self.job_store.register_queue(task.queue)
             self.queues.add(task.queue)

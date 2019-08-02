@@ -15,9 +15,6 @@ def load_store_from_path(path: str) -> Type["JobStore"]:
 
 
 class JobStore:
-    def register_queue(self, queue: str) -> Optional[int]:
-        raise NotImplementedError
-
     def launch_job(self, job: jobs.Job) -> int:
         raise NotImplementedError
 

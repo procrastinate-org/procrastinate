@@ -43,7 +43,6 @@ def job_store(connection):
 
 def test_launch_job(job_store, get_all):
     queue = "marsupilami"
-    job_store.register_queue(queue)
     job = jobs.Job(
         id=0,
         queue=queue,
@@ -81,8 +80,6 @@ def test_launch_job_no_queue(job_store):
 
 
 def test_get_jobs(job_store):
-    job_store.register_queue("queue_a")
-    job_store.register_queue("queue_b")
     job_store.launch_job(
         jobs.Job(
             id=0,
@@ -182,7 +179,6 @@ def test_get_jobs(job_store):
 
 
 def test_get_stalled_jobs(connection, get_all, job_store):
-    job_store.register_queue("queue_a")
     job_store.launch_job(
         jobs.Job(
             id=0,
@@ -221,7 +217,6 @@ def test_get_stalled_jobs(connection, get_all, job_store):
 
 
 def test_finish_job(get_all, job_store):
-    job_store.register_queue("queue_a")
     job_store.launch_job(
         jobs.Job(
             id=0,
@@ -242,23 +237,6 @@ def test_finish_job(get_all, job_store):
 
     assert get_all("cabbage_jobs", "status") == [{"status": "done"}]
     assert get_all("cabbage_jobs", "started_at") == [{"started_at": started_at}]
-
-
-def test_register_queue(get_all, job_store):
-    pk = job_store.register_queue("marsupilami")
-
-    result = get_all("cabbage_queues", "*")
-    assert result == [{"id": pk, "queue_name": "marsupilami"}]
-
-
-def test_register_queue_conflict(get_all, job_store):
-    job_store.register_queue("marsupilami")
-
-    pk = job_store.register_queue("marsupilami")
-
-    assert pk is None
-    result = get_all("cabbage_queues", "queue_name")
-    assert result == [{"queue_name": "marsupilami"}]
 
 
 def test_listen_queue(job_store, connection):
@@ -293,7 +271,6 @@ def test_enum_synced(connection):
 
 def test_wait_for_jobs(job_store):
 
-    job_store.register_queue(queue="yay")
     job_store.listen_for_jobs(queue="yay")
 
     def stop():

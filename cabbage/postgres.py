@@ -8,9 +8,8 @@ from psycopg2.extras import RealDictCursor
 from cabbage import exceptions, jobs, store, types
 
 insert_jobs_sql = """
-INSERT INTO cabbage_jobs (queue_id, task_name, lock, args, scheduled_at)
-SELECT id, %(task_name)s, %(lock)s, %(args)s, %(scheduled_at)s
-    FROM cabbage_queues WHERE queue_name=%(queue)s
+INSERT INTO cabbage_jobs (queue_name, task_name, lock, args, scheduled_at)
+VALUES (%(queue)s, %(task_name)s, %(lock)s, %(args)s, %(scheduled_at)s)
 RETURNING id;
 """
 
@@ -21,7 +20,6 @@ SELECT id, task_name, lock, args, scheduled_at FROM cabbage_fetch_job(%(queue)s)
 select_stalled_jobs_sql = """
 SELECT job.id, task_name, lock, args, scheduled_at, queue_name
     FROM cabbage_jobs job
-    INNER JOIN cabbage_queues queue ON queue.id = job.queue_id
 WHERE status = 'doing'
   AND started_at < NOW() - (%(nb_seconds)s || 'SECOND')::INTERVAL
   AND (%(queue)s IS NULL OR queue_name = %(queue)s)
@@ -30,12 +28,6 @@ WHERE status = 'doing'
 
 finish_job_sql = """
 SELECT cabbage_finish_job(%(job_id)s, %(status)s);
-"""
-insert_queue_sql = """
-INSERT INTO cabbage_queues (queue_name)
-VALUES (%(queue)s)
-ON CONFLICT DO NOTHING
-RETURNING id
 """
 
 listen_queue_raw_sql = """
@@ -130,17 +122,6 @@ def finish_job(
             cursor.execute(finish_job_sql, {"job_id": job_id, "status": status})
 
 
-def register_queue(
-    connection: psycopg2._psycopg.connection, queue: str
-) -> Optional[int]:
-    with connection:
-        with connection.cursor() as cursor:
-            cursor.execute(insert_queue_sql, {"queue": queue})
-            row = cursor.fetchone()
-
-    return row[0] if row else None
-
-
 def listen_queue(connection: psycopg2._psycopg.connection, queue: str) -> None:
     queue_name = sql.Identifier(f"cabbage_queue#{queue}")
     query = sql.SQL(listen_queue_raw_sql).format(queue_name=queue_name)
@@ -160,9 +141,6 @@ init_pg_extensions()
 class PostgresJobStore(store.JobStore):
     def __init__(self, connection: Optional[psycopg2._psycopg.connection] = None):
         self.connection = connection or get_connection()
-
-    def register_queue(self, queue: str) -> Optional[int]:
-        return register_queue(connection=self.connection, queue=queue)
 
     def launch_job(self, job: jobs.Job) -> int:
         return launch_job(connection=self.connection, job=job)
