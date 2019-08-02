@@ -27,7 +27,7 @@ class Worker:
     def __init__(
         self,
         task_manager: tasks.TaskManager,
-        queues: Iterable[str],
+        queues: Optional[Iterable[str]] = None,
         import_paths: Optional[Iterable[str]] = None,
     ):
         self._task_manager = task_manager
@@ -48,9 +48,7 @@ class Worker:
         return self._task_manager.job_store
 
     def run(self, timeout: int = SOCKET_TIMEOUT) -> None:
-
-        for queue in self._queues:
-            self._job_store.listen_for_jobs(queue=queue)
+        self._job_store.listen_for_jobs(queues=self._queues)
 
         with signals.on_stop(self.stop):
             while True:

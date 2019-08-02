@@ -22,7 +22,7 @@ Here's an example::
     # Somewhere in your program, launch a worker
     worker = cabbage.Worker(
         task_manager=task_manager,
-        queue="sums"
+        queues=["sums"]
     )
     worker.run()
 

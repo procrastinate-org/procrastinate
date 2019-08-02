@@ -14,7 +14,7 @@ def test_run(task_manager, mocker):
                 self.stop(None, None)
             self.i += 1
 
-    test_worker = TestWorker(task_manager=task_manager, queue="marsupilami")
+    test_worker = TestWorker(task_manager=task_manager, queues=["marsupilami"])
 
     test_worker.run(timeout=42)
 

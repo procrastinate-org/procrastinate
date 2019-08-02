@@ -14,7 +14,8 @@ RETURNING id;
 """
 
 select_jobs_sql = """
-SELECT id, task_name, lock, args, scheduled_at, queue_name FROM cabbage_fetch_job(%(queues)s);
+SELECT id, task_name, lock, args, scheduled_at, queue_name
+    FROM cabbage_fetch_job(%(queues)s);
 """
 
 select_stalled_jobs_sql = """
@@ -33,6 +34,9 @@ SELECT cabbage_finish_job(%(job_id)s, %(status)s);
 listen_queue_raw_sql = """
 LISTEN {queue_name};
 """
+
+listen_any_queue = "cabbage_any_queue"
+listen_queue_pattern = "cabbage_queue#{queue}"
 
 
 def get_connection(**kwargs) -> psycopg2._psycopg.connection:
@@ -65,7 +69,7 @@ def launch_job(connection: psycopg2._psycopg.connection, job: jobs.Job) -> int:
 
 
 def get_jobs(
-    connection: psycopg2._psycopg.connection, queues: Iterable[str]
+    connection: psycopg2._psycopg.connection, queues: Optional[Iterable[str]]
 ) -> Iterator[types.JSONDict]:
     with connection.cursor(cursor_factory=RealDictCursor) as cursor:
         while True:
@@ -122,13 +126,23 @@ def finish_job(
             cursor.execute(finish_job_sql, {"job_id": job_id, "status": status})
 
 
-def listen_queue(connection: psycopg2._psycopg.connection, queue: str) -> None:
-    queue_name = sql.Identifier(f"cabbage_queue#{queue}")
-    query = sql.SQL(listen_queue_raw_sql).format(queue_name=queue_name)
+def listen_queues(
+    connection: psycopg2._psycopg.connection, queues: Optional[Iterable[str]] = None
+) -> None:
+    if queues is None:
+        listen_to = [listen_any_queue]
+    else:
+        listen_to = [listen_queue_pattern.format(queue=queue) for queue in queues]
+
+    queries = [
+        sql.SQL(listen_queue_raw_sql).format(queue_name=sql.Identifier(listen_to))
+        for element in listen_to
+    ]
 
     with connection:
         with connection.cursor() as cursor:
-            cursor.execute(query)
+            for query in queries:
+                cursor.execute(query)
 
 
 def wait_for_jobs(connection: psycopg2._psycopg.connection, timeout: int) -> None:
@@ -145,7 +159,7 @@ class PostgresJobStore(store.JobStore):
     def launch_job(self, job: jobs.Job) -> int:
         return launch_job(connection=self.connection, job=job)
 
-    def get_jobs(self, queues: Iterable[str]) -> Iterator[jobs.Job]:
+    def get_jobs(self, queues: Optional[Iterable[str]]) -> Iterator[jobs.Job]:
         for job_dict in get_jobs(connection=self.connection, queues=queues):
             # Hard to tell mypy that every element of the dict is typed correctly
             yield jobs.Job(job_store=self, **job_dict)  # type: ignore
@@ -168,8 +182,8 @@ class PostgresJobStore(store.JobStore):
             connection=self.connection, job_id=job.id, status=status.value
         )
 
-    def listen_for_jobs(self, queue: str) -> None:
-        listen_queue(connection=self.connection, queue=queue)
+    def listen_for_jobs(self, queues: Optional[Iterable[str]] = None) -> None:
+        listen_queues(connection=self.connection, queues=queues)
 
     def wait_for_jobs(self, timeout: int) -> None:
         wait_for_jobs(connection=self.connection, timeout=timeout)

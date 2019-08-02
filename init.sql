@@ -32,7 +32,7 @@ BEGIN
 		SELECT cabbage_jobs.*
 			FROM cabbage_jobs
 			LEFT JOIN cabbage_job_locks ON cabbage_job_locks.object = cabbage_jobs.lock
-			WHERE queue_name = ANY( target_queue_names )
+			WHERE (target_queue_names IS NULL OR queue_name = ANY( target_queue_names ))
 			  AND cabbage_job_locks.object IS NULL
 			  AND status = 'todo'
 			  AND (scheduled_at IS NULL OR scheduled_at <= now())
