@@ -24,7 +24,7 @@ matrix:
 
   - python: 3.7
     env:
-      TOX_ENV: lint
+      TOX_ENV: check-lint
 
 # Taken from https://github.com/travis-ci/travis-ci/issues/9624
 before_install:
