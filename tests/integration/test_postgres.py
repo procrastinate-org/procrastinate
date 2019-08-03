@@ -217,7 +217,7 @@ def test_finish_job(get_all, job_store):
 
     assert get_all("cabbage_jobs", "status") == [{"status": "doing"}]
     started_at = get_all("cabbage_jobs", "started_at")[0]["started_at"]
-    assert started_at.date() == datetime.date.today()
+    assert started_at.date() == datetime.datetime.utcnow().date()
 
     job_store.finish_job(job=job, status=jobs.Status.DONE)
 
