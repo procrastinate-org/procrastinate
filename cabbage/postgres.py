@@ -1,27 +1,26 @@
 import select
-from typing import Iterator, Optional
+from typing import Iterable, Iterator, Optional
 
 import psycopg2
 from psycopg2 import extras, sql
 from psycopg2.extras import RealDictCursor
 
-from cabbage import exceptions, jobs, store, types
+from cabbage import jobs, store, types
 
 insert_jobs_sql = """
-INSERT INTO cabbage_jobs (queue_id, task_name, lock, args, scheduled_at)
-SELECT id, %(task_name)s, %(lock)s, %(args)s, %(scheduled_at)s
-    FROM cabbage_queues WHERE queue_name=%(queue)s
+INSERT INTO cabbage_jobs (queue_name, task_name, lock, args, scheduled_at)
+VALUES (%(queue)s, %(task_name)s, %(lock)s, %(args)s, %(scheduled_at)s)
 RETURNING id;
 """
 
 select_jobs_sql = """
-SELECT id, task_name, lock, args, scheduled_at FROM cabbage_fetch_job(%(queue)s);
+SELECT id, task_name, lock, args, scheduled_at, queue_name
+    FROM cabbage_fetch_job(%(queues)s);
 """
 
 select_stalled_jobs_sql = """
 SELECT job.id, task_name, lock, args, scheduled_at, queue_name
     FROM cabbage_jobs job
-    INNER JOIN cabbage_queues queue ON queue.id = job.queue_id
 WHERE status = 'doing'
   AND started_at < NOW() - (%(nb_seconds)s || 'SECOND')::INTERVAL
   AND (%(queue)s IS NULL OR queue_name = %(queue)s)
@@ -31,16 +30,13 @@ WHERE status = 'doing'
 finish_job_sql = """
 SELECT cabbage_finish_job(%(job_id)s, %(status)s);
 """
-insert_queue_sql = """
-INSERT INTO cabbage_queues (queue_name)
-VALUES (%(queue)s)
-ON CONFLICT DO NOTHING
-RETURNING id
-"""
 
 listen_queue_raw_sql = """
 LISTEN {queue_name};
 """
+
+listen_any_queue = "cabbage_any_queue"
+listen_queue_pattern = "cabbage_queue#{queue}"
 
 
 def get_connection(**kwargs) -> psycopg2._psycopg.connection:
@@ -66,19 +62,16 @@ def launch_job(connection: psycopg2._psycopg.connection, job: jobs.Job) -> int:
             )
             row = cursor.fetchone()
 
-        if not row:
-            raise exceptions.QueueNotFound(job.queue)
-
     return row[0]
 
 
 def get_jobs(
-    connection: psycopg2._psycopg.connection, queue: str
+    connection: psycopg2._psycopg.connection, queues: Optional[Iterable[str]]
 ) -> Iterator[types.JSONDict]:
     with connection.cursor(cursor_factory=RealDictCursor) as cursor:
         while True:
-            with connection:
-                cursor.execute(select_jobs_sql, {"queue": queue})
+            cursor.execute(select_jobs_sql, {"queues": queues})
+            connection.commit()
 
             row = cursor.fetchone()
 
@@ -93,7 +86,7 @@ def get_jobs(
                 "task_name": row["task_name"],
                 "task_kwargs": row["args"],
                 "scheduled_at": row["scheduled_at"],
-                "queue": queue,
+                "queue": row["queue_name"],
             }
 
 
@@ -103,8 +96,8 @@ def get_stalled_jobs(
     queue: str = None,
     task_name: str = None,
 ) -> Iterator[types.JSONDict]:
-    with connection.cursor(cursor_factory=RealDictCursor) as cursor:
-        with connection:
+    with connection:
+        with connection.cursor(cursor_factory=RealDictCursor) as cursor:
             cursor.execute(
                 select_stalled_jobs_sql,
                 {"nb_seconds": nb_seconds, "queue": queue, "task_name": task_name},
@@ -130,24 +123,23 @@ def finish_job(
             cursor.execute(finish_job_sql, {"job_id": job_id, "status": status})
 
 
-def register_queue(
-    connection: psycopg2._psycopg.connection, queue: str
-) -> Optional[int]:
-    with connection:
-        with connection.cursor() as cursor:
-            cursor.execute(insert_queue_sql, {"queue": queue})
-            row = cursor.fetchone()
+def listen_queues(
+    connection: psycopg2._psycopg.connection, queues: Optional[Iterable[str]] = None
+) -> None:
+    if queues is None:
+        listen_to = [listen_any_queue]
+    else:
+        listen_to = [listen_queue_pattern.format(queue=queue) for queue in queues]
 
-    return row[0] if row else None
-
-
-def listen_queue(connection: psycopg2._psycopg.connection, queue: str) -> None:
-    queue_name = sql.Identifier(f"cabbage_queue#{queue}")
-    query = sql.SQL(listen_queue_raw_sql).format(queue_name=queue_name)
+    queries = [
+        sql.SQL(listen_queue_raw_sql).format(queue_name=sql.Identifier(element))
+        for element in listen_to
+    ]
 
     with connection:
         with connection.cursor() as cursor:
-            cursor.execute(query)
+            for query in queries:
+                cursor.execute(query)
 
 
 def wait_for_jobs(connection: psycopg2._psycopg.connection, timeout: int) -> None:
@@ -161,14 +153,11 @@ class PostgresJobStore(store.JobStore):
     def __init__(self, connection: Optional[psycopg2._psycopg.connection] = None):
         self.connection = connection or get_connection()
 
-    def register_queue(self, queue: str) -> Optional[int]:
-        return register_queue(connection=self.connection, queue=queue)
-
     def launch_job(self, job: jobs.Job) -> int:
         return launch_job(connection=self.connection, job=job)
 
-    def get_jobs(self, queue: str) -> Iterator[jobs.Job]:
-        for job_dict in get_jobs(connection=self.connection, queue=queue):
+    def get_jobs(self, queues: Optional[Iterable[str]]) -> Iterator[jobs.Job]:
+        for job_dict in get_jobs(connection=self.connection, queues=queues):
             # Hard to tell mypy that every element of the dict is typed correctly
             yield jobs.Job(job_store=self, **job_dict)  # type: ignore
 
@@ -190,8 +179,8 @@ class PostgresJobStore(store.JobStore):
             connection=self.connection, job_id=job.id, status=status.value
         )
 
-    def listen_for_jobs(self, queue: str) -> None:
-        listen_queue(connection=self.connection, queue=queue)
+    def listen_for_jobs(self, queues: Optional[Iterable[str]] = None) -> None:
+        listen_queues(connection=self.connection, queues=queues)
 
     def wait_for_jobs(self, timeout: int) -> None:
         wait_for_jobs(connection=self.connection, timeout=timeout)

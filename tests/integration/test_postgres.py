@@ -8,7 +8,7 @@ import pendulum
 import psycopg2
 import pytest
 
-from cabbage import exceptions, jobs, postgres
+from cabbage import jobs, postgres
 
 
 def test_init_pg_extensions():
@@ -43,7 +43,6 @@ def job_store(connection):
 
 def test_launch_job(job_store, get_all):
     queue = "marsupilami"
-    job_store.register_queue(queue)
     job = jobs.Job(
         id=0,
         queue=queue,
@@ -66,23 +65,7 @@ def test_launch_job(job_store, get_all):
     ]
 
 
-def test_launch_job_no_queue(job_store):
-    queue = "marsupilami"
-    job = jobs.Job(
-        id=0,
-        queue=queue,
-        task_name="bob",
-        lock="sher",
-        task_kwargs={"a": 1, "b": 2},
-        job_store=job_store,
-    )
-    with pytest.raises(exceptions.QueueNotFound):
-        job_store.launch_job(job=job)
-
-
 def test_get_jobs(job_store):
-    job_store.register_queue("queue_a")
-    job_store.register_queue("queue_b")
     job_store.launch_job(
         jobs.Job(
             id=0,
@@ -149,7 +132,7 @@ def test_get_jobs(job_store):
         )
     )
 
-    result = list(job_store.get_jobs("queue_a"))
+    result = list(job_store.get_jobs(queues=["queue_a"]))
 
     t1, t2, t3 = result
     assert result == [
@@ -182,7 +165,6 @@ def test_get_jobs(job_store):
 
 
 def test_get_stalled_jobs(connection, get_all, job_store):
-    job_store.register_queue("queue_a")
     job_store.launch_job(
         jobs.Job(
             id=0,
@@ -199,7 +181,7 @@ def test_get_stalled_jobs(connection, get_all, job_store):
     assert list(job_store.get_stalled_jobs(nb_seconds=3600)) == []
 
     # We start a job and fake its `started_at`
-    job = next(job_store.get_jobs("queue_a"))
+    job = next(job_store.get_jobs(queues=["queue_a"]))
     with connection.cursor() as cursor:
         cursor.execute(
             f"UPDATE cabbage_jobs SET started_at=NOW() - INTERVAL '30 minutes' "
@@ -221,7 +203,6 @@ def test_get_stalled_jobs(connection, get_all, job_store):
 
 
 def test_finish_job(get_all, job_store):
-    job_store.register_queue("queue_a")
     job_store.launch_job(
         jobs.Job(
             id=0,
@@ -232,7 +213,7 @@ def test_finish_job(get_all, job_store):
             job_store=job_store,
         )
     )
-    job = next(job_store.get_jobs("queue_a"))
+    job = next(job_store.get_jobs(queues=["queue_a"]))
 
     assert get_all("cabbage_jobs", "status") == [{"status": "doing"}]
     started_at = get_all("cabbage_jobs", "started_at")[0]["started_at"]
@@ -244,27 +225,10 @@ def test_finish_job(get_all, job_store):
     assert get_all("cabbage_jobs", "started_at") == [{"started_at": started_at}]
 
 
-def test_register_queue(get_all, job_store):
-    pk = job_store.register_queue("marsupilami")
-
-    result = get_all("cabbage_queues", "*")
-    assert result == [{"id": pk, "queue_name": "marsupilami"}]
-
-
-def test_register_queue_conflict(get_all, job_store):
-    job_store.register_queue("marsupilami")
-
-    pk = job_store.register_queue("marsupilami")
-
-    assert pk is None
-    result = get_all("cabbage_queues", "queue_name")
-    assert result == [{"queue_name": "marsupilami"}]
-
-
 def test_listen_queue(job_store, connection):
     queue = "".join(random.choices(string.ascii_letters, k=10))
     queue_full_name = f"cabbage_queue#{queue}"
-    job_store.listen_for_jobs(queue=queue)
+    job_store.listen_for_jobs(queues=[queue])
     connection.commit()
 
     with connection.cursor() as cursor:
@@ -272,6 +236,18 @@ def test_listen_queue(job_store, connection):
             """SELECT COUNT(*) FROM pg_listening_channels()
                           WHERE pg_listening_channels = %s""",
             (queue_full_name,),
+        )
+        assert cursor.fetchone()[0] == 1
+
+
+def test_listen_all_queue(job_store, connection):
+    job_store.listen_for_jobs()
+    connection.commit()
+
+    with connection.cursor() as cursor:
+        cursor.execute(
+            """SELECT COUNT(*) FROM pg_listening_channels()
+                          WHERE pg_listening_channels = 'cabbage_any_queue'"""
         )
         assert cursor.fetchone()[0] == 1
 
@@ -293,8 +269,7 @@ def test_enum_synced(connection):
 
 def test_wait_for_jobs(job_store):
 
-    job_store.register_queue(queue="yay")
-    job_store.listen_for_jobs(queue="yay")
+    job_store.listen_for_jobs()
 
     def stop():
         connection = postgres.get_connection(

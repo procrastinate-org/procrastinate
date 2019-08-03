@@ -9,9 +9,11 @@ def main():
     logging.basicConfig(level="DEBUG")
     process = sys.argv[1]
     if process == "worker":
-        queue = sys.argv[2]
+        queues = [e.strip() for e in sys.argv[2].split(",")]
         worker = cabbage.Worker(
-            task_manager=task_manager, queue=queue, import_paths=["cabbage_demo.tasks"]
+            task_manager=task_manager,
+            queues=queues,
+            import_paths=["cabbage_demo.tasks"],
         )
         worker.run()
 

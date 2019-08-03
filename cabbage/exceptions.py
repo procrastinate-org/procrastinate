@@ -10,9 +10,5 @@ class JobError(CabbageException):
     pass
 
 
-class QueueNotFound(CabbageException):
-    pass
-
-
 class LoadFromPathError(ImportError, CabbageException):
     pass

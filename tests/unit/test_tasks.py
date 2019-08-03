@@ -30,14 +30,13 @@ def test_task_init_explicit_name(task_manager, mocker, caplog):
 
 
 def test_task_defer(task_manager):
-    task_manager.job_store.register_queue("queue")
     task = tasks.Task(task_func, manager=task_manager, queue="queue")
 
     task.defer(c=3)
 
     # The lock is the only thing we can't predict
-    lock = task_manager.job_store.jobs["queue"][0].lock
-    assert task_manager.job_store.jobs["queue"] == [
+    lock = task_manager.job_store.jobs[0].lock
+    assert task_manager.job_store.jobs == [
         jobs.Job(
             id=0,
             queue="queue",
@@ -127,7 +126,6 @@ def test_task_manager_register(task_manager, mocker):
 
     assert task_manager.queues == {"queue"}
     assert task_manager.tasks == {"bla": task}
-    assert set(task_manager.job_store.jobs) == {"queue"}
 
 
 def test_task_manager_register_queue_already_exists(task_manager, mocker):
@@ -138,8 +136,6 @@ def test_task_manager_register_queue_already_exists(task_manager, mocker):
 
     assert task_manager.queues == {"queue"}
     assert task_manager.tasks == {"bla": task}
-    # We never told the store that there were queues to register
-    assert not task_manager.job_store.jobs
 
 
 def test_task_manager_default_connection(mocker):

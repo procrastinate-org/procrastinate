@@ -6,7 +6,7 @@ def sum(a, b):
     print(a + b)
 
 
-@task_manager.task(queue="sums")
+@task_manager.task(queue="sleep")
 def sleep(i):
     import time
 

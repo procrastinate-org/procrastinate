@@ -48,7 +48,6 @@ def test_job_get_context_without_scheduled_at(job_store):
 
 
 def test_job_defer(job_store):
-    job_store.register_queue("marsupilami")
 
     job = jobs.Job(
         queue="marsupilami",
@@ -62,7 +61,7 @@ def test_job_defer(job_store):
 
     assert id == 0
 
-    assert job_store.jobs["marsupilami"] == [
+    assert job_store.jobs == [
         jobs.Job(
             id=0,
             queue="marsupilami",
