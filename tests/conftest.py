@@ -7,7 +7,8 @@ import pytest
 from psycopg2 import sql
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 
-from cabbage import jobs, tasks, testing
+from cabbage import app as app_module
+from cabbage import jobs, testing
 
 
 def _execute(cursor, query, *identifiers):
@@ -73,8 +74,8 @@ def job_store():
 
 
 @pytest.fixture
-def task_manager(job_store):
-    return tasks.TaskManager(job_store=job_store)
+def app(job_store):
+    return app_module.App(job_store=job_store)
 
 
 @pytest.fixture

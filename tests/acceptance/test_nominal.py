@@ -7,30 +7,30 @@ import cabbage
 
 def test_nominal(connection, kill_own_pid, caplog):
     job_store = cabbage.PostgresJobStore(connection=connection)
-    task_manager = cabbage.TaskManager(job_store=job_store)
+    app = cabbage.App(job_store=job_store)
 
     caplog.set_level("DEBUG")
 
     sum_results = []
     product_results = []
 
-    @task_manager.task(queue="default")
+    @app.task(queue="default")
     def sum_task(a, b):
         sum_results.append(a + b)
 
-    @task_manager.task()
+    @app.task()
     def increment_task(a):
         sum_results.append(a + 1)
 
-    @task_manager.task
+    @app.task
     def stop_sum():
         kill_own_pid(signal.SIGINT)
 
-    @task_manager.task(queue="product_queue")
+    @app.task(queue="product_queue")
     def product_task(a, b):
         product_results.append(a * b)
 
-    @task_manager.task(queue="product_queue")
+    @app.task(queue="product_queue")
     def stop_product():
         kill_own_pid(signal.SIGTERM)
 
@@ -48,12 +48,12 @@ def test_nominal(connection, kill_own_pid, caplog):
     thread = threading.Thread(target=stop)
     thread.start()
 
-    cabbage.Worker(task_manager, queues=["default"]).run(timeout=1e-9)
+    cabbage.Worker(app, queues=["default"]).run(timeout=1e-9)
 
     assert sum_results == [12, 7, 4, 5]
     assert product_results == []
 
-    cabbage.Worker(task_manager, queues=["product_queue"]).run(timeout=1e-9)
+    cabbage.Worker(app, queues=["product_queue"]).run(timeout=1e-9)
 
     assert sum_results == [12, 7, 4, 5]
     assert product_results == [20]
@@ -68,11 +68,11 @@ def test_lock(connection, caplog):
     caplog.set_level("DEBUG")
 
     job_store = cabbage.PostgresJobStore(connection=connection)
-    task_manager = cabbage.TaskManager(job_store=job_store)
+    app = cabbage.App(job_store=job_store)
 
     task_order = []
 
-    @task_manager.task(queue="queue")
+    @app.task(queue="queue")
     def sleep_and_write(sleep, write_before, write_after):
         task_order.append(write_before)
         time.sleep(sleep)
@@ -81,7 +81,7 @@ def test_lock(connection, caplog):
     workers = []
 
     def launch_worker():
-        worker = cabbage.Worker(task_manager)
+        worker = cabbage.Worker(app)
         workers.append(worker)
         worker.run(timeout=1e-9)
 

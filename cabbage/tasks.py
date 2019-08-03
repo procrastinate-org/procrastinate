@@ -1,12 +1,14 @@
 import datetime
-import functools
 import logging
 import uuid
-from typing import Any, Callable, Dict, Optional, Set
+from typing import TYPE_CHECKING, Any, Callable, Dict, Optional
 
 import pendulum
 
-from cabbage import exceptions, jobs, postgres, store, types, utils
+from cabbage import exceptions, jobs, types, utils
+
+if TYPE_CHECKING:  # coverage: exclude
+    from cabbage import app
 
 logger = logging.getLogger(__name__)
 
@@ -23,15 +25,10 @@ def load_task(path: str) -> "Task":
 
 class Task:
     def __init__(
-        self,
-        func: Callable,
-        *,
-        manager: "TaskManager",
-        queue: str,
-        name: Optional[str] = None,
+        self, func: Callable, *, app: "app.App", queue: str, name: Optional[str] = None
     ):
         self.queue = queue
-        self.manager = manager
+        self.app = app
         self.func: Callable = func
         self.name: str
         if name and name != self.full_path:
@@ -84,68 +81,5 @@ class Task:
             queue=self.queue,
             task_kwargs=task_kwargs,
             scheduled_at=schedule_at,
-            job_store=self.manager.job_store,
+            job_store=self.app.job_store,
         )
-
-
-class TaskManager:
-    """
-    The TaskManager is the main entrypoint for Cabbage integration.
-
-    Instanciate a single :py:class:`TaskManager` in your code
-    and use it to decorate your tasks with :py:func:`TaskManager.task`.
-
-    Yada yada instanciate worker from task manager yada yada
-
-    """
-
-    def __init__(self, job_store: Optional[store.JobStore] = None):
-        """
-        Parameters
-        ----------
-        job_store:
-            The object in charge of :py:class:`cabbage.jobs.Job` persistance.
-            By default, instanciate a :py:class:`cabbage.PostgresJobStore`.
-
-        Returns
-        -------
-        TaskManager
-        """
-        if job_store is None:
-            job_store = postgres.PostgresJobStore()
-
-        self.job_store = job_store
-        self.tasks: Dict[str, Task] = {}
-        self.queues: Set[str] = set()
-
-    def task(
-        self,
-        _func: Optional[Callable] = None,
-        queue: str = "default",
-        name: Optional[str] = None,
-    ) -> Callable:
-        """
-        Declare a function as a task.
-
-        Can be used as a decorator or a simple method.
-        """
-
-        def _wrap(func: Callable) -> Callable[..., Any]:
-            task = Task(func, manager=self, queue=queue, name=name)
-            self.register(task)
-
-            return functools.update_wrapper(task, func)
-
-        if _func is None:
-            return _wrap
-
-        return _wrap(_func)
-
-    def register(self, task: Task) -> None:
-        self.tasks[task.name] = task
-        if task.queue not in self.queues:
-            logger.info(
-                "Creating queue (if not already existing)",
-                extra={"action": "create_queue", "queue": task.queue},
-            )
-            self.queues.add(task.queue)

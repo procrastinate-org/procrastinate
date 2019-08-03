@@ -3,7 +3,7 @@ import logging
 import time
 from typing import Iterable, Optional, Set
 
-from cabbage import exceptions, jobs, signals, store, tasks, types
+from cabbage import app, exceptions, jobs, signals, store, tasks, types
 
 logger = logging.getLogger(__name__)
 
@@ -26,11 +26,11 @@ def import_all(import_paths: Iterable[str]) -> None:
 class Worker:
     def __init__(
         self,
-        task_manager: tasks.TaskManager,
+        app: app.App,
         queues: Optional[Iterable[str]] = None,
         import_paths: Optional[Iterable[str]] = None,
     ):
-        self._task_manager = task_manager
+        self._app = app
         self._queues = queues
         self._stop_requested = False
         # Handling the info about the currently running task.
@@ -45,7 +45,7 @@ class Worker:
 
     @property
     def _job_store(self) -> store.JobStore:
-        return self._task_manager.job_store
+        return self._app.job_store
 
     def run(self, timeout: int = SOCKET_TIMEOUT) -> None:
         self._job_store.listen_for_jobs(queues=self._queues)
@@ -105,7 +105,7 @@ class Worker:
 
         try:
             # Simple case: the task is already known
-            return self._task_manager.tasks[task_name]
+            return self._app.tasks[task_name]
         except KeyError:
             pass
 
@@ -121,7 +121,7 @@ class Worker:
             extra={"action": "load_dynamic_task", "task_name": task_name},
         )
 
-        self._task_manager.tasks[task_name] = task
+        self._app.tasks[task_name] = task
         return task
 
     def run_job(self, job: jobs.Job) -> None:

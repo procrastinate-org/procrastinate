@@ -5,7 +5,7 @@ import pytest
 from cabbage import exceptions, jobs, tasks, worker
 
 
-def test_run(task_manager):
+def test_run(app):
     class TestWorker(worker.Worker):
         i = 0
 
@@ -14,33 +14,33 @@ def test_run(task_manager):
                 self.stop(None, None)
             self.i += 1
 
-    test_worker = TestWorker(task_manager=task_manager, queues=["marsupilami"])
+    test_worker = TestWorker(app=app, queues=["marsupilami"])
 
     test_worker.run(timeout=42)
 
-    assert task_manager.job_store.listening_queues == {"marsupilami"}
-    assert task_manager.job_store.waited == [42, 42]
+    assert app.job_store.listening_queues == {"marsupilami"}
+    assert app.job_store.waited == [42, 42]
 
 
-def test_run_all_tasks(task_manager):
+def test_run_all_tasks(app):
     class TestWorker(worker.Worker):
         def process_jobs(self):
             self.stop(None, None)
 
-    test_worker = TestWorker(task_manager=task_manager)
+    test_worker = TestWorker(app=app)
     test_worker.run()
 
-    assert task_manager.job_store.listening_all_queues is True
+    assert app.job_store.listening_all_queues is True
 
 
-def test_process_jobs(mocker, task_manager, job_factory):
+def test_process_jobs(mocker, app, job_factory):
     job_1 = job_factory(id=42)
     job_2 = job_factory(id=43)
     job_3 = job_factory(id=44)
     job_4 = job_factory(id=45)
-    task_manager.job_store.jobs = [job_1, job_2, job_3, job_4]
+    app.job_store.jobs = [job_1, job_2, job_3, job_4]
 
-    test_worker = worker.Worker(task_manager, queues=["queue"])
+    test_worker = worker.Worker(app, queues=["queue"])
 
     i = 0
 
@@ -71,7 +71,7 @@ def test_process_jobs(mocker, task_manager, job_factory):
         mocker.call(job=job_4),
     ]
 
-    assert task_manager.job_store.finished_jobs == [
+    assert app.job_store.finished_jobs == [
         (job_1, jobs.Status.DONE),
         (job_2, jobs.Status.ERROR),
         (job_3, jobs.Status.ERROR),
@@ -79,27 +79,27 @@ def test_process_jobs(mocker, task_manager, job_factory):
     ]
 
 
-def test_process_jobs_until_no_more_jobs(mocker, task_manager, job_factory):
+def test_process_jobs_until_no_more_jobs(mocker, app, job_factory):
     job = job_factory(id=42)
-    task_manager.job_store.jobs = [job]
+    app.job_store.jobs = [job]
 
     mocker.patch("cabbage.worker.Worker.run_job")
 
-    test_worker = worker.Worker(task_manager, queues=["queue"])
+    test_worker = worker.Worker(app, queues=["queue"])
     test_worker.process_jobs()
 
-    assert task_manager.job_store.finished_jobs == [(job, jobs.Status.DONE)]
+    assert app.job_store.finished_jobs == [(job, jobs.Status.DONE)]
 
 
-def test_run_job(task_manager, job_store):
+def test_run_job(app, job_store):
     result = []
 
     def task_func(a, b):  # pylint: disable=unused-argument
         result.append(a + b)
 
-    task = tasks.Task(task_func, manager=task_manager, queue="yay", name="job")
+    task = tasks.Task(task_func, app=app, queue="yay", name="job")
 
-    task_manager.tasks = {"task_func": task}
+    app.tasks = {"task_func": task}
 
     job = jobs.Job(
         id=16,
@@ -109,13 +109,13 @@ def test_run_job(task_manager, job_store):
         queue="yay",
         job_store=job_store,
     )
-    test_worker = worker.Worker(task_manager, queues=["yay"])
+    test_worker = worker.Worker(app, queues=["yay"])
     test_worker.run_job(job)
 
     assert result == [12]
 
 
-def test_run_job_log_result(caplog, task_manager, job_store):
+def test_run_job_log_result(caplog, app, job_store):
     caplog.set_level("INFO")
 
     result = []
@@ -125,9 +125,9 @@ def test_run_job_log_result(caplog, task_manager, job_store):
         result.append(s)
         return s
 
-    task = tasks.Task(task_func, manager=task_manager, queue="yay", name="job")
+    task = tasks.Task(task_func, app=app, queue="yay", name="job")
 
-    task_manager.tasks = {"task_func": task}
+    app.tasks = {"task_func": task}
 
     job = jobs.Job(
         id=16,
@@ -137,7 +137,7 @@ def test_run_job_log_result(caplog, task_manager, job_store):
         queue="yay",
         job_store=job_store,
     )
-    test_worker = worker.Worker(task_manager, queues=["yay"])
+    test_worker = worker.Worker(app, queues=["yay"])
     test_worker.run_job(job)
 
     assert result == [12]
@@ -148,14 +148,14 @@ def test_run_job_log_result(caplog, task_manager, job_store):
     assert record.result == 12
 
 
-def test_run_job_error(task_manager, job_store):
+def test_run_job_error(app, job_store):
     def job(a, b):  # pylint: disable=unused-argument
         raise ValueError("nope")
 
-    task = tasks.Task(job, manager=task_manager, queue="yay", name="job")
+    task = tasks.Task(job, app=app, queue="yay", name="job")
     task.func = job
 
-    task_manager.tasks = {"job": task}
+    app.tasks = {"job": task}
 
     job = jobs.Job(
         id=16,
@@ -165,12 +165,12 @@ def test_run_job_error(task_manager, job_store):
         queue="yay",
         job_store=job_store,
     )
-    test_worker = worker.Worker(task_manager, queues=["yay"])
+    test_worker = worker.Worker(app, queues=["yay"])
     with pytest.raises(exceptions.JobError):
         test_worker.run_job(job)
 
 
-def test_run_job_not_found(task_manager, job_store):
+def test_run_job_not_found(app, job_store):
     job = jobs.Job(
         id=16,
         task_kwargs={"a": 9, "b": 3},
@@ -179,7 +179,7 @@ def test_run_job_not_found(task_manager, job_store):
         queue="yay",
         job_store=job_store,
     )
-    test_worker = worker.Worker(task_manager, queues=["yay"])
+    test_worker = worker.Worker(app, queues=["yay"])
     with pytest.raises(exceptions.TaskNotFound):
         test_worker.run_job(job)
 
@@ -193,35 +193,35 @@ def test_import_all():
     assert module in sys.modules
 
 
-def test_worker_call_import_all(task_manager, mocker):
+def test_worker_call_import_all(app, mocker):
 
     import_all = mocker.patch("cabbage.worker.import_all")
 
-    worker.Worker(task_manager=task_manager, queues=["yay"], import_paths=["hohoho"])
+    worker.Worker(app=app, queues=["yay"], import_paths=["hohoho"])
 
     import_all.assert_called_with(import_paths=["hohoho"])
 
 
-def test_worker_load_task_known_missing(task_manager):
-    task_worker = worker.Worker(task_manager=task_manager, queues=["yay"])
+def test_worker_load_task_known_missing(app):
+    task_worker = worker.Worker(app=app, queues=["yay"])
 
     task_worker.known_missing_tasks.add("foobarbaz")
     with pytest.raises(exceptions.TaskNotFound):
         task_worker.load_task("foobarbaz")
 
 
-def test_worker_load_task_known_task(task_manager):
-    task_worker = worker.Worker(task_manager=task_manager, queues=["yay"])
+def test_worker_load_task_known_task(app):
+    task_worker = worker.Worker(app=app, queues=["yay"])
 
-    @task_manager.task
+    @app.task
     def task_func():
         pass
 
     assert task_worker.load_task("tests.unit.test_worker.task_func") == task_func
 
 
-def test_worker_load_task_new_missing(task_manager):
-    task_worker = worker.Worker(task_manager=task_manager, queues=["yay"])
+def test_worker_load_task_new_missing(app):
+    task_worker = worker.Worker(app=app, queues=["yay"])
 
     with pytest.raises(exceptions.TaskNotFound):
         task_worker.load_task("foobarbaz")
@@ -232,11 +232,11 @@ def test_worker_load_task_new_missing(task_manager):
 unknown_task = None
 
 
-def test_worker_load_task_unknown_task(task_manager, caplog):
+def test_worker_load_task_unknown_task(app, caplog):
     global unknown_task
-    task_worker = worker.Worker(task_manager=task_manager, queues=["yay"])
+    task_worker = worker.Worker(app=app, queues=["yay"])
 
-    @task_manager.task
+    @app.task
     def task_func():
         pass
 

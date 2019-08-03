@@ -1,3 +1,3 @@
 import cabbage
 
-task_manager = cabbage.TaskManager()
+app = cabbage.App()
