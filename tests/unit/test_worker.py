@@ -5,7 +5,7 @@ import pytest
 from cabbage import exceptions, jobs, tasks, worker
 
 
-def test_run(task_manager, mocker):
+def test_run(task_manager):
     class TestWorker(worker.Worker):
         i = 0
 
@@ -18,8 +18,19 @@ def test_run(task_manager, mocker):
 
     test_worker.run(timeout=42)
 
-    task_manager.job_store.listening_queues == {"marsupilami"}
-    task_manager.job_store.waited == [42]
+    assert task_manager.job_store.listening_queues == {"marsupilami"}
+    assert task_manager.job_store.waited == [42, 42]
+
+
+def test_run_all_tasks(task_manager):
+    class TestWorker(worker.Worker):
+        def process_jobs(self):
+            self.stop(None, None)
+
+    test_worker = TestWorker(task_manager=task_manager)
+    test_worker.run()
+
+    assert task_manager.job_store.listening_all_queues is True
 
 
 def test_process_jobs(mocker, task_manager, job_factory):

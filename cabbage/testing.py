@@ -14,6 +14,7 @@ class InMemoryJobStore(store.JobStore):
         self.queues_counter = count()
         self.job_counter = count()
         self.listening_queues = set()
+        self.listening_all_queues = False
         self.waited = []
 
     def launch_job(self, job: jobs.Job) -> int:
@@ -35,7 +36,10 @@ class InMemoryJobStore(store.JobStore):
         self.finished_jobs.append((job, status))
 
     def listen_for_jobs(self, queues: Optional[Iterable[str]] = None) -> None:
-        self.listening_queues.update(queues or ["all"])
+        if queues is None:
+            self.listening_all_queues = True
+        else:
+            self.listening_queues.update(queues)
 
     def wait_for_jobs(self, timeout: int):
         self.waited.append(timeout)
