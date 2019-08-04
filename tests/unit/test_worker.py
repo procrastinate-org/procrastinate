@@ -9,7 +9,7 @@ def test_run(app):
     class TestWorker(worker.Worker):
         i = 0
 
-        def process_jobs(self):
+        def process_jobs_once(self):
             if self.i == 2:
                 self.stop(None, None)
             self.i += 1
@@ -24,7 +24,7 @@ def test_run(app):
 
 def test_run_all_tasks(app):
     class TestWorker(worker.Worker):
-        def process_jobs(self):
+        def process_jobs_once(self):
             self.stop(None, None)
 
     test_worker = TestWorker(app=app)
@@ -33,7 +33,7 @@ def test_run_all_tasks(app):
     assert app.job_store.listening_all_queues is True
 
 
-def test_process_jobs(mocker, app, job_factory):
+def test_process_jobs_once(mocker, app, job_factory):
     job_1 = job_factory(id=42)
     job_2 = job_factory(id=43)
     job_3 = job_factory(id=44)
@@ -62,7 +62,7 @@ def test_process_jobs(mocker, app, job_factory):
 
     run_job = mocker.patch("cabbage.worker.Worker.run_job", side_effect=side_effect)
 
-    test_worker.process_jobs()
+    test_worker.process_jobs_once()
 
     assert run_job.call_args_list == [
         mocker.call(job=job_1),
@@ -79,14 +79,14 @@ def test_process_jobs(mocker, app, job_factory):
     ]
 
 
-def test_process_jobs_until_no_more_jobs(mocker, app, job_factory):
+def test_process_jobs_once_until_no_more_jobs(mocker, app, job_factory):
     job = job_factory(id=42)
     app.job_store.jobs = [job]
 
     mocker.patch("cabbage.worker.Worker.run_job")
 
     test_worker = worker.Worker(app, queues=["queue"])
-    test_worker.process_jobs()
+    test_worker.process_jobs_once()
 
     assert app.job_store.finished_jobs == [(job, jobs.Status.DONE)]
 

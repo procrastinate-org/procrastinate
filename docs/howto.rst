@@ -123,9 +123,15 @@ To use it, you can do::
 
     app = cabbage.App(in_memory=running_tests)
 
+    # Run the jobs your tests created, then stop
+    # the worker:
+    app.run_worker(only_once=True)
 
-    # Run the jobs:
-    cabbage.Worker(app).process_jobs()
+    # See the jobs created:
+    print(app.job_store.jobs)
+
+    # Reset the store between tests:
+    app.job_store.reset()
 
 
 Deploy Cabbage in a real environment

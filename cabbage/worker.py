@@ -1,12 +1,14 @@
 import importlib
 import logging
 import time
-from typing import Iterable, Optional, Set
+from typing import TYPE_CHECKING, Iterable, Optional, Set
 
-from cabbage import app, exceptions, jobs, signals, store, tasks, types
+from cabbage import exceptions, jobs, signals, store, tasks, types
 
 logger = logging.getLogger(__name__)
 
+if TYPE_CHECKING:  # coverage: exclude
+    from cabbage import app
 
 SOCKET_TIMEOUT = 5  # seconds
 
@@ -26,7 +28,7 @@ def import_all(import_paths: Iterable[str]) -> None:
 class Worker:
     def __init__(
         self,
-        app: app.App,
+        app: "app.App",
         queues: Optional[Iterable[str]] = None,
         import_paths: Optional[Iterable[str]] = None,
     ):
@@ -52,7 +54,7 @@ class Worker:
 
         with signals.on_stop(self.stop):
             while True:
-                self.process_jobs()
+                self.process_jobs_once()
 
                 if self._stop_requested:
                     logger.debug(
@@ -66,7 +68,7 @@ class Worker:
                 )
                 self._job_store.wait_for_jobs(timeout=timeout)
 
-    def process_jobs(self) -> None:
+    def process_jobs_once(self) -> None:
         for job in self._job_store.get_jobs(self._queues):
             assert isinstance(job.id, int)
 
