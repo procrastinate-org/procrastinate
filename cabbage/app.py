@@ -18,22 +18,25 @@ class App:
 
     """
 
-    def __init__(self, job_store: Optional[store.JobStore] = None):
+    def __init__(
+        self,
+        *,
+        in_memory: bool = False
+    ):
         """
         Parameters
         ----------
-        job_store:
-            The object in charge of :py:class:`cabbage.jobs.Job` persistance.
-            By default, instanciate a :py:class:`cabbage.PostgresJobStore`.
-
-        Returns
-        -------
-        App
+        in_memory:
+            If True, tasks will not be persisted. This is useful for testing only.
         """
-        if job_store is None:
-            job_store = postgres.PostgresJobStore()
+        self.job_store: store.JobStore
 
-        self.job_store = job_store
+        if in_memory:
+            self.job_store = testing.InMemoryJobStore()
+        else:
+            connection = postgres.get_connection(dsn=postgres_dsn)
+            self.job_store = postgres.PostgresJobStore(connection=connection)
+
         self.tasks: Dict[str, tasks.Task] = {}
         self.queues: Set[str] = set()
 

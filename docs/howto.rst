@@ -115,19 +115,14 @@ Then, define all of your tasks using this ``@task`` decorator.
 Test your code that uses cabbage
 --------------------------------
 
-Cabbage defines an `InMemoryJobStore` that will speed-up your tests and
-allow you to have tasks run in a controlled way.
+Cabbage defines an `InMemoryJobStore` that will speed-up your tests,
+remove dependency to Postgres and allow you to have tasks run in a
+controlled way.
 
 To use it, you can do::
 
-    if running_tests:
-        store_path = "cabbage.testing.InMemoryJobStore"
-    else:
-        store_path = "cabbage.postgres.PostgresJobStore"
+    app = cabbage.App(in_memory=running_tests)
 
-    app = cabbage.App(
-        store_class = store.load_store_from_path(store_class)
-    )
 
     # Run the jobs:
     cabbage.Worker(app).process_jobs()

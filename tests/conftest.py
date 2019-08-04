@@ -8,7 +8,7 @@ from psycopg2 import sql
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 
 from cabbage import app as app_module
-from cabbage import jobs, testing
+from cabbage import jobs
 
 
 def _execute(cursor, query, *identifiers):
@@ -69,24 +69,19 @@ def kill_own_pid():
 
 
 @pytest.fixture
-def job_store():
-    return testing.InMemoryJobStore()
-
-
-@pytest.fixture
 def app(job_store):
-    return app_module.App(job_store=job_store)
+    return app_module.App(in_memory=True)
 
 
 @pytest.fixture
-def job_factory(job_store):
+def job_factory(app):
     defaults = {
         "id": 42,
         "task_name": "bla",
         "task_kwargs": {},
         "lock": None,
         "queue": "queue",
-        "job_store": job_store,
+        "job_store": app.job_store,
     }
 
     def factory(**kwargs):
