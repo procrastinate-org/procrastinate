@@ -276,7 +276,6 @@ def test_wait_for_jobs(pg_job_store, connection_params):
         try:
             inner_job_store = postgres.PostgresJobStore(**connection_params)
 
-            time.sleep(0.5)
             inner_job_store.launch_job(
                 jobs.Job(
                     id=0,
@@ -293,6 +292,26 @@ def test_wait_for_jobs(pg_job_store, connection_params):
     thread = threading.Thread(target=stop)
     thread.start()
 
+    pg_job_store.socket_timeout = 2
+    before = time.perf_counter()
+    pg_job_store.wait_for_jobs()
+    after = time.perf_counter()
+
+    # If we wait less than 1 sec, it means the wait didn't reach the timeout.
+    assert after - before < 1
+
+
+def test_wait_for_jobs_stop_from_pipe(pg_job_store):
+
+    pg_job_store.listen_for_jobs()
+
+    def stop():
+        pg_job_store.stop()
+
+    thread = threading.Thread(target=stop)
+    thread.start()
+
+    pg_job_store.socket_timeout = 2
     before = time.perf_counter()
     pg_job_store.wait_for_jobs()
     after = time.perf_counter()

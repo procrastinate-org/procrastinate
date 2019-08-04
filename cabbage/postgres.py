@@ -1,6 +1,7 @@
 import datetime
+import os
 import select
-from typing import Any, Iterable, Iterator, Optional
+from typing import Any, Iterable, Iterator, Optional, Tuple
 
 import psycopg2
 from psycopg2 import extras, sql
@@ -133,7 +134,7 @@ def finish_job(
 
 
 def listen_queues(
-    connection: psycopg2._psycopg.connection, queues: Optional[Iterable[str]] = None
+    connection: psycopg2._psycopg.connection, queues: Optional[Iterable[str]]
 ) -> None:
     if queues is None:
         listen_to = [listen_any_queue]
@@ -152,9 +153,18 @@ def listen_queues(
 
 
 def wait_for_jobs(
-    connection: psycopg2._psycopg.connection, socket_timeout: float
+    connection: psycopg2._psycopg.connection,
+    socket_timeout: float,
+    stop_pipe: Tuple[int, int],
 ) -> None:
-    select.select([connection], [], [], socket_timeout)
+    ready_fds = select.select([connection, stop_pipe[0]], [], [], socket_timeout)
+    # Don't let things accumulate in the pipe
+    if stop_pipe[0] in ready_fds[0]:
+        os.read(stop_pipe[0], 1)
+
+
+def send_stop(stop_pipe: Tuple[int, int]):
+    os.write(stop_pipe[1], b"s")
 
 
 init_pg_extensions()
@@ -185,6 +195,7 @@ class PostgresJobStore(store.BaseJobStore):
         """
         self.connection = get_connection(**kwargs)
         self.socket_timeout = socket_timeout
+        self.stop_pipe = os.pipe()
 
     def launch_job(self, job: jobs.Job) -> int:
         return launch_job(connection=self.connection, job=job)
@@ -224,4 +235,11 @@ class PostgresJobStore(store.BaseJobStore):
         listen_queues(connection=self.connection, queues=queues)
 
     def wait_for_jobs(self) -> None:
-        wait_for_jobs(connection=self.connection, socket_timeout=self.socket_timeout)
+        wait_for_jobs(
+            connection=self.connection,
+            socket_timeout=self.socket_timeout,
+            stop_pipe=self.stop_pipe,
+        )
+
+    def stop(self):
+        send_stop(stop_pipe=self.stop_pipe)

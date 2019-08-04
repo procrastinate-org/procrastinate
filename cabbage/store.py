@@ -24,3 +24,6 @@ class BaseJobStore:
 
     def wait_for_jobs(self):
         raise NotImplementedError
+
+    def stop(self):
+        raise NotImplementedError

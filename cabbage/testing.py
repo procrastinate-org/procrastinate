@@ -76,3 +76,6 @@ class InMemoryJobStore(store.BaseJobStore):
 
     def wait_for_jobs(self):
         self.waited = True
+
+    def stop(self):
+        pass
