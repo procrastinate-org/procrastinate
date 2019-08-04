@@ -21,11 +21,15 @@ class App:
     def __init__(
         self,
         *,
+        postgres_dsn: str = "",
         in_memory: bool = False
     ):
         """
         Parameters
         ----------
+        postgres_dsn:
+            postgres (libpq) compatible connection string. See specications:
+            https://www.postgresql.org/docs/current/libpq-connect.html#LIBPQ-CONNSTRING
         in_memory:
             If True, tasks will not be persisted. This is useful for testing only.
         """

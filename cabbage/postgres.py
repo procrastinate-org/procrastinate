@@ -40,7 +40,8 @@ listen_queue_pattern = "cabbage_queue#{queue}"
 
 
 def get_connection(**kwargs) -> psycopg2._psycopg.connection:
-    return psycopg2.connect("", **kwargs)
+    kwargs.setdefault("dsn", "")
+    return psycopg2.connect(**kwargs)
 
 
 def init_pg_extensions() -> None:
