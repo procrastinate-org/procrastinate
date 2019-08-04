@@ -22,7 +22,8 @@ class App:
         *,
         postgres_dsn: str = "",
         import_paths: Optional[Iterable[str]] = None,
-        in_memory: bool = False
+        in_memory: bool = False,
+        worker_timeout: float = worker.SOCKET_TIMEOUT,
     ):
         """
         Parameters
@@ -43,6 +44,11 @@ class App:
             A :py:func:`App.task` that has a custom "name" parameter, that is not
             imported and whose module path is not in this list will
             fail to run.
+        worker_timeout:
+            This parameter indicates how long cabbage waits (in seconds) between
+            renewing the socket `select` calls when waiting for tasks. The longer it
+            waits, the longer it takes for the worker to stop when reciving a stop
+            signal. The shorter, the more `select` calls it does.
         """
         self.job_store: store.JobStore
 
@@ -55,6 +61,7 @@ class App:
         self.tasks: Dict[str, tasks.Task] = {}
         self.queues: Set[str] = set()
         self.import_paths = import_paths
+        self.worker_timeout = worker_timeout
 
     def task(
         self,
@@ -93,7 +100,7 @@ class App:
 
     def run_worker(
         self, queues: Optional[Iterable[str]] = None, only_once: bool = False
-    ):
+    ) -> None:
         """
         Run a worker. This worker will run in the foreground
         and the function will not return until the worker stops
@@ -114,4 +121,4 @@ class App:
         if only_once:
             worker.process_jobs_once()
         else:
-            worker.run()
+            worker.run(timeout=self.worker_timeout)

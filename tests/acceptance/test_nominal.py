@@ -6,8 +6,7 @@ import cabbage
 
 
 def test_nominal(connection, kill_own_pid, caplog):
-    job_store = cabbage.PostgresJobStore(connection=connection)
-    app = cabbage.App(job_store=job_store)
+    app = cabbage.App(worker_timeout=1e-9)
 
     caplog.set_level("DEBUG")
 
@@ -48,12 +47,12 @@ def test_nominal(connection, kill_own_pid, caplog):
     thread = threading.Thread(target=stop)
     thread.start()
 
-    cabbage.Worker(app, queues=["default"]).run(timeout=1e-9)
+    app.run_worker(queues=["default"])
 
     assert sum_results == [12, 7, 4, 5]
     assert product_results == []
 
-    cabbage.Worker(app, queues=["product_queue"]).run(timeout=1e-9)
+    app.run_worker(queues=["product_queue"])
 
     assert sum_results == [12, 7, 4, 5]
     assert product_results == [20]
@@ -67,8 +66,7 @@ def test_lock(connection, caplog):
     """
     caplog.set_level("DEBUG")
 
-    job_store = cabbage.PostgresJobStore(connection=connection)
-    app = cabbage.App(job_store=job_store)
+    app = cabbage.App(worker_timeout=1e-9)
 
     task_order = []
 
@@ -81,7 +79,7 @@ def test_lock(connection, caplog):
     workers = []
 
     def launch_worker():
-        worker = cabbage.Worker(app)
+        worker = app._worker()
         workers.append(worker)
         worker.run(timeout=1e-9)
 

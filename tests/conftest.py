@@ -69,19 +69,24 @@ def kill_own_pid():
 
 
 @pytest.fixture
-def app(job_store):
+def app():
     return app_module.App(in_memory=True)
 
 
 @pytest.fixture
-def job_factory(app):
+def job_store(app):
+    return app.job_store
+
+
+@pytest.fixture
+def job_factory(job_store):
     defaults = {
         "id": 42,
         "task_name": "bla",
         "task_kwargs": {},
         "lock": None,
         "queue": "queue",
-        "job_store": app.job_store,
+        "job_store": job_store,
     }
 
     def factory(**kwargs):
