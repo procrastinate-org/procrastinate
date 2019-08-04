@@ -29,3 +29,6 @@ class JobStore:
 
     def wait_for_jobs(self, timeout: float):
         raise NotImplementedError
+
+    def stop(self):
+        raise NotImplementedError

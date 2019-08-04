@@ -166,6 +166,7 @@ class Worker:
     ) -> None:
         self._stop_requested = True
         log_context = self.log_context
+        self._job_store.stop()
 
         logger.info(
             "Stop requested, waiting for current job to finish",

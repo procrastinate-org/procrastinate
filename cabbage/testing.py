@@ -45,3 +45,6 @@ class InMemoryJobStore(store.JobStore):
 
     def wait_for_jobs(self, timeout: float):
         self.waited.append(timeout)
+
+    def stop(self):
+        pass
