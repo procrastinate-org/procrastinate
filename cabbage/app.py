@@ -45,10 +45,12 @@ class App:
             imported and whose module path is not in this list will
             fail to run.
         worker_timeout:
-            This parameter indicates how long cabbage waits (in seconds) between
-            renewing the socket `select` calls when waiting for tasks. The longer it
-            waits, the longer it takes for the worker to stop when reciving a stop
-            signal. The shorter, the more `select` calls it does.
+            This parameter should generally not be changed.
+            It indicates how long cabbage waits (in seconds) between
+            renewing the socket `select` calls when waiting for tasks.
+            The shorter the timeout, the more `select` calls it does.
+            The longer the timeout, the longer the server will wait idle if, for
+            some reason, the postgres LISTEN call doesn't work.
         """
         self.job_store: store.JobStore
 
