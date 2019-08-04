@@ -143,7 +143,7 @@ def listen_queues(
                 cursor.execute(query)
 
 
-def wait_for_jobs(connection: psycopg2._psycopg.connection, timeout: int) -> None:
+def wait_for_jobs(connection: psycopg2._psycopg.connection, timeout: float) -> None:
     select.select([connection], [], [], timeout)
 
 
@@ -183,5 +183,5 @@ class PostgresJobStore(store.JobStore):
     def listen_for_jobs(self, queues: Optional[Iterable[str]] = None) -> None:
         listen_queues(connection=self.connection, queues=queues)
 
-    def wait_for_jobs(self, timeout: int) -> None:
+    def wait_for_jobs(self, timeout: float) -> None:
         wait_for_jobs(connection=self.connection, timeout=timeout)

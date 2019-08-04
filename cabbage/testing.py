@@ -43,5 +43,5 @@ class InMemoryJobStore(store.JobStore):
         else:
             self.listening_queues.update(queues)
 
-    def wait_for_jobs(self, timeout: int):
+    def wait_for_jobs(self, timeout: float):
         self.waited.append(timeout)

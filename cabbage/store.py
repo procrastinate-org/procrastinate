@@ -27,5 +27,5 @@ class JobStore:
     def listen_for_jobs(self, queues: Optional[Iterable[str]] = None) -> None:
         raise NotImplementedError
 
-    def wait_for_jobs(self, timeout: int):
+    def wait_for_jobs(self, timeout: float):
         raise NotImplementedError

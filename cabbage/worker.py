@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 if TYPE_CHECKING:  # coverage: exclude
     from cabbage import app
 
-SOCKET_TIMEOUT = 5  # seconds
+SOCKET_TIMEOUT: float = 5.0  # seconds
 
 
 def import_all(import_paths: Iterable[str]) -> None:
@@ -49,7 +49,7 @@ class Worker:
     def _job_store(self) -> store.JobStore:
         return self._app.job_store
 
-    def run(self, timeout: int = SOCKET_TIMEOUT) -> None:
+    def run(self, timeout: float = SOCKET_TIMEOUT) -> None:
         self._job_store.listen_for_jobs(queues=self._queues)
 
         with signals.on_stop(self.stop):
