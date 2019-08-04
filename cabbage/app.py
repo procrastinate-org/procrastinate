@@ -89,9 +89,9 @@ class App:
     def _register(self, task: tasks.Task) -> None:
         self.tasks[task.name] = task
         if task.queue not in self.queues:
-            logger.info(
-                "Creating queue (if not already existing)",
-                extra={"action": "create_queue", "queue": task.queue},
+            logger.debug(
+                "Registering queue",
+                extra={"action": "register_queue", "queue": task.queue},
             )
             self.queues.add(task.queue)
 

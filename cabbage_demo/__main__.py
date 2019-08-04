@@ -1,7 +1,6 @@
 import logging
 import sys
 
-import cabbage
 from cabbage_demo.cabbage_app import app
 
 
@@ -9,11 +8,12 @@ def main():
     logging.basicConfig(level="DEBUG")
     process = sys.argv[1]
     if process == "worker":
-        queues = [e.strip() for e in sys.argv[2].split(",")]
-        worker = cabbage.Worker(
-            app=app, queues=queues, import_paths=["cabbage_demo.tasks"]
-        )
-        worker.run()
+        try:
+            queues = [e.strip() for e in sys.argv[2].split(",")]
+        except IndexError:
+            queues = None
+
+        app.run_worker(queues=queues)
 
     else:
         from cabbage_demo import client
