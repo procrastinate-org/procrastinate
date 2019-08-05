@@ -6,7 +6,7 @@ Ensure jobs don't run concurrently and run in order
 
 Let's imagine we have a task like this::
 
-    @task_manager.task(queue="queue")
+    @app.task(queue="queue")
     def write_alphabet(letter):
         time.sleep(random.random() * 5)
         with open("/tmp/alphabet.txt", "a") as f:
@@ -96,8 +96,8 @@ Add a task middleware
 
 As of today, Cabbage has no specific way of ensuring a piece of code runs
 before or after every job. That being said, you can always decide to use
-your own decorator instead of ``@task_manager.task`` and have this decorator
-implement the actions you need and delegate the rest to ``@task_manager.task``.
+your own decorator instead of ``@app.task`` and have this decorator
+implement the actions you need and delegate the rest to ``@app.task``.
 It might look like this::
 
     def task(*args, **kwargs):
@@ -107,7 +107,7 @@ It might look like this::
                 return func(*job_args, **job_kwargs)
                 log_something_else()
 
-            return task_manager.task(*args, **kwargs)(new_func)
+            return app.task(*args, **kwargs)(new_func)
         return wrap
 
 Then, define all of your tasks using this ``@task`` decorator.
@@ -125,12 +125,12 @@ To use it, you can do::
     else:
         store_path = "cabbage.postgres.PostgresJobStore"
 
-    task_manager = cabbage.TaskManager(
+    app = cabbage.App(
         store_class = store.load_store_from_path(store_class)
     )
 
     # Run the jobs:
-    cabbage.Worker(task_manager).process_jobs()
+    cabbage.Worker(app).process_jobs()
 
 
 Deploy Cabbage in a real environment

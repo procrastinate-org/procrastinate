@@ -1,7 +1,7 @@
 API Reference
 =============
 
-.. autoclass:: cabbage.TaskManager
+.. autoclass:: cabbage.App
     :members: task
 
 .. autoclass:: cabbage.Task

@@ -106,8 +106,8 @@ Worker
     A process responsible for processing one or more queues: taking tasks one
     by one and executing them, and then wait for the queue to fill again.
 
-Task Manager
-    This is meant to be the main entrypoint of Cabbage. A task manager knows
+App
+    This is meant to be the main entrypoint of Cabbage. The app knows
     all the tasks of your project, and thanks to the job store, it knows how
     to launch jobs to execute your tasks.
 

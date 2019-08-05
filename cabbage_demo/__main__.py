@@ -2,7 +2,7 @@ import logging
 import sys
 
 import cabbage
-from cabbage_demo.cabbage_app import task_manager
+from cabbage_demo.cabbage_app import app
 
 
 def main():
@@ -11,9 +11,7 @@ def main():
     if process == "worker":
         queues = [e.strip() for e in sys.argv[2].split(",")]
         worker = cabbage.Worker(
-            task_manager=task_manager,
-            queues=queues,
-            import_paths=["cabbage_demo.tasks"],
+            app=app, queues=queues, import_paths=["cabbage_demo.tasks"]
         )
         worker.run()
 

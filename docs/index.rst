@@ -7,11 +7,11 @@ dispatch tasks.
 
 Here's an example::
 
-    # Make a task manager in your code
-    task_manager = cabbage.TaskManager()
+    # Make a app in your code
+    app = cabbage.App()
 
     # Then define tasks
-    @task_manager.task(queue="sums")
+    @app.task(queue="sums")
     def sum(a, b):
         with open("myfile", "w") as f:
             f.write(str(a + b))
@@ -21,7 +21,7 @@ Here's an example::
 
     # Somewhere in your program, launch a worker
     worker = cabbage.Worker(
-        task_manager=task_manager,
+        app=app,
         queues=["sums"]
     )
     worker.run()

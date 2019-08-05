@@ -1,18 +1,18 @@
-from cabbage_demo.cabbage_app import task_manager
+from cabbage_demo.cabbage_app import app
 
 
-@task_manager.task(queue="sums")
+@app.task(queue="sums")
 def sum(a, b):
     print(a + b)
 
 
-@task_manager.task(queue="sleep")
+@app.task(queue="sleep")
 def sleep(i):
     import time
 
     time.sleep(i)
 
 
-@task_manager.task(queue="sums")
+@app.task(queue="sums")
 def sum_plus_one(a, b):
     print(a + b + 1)
