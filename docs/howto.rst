@@ -6,7 +6,7 @@ Ensure jobs don't run concurrently and run in order
 
 Let's imagine we have a task like this::
 
-    @app.task(queue="queue")
+    @app.task
     def write_alphabet(letter):
         time.sleep(random.random() * 5)
         with open("/tmp/alphabet.txt", "a") as f:
