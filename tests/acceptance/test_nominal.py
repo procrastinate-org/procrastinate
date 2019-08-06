@@ -2,12 +2,19 @@ import signal
 import threading
 import time
 
+import pytest
+
 import cabbage
 
 
-def test_nominal(connection, kill_own_pid, caplog):
-    job_store = cabbage.PostgresJobStore(connection=connection)
-    app = cabbage.App(job_store=job_store)
+@pytest.fixture
+def app(connection):
+    app = cabbage.App(worker_timeout=1e-9, postgres_dsn=connection.dsn)
+    yield app
+    app.job_store.connection.close()
+
+
+def test_nominal(app, kill_own_pid, caplog):
 
     caplog.set_level("DEBUG")
 
@@ -48,27 +55,24 @@ def test_nominal(connection, kill_own_pid, caplog):
     thread = threading.Thread(target=stop)
     thread.start()
 
-    cabbage.Worker(app, queues=["default"]).run(timeout=1e-9)
+    app.run_worker(queues=["default"])
 
     assert sum_results == [12, 7, 4, 5]
     assert product_results == []
 
-    cabbage.Worker(app, queues=["product_queue"]).run(timeout=1e-9)
+    app.run_worker(queues=["product_queue"])
 
     assert sum_results == [12, 7, 4, 5]
     assert product_results == [20]
 
 
-def test_lock(connection, caplog):
+def test_lock(app, caplog):
     """
     In this test, we launch 2 workers in two parallel threads, and ask them
     both to process tasks with the same lock. We check that the second task is
     not started before the first one was finished.
     """
     caplog.set_level("DEBUG")
-
-    job_store = cabbage.PostgresJobStore(connection=connection)
-    app = cabbage.App(job_store=job_store)
 
     task_order = []
 
@@ -81,19 +85,20 @@ def test_lock(connection, caplog):
     workers = []
 
     def launch_worker():
-        worker = cabbage.Worker(app)
+        worker = app._worker()
         workers.append(worker)
-        worker.run(timeout=1e-9)
+        worker.run(timeout=app.worker_timeout)
 
     thread1 = threading.Thread(target=launch_worker)
-    thread1.start()
     thread2 = threading.Thread(target=launch_worker)
-    thread2.start()
 
     job_template = sleep_and_write.configure(lock="sher")
 
     job_template.defer(sleep=1, write_before="before-1", write_after="after-1")
-    job_template.defer(sleep=0, write_before="before-2", write_after="after-2")
+    job_template.defer(sleep=0.001, write_before="before-2", write_after="after-2")
+
+    thread1.start()
+    thread2.start()
 
     time.sleep(1.1)
     for worker in workers:

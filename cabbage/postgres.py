@@ -40,7 +40,8 @@ listen_queue_pattern = "cabbage_queue#{queue}"
 
 
 def get_connection(**kwargs) -> psycopg2._psycopg.connection:
-    return psycopg2.connect("", **kwargs)
+    kwargs.setdefault("dsn", "")
+    return psycopg2.connect(**kwargs)
 
 
 def init_pg_extensions() -> None:
@@ -142,7 +143,7 @@ def listen_queues(
                 cursor.execute(query)
 
 
-def wait_for_jobs(connection: psycopg2._psycopg.connection, timeout: int) -> None:
+def wait_for_jobs(connection: psycopg2._psycopg.connection, timeout: float) -> None:
     select.select([connection], [], [], timeout)
 
 
@@ -182,5 +183,5 @@ class PostgresJobStore(store.JobStore):
     def listen_for_jobs(self, queues: Optional[Iterable[str]] = None) -> None:
         listen_queues(connection=self.connection, queues=queues)
 
-    def wait_for_jobs(self, timeout: int) -> None:
+    def wait_for_jobs(self, timeout: float) -> None:
         wait_for_jobs(connection=self.connection, timeout=timeout)

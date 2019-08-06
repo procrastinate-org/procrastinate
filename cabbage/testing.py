@@ -9,9 +9,11 @@ from cabbage import jobs, store
 
 class InMemoryJobStore(store.JobStore):
     def __init__(self):
+        self.reset()
+
+    def reset(self):
         self.jobs: List[jobs.Job] = []
         self.finished_jobs: List[Tuple[jobs.Job, jobs.Status]] = []
-        self.queues_counter = count()
         self.job_counter = count()
         self.listening_queues = set()
         self.listening_all_queues = False
@@ -41,5 +43,5 @@ class InMemoryJobStore(store.JobStore):
         else:
             self.listening_queues.update(queues)
 
-    def wait_for_jobs(self, timeout: int):
+    def wait_for_jobs(self, timeout: float):
         self.waited.append(timeout)

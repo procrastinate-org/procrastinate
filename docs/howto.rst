@@ -6,7 +6,7 @@ Ensure jobs don't run concurrently and run in order
 
 Let's imagine we have a task like this::
 
-    @app.task(queue="queue")
+    @app.task
     def write_alphabet(letter):
         time.sleep(random.random() * 5)
         with open("/tmp/alphabet.txt", "a") as f:
@@ -115,22 +115,23 @@ Then, define all of your tasks using this ``@task`` decorator.
 Test your code that uses cabbage
 --------------------------------
 
-Cabbage defines an `InMemoryJobStore` that will speed-up your tests and
-allow you to have tasks run in a controlled way.
+Cabbage defines an `InMemoryJobStore` that will speed-up your tests,
+remove dependency to Postgres and allow you to have tasks run in a
+controlled way.
 
 To use it, you can do::
 
-    if running_tests:
-        store_path = "cabbage.testing.InMemoryJobStore"
-    else:
-        store_path = "cabbage.postgres.PostgresJobStore"
+    app = cabbage.App(in_memory=running_tests)
 
-    app = cabbage.App(
-        store_class = store.load_store_from_path(store_class)
-    )
+    # Run the jobs your tests created, then stop
+    # the worker:
+    app.run_worker(only_once=True)
 
-    # Run the jobs:
-    cabbage.Worker(app).process_jobs()
+    # See the jobs created:
+    print(app.job_store.jobs)
+
+    # Reset the store between tests:
+    app.job_store.reset()
 
 
 Deploy Cabbage in a real environment
