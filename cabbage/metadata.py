@@ -1,4 +1,5 @@
-from typing import Mapping
+from typing import Mapping, Iterable, Callable
+from typing_extensions import Protocol
 
 import importlib_metadata
 
@@ -15,3 +16,13 @@ def extract_metadata() -> Mapping[str, str]:
         "url": metadata["Home-page"],
         "version": metadata["Version"],
     }
+
+
+class Loadable(Protocol):
+    def load(self) -> Callable:
+        ...
+
+
+def entrypoints(name) -> Iterable[Loadable]:
+
+    return importlib_metadata.entry_points()[name]
