@@ -121,7 +121,7 @@ controlled way.
 
 To use it, you can do::
 
-    app = cabbage.App(in_memory=running_tests)
+    app = cabbage.App(job_store={"name": "in_memory"})
 
     # Run the jobs your tests created, then stop
     # the worker:

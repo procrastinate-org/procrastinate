@@ -8,7 +8,7 @@ dispatch tasks.
 Here's an example::
 
     # Make a app in your code
-    app = cabbage.App()
+    app = cabbage.App(job_store={"name": "postgres_sync"})
 
     # Then define tasks
     @app.task(queue="sums")

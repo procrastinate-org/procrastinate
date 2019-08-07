@@ -12,3 +12,7 @@ class JobError(CabbageException):
 
 class LoadFromPathError(ImportError, CabbageException):
     pass
+
+
+class JobStoreNotFound(CabbageException):
+    pass

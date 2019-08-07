@@ -70,7 +70,7 @@ def kill_own_pid():
 
 @pytest.fixture
 def app():
-    return app_module.App(in_memory=True)
+    return app_module.App(job_store={"name": "in_memory"})
 
 
 @pytest.fixture

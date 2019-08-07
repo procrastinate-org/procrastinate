@@ -53,29 +53,28 @@ def test_app_register_queue_already_exists(app, mocker):
 
 
 @pytest.mark.parametrize(
-    "kwargs, store_class",
+    "name, store_class",
     [
-        ({"in_memory": True}, testing.InMemoryJobStore),
-        ({"in_memory": False}, postgres.PostgresJobStore),
-        ({}, postgres.PostgresJobStore),
+        ("in_memory", testing.InMemoryJobStore),
+        ("postgres_sync", postgres.PostgresJobStore),
     ],
 )
-def test_app_job_store(mocker, kwargs, store_class):
+def test_app_job_store(mocker, name, store_class):
     mocker.patch("cabbage.postgres.get_connection")
-    cabbage_app = app.App(**kwargs)
+    cabbage_app = app.App(job_store={"name": name})
 
     assert isinstance(cabbage_app.job_store, store_class)
 
 
 def test_app_job_store_postgres_dsn(mocker):
     get_connection = mocker.patch("cabbage.postgres.get_connection")
-    app.App(postgres_dsn="foo")
+    app.App(job_store={"name": "postgres_sync", "dsn": "foo"})
 
     get_connection.assert_called_once_with(dsn="foo")
 
 
 def test_app_worker_default_params(mocker):
-    cabbage_app = app.App(in_memory=True)
+    cabbage_app = app.App(job_store={"name": "in_memory"})
     Worker = mocker.patch("cabbage.worker.Worker")
 
     cabbage_app._worker()
@@ -84,7 +83,9 @@ def test_app_worker_default_params(mocker):
 
 
 def test_app_worker(mocker):
-    cabbage_app = app.App(in_memory=True, import_paths=["json", "os", "sys"])
+    cabbage_app = app.App(
+        job_store={"name": "in_memory"}, import_paths=["json", "os", "sys"]
+    )
     Worker = mocker.patch("cabbage.worker.Worker")
 
     cabbage_app._worker(queues=["yay"])
@@ -96,7 +97,7 @@ def test_app_worker(mocker):
 
 def test_app_run_worker(mocker):
     run = mocker.patch("cabbage.worker.Worker.run")
-    cabbage_app = app.App(in_memory=True, worker_timeout=42)
+    cabbage_app = app.App(job_store={"name": "in_memory"}, worker_timeout=42)
 
     cabbage_app.run_worker(queues=["yay"])
 
@@ -104,7 +105,7 @@ def test_app_run_worker(mocker):
 
 
 def test_app_run_worker_only_once():
-    cabbage_app = app.App(in_memory=True)
+    cabbage_app = app.App(job_store={"name": "in_memory"})
 
     @cabbage_app.task
     def yay():

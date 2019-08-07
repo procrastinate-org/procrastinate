@@ -1,8 +1,8 @@
 import functools
 import logging
-from typing import Any, Callable, Dict, Iterable, Optional, Set
+from typing import Any, Callable, Dict, Iterable, Optional, Set, Union
 
-from cabbage import postgres, store, tasks, testing, worker
+from cabbage import store, tasks, worker
 
 logger = logging.getLogger(__name__)
 
@@ -20,19 +20,22 @@ class App:
     def __init__(
         self,
         *,
-        postgres_dsn: str = "",
+        job_store: Union[Dict[str, Any], store.JobStore],
         import_paths: Optional[Iterable[str]] = None,
-        in_memory: bool = False,
         worker_timeout: float = worker.SOCKET_TIMEOUT,
     ):
         """
         Parameters
         ----------
-        postgres_dsn:
-            postgres (libpq) compatible connection string. See specications:
-            https://www.postgresql.org/docs/current/libpq-connect.html#LIBPQ-CONNSTRING
-        in_memory:
-            If True, tasks will not be persisted. This is useful for testing only.
+        job_store:
+            If a dict is passed, the "name" key will we used to load the
+            proper class (`postgres_sync` or `in_memory` are defined by
+            default, plug-ins can implement new values). The rest of the
+            dict is used to initialize the job store.
+            If a :py:class:`JobStore` instance is passed, it is used.
+            - `postgres_sync`: uses arguments of psycopg2.connect():
+            http://initd.org/psycopg/docs/module.html#psycopg2.connect
+            - `in_memory` takes no arguments.
         import_paths:
             List of python dotted paths of modules to import, to make sure
             that the workers know about all possible tasks.
@@ -52,14 +55,10 @@ class App:
             The longer the timeout, the longer the server will wait idle if, for
             some reason, the postgres LISTEN call doesn't work.
         """
-        self.job_store: store.JobStore
+        if isinstance(job_store, dict):
+            job_store = store.load_store(**job_store)
 
-        if in_memory:
-            self.job_store = testing.InMemoryJobStore()
-        else:
-            connection = postgres.get_connection(dsn=postgres_dsn)
-            self.job_store = postgres.PostgresJobStore(connection=connection)
-
+        self.job_store = job_store
         self.tasks: Dict[str, tasks.Task] = {}
         self.queues: Set[str] = set()
         self.import_paths = import_paths

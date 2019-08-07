@@ -1,7 +1,7 @@
-from typing import Mapping, Iterable, Callable
-from typing_extensions import Protocol
+from typing import Callable, Iterable, Mapping, Type, Union
 
 import importlib_metadata
+from typing_extensions import Protocol
 
 
 def extract_metadata() -> Mapping[str, str]:
@@ -18,11 +18,15 @@ def extract_metadata() -> Mapping[str, str]:
     }
 
 
-class Loadable(Protocol):
-    def load(self) -> Callable:
+class EntryPoint(Protocol):
+    name: str
+    value: str
+
+    # This is a white lie: it could be anything,
+    # but we'll assume entry points are always on classes.
+    def load(self) -> Type:
         ...
 
 
-def entrypoints(name) -> Iterable[Loadable]:
-
+def entrypoints(name) -> Iterable[EntryPoint]:
     return importlib_metadata.entry_points()[name]

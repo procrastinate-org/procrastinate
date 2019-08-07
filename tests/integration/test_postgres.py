@@ -38,7 +38,9 @@ def get_all(connection):
 
 @pytest.fixture
 def job_store(connection):
-    return postgres.PostgresJobStore(connection=connection)
+    store = postgres.PostgresJobStore(dsn=connection.dsn)
+    yield store
+    store.connection.close()
 
 
 def test_launch_job(job_store, get_all):
@@ -272,25 +274,19 @@ def test_wait_for_jobs(job_store):
     job_store.listen_for_jobs()
 
     def stop():
-        connection = postgres.get_connection(
-            **job_store.connection.get_dsn_parameters()
-        )
-        try:
-            inner_job_store = postgres.PostgresJobStore(connection=connection)
+        inner_job_store = postgres.PostgresJobStore(dsn=job_store.connection.dsn)
 
-            time.sleep(0.5)
-            inner_job_store.launch_job(
-                jobs.Job(
-                    id=0,
-                    queue="yay",
-                    task_name="oh",
-                    lock="sher",
-                    task_kwargs={},
-                    job_store=inner_job_store,
-                )
+        time.sleep(0.5)
+        inner_job_store.launch_job(
+            jobs.Job(
+                id=0,
+                queue="yay",
+                task_name="oh",
+                lock="sher",
+                task_kwargs={},
+                job_store=inner_job_store,
             )
-        finally:
-            connection.close()
+        )
 
     thread = threading.Thread(target=stop)
     thread.start()

@@ -9,7 +9,9 @@ import cabbage
 
 @pytest.fixture
 def app(connection):
-    app = cabbage.App(worker_timeout=1e-9, postgres_dsn=connection.dsn)
+    app = cabbage.App(
+        worker_timeout=1e-9, job_store={"name": "postgres_sync", "dsn": connection.dsn}
+    )
     yield app
     app.job_store.connection.close()
 

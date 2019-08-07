@@ -151,8 +151,8 @@ init_pg_extensions()
 
 
 class PostgresJobStore(store.JobStore):
-    def __init__(self, connection: Optional[psycopg2._psycopg.connection] = None):
-        self.connection = connection or get_connection()
+    def __init__(self, **kwargs):
+        self.connection = get_connection(**kwargs)
 
     def launch_job(self, job: jobs.Job) -> int:
         return launch_job(connection=self.connection, job=job)
