@@ -71,11 +71,10 @@ def test_app_worker(app, mocker):
 
 def test_app_run_worker(app, mocker):
     run = mocker.patch("cabbage.worker.Worker.run")
-    app.worker_timeout = 42
 
     app.run_worker(queues=["yay"])
 
-    run.assert_called_once_with(timeout=42)
+    run.assert_called_once_with()
 
 
 def test_app_run_worker_only_once(app):

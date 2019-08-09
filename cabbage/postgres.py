@@ -8,6 +8,8 @@ from psycopg2.extras import RealDictCursor
 
 from cabbage import jobs, store, types
 
+SOCKET_TIMEOUT = 5.0  # seconds
+
 insert_jobs_sql = """
 INSERT INTO cabbage_jobs (queue_name, task_name, lock, args, scheduled_at)
 VALUES (%(queue)s, %(task_name)s, %(lock)s, %(args)s, %(scheduled_at)s)
@@ -149,8 +151,10 @@ def listen_queues(
                 cursor.execute(query)
 
 
-def wait_for_jobs(connection: psycopg2._psycopg.connection, timeout: float) -> None:
-    select.select([connection], [], [], timeout)
+def wait_for_jobs(
+    connection: psycopg2._psycopg.connection, socket_timeout: float
+) -> None:
+    select.select([connection], [], [], socket_timeout)
 
 
 init_pg_extensions()
@@ -162,14 +166,25 @@ class PostgresJobStore(store.BaseJobStore):
     connection to a Postgres database.
     """
 
-    def __init__(self, *args: Any, **kwargs: Any):
+    def __init__(self, *, socket_timeout: float = SOCKET_TIMEOUT, **kwargs: Any):
         """
-        Parameters are passed to :py:func:`psycopg2.connect`
-        (see the documentation_)
+        All parameters except `socket_timeout` are passed to
+        :py:func:`psycopg2.connect` (see the documentation_)
 
         .. _documentation: http://initd.org/psycopg/docs/module.html#psycopg2.connect
+
+        Parameters
+        ----------
+        socket_timeout:
+            This parameter should generally not be changed.
+            It indicates how long cabbage waits (in seconds) between
+            renewing the socket `select` calls when waiting for tasks.
+            The shorter the timeout, the more `select` calls it does.
+            The longer the timeout, the longer the server will wait idle if, for
+            some reason, the postgres LISTEN call doesn't work.
         """
-        self.connection = get_connection(*args, **kwargs)
+        self.connection = get_connection(**kwargs)
+        self.socket_timeout = socket_timeout
 
     def launch_job(self, job: jobs.Job) -> int:
         return launch_job(connection=self.connection, job=job)
@@ -208,5 +223,5 @@ class PostgresJobStore(store.BaseJobStore):
     def listen_for_jobs(self, queues: Optional[Iterable[str]] = None) -> None:
         listen_queues(connection=self.connection, queues=queues)
 
-    def wait_for_jobs(self, timeout: float) -> None:
-        wait_for_jobs(connection=self.connection, timeout=timeout)
+    def wait_for_jobs(self) -> None:
+        wait_for_jobs(connection=self.connection, socket_timeout=self.socket_timeout)

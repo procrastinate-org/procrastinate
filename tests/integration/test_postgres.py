@@ -269,6 +269,7 @@ def test_enum_synced(connection):
 
 def test_wait_for_jobs(pg_job_store, connection_params):
 
+    pg_job_store.socket_timeout = 3
     pg_job_store.listen_for_jobs()
 
     def stop():
@@ -293,7 +294,7 @@ def test_wait_for_jobs(pg_job_store, connection_params):
     thread.start()
 
     before = time.perf_counter()
-    pg_job_store.wait_for_jobs(timeout=3)
+    pg_job_store.wait_for_jobs()
     after = time.perf_counter()
 
     # If we wait less than 1 sec, it means the wait didn't reach the timeout.
