@@ -1,18 +1,7 @@
 import datetime
-from typing import Iterable, Iterator, Optional, Type
+from typing import Iterable, Iterator, Optional
 
-from cabbage import jobs, utils
-
-
-def load_store_from_path(path: str) -> Type["JobStore"]:
-    """
-    Import the JobStore subclass at the given path, return the class.
-    """
-    job_store_class = utils.load_from_path(path, type)
-
-    assert issubclass(job_store_class, JobStore)
-
-    return job_store_class
+from cabbage import jobs
 
 
 class JobStore:
