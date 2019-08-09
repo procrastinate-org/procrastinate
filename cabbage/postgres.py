@@ -158,7 +158,7 @@ init_pg_extensions()
 
 class PostgresJobStore(store.BaseJobStore):
     """
-    A PostgresJobStore uses psycopg2 to establish a synchronous
+    Uses `psycopg2` to establish a synchronous
     connection to a Postgres database.
     """
 

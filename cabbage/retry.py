@@ -37,8 +37,8 @@ class BaseRetryStrategy:
         -------
         Optional[int]
             If a job should not be retried, this function should return None.
-            Otherwise, it should return the duration before which the job should
-            be scheduled again, *in seconds*.
+            Otherwise, it should return the duration after which to schedule the
+            new job run, *in seconds*.
         """
         raise NotImplementedError()
 

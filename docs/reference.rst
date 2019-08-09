@@ -13,6 +13,7 @@ Job stores
 .. autoclass:: cabbage.PostgresJobStore
 
 .. autoclass:: cabbage.testing.InMemoryJobStore
+    :members: reset
 
 Retry strategies
 ----------------

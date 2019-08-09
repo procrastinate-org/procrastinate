@@ -124,7 +124,8 @@ Available strategies are:
     def my_other_task():
         print("Hello world")
 
-- If you want to go for a fully fledged custom retry strategy, you can implement your own retry strategy::
+- If you want to go for a fully fledged custom retry strategy, you can implement your
+  own retry strategy::
 
     class MyRetryStrategy(cabbage.BaseRetryStrategy):
         growth: Optional[str] = "linear"
