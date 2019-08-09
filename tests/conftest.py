@@ -8,7 +8,7 @@ from psycopg2 import sql
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 
 from cabbage import app as app_module
-from cabbage import jobs
+from cabbage import jobs, testing, postgres
 
 
 def _execute(cursor, query, *identifiers):
@@ -43,7 +43,7 @@ def setup_db():
 
 
 @pytest.fixture
-def connection(setup_db):
+def connection_params(setup_db):
     with setup_db.cursor() as cursor:
         _execute(cursor, "DROP DATABASE IF EXISTS {}", "cabbage_test")
         _execute(
@@ -53,11 +53,23 @@ def connection(setup_db):
             "cabbage_test_template",
         )
 
-    with closing(psycopg2.connect("", dbname="cabbage_test")) as connection:
-        yield connection
+    yield {"dsn": "", "dbname": "cabbage_test"}
 
     with setup_db.cursor() as cursor:
         _execute(cursor, "DROP DATABASE IF EXISTS {}", "cabbage_test")
+
+
+@pytest.fixture
+def connection(connection_params):
+    with closing(psycopg2.connect(**connection_params)) as connection:
+        yield connection
+
+
+@pytest.fixture
+def pg_job_store(connection_params):
+    job_store = postgres.PostgresJobStore(**connection_params)
+    yield job_store
+    job_store.connection.close()
 
 
 @pytest.fixture
@@ -69,13 +81,13 @@ def kill_own_pid():
 
 
 @pytest.fixture
-def app():
-    return app_module.App(in_memory=True)
+def job_store():
+    return testing.InMemoryJobStore()
 
 
 @pytest.fixture
-def job_store(app):
-    return app.job_store
+def app(job_store):
+    return app_module.App(job_store=job_store)
 
 
 @pytest.fixture

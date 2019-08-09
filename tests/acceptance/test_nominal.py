@@ -8,10 +8,8 @@ import cabbage
 
 
 @pytest.fixture
-def app(connection):
-    app = cabbage.App(worker_timeout=1e-9, postgres_dsn=connection.dsn)
-    yield app
-    app.job_store.connection.close()
+def app(pg_job_store):
+    return cabbage.App(worker_timeout=1e-9, job_store=pg_job_store)
 
 
 def test_nominal(app, kill_own_pid, caplog):

@@ -172,7 +172,7 @@ controlled way.
 
 To use it, you can do::
 
-    app = cabbage.App(in_memory=running_tests)
+    app = cabbage.App(job_store=cabbage.testing.InMemoryJobStore())
 
     # Run the jobs your tests created, then stop
     # the worker:

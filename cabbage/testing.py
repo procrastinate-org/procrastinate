@@ -1,6 +1,6 @@
 import datetime
 from itertools import count
-from typing import Iterable, Iterator, List, Optional, Tuple
+from typing import Iterable, Iterator, List, Optional, Set, Tuple
 
 import attr
 import pendulum
@@ -9,14 +9,34 @@ from cabbage import jobs, store
 
 
 class InMemoryJobStore(store.BaseJobStore):
+    """
+    An InMemoryJobStore may be used for testing only. Tasks are not
+    persisted and will be lost when the process ends.
+
+    While implementing the JobStore interface, it also adds a few
+    methods and attributes to ease testing.
+    """
+
     def __init__(self):
+        """
+        Attributes
+        ----------
+        jobs : List[jobs.Job]
+            Currently running Job objects. They are removed from this
+            list upon completion
+        finished_jobs: List[Tuple[jobs.Job, jobs.Status]]
+            List of finished jobs, with their associate status
+        """
         self.reset()
 
     def reset(self):
+        """
+        Removes anything the store might have, to ensure test independance.
+        """
         self.jobs: List[jobs.Job] = []
         self.finished_jobs: List[Tuple[jobs.Job, jobs.Status]] = []
         self.job_counter = count()
-        self.listening_queues = set()
+        self.listening_queues: Set[str] = set()
         self.listening_all_queues = False
         self.waited = []
 

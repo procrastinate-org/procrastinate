@@ -1,6 +1,6 @@
 import datetime
 import select
-from typing import Iterable, Iterator, Optional
+from typing import Any, Iterable, Iterator, Optional
 
 import psycopg2
 from psycopg2 import extras, sql
@@ -40,9 +40,8 @@ listen_any_queue = "cabbage_any_queue"
 listen_queue_pattern = "cabbage_queue#{queue}"
 
 
-def get_connection(**kwargs) -> psycopg2._psycopg.connection:
-    kwargs.setdefault("dsn", "")
-    return psycopg2.connect(**kwargs)
+def get_connection(*args, **kwargs) -> psycopg2._psycopg.connection:
+    return psycopg2.connect(*args, **kwargs)
 
 
 def init_pg_extensions() -> None:
@@ -158,8 +157,19 @@ init_pg_extensions()
 
 
 class PostgresJobStore(store.BaseJobStore):
-    def __init__(self, connection: Optional[psycopg2._psycopg.connection] = None):
-        self.connection = connection or get_connection()
+    """
+    A PostgresJobStore uses psycopg2 to establish a synchronous
+    connection to a Postgres database.
+    """
+
+    def __init__(self, *args: Any, **kwargs: Any):
+        """
+        Parameters are passed to :py:func:`psycopg2.connect`
+        (see the documentation_)
+
+        .. _documentation: http://initd.org/psycopg/docs/module.html#psycopg2.connect
+        """
+        self.connection = get_connection(*args, **kwargs)
 
     def launch_job(self, job: jobs.Job) -> int:
         return launch_job(connection=self.connection, job=job)
