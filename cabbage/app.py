@@ -2,7 +2,7 @@ import functools
 import logging
 from typing import Any, Callable, Dict, Iterable, Optional, Set
 
-from cabbage import postgres, store, tasks, testing, worker
+from cabbage import postgres, store, tasks, testing, worker, retry as retry_module
 
 logger = logging.getLogger(__name__)
 
@@ -70,6 +70,7 @@ class App:
         _func: Optional[Callable] = None,
         queue: str = "default",
         name: Optional[str] = None,
+        retry: retry_module.RetryValue = False,
     ) -> Callable:
         """
         Declare a function as a task.
@@ -78,7 +79,7 @@ class App:
         """
 
         def _wrap(func: Callable) -> Callable[..., Any]:
-            task = tasks.Task(func, app=self, queue=queue, name=name)
+            task = tasks.Task(func, app=self, queue=queue, name=name, retry=retry)
             self._register(task)
 
             return functools.update_wrapper(task, func)

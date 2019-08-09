@@ -41,7 +41,12 @@ class InMemoryJobStore(store.JobStore):
         scheduled_at: Optional[datetime.datetime] = None,
     ) -> None:
         self.jobs.remove(job)
-        self.finished_jobs.append((job, status))
+        if status in [jobs.Status.DONE, jobs.Status.ERROR]:
+            self.finished_jobs.append((job, status))
+        else:
+            self.jobs.append(
+                attr.evolve(job, attempts=job.attempts + 1, scheduled_at=scheduled_at)
+            )
 
     def listen_for_jobs(self, queues: Optional[Iterable[str]] = None) -> None:
         if queues is None:

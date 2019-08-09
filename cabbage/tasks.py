@@ -5,7 +5,9 @@ from typing import TYPE_CHECKING, Any, Callable, Dict, Optional
 
 import pendulum
 
-from cabbage import exceptions, jobs, types, utils
+from cabbage import exceptions, jobs
+from cabbage import retry as retry_module
+from cabbage import types, utils
 
 if TYPE_CHECKING:  # coverage: exclude
     from cabbage import app
@@ -14,7 +16,6 @@ logger = logging.getLogger(__name__)
 
 
 def load_task(path: str) -> "Task":
-
     try:
         task = utils.load_from_path(path, Task)
     except exceptions.LoadFromPathError as exc:
@@ -25,11 +26,18 @@ def load_task(path: str) -> "Task":
 
 class Task:
     def __init__(
-        self, func: Callable, *, app: "app.App", queue: str, name: Optional[str] = None
+        self,
+        func: Callable,
+        *,
+        app: "app.App",
+        queue: str,
+        name: Optional[str] = None,
+        retry: retry_module.RetryValue = False,
     ):
         self.queue = queue
         self.app = app
         self.func: Callable = func
+        self.retry_strategy = retry_module.get_retry_strategy(retry)
         self.name: str
         if name and name != self.full_path:
             logger.warning(
@@ -85,4 +93,7 @@ class Task:
         )
 
     def get_retry_exception(self, job: jobs.Job) -> Optional[exceptions.JobRetry]:
-        return None
+        if not self.retry_strategy:
+            return None
+
+        return self.retry_strategy.get_retry_exception(job.attempts)
