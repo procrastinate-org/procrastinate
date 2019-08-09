@@ -1,3 +1,8 @@
+"""
+A retry strategy class lets Cabbage know what to do when a job fails: should it
+try again? And when?
+"""
+
 from typing import Optional, Union
 
 import attr
@@ -6,10 +11,11 @@ import pendulum
 from cabbage import exceptions
 
 
-@attr.dataclass(kw_only=True)
-class RetryStrategy:
-    max_attempts: Optional[int] = None
-    wait: int = 0
+class BaseRetryStrategy:
+    """
+    If you want to implement your own retry strategy, you can inherit from this class.
+    Children classes only need to implement `get_schedule_in`.
+    """
 
     def get_retry_exception(self, attempts: int) -> Optional[exceptions.JobRetry]:
         schedule_in = self.get_schedule_in(attempts=attempts)
@@ -18,6 +24,40 @@ class RetryStrategy:
 
         schedule_at = pendulum.now("UTC").add(seconds=schedule_in)
         return exceptions.JobRetry(schedule_at)
+
+    def get_schedule_in(self, attempts: int) -> Optional[int]:
+        """
+        Parameters
+        ----------
+        attempts:
+            The number of previous attempts for the current job. The first time
+            a job is ran, `attempts` will be 0.
+
+        Returns
+        -------
+        Optional[int]
+            If a job should not be retried, this function should return None.
+            Otherwise, it should return the duration before which the job should
+            be scheduled again, *in seconds*.
+        """
+        raise NotImplementedError()
+
+
+@attr.dataclass(kw_only=True)
+class RetryStrategy(BaseRetryStrategy):
+    """
+    The RetryStrategy class should handle simple retry strategies.
+
+    Parameters
+    ----------
+    max_attempts:
+        The maximum number of attempts the job should be retried
+    wait:
+        The number of seconds to wait between attempts
+    """
+
+    max_attempts: Optional[int] = None
+    wait: int = 0
 
     def get_schedule_in(self, attempts: int) -> Optional[int]:
         if self.max_attempts and attempts >= self.max_attempts:
