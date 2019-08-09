@@ -35,6 +35,7 @@ class Job:
     scheduled_at: Optional[datetime.datetime] = attr.ib(
         default=None, validator=check_aware
     )
+    attempts: int = 0
     job_store: "cabbage.store.JobStore"
 
     def defer(self, **task_kwargs: types.JSONValue) -> int:
