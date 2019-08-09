@@ -10,6 +10,7 @@ env:
   global:
   - PGHOST=localhost
   - PGUSER=postgres
+  - PYTEST_ADDOPTS="--cov-append"
 
 matrix:
   include:
@@ -41,7 +42,7 @@ install:
   - tox --notest -e $TOX_ENV
 
 script:
-  - tox -e $TOX_ENV -- --cov-append
+  - tox -e $TOX_ENV
 
 after_success:
 - codecov

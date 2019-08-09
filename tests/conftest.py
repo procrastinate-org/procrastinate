@@ -8,7 +8,7 @@ from psycopg2 import sql
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 
 from cabbage import app as app_module
-from cabbage import jobs, testing, postgres
+from cabbage import jobs, postgres, testing
 
 
 def _execute(cursor, query, *identifiers):
