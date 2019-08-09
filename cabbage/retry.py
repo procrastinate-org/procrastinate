@@ -1,4 +1,3 @@
-import datetime
 from typing import Optional, Union
 
 import attr
@@ -20,7 +19,7 @@ class RetryStrategy:
         schedule_at = pendulum.now("UTC").add(seconds=schedule_in)
         return exceptions.JobRetry(schedule_at)
 
-    def get_schedule_in(self, attempts: int) -> Optional[datetime.datetime]:
+    def get_schedule_in(self, attempts: int) -> Optional[int]:
         if self.max_attempts and attempts >= self.max_attempts:
             return None
 
