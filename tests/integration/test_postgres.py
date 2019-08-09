@@ -218,11 +218,18 @@ def test_finish_job(get_all, job_store):
     assert get_all("cabbage_jobs", "status") == [{"status": "doing"}]
     started_at = get_all("cabbage_jobs", "started_at")[0]["started_at"]
     assert started_at.date() == datetime.datetime.utcnow().date()
+    assert get_all("cabbage_jobs", "attempts") == [{"attempts": 0}]
 
     job_store.finish_job(job=job, status=jobs.Status.DONE)
 
-    assert get_all("cabbage_jobs", "status") == [{"status": "done"}]
-    assert get_all("cabbage_jobs", "started_at") == [{"started_at": started_at}]
+    expected = [
+        {
+            "status": "done",
+            "started_at": started_at,
+            "attempts": 1,
+        }
+    ]
+    assert get_all("cabbage_jobs", "status", "started_at", "attempts") == expected
 
 
 def test_listen_queue(job_store, connection):
