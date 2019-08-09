@@ -36,7 +36,7 @@ class Job:
         default=None, validator=check_aware
     )
     attempts: int = 0
-    job_store: "cabbage.store.JobStore"
+    job_store: "cabbage.store.BaseJobStore"
 
     def defer(self, **task_kwargs: types.JSONValue) -> int:
 

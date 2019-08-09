@@ -4,7 +4,7 @@ from typing import Iterable, Iterator, Optional
 from cabbage import jobs
 
 
-class JobStore:
+class BaseJobStore:
     def launch_job(self, job: jobs.Job) -> int:
         raise NotImplementedError
 

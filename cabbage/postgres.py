@@ -157,7 +157,7 @@ def wait_for_jobs(connection: psycopg2._psycopg.connection, timeout: float) -> N
 init_pg_extensions()
 
 
-class PostgresJobStore(store.JobStore):
+class PostgresJobStore(store.BaseJobStore):
     def __init__(self, connection: Optional[psycopg2._psycopg.connection] = None):
         self.connection = connection or get_connection()
 

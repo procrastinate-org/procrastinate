@@ -54,7 +54,7 @@ class App:
             The longer the timeout, the longer the server will wait idle if, for
             some reason, the postgres LISTEN call doesn't work.
         """
-        self.job_store: store.JobStore
+        self.job_store: store.BaseJobStore
 
         if in_memory:
             self.job_store = testing.InMemoryJobStore()

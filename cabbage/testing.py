@@ -8,7 +8,7 @@ import pendulum
 from cabbage import jobs, store
 
 
-class InMemoryJobStore(store.JobStore):
+class InMemoryJobStore(store.BaseJobStore):
     def __init__(self):
         self.reset()
 

@@ -46,7 +46,7 @@ class Worker:
             import_all(import_paths=import_paths)
 
     @property
-    def _job_store(self) -> store.JobStore:
+    def _job_store(self) -> store.BaseJobStore:
         return self._app.job_store
 
     def run(self, timeout: float = SOCKET_TIMEOUT) -> None:
