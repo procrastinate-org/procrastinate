@@ -41,11 +41,23 @@ def test_nominal(app, kill_own_pid, caplog):
     def stop_product():
         kill_own_pid(signal.SIGTERM)
 
+    nb_tries = 0
+
+    @app.task(queue="retry", retry=10)
+    def two_fails():
+        nonlocal nb_tries
+        if nb_tries < 2:
+            nb_tries += 1
+            raise Exception("This should fail")
+
+        kill_own_pid(signal.SIGINT)
+
     sum_task.defer(a=5, b=7)
     sum_task.defer(a=3, b=4)
     increment_task.defer(a=3)
     product_task.defer(a=5, b=4)
     stop_product.defer()
+    two_fails.defer()
 
     def stop():
         time.sleep(1)
@@ -64,6 +76,10 @@ def test_nominal(app, kill_own_pid, caplog):
 
     assert sum_results == [12, 7, 4, 5]
     assert product_results == [20]
+
+    assert nb_tries == 0
+    app.run_worker(queues=["retry"])
+    assert nb_tries == 2
 
 
 def test_lock(app, caplog):

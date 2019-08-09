@@ -2,7 +2,9 @@ import functools
 import logging
 from typing import Any, Callable, Dict, Iterable, Optional, Set
 
-from cabbage import postgres, store, tasks, testing, worker, retry as retry_module
+from cabbage import postgres
+from cabbage import retry as retry_module
+from cabbage import store, tasks, testing, worker
 
 logger = logging.getLogger(__name__)
 
