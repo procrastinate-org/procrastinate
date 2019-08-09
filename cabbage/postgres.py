@@ -1,3 +1,4 @@
+import datetime
 import select
 from typing import Iterable, Iterator, Optional
 
@@ -28,7 +29,7 @@ WHERE status = 'doing'
 """
 
 finish_job_sql = """
-SELECT cabbage_finish_job(%(job_id)s, %(status)s);
+SELECT cabbage_finish_job(%(job_id)s, %(status)s, %(scheduled_at)s);
 """
 
 listen_queue_raw_sql = """
@@ -117,11 +118,17 @@ def get_stalled_jobs(
 
 
 def finish_job(
-    connection: psycopg2._psycopg.connection, job_id: int, status: str
+    connection: psycopg2._psycopg.connection,
+    job_id: int,
+    status: str,
+    scheduled_at: Optional[datetime.datetime] = None,
 ) -> None:
     with connection:
         with connection.cursor() as cursor:
-            cursor.execute(finish_job_sql, {"job_id": job_id, "status": status})
+            cursor.execute(
+                finish_job_sql,
+                {"job_id": job_id, "status": status, "scheduled_at": scheduled_at},
+            )
 
 
 def listen_queues(
@@ -174,10 +181,18 @@ class PostgresJobStore(store.JobStore):
         for job_dict in job_dicts:
             yield jobs.Job(job_store=self, **job_dict)  # type: ignore
 
-    def finish_job(self, job: jobs.Job, status: jobs.Status) -> None:
+    def finish_job(
+        self,
+        job: jobs.Job,
+        status: jobs.Status,
+        scheduled_at: Optional[datetime.datetime] = None,
+    ) -> None:
         assert job.id
         return finish_job(
-            connection=self.connection, job_id=job.id, status=status.value
+            connection=self.connection,
+            job_id=job.id,
+            status=status.value,
+            scheduled_at=scheduled_at,
         )
 
     def listen_for_jobs(self, queues: Optional[Iterable[str]] = None) -> None:

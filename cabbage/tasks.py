@@ -83,3 +83,6 @@ class Task:
             scheduled_at=schedule_at,
             job_store=self.app.job_store,
         )
+
+    def get_retry_exception(self, job: jobs.Job) -> Optional[exceptions.JobRetry]:
+        return None

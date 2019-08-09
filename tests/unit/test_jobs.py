@@ -4,13 +4,13 @@ import pytest
 from cabbage import jobs
 
 
-@pytest.mark.parametrize("scheduled_at,context_scheduled_at", [
-    (
-        pendulum.datetime(2000, 1, 1, tz="Europe/Paris"),
-        "2000-01-01T00:00:00+01:00",
-    ),
-    (None, None),
-])
+@pytest.mark.parametrize(
+    "scheduled_at,context_scheduled_at",
+    [
+        (pendulum.datetime(2000, 1, 1, tz="Europe/Paris"), "2000-01-01T00:00:00+01:00"),
+        (None, None),
+    ],
+)
 def test_job_get_context(job_store, scheduled_at, context_scheduled_at):
 
     job = jobs.Job(

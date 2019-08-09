@@ -1,3 +1,4 @@
+import datetime
 from itertools import count
 from typing import Iterable, Iterator, List, Optional, Tuple
 
@@ -33,7 +34,12 @@ class InMemoryJobStore(store.JobStore):
                 if not job.scheduled_at or job.scheduled_at <= pendulum.now("UTC"):
                     yield job
 
-    def finish_job(self, job: jobs.Job, status: jobs.Status) -> None:
+    def finish_job(
+        self,
+        job: jobs.Job,
+        status: jobs.Status,
+        scheduled_at: Optional[datetime.datetime] = None,
+    ) -> None:
         self.jobs.remove(job)
         self.finished_jobs.append((job, status))
 

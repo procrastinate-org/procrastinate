@@ -222,13 +222,7 @@ def test_finish_job(get_all, job_store):
 
     job_store.finish_job(job=job, status=jobs.Status.DONE)
 
-    expected = [
-        {
-            "status": "done",
-            "started_at": started_at,
-            "attempts": 1,
-        }
-    ]
+    expected = [{"status": "done", "started_at": started_at, "attempts": 1}]
     assert get_all("cabbage_jobs", "status", "started_at", "attempts") == expected
 
 

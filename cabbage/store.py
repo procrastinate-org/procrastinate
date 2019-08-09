@@ -1,3 +1,4 @@
+import datetime
 from typing import Iterable, Iterator, Optional, Type
 
 from cabbage import jobs, utils
@@ -21,7 +22,12 @@ class JobStore:
     def get_jobs(self, queues: Optional[Iterable[str]]) -> Iterator[jobs.Job]:
         raise NotImplementedError
 
-    def finish_job(self, job: jobs.Job, status: jobs.Status) -> None:
+    def finish_job(
+        self,
+        job: jobs.Job,
+        status: jobs.Status,
+        scheduled_at: Optional[datetime.datetime] = None,
+    ) -> None:
         raise NotImplementedError
 
     def listen_for_jobs(self, queues: Optional[Iterable[str]] = None) -> None:
