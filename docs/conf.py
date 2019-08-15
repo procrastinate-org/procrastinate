@@ -53,3 +53,5 @@ html_theme = "alabaster"
 html_static_path: List[str] = []
 
 autoclass_content = "both"
+
+master_doc = "index"
