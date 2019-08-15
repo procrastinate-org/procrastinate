@@ -26,11 +26,16 @@ Here's an example::
     )
     worker.run()
 
-There are quite a few interesting features that procrastinate adds to the mix.
+There are quite a few interesting features that Procrastinate adds to the mix.
 You can head to the Quickstart section for a general tour or
 to the How-To sections for specific features. The Discussion
 section should hopefully answer your questions. Otherwise,
 feel free to open an `issue <https://github.com/peopledoc/procrastinate/issues>`_.
+
+*Note to my future self: add a quick note here on why this project is named*
+"Procrastinate_".
+
+.. _Procrastinate: https://en.wikipedia.org/wiki/Procrastination
 
 .. toctree::
    :maxdepth: 2

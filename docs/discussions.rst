@@ -115,6 +115,15 @@ Job Store
     The job store resposability is to store and retrieve jobs. In Procrastinate, the
     job store will store your jobs in your ``postgres`` database.
 
+Wasn't this project named "Cabbage" ?
+-------------------------------------
+
+Yes, in early development, we planned to call this "cabbage" in reference to
+celery, but even if the name was available on PyPI, by the time we stopped
+procrastinating and wanted to register it, it had been taken. Given this project
+is all about "launching tasks in an undertermined moment in the future", the new
+name felt quite adapted too. Also, now you know why the project is named this way.
+
 Thanks PeopleDoc
 ----------------
 
