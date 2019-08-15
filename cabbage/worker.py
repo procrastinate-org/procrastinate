@@ -10,8 +10,6 @@ logger = logging.getLogger(__name__)
 if TYPE_CHECKING:  # coverage: exclude
     from cabbage import app
 
-SOCKET_TIMEOUT: float = 5.0  # seconds
-
 
 def import_all(import_paths: Iterable[str]) -> None:
     """
@@ -49,7 +47,7 @@ class Worker:
     def _job_store(self) -> store.BaseJobStore:
         return self._app.job_store
 
-    def run(self, timeout: float = SOCKET_TIMEOUT) -> None:
+    def run(self) -> None:
         self._job_store.listen_for_jobs(queues=self._queues)
 
         with signals.on_stop(self.stop):
@@ -66,7 +64,7 @@ class Worker:
                 logger.debug(
                     "Waiting for new jobs", extra={"action": "waiting_for_jobs"}
                 )
-                self._job_store.wait_for_jobs(timeout=timeout)
+                self._job_store.wait_for_jobs()
 
     def process_jobs_once(self) -> None:
         for job in self._job_store.get_jobs(self._queues):
@@ -177,6 +175,7 @@ class Worker:
     ) -> None:
         self._stop_requested = True
         log_context = self.log_context
+        self._job_store.stop()
 
         logger.info(
             "Stop requested, waiting for current job to finish",

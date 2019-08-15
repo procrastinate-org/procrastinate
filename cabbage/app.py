@@ -23,7 +23,6 @@ class App:
         *,
         job_store: store.BaseJobStore,
         import_paths: Optional[Iterable[str]] = None,
-        worker_timeout: float = worker.SOCKET_TIMEOUT,
     ):
         """
         Parameters
@@ -43,19 +42,11 @@ class App:
             A :py:func:`App.task` that has a custom "name" parameter, that is not
             imported and whose module path is not in this list will
             fail to run.
-        worker_timeout:
-            This parameter should generally not be changed.
-            It indicates how long cabbage waits (in seconds) between
-            renewing the socket `select` calls when waiting for tasks.
-            The shorter the timeout, the more `select` calls it does.
-            The longer the timeout, the longer the server will wait idle if, for
-            some reason, the postgres LISTEN call doesn't work.
         """
         self.job_store = job_store
         self.tasks: Dict[str, tasks.Task] = {}
         self.queues: Set[str] = set()
         self.import_paths = import_paths
-        self.worker_timeout = worker_timeout
 
     def task(
         self,
@@ -116,4 +107,4 @@ class App:
         if only_once:
             worker.process_jobs_once()
         else:
-            worker.run(timeout=self.worker_timeout)
+            worker.run()

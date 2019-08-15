@@ -17,10 +17,10 @@ def test_run(app):
 
     test_worker = TestWorker(app=app, queues=["marsupilami"])
 
-    test_worker.run(timeout=42)
+    test_worker.run()
 
     assert app.job_store.listening_queues == {"marsupilami"}
-    assert app.job_store.waited == [42, 42]
+    assert app.job_store.waited is True
 
 
 def test_run_all_tasks(app):

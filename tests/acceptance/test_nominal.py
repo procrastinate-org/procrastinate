@@ -9,7 +9,7 @@ import cabbage
 
 @pytest.fixture
 def app(pg_job_store):
-    return cabbage.App(worker_timeout=1e-9, job_store=pg_job_store)
+    return cabbage.App(job_store=pg_job_store)
 
 
 def test_nominal(app, kill_own_pid, caplog):
@@ -101,7 +101,7 @@ def test_lock(app, caplog):
     def launch_worker():
         worker = app._worker()
         workers.append(worker)
-        worker.run(timeout=app.worker_timeout)
+        worker.run()
 
     thread1 = threading.Thread(target=launch_worker)
     thread2 = threading.Thread(target=launch_worker)
