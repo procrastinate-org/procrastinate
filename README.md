@@ -1,4 +1,4 @@
-# Cabbage
+# procrastinate
 
 Kind of like Celery but based on elephants (Postgres) instead of rabbits (RabbitMQ)
 
@@ -10,13 +10,13 @@ Launch a postgres DB the way you want, e.g. using docker:
 
 ```console
 $ docker-compose up -d
-$ export PGDATABASE=cabbage PGHOST=localhost PGUSER=postgres
+$ export PGDATABASE=procrastinate PGHOST=localhost PGUSER=postgres
 $ createdb && psql -v ON_ERROR_STOP=ON -f init.sql
 ```
 
 ## Installation for development
 
-Cabbage officially is compatible with *``Python 3.6``* and above, using Postgres 10.
+procrastinate officially is compatible with *``Python 3.6``* and above, using Postgres 10.
 
 ```console
 $ pip install -r requirements.txt
@@ -53,12 +53,12 @@ With a running database, in the dev virtualenv:
 ### Launch a worker
 
 ```console
-$ python -m cabbage_demo worker sums
-$ python -m cabbage_demo worker products
+$ python -m procrastinate_demo worker sums
+$ python -m procrastinate_demo worker products
 ```
 
 ### Schedule some tasks
 
 ```console
-$ python -m cabbage_demo client
+$ python -m procrastinate_demo client
 ```

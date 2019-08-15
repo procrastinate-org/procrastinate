@@ -6,7 +6,7 @@ import pendulum
 import psycopg2
 import pytest
 
-from cabbage import jobs, postgres
+from procrastinate import jobs, postgres
 
 
 def test_init_pg_extensions():
@@ -46,7 +46,7 @@ def test_launch_job(pg_job_store, get_all):
     )
     pk = pg_job_store.launch_job(job=job)
 
-    result = get_all("cabbage_jobs", "id", "args", "status", "lock", "task_name")
+    result = get_all("procrastinate_jobs", "id", "args", "status", "lock", "task_name")
     assert result == [
         {
             "id": pk,
@@ -168,7 +168,7 @@ def test_get_stalled_jobs(get_all, pg_job_store):
             job_store=pg_job_store,
         )
     )
-    job_id = list(get_all("cabbage_jobs", "id"))[0]["id"]
+    job_id = list(get_all("procrastinate_jobs", "id"))[0]["id"]
 
     # No started job
     assert list(pg_job_store.get_stalled_jobs(nb_seconds=3600)) == []
@@ -177,7 +177,7 @@ def test_get_stalled_jobs(get_all, pg_job_store):
     job = next(pg_job_store.get_jobs(queues=["queue_a"]))
     with pg_job_store.connection.cursor() as cursor:
         cursor.execute(
-            f"UPDATE cabbage_jobs SET started_at=NOW() - INTERVAL '30 minutes' "
+            f"UPDATE procrastinate_jobs SET started_at=NOW() - INTERVAL '30 minutes' "
             f"WHERE id={job_id}"
         )
 
@@ -212,20 +212,20 @@ def test_finish_job(get_all, pg_job_store):
     )
     job = next(pg_job_store.get_jobs(queues=["queue_a"]))
 
-    assert get_all("cabbage_jobs", "status") == [{"status": "doing"}]
-    started_at = get_all("cabbage_jobs", "started_at")[0]["started_at"]
+    assert get_all("procrastinate_jobs", "status") == [{"status": "doing"}]
+    started_at = get_all("procrastinate_jobs", "started_at")[0]["started_at"]
     assert started_at.date() == datetime.datetime.utcnow().date()
-    assert get_all("cabbage_jobs", "attempts") == [{"attempts": 0}]
+    assert get_all("procrastinate_jobs", "attempts") == [{"attempts": 0}]
 
     pg_job_store.finish_job(job=job, status=jobs.Status.DONE)
 
     expected = [{"status": "done", "started_at": started_at, "attempts": 1}]
-    assert get_all("cabbage_jobs", "status", "started_at", "attempts") == expected
+    assert get_all("procrastinate_jobs", "status", "started_at", "attempts") == expected
 
 
 def test_listen_queue(pg_job_store):
     queue = "".join(random.choices(string.ascii_letters, k=10))
-    queue_full_name = f"cabbage_queue#{queue}"
+    queue_full_name = f"procrastinate_queue#{queue}"
     pg_job_store.listen_for_jobs(queues=[queue])
     pg_job_store.connection.commit()
 
@@ -245,19 +245,19 @@ def test_listen_all_queue(pg_job_store, connection):
     with pg_job_store.connection.cursor() as cursor:
         cursor.execute(
             """SELECT COUNT(*) FROM pg_listening_channels()
-                          WHERE pg_listening_channels = 'cabbage_any_queue'"""
+                          WHERE pg_listening_channels = 'procrastinate_any_queue'"""
         )
         assert cursor.fetchone()[0] == 1
 
 
 def test_enum_synced(connection):
     # If this test breaks, it means you've changed either the task_status PG enum
-    # or the python cabbage.jobs.Status Enum without updating the other.
+    # or the python procrastinate.jobs.Status Enum without updating the other.
     with connection.cursor() as cursor:
         cursor.execute(
             """SELECT e.enumlabel FROM pg_enum e
                JOIN pg_type t ON e.enumtypid = t.oid WHERE t.typname = %s""",
-            ("cabbage_job_status",),
+            ("procrastinate_job_status",),
         )
 
         pg_values = {row[0] for row in cursor.fetchall()}

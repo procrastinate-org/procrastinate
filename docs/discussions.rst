@@ -15,11 +15,11 @@ Another nice thing is the ability to easily browse (and possibly edit) jobs in
 the queue, because interacting with data in a standard database a lot easier
 than implementing a new specific protocol (say, AMQP).
 
-This makes the building of tools around cabbage quite easier.
+This makes the building of tools around procrastinate quite easier.
 
 Finally, the idea that the core operations around tasks are handled by the
 database itself using stored procedures eases the possibility of porting
-cabbage to another language, while staying compatible with Python-based jobs.
+procrastinate to another language, while staying compatible with Python-based jobs.
 
 .. _Postgres: https://www.postgresql.org/
 .. _RabbitMQ: https://www.rabbitmq.com/
@@ -33,7 +33,7 @@ There are 14 standards...
 
     https://xkcd.com/927/
 
-We are aware that Cabbage is an addition to an already crowded market of
+We are aware that procrastinate is an addition to an already crowded market of
 Python task queues, and the aim is not to replace them all, but to provide
 an alternative that fits our need, where we could not find one we were
 completely satifified with.
@@ -48,8 +48,8 @@ some projects that really stand out, to name a few:
 - Dramatiq_ + dramatiq-pg_: Dramatiq is another very nice Python task queue
   that does things quite well, and it happens that there is a third party
   addition for using postgres as a backend. In fact, it was built around the
-  same time as we started cabbage, and the paradigm it uses makes it hard to
-  integrate a few of the feature we really wanted to use Cabbage for, namely
+  same time as we started procrastinate, and the paradigm it uses makes it hard to
+  integrate a few of the feature we really wanted to use procrastinate for, namely
   locks.
 
 
@@ -58,25 +58,25 @@ some projects that really stand out, to name a few:
 .. _dramatiq-pg: https://pypi.org/project/dramatiq-pg/
 
 
-How stable is cabbage ?
------------------------
+How stable is procrastinate ?
+-----------------------------
 
 Not quite stable. There a lot of things we would like to do before we start
 advertising the project, and so far, it's not used anywhere.
 
-We'd love if you were to try out cabbage in a non-production non-critical
+We'd love if you were to try out procrastinate in a non-production non-critical
 project of yours and provide us with feedback.
 
 Glossary
 --------
 
-Cabbage uses several words with a specific meaning in the documentation and
+procrastinate uses several words with a specific meaning in the documentation and
 reference materials, as well as in the user code and it's own code.
 
 Let's lay down a few words their meaning.
 
 Asynchronous
-    In cabbage, most of the time asynchronoucity is metionned, it's not about
+    In procrastinate, most of the time asynchronoucity is metionned, it's not about
     Python's ``async/await`` features, but about the fact a job is launched
     in the code, and then the calling code moves on, not waiting for the
     completion of the job. Because of this, asynchronous tasks should have a
@@ -107,12 +107,12 @@ Worker
     by one and executing them, and then wait for the queue to fill again.
 
 App
-    This is meant to be the main entrypoint of Cabbage. The app knows
+    This is meant to be the main entrypoint of procrastinate. The app knows
     all the tasks of your project, and thanks to the job store, it knows how
     to launch jobs to execute your tasks.
 
 Job Store
-    The job store resposability is to store and retrieve jobs. In cabbage, the
+    The job store resposability is to store and retrieve jobs. In procrastinate, the
     job store will store your jobs in your ``postgres`` database.
 
 Thanks PeopleDoc

@@ -2,15 +2,15 @@ import functools
 import logging
 from typing import Any, Callable, Dict, Iterable, Optional, Set
 
-from cabbage import retry as retry_module
-from cabbage import store, tasks, worker
+from procrastinate import retry as retry_module
+from procrastinate import store, tasks, worker
 
 logger = logging.getLogger(__name__)
 
 
 class App:
     """
-    The App is the main entrypoint for Cabbage integration.
+    The App is the main entrypoint for procrastinate integration.
 
     Instanciate a single :py:class:`App` in your code
     and use it to decorate your tasks with :py:func:`App.task`.

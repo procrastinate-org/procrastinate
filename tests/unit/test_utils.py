@@ -2,7 +2,7 @@ import types
 
 import pytest
 
-from cabbage import exceptions, utils
+from procrastinate import exceptions, utils
 
 
 def test_load_from_path():

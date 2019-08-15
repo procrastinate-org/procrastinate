@@ -5,8 +5,8 @@ from typing import Optional
 
 import attr
 
-import cabbage
-from cabbage import types
+import procrastinate
+from procrastinate import types
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +36,7 @@ class Job:
         default=None, validator=check_aware
     )
     attempts: int = 0
-    job_store: "cabbage.store.BaseJobStore"
+    job_store: "procrastinate.store.BaseJobStore"
 
     def defer(self, **task_kwargs: types.JSONValue) -> int:
 

@@ -1,7 +1,7 @@
 import importlib
 from typing import Type, TypeVar
 
-from cabbage import exceptions
+from procrastinate import exceptions
 
 T = TypeVar("T")
 

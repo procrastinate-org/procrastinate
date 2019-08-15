@@ -4,23 +4,23 @@ API Reference
 App
 ---
 
-.. autoclass:: cabbage.App
+.. autoclass:: procrastinate.App
     :members: task, run_worker
 
 Job stores
 ----------
 
-.. autoclass:: cabbage.PostgresJobStore
+.. autoclass:: procrastinate.PostgresJobStore
 
-.. autoclass:: cabbage.testing.InMemoryJobStore
+.. autoclass:: procrastinate.testing.InMemoryJobStore
     :members: reset
 
 Retry strategies
 ----------------
 
-.. automodule:: cabbage.retry
+.. automodule:: procrastinate.retry
 
-.. autoclass:: cabbage.RetryStrategy
+.. autoclass:: procrastinate.RetryStrategy
 
-.. autoclass:: cabbage.BaseRetryStrategy
+.. autoclass:: procrastinate.BaseRetryStrategy
     :members: get_schedule_in

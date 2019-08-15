@@ -3,12 +3,12 @@ import logging
 import time
 from typing import TYPE_CHECKING, Iterable, Optional, Set
 
-from cabbage import exceptions, jobs, signals, store, tasks, types
+from procrastinate import exceptions, jobs, signals, store, tasks, types
 
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:  # coverage: exclude
-    from cabbage import app
+    from procrastinate import app
 
 
 def import_all(import_paths: Iterable[str]) -> None:
@@ -118,7 +118,7 @@ class Worker:
         # Will raise if not found or not a task
         try:
             task = tasks.load_task(task_name)
-        except exceptions.CabbageException:
+        except exceptions.procrastinateException:
             self.known_missing_tasks.add(task_name)
             raise
 

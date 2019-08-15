@@ -1,7 +1,7 @@
 import threading
 import time
 
-from cabbage import App, jobs, postgres
+from procrastinate import App, jobs, postgres
 
 
 def test_wait_for_jobs(pg_job_store, connection_params):

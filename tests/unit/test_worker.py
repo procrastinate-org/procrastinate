@@ -3,7 +3,7 @@ import sys
 import pendulum
 import pytest
 
-from cabbage import exceptions, jobs, tasks, worker
+from procrastinate import exceptions, jobs, tasks, worker
 
 
 def test_run(app):
@@ -61,7 +61,9 @@ def test_process_jobs_once(mocker, app, job_factory):
             # While the third task runs, a stop signal is received
             test_worker.stop(None, None)
 
-    run_job = mocker.patch("cabbage.worker.Worker.run_job", side_effect=side_effect)
+    run_job = mocker.patch(
+        "procrastinate.worker.Worker.run_job", side_effect=side_effect
+    )
 
     test_worker.process_jobs_once()
 
@@ -84,7 +86,7 @@ def test_process_jobs_once_until_no_more_jobs(mocker, app, job_factory):
     job = job_factory(id=42)
     app.job_store.jobs = [job]
 
-    mocker.patch("cabbage.worker.Worker.run_job")
+    mocker.patch("procrastinate.worker.Worker.run_job")
 
     test_worker = worker.Worker(app, queues=["queue"])
     test_worker.process_jobs_once()
@@ -97,7 +99,7 @@ def test_process_jobs_once_retry_failed_job(mocker, app, job_factory):
     app.job_store.jobs = [job]
 
     mocker.patch(
-        "cabbage.worker.Worker.run_job",
+        "procrastinate.worker.Worker.run_job",
         side_effect=exceptions.JobRetry(
             scheduled_at=pendulum.datetime(2000, 1, 1, tz="UTC")
         ),
@@ -239,7 +241,7 @@ def test_import_all():
 
 def test_worker_call_import_all(app, mocker):
 
-    import_all = mocker.patch("cabbage.worker.import_all")
+    import_all = mocker.patch("procrastinate.worker.import_all")
 
     worker.Worker(app=app, queues=["yay"], import_paths=["hohoho"])
 

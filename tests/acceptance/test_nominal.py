@@ -4,12 +4,12 @@ import time
 
 import pytest
 
-import cabbage
+import procrastinate
 
 
 @pytest.fixture
 def app(pg_job_store):
-    return cabbage.App(job_store=pg_job_store)
+    return procrastinate.App(job_store=pg_job_store)
 
 
 def test_nominal(app, kill_own_pid, caplog):

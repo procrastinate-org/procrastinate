@@ -1,4 +1,4 @@
-from cabbage import tasks
+from procrastinate import tasks
 
 
 def task_func():
@@ -51,7 +51,7 @@ def test_app_register_queue_already_exists(app, mocker):
 
 
 def test_app_worker_default_params(mocker, app):
-    Worker = mocker.patch("cabbage.worker.Worker")
+    Worker = mocker.patch("procrastinate.worker.Worker")
 
     app._worker()
 
@@ -60,7 +60,7 @@ def test_app_worker_default_params(mocker, app):
 
 def test_app_worker(app, mocker):
     app.import_paths = ["json", "os", "sys"]
-    Worker = mocker.patch("cabbage.worker.Worker")
+    Worker = mocker.patch("procrastinate.worker.Worker")
 
     app._worker(queues=["yay"])
 
@@ -70,7 +70,7 @@ def test_app_worker(app, mocker):
 
 
 def test_app_run_worker(app, mocker):
-    run = mocker.patch("cabbage.worker.Worker.run")
+    run = mocker.patch("procrastinate.worker.Worker.run")
 
     app.run_worker(queues=["yay"])
 

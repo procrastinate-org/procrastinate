@@ -1,6 +1,6 @@
 import logging
 
-from cabbage_demo import tasks
+from procrastinate_demo import tasks
 
 logger = logging.getLogger(__name__)
 
