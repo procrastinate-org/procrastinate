@@ -9,7 +9,6 @@ import cabbage
 
 @pytest.fixture
 def app(pg_job_store):
-    pg_job_store.socket_timeout = 1e-3
     return cabbage.App(job_store=pg_job_store)
 
 

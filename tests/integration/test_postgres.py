@@ -1,8 +1,6 @@
 import datetime
 import random
 import string
-import threading
-import time
 
 import pendulum
 import psycopg2
@@ -265,56 +263,3 @@ def test_enum_synced(connection):
         pg_values = {row[0] for row in cursor.fetchall()}
         python_values = {status.value for status in jobs.Status.__members__.values()}
         assert pg_values == python_values
-
-
-def test_wait_for_jobs(pg_job_store, connection_params):
-
-    pg_job_store.socket_timeout = 3
-    pg_job_store.listen_for_jobs()
-
-    def stop():
-        try:
-            inner_job_store = postgres.PostgresJobStore(**connection_params)
-
-            inner_job_store.launch_job(
-                jobs.Job(
-                    id=0,
-                    queue="yay",
-                    task_name="oh",
-                    lock="sher",
-                    task_kwargs={},
-                    job_store=inner_job_store,
-                )
-            )
-        finally:
-            inner_job_store.connection.close()
-
-    thread = threading.Thread(target=stop)
-    thread.start()
-
-    pg_job_store.socket_timeout = 2
-    before = time.perf_counter()
-    pg_job_store.wait_for_jobs()
-    after = time.perf_counter()
-
-    # If we wait less than 1 sec, it means the wait didn't reach the timeout.
-    assert after - before < 1
-
-
-def test_wait_for_jobs_stop_from_pipe(pg_job_store):
-
-    pg_job_store.listen_for_jobs()
-
-    def stop():
-        pg_job_store.stop()
-
-    thread = threading.Thread(target=stop)
-    thread.start()
-
-    pg_job_store.socket_timeout = 2
-    before = time.perf_counter()
-    pg_job_store.wait_for_jobs()
-    after = time.perf_counter()
-
-    # If we wait less than 1 sec, it means the wait didn't reach the timeout.
-    assert after - before < 1
