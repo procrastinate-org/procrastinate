@@ -1,8 +1,8 @@
 import pendulum
 import pytest
 
-from cabbage import exceptions
-from cabbage import retry as retry_module
+from procrastinate import exceptions
+from procrastinate import retry as retry_module
 
 
 @pytest.mark.parametrize(

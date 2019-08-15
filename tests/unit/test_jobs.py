@@ -1,7 +1,7 @@
 import pendulum
 import pytest
 
-from cabbage import jobs
+from procrastinate import jobs
 
 
 @pytest.mark.parametrize(

@@ -7,8 +7,8 @@ import pytest
 from psycopg2 import sql
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 
-from cabbage import app as app_module
-from cabbage import jobs, postgres, testing
+from procrastinate import app as app_module
+from procrastinate import jobs, postgres, testing
 
 
 def _execute(cursor, query, *identifiers):
@@ -25,10 +25,14 @@ def setup_db():
     with closing(psycopg2.connect("", dbname="postgres")) as connection:
         connection.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
         with connection.cursor() as cursor:
-            _execute(cursor, "DROP DATABASE IF EXISTS {}", "cabbage_test_template")
-            _execute(cursor, "CREATE DATABASE {}", "cabbage_test_template")
+            _execute(
+                cursor, "DROP DATABASE IF EXISTS {}", "procrastinate_test_template"
+            )
+            _execute(cursor, "CREATE DATABASE {}", "procrastinate_test_template")
 
-    with closing(psycopg2.connect("", dbname="cabbage_test_template")) as connection:
+    with closing(
+        psycopg2.connect("", dbname="procrastinate_test_template")
+    ) as connection:
         with connection.cursor() as cursor:
             with open("init.sql") as migrations:
                 cursor.execute(migrations.read())
@@ -39,24 +43,26 @@ def setup_db():
     with closing(psycopg2.connect("", dbname="postgres")) as connection:
         connection.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
         with connection.cursor() as cursor:
-            _execute(cursor, "DROP DATABASE IF EXISTS {}", "cabbage_test_template")
+            _execute(
+                cursor, "DROP DATABASE IF EXISTS {}", "procrastinate_test_template"
+            )
 
 
 @pytest.fixture
 def connection_params(setup_db):
     with setup_db.cursor() as cursor:
-        _execute(cursor, "DROP DATABASE IF EXISTS {}", "cabbage_test")
+        _execute(cursor, "DROP DATABASE IF EXISTS {}", "procrastinate_test")
         _execute(
             cursor,
             "CREATE DATABASE {} TEMPLATE {}",
-            "cabbage_test",
-            "cabbage_test_template",
+            "procrastinate_test",
+            "procrastinate_test_template",
         )
 
-    yield {"dsn": "", "dbname": "cabbage_test"}
+    yield {"dsn": "", "dbname": "procrastinate_test"}
 
     with setup_db.cursor() as cursor:
-        _execute(cursor, "DROP DATABASE IF EXISTS {}", "cabbage_test")
+        _execute(cursor, "DROP DATABASE IF EXISTS {}", "procrastinate_test")
 
 
 @pytest.fixture

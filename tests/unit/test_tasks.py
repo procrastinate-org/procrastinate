@@ -3,7 +3,7 @@ import uuid
 import pendulum
 import pytest
 
-from cabbage import exceptions, jobs, tasks
+from procrastinate import exceptions, jobs, tasks
 
 
 def task_func():
@@ -101,7 +101,7 @@ def test_task_get_retry_exception_none(app):
 
 
 def test_task_get_retry_exception(app, mocker):
-    mock = mocker.patch("cabbage.retry.RetryStrategy.get_retry_exception")
+    mock = mocker.patch("procrastinate.retry.RetryStrategy.get_retry_exception")
 
     task = tasks.Task(task_func, app=app, queue="queue", retry=10)
     job = task.configure()

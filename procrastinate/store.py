@@ -1,7 +1,7 @@
 import datetime
 from typing import Iterable, Iterator, Optional
 
-from cabbage import jobs
+from procrastinate import jobs
 
 
 class BaseJobStore:

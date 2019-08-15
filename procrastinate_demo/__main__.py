@@ -1,7 +1,7 @@
 import logging
 import sys
 
-from cabbage_demo.cabbage_app import app
+from procrastinate_demo.procrastinate_app import app
 
 
 def main():
@@ -16,7 +16,7 @@ def main():
         app.run_worker(queues=queues)
 
     else:
-        from cabbage_demo import client
+        from procrastinate_demo import client
 
         return client.client()
 

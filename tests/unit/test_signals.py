@@ -2,7 +2,7 @@ import signal
 
 import pytest
 
-from cabbage import signals
+from procrastinate import signals
 
 
 @pytest.mark.parametrize("one_signal", [signal.SIGINT, signal.SIGTERM])

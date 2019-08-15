@@ -5,7 +5,7 @@ from typing import Iterable, Iterator, List, Optional, Set, Tuple
 import attr
 import pendulum
 
-from cabbage import jobs, store
+from procrastinate import jobs, store
 
 
 class InMemoryJobStore(store.BaseJobStore):

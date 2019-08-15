@@ -1,5 +1,5 @@
 """
-A retry strategy class lets Cabbage know what to do when a job fails: should it
+A retry strategy class lets procrastinate know what to do when a job fails: should it
 try again? And when?
 """
 
@@ -8,7 +8,7 @@ from typing import Optional, Union
 import attr
 import pendulum
 
-from cabbage import exceptions
+from procrastinate import exceptions
 
 
 class BaseRetryStrategy:

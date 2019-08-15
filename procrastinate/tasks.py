@@ -5,12 +5,12 @@ from typing import TYPE_CHECKING, Any, Callable, Dict, Optional
 
 import pendulum
 
-from cabbage import exceptions, jobs
-from cabbage import retry as retry_module
-from cabbage import types, utils
+from procrastinate import exceptions, jobs
+from procrastinate import retry as retry_module
+from procrastinate import types, utils
 
 if TYPE_CHECKING:  # coverage: exclude
-    from cabbage import app
+    from procrastinate import app
 
 logger = logging.getLogger(__name__)
 

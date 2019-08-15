@@ -51,11 +51,11 @@ We can solve this problem by using locks::
     job_descritption.defer("d")
 
 In this case, our jobs might still be executed by any of the workers,
-but cabbage will not select a job for completion as long as there is
-a job currently processing with the same lock. Note that cabbage will
+but Procrastinate will not select a job for completion as long as there is
+a job currently processing with the same lock. Note that Procrastinate will
 use postgres to search the jobs table for suitable jobs, meaning that
 even if the database contains a high proportion of locked tasks, it will barely
-affect cabbages's capacity to quickly find the free tasks. Also, identical
+affect Procrastinates's capacity to quickly find the free tasks. Also, identical
 jobs will always be started in creation order, so we can be assured our
 tasks will run sequentially and in order.
 
@@ -72,7 +72,7 @@ There is no mechanism in place to expire locks yet, but if a task fails
 without the whole Python process crashing, it will free its lock.
 
 Launch a job in the future
----------------------------
+--------------------------
 
 If a job is configured with a date in the future, it will run at the
 first opportunity after that date. Let's launch the task that will
@@ -96,7 +96,7 @@ Define a retry strategy on a task
 
 We sometimes know in advance that a task may fail randomly. For example a task
 fetching resources on another network. You can define a retry strategy on a
-task and cabbage will enforce it.
+task and Procrastinate will enforce it.
 Available strategies are:
 
 - Define a number of attempts::
@@ -118,16 +118,16 @@ Available strategies are:
 
 - You can get a more precise strategy using a RetryStrategy instance::
 
-    from cabbage import RetryStrategy
+    from procrastinate import RetryStrategy
 
-    @app.task(retry=cabbage.RetryStrategy(max_attempts=10, wait=5))
+    @app.task(retry=procrastinate.RetryStrategy(max_attempts=10, wait=5))
     def my_other_task():
         print("Hello world")
 
 - If you want to go for a fully fledged custom retry strategy, you can implement your
   own retry strategy::
 
-    class MyRetryStrategy(cabbage.BaseRetryStrategy):
+    class MyRetryStrategy(procrastinate.BaseRetryStrategy):
         growth: Optional[str] = "linear"
 
         def get_schedule_in(self, attempts: int) -> int:
@@ -146,7 +146,7 @@ app / machine reboots.
 Add a task middleware
 ---------------------
 
-As of today, Cabbage has no specific way of ensuring a piece of code runs
+As of today, Procrastinate has no specific way of ensuring a piece of code runs
 before or after every job. That being said, you can always decide to use
 your own decorator instead of ``@app.task`` and have this decorator
 implement the actions you need and delegate the rest to ``@app.task``.
@@ -164,16 +164,16 @@ It might look like this::
 
 Then, define all of your tasks using this ``@task`` decorator.
 
-Test your code that uses cabbage
---------------------------------
+Test your code that uses Procrastinate
+--------------------------------------
 
-Cabbage defines an `InMemoryJobStore` that will speed-up your tests,
+Procrastinate defines an `InMemoryJobStore` that will speed-up your tests,
 remove dependency to Postgres and allow you to have tasks run in a
 controlled way.
 
 To use it, you can do::
 
-    app = cabbage.App(job_store=cabbage.testing.InMemoryJobStore())
+    app = procrastinate.App(job_store=procrastinate.testing.InMemoryJobStore())
 
     # Run the jobs your tests created, then stop
     # the worker:
@@ -186,13 +186,13 @@ To use it, you can do::
     app.job_store.reset()
 
 
-Deploy Cabbage in a real environment
-------------------------------------
+Deploy Procrastinate in a real environment
+------------------------------------------
 
 We haven't done that yet, no advice to give.
 
-Monitor cabbage in a real environment
--------------------------------------
+Monitor Procrastinate in a real environment
+-------------------------------------------
 
 We're in the process of writing an admin website and Rest API.
 We'll update this section.

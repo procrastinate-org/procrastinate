@@ -18,7 +18,7 @@ from typing import List
 
 # -- Project information -----------------------------------------------------
 
-project = "Cabbage"
+project = "procrastinate"
 copyright = "2019, Peopledoc"
 author = "Peopledoc"
 
