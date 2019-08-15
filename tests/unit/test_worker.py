@@ -1,5 +1,6 @@
 import sys
 
+import pendulum
 import pytest
 
 from cabbage import exceptions, jobs, tasks, worker
@@ -91,6 +92,27 @@ def test_process_jobs_once_until_no_more_jobs(mocker, app, job_factory):
     assert app.job_store.finished_jobs == [(job, jobs.Status.DONE)]
 
 
+def test_process_jobs_once_retry_failed_job(mocker, app, job_factory):
+    job = job_factory(id=42)
+    app.job_store.jobs = [job]
+
+    mocker.patch(
+        "cabbage.worker.Worker.run_job",
+        side_effect=exceptions.JobRetry(
+            scheduled_at=pendulum.datetime(2000, 1, 1, tz="UTC")
+        ),
+    )
+
+    test_worker = worker.Worker(app, queues=["queue"])
+    test_worker.process_jobs_once()
+
+    assert app.job_store.finished_jobs == []
+    assert len(app.job_store.jobs) == 1
+    new_job = app.job_store.jobs[0]
+    assert new_job.id == 42
+    assert new_job.scheduled_at == pendulum.datetime(2000, 1, 1, tz="UTC")
+
+
 def test_run_job(app, job_store):
     result = []
 
@@ -167,6 +189,28 @@ def test_run_job_error(app, job_store):
     )
     test_worker = worker.Worker(app, queues=["yay"])
     with pytest.raises(exceptions.JobError):
+        test_worker.run_job(job)
+
+
+def test_run_job_retry(app, job_store):
+    def job(a, b):  # pylint: disable=unused-argument
+        raise ValueError("nope")
+
+    task = tasks.Task(job, app=app, queue="yay", name="job", retry=True)
+    task.func = job
+
+    app.tasks = {"job": task}
+
+    job = jobs.Job(
+        id=16,
+        task_kwargs={"a": 9, "b": 3},
+        lock="sherlock",
+        task_name="job",
+        queue="yay",
+        job_store=job_store,
+    )
+    test_worker = worker.Worker(app, queues=["yay"])
+    with pytest.raises(exceptions.JobRetry):
         test_worker.run_job(job)
 
 

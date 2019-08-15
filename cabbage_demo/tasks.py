@@ -1,3 +1,5 @@
+import random
+
 from cabbage_demo.cabbage_app import app
 
 
@@ -16,3 +18,9 @@ def sleep(i):
 @app.task(queue="sums")
 def sum_plus_one(a, b):
     print(a + b + 1)
+
+
+@app.task(queue="retry", retry=100)
+def random_fail():
+    if random.random() > 0.1:
+        raise Exception("random fail")

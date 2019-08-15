@@ -36,12 +36,7 @@ def get_all(connection):
     return f
 
 
-@pytest.fixture
-def job_store(connection):
-    return postgres.PostgresJobStore(connection=connection)
-
-
-def test_launch_job(job_store, get_all):
+def test_launch_job(pg_job_store, get_all):
     queue = "marsupilami"
     job = jobs.Job(
         id=0,
@@ -49,9 +44,9 @@ def test_launch_job(job_store, get_all):
         task_name="bob",
         lock="sher",
         task_kwargs={"a": 1, "b": 2},
-        job_store=job_store,
+        job_store=pg_job_store,
     )
-    pk = job_store.launch_job(job=job)
+    pk = pg_job_store.launch_job(job=job)
 
     result = get_all("cabbage_jobs", "id", "args", "status", "lock", "task_name")
     assert result == [
@@ -65,50 +60,50 @@ def test_launch_job(job_store, get_all):
     ]
 
 
-def test_get_jobs(job_store):
-    job_store.launch_job(
+def test_get_jobs(pg_job_store):
+    pg_job_store.launch_job(
         jobs.Job(
             id=0,
             queue="queue_a",
             task_name="task_1",
             lock="lock_1",
             task_kwargs={"a": "b"},
-            job_store=job_store,
+            job_store=pg_job_store,
         )
     )
     # We won't see this one because of the lock
-    job_store.launch_job(
+    pg_job_store.launch_job(
         jobs.Job(
             id=0,
             queue="queue_a",
             task_name="task_2",
             lock="lock_1",
             task_kwargs={"c": "d"},
-            job_store=job_store,
+            job_store=pg_job_store,
         )
     )
-    job_store.launch_job(
+    pg_job_store.launch_job(
         jobs.Job(
             id=0,
             queue="queue_a",
             task_name="task_3",
             lock="lock_2",
             task_kwargs={"e": "f"},
-            job_store=job_store,
+            job_store=pg_job_store,
         )
     )
     # We won't see this one because of the queue
-    job_store.launch_job(
+    pg_job_store.launch_job(
         jobs.Job(
             id=0,
             queue="queue_b",
             task_name="task_4",
             lock="lock_3",
             task_kwargs={"g": "h"},
-            job_store=job_store,
+            job_store=pg_job_store,
         )
     )
-    job_store.launch_job(
+    pg_job_store.launch_job(
         jobs.Job(
             id=0,
             queue="queue_a",
@@ -116,11 +111,11 @@ def test_get_jobs(job_store):
             lock="lock_5",
             task_kwargs={"i": "j"},
             scheduled_at=pendulum.datetime(2000, 1, 1),
-            job_store=job_store,
+            job_store=pg_job_store,
         )
     )
     # We won't see this one because of the scheduled date
-    job_store.launch_job(
+    pg_job_store.launch_job(
         jobs.Job(
             id=0,
             queue="queue_a",
@@ -128,11 +123,11 @@ def test_get_jobs(job_store):
             lock="lock_6",
             task_kwargs={"k": "l"},
             scheduled_at=pendulum.datetime(2050, 1, 1),
-            job_store=job_store,
+            job_store=pg_job_store,
         )
     )
 
-    result = list(job_store.get_jobs(queues=["queue_a"]))
+    result = list(pg_job_store.get_jobs(queues=["queue_a"]))
 
     t1, t2, t3 = result
     assert result == [
@@ -142,7 +137,7 @@ def test_get_jobs(job_store):
             lock="lock_1",
             task_name="task_1",
             queue="queue_a",
-            job_store=job_store,
+            job_store=pg_job_store,
         ),
         jobs.Job(
             id=t2.id,
@@ -150,7 +145,7 @@ def test_get_jobs(job_store):
             lock="lock_2",
             task_name="task_3",
             queue="queue_a",
-            job_store=job_store,
+            job_store=pg_job_store,
         ),
         jobs.Job(
             id=t3.id,
@@ -159,79 +154,84 @@ def test_get_jobs(job_store):
             lock="lock_5",
             task_kwargs={"i": "j"},
             scheduled_at=pendulum.datetime(2000, 1, 1),
-            job_store=job_store,
+            job_store=pg_job_store,
         ),
     ]
 
 
-def test_get_stalled_jobs(connection, get_all, job_store):
-    job_store.launch_job(
+def test_get_stalled_jobs(get_all, pg_job_store):
+    pg_job_store.launch_job(
         jobs.Job(
             id=0,
             queue="queue_a",
             task_name="task_1",
             lock="lock_1",
             task_kwargs={"a": "b"},
-            job_store=job_store,
+            job_store=pg_job_store,
         )
     )
     job_id = list(get_all("cabbage_jobs", "id"))[0]["id"]
 
     # No started job
-    assert list(job_store.get_stalled_jobs(nb_seconds=3600)) == []
+    assert list(pg_job_store.get_stalled_jobs(nb_seconds=3600)) == []
 
     # We start a job and fake its `started_at`
-    job = next(job_store.get_jobs(queues=["queue_a"]))
-    with connection.cursor() as cursor:
+    job = next(pg_job_store.get_jobs(queues=["queue_a"]))
+    with pg_job_store.connection.cursor() as cursor:
         cursor.execute(
             f"UPDATE cabbage_jobs SET started_at=NOW() - INTERVAL '30 minutes' "
             f"WHERE id={job_id}"
         )
 
     # Nb_seconds parameter
-    assert list(job_store.get_stalled_jobs(nb_seconds=3600)) == []
-    assert list(job_store.get_stalled_jobs(nb_seconds=1800)) == [job]
+    assert list(pg_job_store.get_stalled_jobs(nb_seconds=3600)) == []
+    assert list(pg_job_store.get_stalled_jobs(nb_seconds=1800)) == [job]
 
     # Queue parameter
-    assert list(job_store.get_stalled_jobs(nb_seconds=1800, queue="queue_a")) == [job]
-    assert list(job_store.get_stalled_jobs(nb_seconds=1800, queue="queue_b")) == []
-    # Task name parameter
-    assert list(job_store.get_stalled_jobs(nb_seconds=1800, task_name="task_1")) == [
+    assert list(pg_job_store.get_stalled_jobs(nb_seconds=1800, queue="queue_a")) == [
         job
     ]
-    assert list(job_store.get_stalled_jobs(nb_seconds=1800, task_name="task_2")) == []
+    assert list(pg_job_store.get_stalled_jobs(nb_seconds=1800, queue="queue_b")) == []
+    # Task name parameter
+    assert list(pg_job_store.get_stalled_jobs(nb_seconds=1800, task_name="task_1")) == [
+        job
+    ]
+    assert (
+        list(pg_job_store.get_stalled_jobs(nb_seconds=1800, task_name="task_2")) == []
+    )
 
 
-def test_finish_job(get_all, job_store):
-    job_store.launch_job(
+def test_finish_job(get_all, pg_job_store):
+    pg_job_store.launch_job(
         jobs.Job(
             id=0,
             queue="queue_a",
             task_name="task_1",
             lock="lock_1",
             task_kwargs={"a": "b"},
-            job_store=job_store,
+            job_store=pg_job_store,
         )
     )
-    job = next(job_store.get_jobs(queues=["queue_a"]))
+    job = next(pg_job_store.get_jobs(queues=["queue_a"]))
 
     assert get_all("cabbage_jobs", "status") == [{"status": "doing"}]
     started_at = get_all("cabbage_jobs", "started_at")[0]["started_at"]
     assert started_at.date() == datetime.datetime.utcnow().date()
+    assert get_all("cabbage_jobs", "attempts") == [{"attempts": 0}]
 
-    job_store.finish_job(job=job, status=jobs.Status.DONE)
+    pg_job_store.finish_job(job=job, status=jobs.Status.DONE)
 
-    assert get_all("cabbage_jobs", "status") == [{"status": "done"}]
-    assert get_all("cabbage_jobs", "started_at") == [{"started_at": started_at}]
+    expected = [{"status": "done", "started_at": started_at, "attempts": 1}]
+    assert get_all("cabbage_jobs", "status", "started_at", "attempts") == expected
 
 
-def test_listen_queue(job_store, connection):
+def test_listen_queue(pg_job_store):
     queue = "".join(random.choices(string.ascii_letters, k=10))
     queue_full_name = f"cabbage_queue#{queue}"
-    job_store.listen_for_jobs(queues=[queue])
-    connection.commit()
+    pg_job_store.listen_for_jobs(queues=[queue])
+    pg_job_store.connection.commit()
 
-    with connection.cursor() as cursor:
+    with pg_job_store.connection.cursor() as cursor:
         cursor.execute(
             """SELECT COUNT(*) FROM pg_listening_channels()
                           WHERE pg_listening_channels = %s""",
@@ -240,11 +240,11 @@ def test_listen_queue(job_store, connection):
         assert cursor.fetchone()[0] == 1
 
 
-def test_listen_all_queue(job_store, connection):
-    job_store.listen_for_jobs()
-    connection.commit()
+def test_listen_all_queue(pg_job_store, connection):
+    pg_job_store.listen_for_jobs()
+    pg_job_store.connection.commit()
 
-    with connection.cursor() as cursor:
+    with pg_job_store.connection.cursor() as cursor:
         cursor.execute(
             """SELECT COUNT(*) FROM pg_listening_channels()
                           WHERE pg_listening_channels = 'cabbage_any_queue'"""
@@ -267,16 +267,13 @@ def test_enum_synced(connection):
         assert pg_values == python_values
 
 
-def test_wait_for_jobs(job_store):
+def test_wait_for_jobs(pg_job_store, connection_params):
 
-    job_store.listen_for_jobs()
+    pg_job_store.listen_for_jobs()
 
     def stop():
-        connection = postgres.get_connection(
-            **job_store.connection.get_dsn_parameters()
-        )
         try:
-            inner_job_store = postgres.PostgresJobStore(connection=connection)
+            inner_job_store = postgres.PostgresJobStore(**connection_params)
 
             time.sleep(0.5)
             inner_job_store.launch_job(
@@ -290,13 +287,13 @@ def test_wait_for_jobs(job_store):
                 )
             )
         finally:
-            connection.close()
+            inner_job_store.connection.close()
 
     thread = threading.Thread(target=stop)
     thread.start()
 
     before = time.perf_counter()
-    job_store.wait_for_jobs(timeout=3)
+    pg_job_store.wait_for_jobs(timeout=3)
     after = time.perf_counter()
 
     # If we wait less than 1 sec, it means the wait didn't reach the timeout.

@@ -13,3 +13,4 @@ def client():
     tasks.sleep.configure(lock="a").defer(i=2)
     tasks.sleep.configure(lock="a").defer(i=3)
     tasks.sleep.configure(lock="a").defer(i=4)
+    tasks.random_fail.defer()

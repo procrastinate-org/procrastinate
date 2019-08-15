@@ -4,7 +4,14 @@ import pytest
 from cabbage import jobs
 
 
-def test_job_get_context(job_store):
+@pytest.mark.parametrize(
+    "scheduled_at,context_scheduled_at",
+    [
+        (pendulum.datetime(2000, 1, 1, tz="Europe/Paris"), "2000-01-01T00:00:00+01:00"),
+        (None, None),
+    ],
+)
+def test_job_get_context(job_store, scheduled_at, context_scheduled_at):
 
     job = jobs.Job(
         id=12,
@@ -12,8 +19,9 @@ def test_job_get_context(job_store):
         lock="sher",
         task_name="mytask",
         task_kwargs={"a": "b"},
-        scheduled_at=pendulum.datetime(2000, 1, 1, tz="Europe/Paris"),
+        scheduled_at=scheduled_at,
         job_store=job_store,
+        attempts=42,
     )
 
     assert job.get_context() == {
@@ -22,28 +30,8 @@ def test_job_get_context(job_store):
         "lock": "sher",
         "task_name": "mytask",
         "task_kwargs": {"a": "b"},
-        "scheduled_at": "2000-01-01T00:00:00+01:00",
-    }
-
-
-def test_job_get_context_without_scheduled_at(job_store):
-
-    job = jobs.Job(
-        id=12,
-        queue="marsupilami",
-        lock="sher",
-        task_name="mytask",
-        task_kwargs={"a": "b"},
-        job_store=job_store,
-    )
-
-    assert job.get_context() == {
-        "id": 12,
-        "queue": "marsupilami",
-        "lock": "sher",
-        "task_name": "mytask",
-        "task_kwargs": {"a": "b"},
-        "scheduled_at": None,
+        "scheduled_at": context_scheduled_at,
+        "attempts": 42,
     }
 
 

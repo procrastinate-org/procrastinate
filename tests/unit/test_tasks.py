@@ -93,6 +93,23 @@ def test_task_configure_schedule_in_and_schedule_at(app):
         )
 
 
+def test_task_get_retry_exception_none(app):
+    task = tasks.Task(task_func, app=app, queue="queue")
+    job = task.configure()
+
+    assert task.get_retry_exception(job) is None
+
+
+def test_task_get_retry_exception(app, mocker):
+    mock = mocker.patch("cabbage.retry.RetryStrategy.get_retry_exception")
+
+    task = tasks.Task(task_func, app=app, queue="queue", retry=10)
+    job = task.configure()
+
+    assert task.get_retry_exception(job) is mock.return_value
+    mock.assert_called_with(0)
+
+
 def test_load_task_not_found():
     with pytest.raises(exceptions.TaskNotFound):
         tasks.load_task("foobarbaz")

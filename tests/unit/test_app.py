@@ -1,6 +1,4 @@
-import pytest
-
-from cabbage import app, postgres, tasks, testing
+from cabbage import tasks
 
 
 def task_func():
@@ -52,66 +50,41 @@ def test_app_register_queue_already_exists(app, mocker):
     assert app.tasks == {"bla": task}
 
 
-@pytest.mark.parametrize(
-    "kwargs, store_class",
-    [
-        ({"in_memory": True}, testing.InMemoryJobStore),
-        ({"in_memory": False}, postgres.PostgresJobStore),
-        ({}, postgres.PostgresJobStore),
-    ],
-)
-def test_app_job_store(mocker, kwargs, store_class):
-    mocker.patch("cabbage.postgres.get_connection")
-    cabbage_app = app.App(**kwargs)
-
-    assert isinstance(cabbage_app.job_store, store_class)
-
-
-def test_app_job_store_postgres_dsn(mocker):
-    get_connection = mocker.patch("cabbage.postgres.get_connection")
-    app.App(postgres_dsn="foo")
-
-    get_connection.assert_called_once_with(dsn="foo")
-
-
-def test_app_worker_default_params(mocker):
-    cabbage_app = app.App(in_memory=True)
+def test_app_worker_default_params(mocker, app):
     Worker = mocker.patch("cabbage.worker.Worker")
 
-    cabbage_app._worker()
+    app._worker()
 
-    Worker.assert_called_once_with(import_paths=None, queues=None, app=cabbage_app)
+    Worker.assert_called_once_with(import_paths=None, queues=None, app=app)
 
 
-def test_app_worker(mocker):
-    cabbage_app = app.App(in_memory=True, import_paths=["json", "os", "sys"])
+def test_app_worker(app, mocker):
+    app.import_paths = ["json", "os", "sys"]
     Worker = mocker.patch("cabbage.worker.Worker")
 
-    cabbage_app._worker(queues=["yay"])
+    app._worker(queues=["yay"])
 
     Worker.assert_called_once_with(
-        import_paths=["json", "os", "sys"], queues=["yay"], app=cabbage_app
+        import_paths=["json", "os", "sys"], queues=["yay"], app=app
     )
 
 
-def test_app_run_worker(mocker):
+def test_app_run_worker(app, mocker):
     run = mocker.patch("cabbage.worker.Worker.run")
-    cabbage_app = app.App(in_memory=True, worker_timeout=42)
+    app.worker_timeout = 42
 
-    cabbage_app.run_worker(queues=["yay"])
+    app.run_worker(queues=["yay"])
 
     run.assert_called_once_with(timeout=42)
 
 
-def test_app_run_worker_only_once():
-    cabbage_app = app.App(in_memory=True)
-
-    @cabbage_app.task
+def test_app_run_worker_only_once(app):
+    @app.task
     def yay():
         pass
 
     yay.defer()
 
-    assert len(cabbage_app.job_store.finished_jobs) == 0
-    cabbage_app.run_worker(only_once=True)
-    assert len(cabbage_app.job_store.finished_jobs) == 1
+    assert len(app.job_store.finished_jobs) == 0
+    app.run_worker(only_once=True)
+    assert len(app.job_store.finished_jobs) == 1

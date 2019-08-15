@@ -2,7 +2,8 @@ import functools
 import logging
 from typing import Any, Callable, Dict, Iterable, Optional, Set
 
-from cabbage import postgres, store, tasks, testing, worker
+from cabbage import retry as retry_module
+from cabbage import store, tasks, worker
 
 logger = logging.getLogger(__name__)
 
@@ -20,19 +21,17 @@ class App:
     def __init__(
         self,
         *,
-        postgres_dsn: str = "",
+        job_store: store.BaseJobStore,
         import_paths: Optional[Iterable[str]] = None,
-        in_memory: bool = False,
         worker_timeout: float = worker.SOCKET_TIMEOUT,
     ):
         """
         Parameters
         ----------
-        postgres_dsn:
-            postgres (libpq) compatible connection string. See specications:
-            https://www.postgresql.org/docs/current/libpq-connect.html#LIBPQ-CONNSTRING
-        in_memory:
-            If True, tasks will not be persisted. This is useful for testing only.
+        job_store:
+            Instance of a subclass of :py:class:`BaseJobStore`, typically
+            :py:class:`PostgresJobStore`. It will be responsible for all
+            communications with the database.
         import_paths:
             List of python dotted paths of modules to import, to make sure
             that the workers know about all possible tasks.
@@ -52,14 +51,7 @@ class App:
             The longer the timeout, the longer the server will wait idle if, for
             some reason, the postgres LISTEN call doesn't work.
         """
-        self.job_store: store.JobStore
-
-        if in_memory:
-            self.job_store = testing.InMemoryJobStore()
-        else:
-            connection = postgres.get_connection(dsn=postgres_dsn)
-            self.job_store = postgres.PostgresJobStore(connection=connection)
-
+        self.job_store = job_store
         self.tasks: Dict[str, tasks.Task] = {}
         self.queues: Set[str] = set()
         self.import_paths = import_paths
@@ -70,6 +62,7 @@ class App:
         _func: Optional[Callable] = None,
         queue: str = "default",
         name: Optional[str] = None,
+        retry: retry_module.RetryValue = False,
     ) -> Callable:
         """
         Declare a function as a task.
@@ -78,7 +71,7 @@ class App:
         """
 
         def _wrap(func: Callable) -> Callable[..., Any]:
-            task = tasks.Task(func, app=self, queue=queue, name=name)
+            task = tasks.Task(func, app=self, queue=queue, name=name, retry=retry)
             self._register(task)
 
             return functools.update_wrapper(task, func)

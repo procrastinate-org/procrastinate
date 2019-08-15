@@ -46,7 +46,7 @@ class Worker:
             import_all(import_paths=import_paths)
 
     @property
-    def _job_store(self) -> store.JobStore:
+    def _job_store(self) -> store.BaseJobStore:
         return self._app.job_store
 
     def run(self, timeout: float = SOCKET_TIMEOUT) -> None:
@@ -79,9 +79,13 @@ class Worker:
             )
 
             status = jobs.Status.ERROR
+            next_attempt_scheduled_at = None
             try:
                 self.run_job(job=job)
                 status = jobs.Status.DONE
+            except exceptions.JobRetry as e:
+                status = jobs.Status.TODO
+                next_attempt_scheduled_at = e.scheduled_at
             except exceptions.JobError:
                 pass
             except exceptions.TaskNotFound as exc:
@@ -90,7 +94,9 @@ class Worker:
                     extra={"action": "task_not_found", "exception": str(exc)},
                 )
             finally:
-                self._job_store.finish_job(job=job, status=status)
+                self._job_store.finish_job(
+                    job=job, status=status, scheduled_at=next_attempt_scheduled_at
+                )
                 logger.debug(
                     "Acknowledged job completion",
                     extra={"action": "finish_task", "status": status, **log_context},
@@ -147,7 +153,12 @@ class Worker:
             log_action = "job_error"
             log_level = logging.ERROR
             exc_info = True
+
+            retry_exception = task.get_retry_exception(job)
+            if retry_exception:
+                raise retry_exception from e
             raise exceptions.JobError() from e
+
         else:
             log_title = "Job success"
             log_action = "job_success"

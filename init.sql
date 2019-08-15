@@ -15,7 +15,8 @@ CREATE TABLE public.cabbage_jobs (
     args jsonb DEFAULT '{}' NOT NULL,
     status public.cabbage_job_status DEFAULT 'todo'::public.cabbage_job_status NOT NULL,
     scheduled_at timestamp with time zone NULL,
-    started_at timestamp with time zone NULL
+    started_at timestamp with time zone NULL,
+    attempts integer DEFAULT 0 NOT NULL
 );
 
 CREATE UNLOGGED TABLE public.cabbage_job_locks (
@@ -53,12 +54,16 @@ BEGIN
 END;
 $$;
 
-CREATE FUNCTION public.cabbage_finish_job(job_id integer, end_status public.cabbage_job_status) RETURNS void
+CREATE FUNCTION public.cabbage_finish_job(job_id integer, end_status public.cabbage_job_status, next_scheduled_at timestamp with time zone) RETURNS void
     LANGUAGE plpgsql
     AS $$
 BEGIN
 	WITH finished_job AS (
-		UPDATE cabbage_jobs SET status = end_status WHERE id = job_id RETURNING lock
+		UPDATE cabbage_jobs
+        SET status = end_status,
+            attempts = attempts + 1,
+            scheduled_at = COALESCE(next_scheduled_at, scheduled_at)
+        WHERE id = job_id RETURNING lock
 	)
 	DELETE FROM cabbage_job_locks WHERE object = (SELECT lock FROM finished_job);
 END;
