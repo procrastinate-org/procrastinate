@@ -1,8 +1,8 @@
 How-to...
 =========
 
-Connect to a Postgres database
-------------------------------
+Connect to a PostgreSQL database
+--------------------------------
 
 There are three ways you can specify the connection parameters:
 
@@ -79,7 +79,7 @@ We can solve this problem by using locks::
 In this case, our jobs might still be executed by any of the workers,
 but Procrastinate will not select a job for completion as long as there is
 a job currently processing with the same lock. Note that Procrastinate will
-use postgres to search the jobs table for suitable jobs, meaning that
+use PostgreSQL to search the jobs table for suitable jobs, meaning that
 even if the database contains a high proportion of locked tasks, it will barely
 affect Procrastinates's capacity to quickly find the free tasks. Also, identical
 jobs will always be started in creation order, so we can be assured our
@@ -194,7 +194,7 @@ Test your code that uses Procrastinate
 --------------------------------------
 
 Procrastinate defines an `InMemoryJobStore` that will speed-up your tests,
-remove dependency to Postgres and allow you to have tasks run in a
+remove dependency to PostgreSQL and allow you to have tasks run in a
 controlled way.
 
 To use it, you can do::

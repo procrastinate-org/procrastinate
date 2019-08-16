@@ -1,8 +1,8 @@
-Procrastinate: Postgresql-based Task Queue for Python
+Procrastinate: PostgreSQL-based Task Queue for Python
 =========================================================
 
 Procrastinate is an open-source Python 3.6+ distributed task processing
-library, leveraging postgresql to store task definitions, manage locks and
+library, leveraging PostgreSQL to store task definitions, manage locks and
 dispatch tasks.
 
 Here's an example::

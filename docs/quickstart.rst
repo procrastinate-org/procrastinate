@@ -7,9 +7,9 @@ Procrastinate and its everyday use.
 Prerequisites & installation
 ----------------------------
 
-If you already have a postgres database around, make sure to note the connection
+If you already have a PostgreSQL database around, make sure to note the connection
 parameters. Otherwise, we'll create one together with Docker_, but is works all the
-same if you'd rather install postgres directly in your system.
+same if you'd rather install PostgreSQL directly in your system.
 
 .. _Docker: https://docs.docker.com/
 
