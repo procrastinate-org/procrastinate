@@ -1,6 +1,21 @@
 Discussions
 ===========
 
+How does this all work ?
+------------------------
+
+Procrastinate is based on several things:
+
+- PostgreSQL's top notch ability to manage locks, thanks to its ACID_ properties.
+  This ensures that when a worker starts executing a job, it's the only one.
+  Procrastinate does this by executing a ``SELECT FOR UPDATE`` that will lock the
+  jobs table. This might not scale to billions of simultaneous tables, but we don't
+  expect to reach that level.
+- PostgreSQL's LISTEN_ allows us to be notified whenever a task is available.
+
+.. _ACID: https://en.wikipedia.org/wiki/ACID
+.. _LISTEN: https://www.postgresql.org/docs/current/sql-listen.html
+
 Why are you doing a task queue in PostgreSQL ?
 ----------------------------------------------
 
@@ -76,7 +91,7 @@ reference materials, as well as in the user code and it's own code.
 Let's lay down a few words their meaning.
 
 Asynchronous
-    In Procrastinate, most of the time asynchronoucity is metionned, it's not about
+    In Procrastinate, most of the time asynchronoucity is mentionned, it's not about
     Python's ``async/await`` features, but about the fact a job is launched
     in the code, and then the calling code moves on, not waiting for the
     completion of the job. Because of this, asynchronous tasks should have a
@@ -106,7 +121,7 @@ Worker
     A process responsible for processing one or more queues: taking tasks one
     by one and executing them, and then wait for the queue to fill again.
 
-App
+:py:class:`procrastinate.App`
     This is meant to be the main entrypoint of Procrastinate. The app knows
     all the tasks of your project, and thanks to the job store, it knows how
     to launch jobs to execute your tasks.
