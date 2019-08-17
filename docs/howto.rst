@@ -1,3 +1,5 @@
+.. _how-to:
+
 How-to...
 =========
 
@@ -26,6 +28,8 @@ There are three ways you can specify the connection parameters:
     cabbage.PostgresJobStore(user="user", password="password", host="host")
 
 .. _`psycopg2 connection arguments`: http://initd.org/psycopg/docs/module.html#psycopg2.connect
+
+.. _locks:
 
 Ensure jobs don't run concurrently and run in order
 ---------------------------------------------------
