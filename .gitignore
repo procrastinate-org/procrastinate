@@ -6,3 +6,6 @@ htmlcov
 .tox
 .pytest_cache
 docs/_build
+.DS_Store
+/build
+/dist
