@@ -44,12 +44,4 @@ feel free to open an `issue <https://github.com/peopledoc/procrastinate/issues>`
    howto
    discussions
    reference
-
-
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+   contributing
