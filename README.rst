@@ -1,5 +1,21 @@
 Procrastinate: PostgreSQL-based Task Queue for Python
-=========================================================
+=====================================================
+
+.. image:: https://badge.fury.io/py/procrastinate.svg
+    :target: https://pypi.org/pypi/procrastinate
+    :alt: Deployed to PyPI
+
+.. image:: https://travis-ci.org/peopledoc/procrastinate.svg?branch=master
+    :target: https://travis-ci.org/peopledoc/procrastinate
+    :alt: Continuous Integration Status
+
+.. image:: https://codecov.io/gh/peopledoc/procrastinate/branch/master/graph/badge.svg
+    :target: https://codecov.io/gh/peopledoc/procrastinate
+    :alt: Coverage Status
+
+.. image:: https://readthedocs.org/projects/procrastinate/badge/?version=latest
+    :target: http://procrastinate.readthedocs.io/en/latest/?badge=latest
+    :alt: Documentation Status
 
 Procrastinate is an open-source Python 3.6+ distributed task processing
 library, leveraging PostgreSQL to store task definitions, manage locks and
