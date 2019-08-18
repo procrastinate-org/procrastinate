@@ -26,7 +26,9 @@ Procrastinate is an open-source Python 3.6+ distributed task processing
 library, leveraging PostgreSQL to store task definitions, manage locks and
 dispatch tasks. The project is still quite early-stage and will probably evolve.
 
-Here's an example::
+Here's an example
+
+.. code-block:: python
 
     # Make a app in your code
     app = procrastinate.App(job_store=procrastinate.PostgresJobStore())
