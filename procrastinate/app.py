@@ -1,6 +1,6 @@
 import functools
 import logging
-from typing import Any, Callable, Dict, Iterable, Optional, Set
+from typing import Callable, Dict, Iterable, Optional, Set
 
 from procrastinate import retry as retry_module
 from procrastinate import store, tasks, worker
@@ -51,26 +51,27 @@ class App:
     def task(
         self,
         _func: Optional[Callable] = None,
+        *,
         queue: str = "default",
         name: Optional[str] = None,
         retry: retry_module.RetryValue = False,
-    ) -> Callable:
+    ) -> tasks.Task:
         """
         Declare a function as a task.
 
         Can be used as a decorator or a simple method.
         """
 
-        def _wrap(func: Callable) -> Callable[..., Any]:
+        def _wrap(func: Callable[..., tasks.Task]) -> tasks.Task:
             task = tasks.Task(func, app=self, queue=queue, name=name, retry=retry)
             self._register(task)
 
-            return functools.update_wrapper(task, func)
+            return functools.update_wrapper(task, func)  # type: ignore
 
-        if _func is None:
-            return _wrap
+        if _func is None:  # Called as @app.task(...)
+            return _wrap  # type: ignore
 
-        return _wrap(_func)
+        return _wrap(_func)  # Called as @app.task
 
     def _register(self, task: tasks.Task) -> None:
         self.tasks[task.name] = task

@@ -1,8 +1,25 @@
+.. _discussions:
+
 Discussions
 ===========
 
-Why are you doing a task queue in Postgres ?
---------------------------------------------
+How does this all work ?
+------------------------
+
+Procrastinate is based on several things:
+
+- PostgreSQL's top notch ability to manage locks, thanks to its ACID_ properties.
+  This ensures that when a worker starts executing a job, it's the only one.
+  Procrastinate does this by executing a ``SELECT FOR UPDATE`` that will lock the
+  jobs table. This might not scale to billions of simultaneous tables, but we don't
+  expect to reach that level.
+- PostgreSQL's LISTEN_ allows us to be notified whenever a task is available.
+
+.. _ACID: https://en.wikipedia.org/wiki/ACID
+.. _LISTEN: https://www.postgresql.org/docs/current/sql-listen.html
+
+Why are you doing a task queue in PostgreSQL ?
+----------------------------------------------
 
 Because while maintaining a large Postgres_ database in good shape in
 our infrastructure is no small feat, also maintaining a RabbitMQ_/Redis_/...
@@ -42,12 +59,12 @@ Nethertheless, we acknowledge the impressive Open Source work accomplished by
 some projects that really stand out, to name a few:
 
 - Celery_: Is really big and supports a whole variety of cases, but not using
-  ``postgres`` as a message queue. We could have tried to add this, but it
+  PostgreSQL as a message queue. We could have tried to add this, but it
   really feels like Celery is doing a lot already, and every addition to it is
   a lot of compromises, and would probably have been a lot harder.
 - Dramatiq_ + dramatiq-pg_: Dramatiq is another very nice Python task queue
   that does things quite well, and it happens that there is a third party
-  addition for using postgres as a backend. In fact, it was built around the
+  addition for using PostgreSQL as a backend. In fact, it was built around the
   same time as we started Procrastinate, and the paradigm it uses makes it hard to
   integrate a few of the feature we really wanted to use Procrastinate for, namely
   locks.
@@ -76,7 +93,7 @@ reference materials, as well as in the user code and it's own code.
 Let's lay down a few words their meaning.
 
 Asynchronous
-    In Procrastinate, most of the time asynchronoucity is metionned, it's not about
+    In Procrastinate, most of the time asynchronoucity is mentionned, it's not about
     Python's ``async/await`` features, but about the fact a job is launched
     in the code, and then the calling code moves on, not waiting for the
     completion of the job. Because of this, asynchronous tasks should have a
@@ -106,14 +123,14 @@ Worker
     A process responsible for processing one or more queues: taking tasks one
     by one and executing them, and then wait for the queue to fill again.
 
-App
+:py:class:`procrastinate.App`
     This is meant to be the main entrypoint of Procrastinate. The app knows
     all the tasks of your project, and thanks to the job store, it knows how
     to launch jobs to execute your tasks.
 
 Job Store
     The job store resposability is to store and retrieve jobs. In Procrastinate, the
-    job store will store your jobs in your ``postgres`` database.
+    job store will store your jobs in your PostgreSQL database.
 
 Wasn't this project named "Cabbage" ?
 -------------------------------------

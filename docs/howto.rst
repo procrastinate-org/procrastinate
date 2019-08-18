@@ -1,5 +1,35 @@
+.. _how-to:
+
 How-to...
 =========
+
+Connect to a PostgreSQL database
+--------------------------------
+
+There are three ways you can specify the connection parameters:
+
+- You can use `libpq environment variables`_ (with ``PGPASSWORD`` or pgpass file)::
+
+    $ export PGHOST=my.database.com  # Either export the variables in your shell
+    $ PGPORT=5433 python -m myapp  # Or define the variables just for your process
+
+.. _`libpq environment variables`: https://www.postgresql.org/docs/current/libpq-envars.html
+
+- You can use `psycopg2 dsn`_::
+
+    import cabbage
+    cabbage.PostgresJobStore(dsn="postgres://user:password@host:port/dbname")
+
+.. _`psycopg2 dsn`: http://initd.org/psycopg/docs/module.html#psycopg2.connect
+
+- You can use other `psycopg2 connection arguments`_::
+
+    import cabbage
+    cabbage.PostgresJobStore(user="user", password="password", host="host")
+
+.. _`psycopg2 connection arguments`: http://initd.org/psycopg/docs/module.html#psycopg2.connect
+
+.. _locks:
 
 Ensure jobs don't run concurrently and run in order
 ---------------------------------------------------
@@ -53,7 +83,7 @@ We can solve this problem by using locks::
 In this case, our jobs might still be executed by any of the workers,
 but Procrastinate will not select a job for completion as long as there is
 a job currently processing with the same lock. Note that Procrastinate will
-use postgres to search the jobs table for suitable jobs, meaning that
+use PostgreSQL to search the jobs table for suitable jobs, meaning that
 even if the database contains a high proportion of locked tasks, it will barely
 affect Procrastinates's capacity to quickly find the free tasks. Also, identical
 jobs will always be started in creation order, so we can be assured our
@@ -164,11 +194,36 @@ It might look like this::
 
 Then, define all of your tasks using this ``@task`` decorator.
 
+Make the most out of the logging system
+---------------------------------------
+
+Procrastinate logs quite a few things, using structured logging. By default, the
+messages can seem not very informative, but the details are not mixed into the log
+messages, they are added as extra_ elements to the logs themselves.
+
+.. _extra: https://timber.io/blog/the-pythonic-guide-to-logging/#adding-context
+
+This way, you can adapt the logs to whatever formats suits your needs the most, using
+a log filter::
+
+    import logging
+
+    class ProcrastinateLogFilter(logging.Filter):
+        def filter(record):
+            # adapt your record here
+            return True
+
+    logging.getLogger("procrastinate").addFilter(ProcrastinateLogFilter)
+
+We'll try to document what attribute is available on each log, but one common thing is
+the "action" attribute, that describes the event that triggered the logging. You can
+match on this.
+
 Test your code that uses Procrastinate
 --------------------------------------
 
 Procrastinate defines an `InMemoryJobStore` that will speed-up your tests,
-remove dependency to Postgres and allow you to have tasks run in a
+remove dependency to PostgreSQL and allow you to have tasks run in a
 controlled way.
 
 To use it, you can do::
