@@ -5,6 +5,10 @@ Procrastinate: PostgreSQL-based Task Queue for Python
     :target: https://pypi.org/pypi/procrastinate
     :alt: Deployed to PyPI
 
+.. image:: https://readthedocs.org/projects/procrastinate/badge/?version=latest
+    :target: http://procrastinate.readthedocs.io/en/latest/?badge=latest
+    :alt: Documentation Status
+
 .. image:: https://travis-ci.org/peopledoc/procrastinate.svg?branch=master
     :target: https://travis-ci.org/peopledoc/procrastinate
     :alt: Continuous Integration Status
@@ -12,10 +16,6 @@ Procrastinate: PostgreSQL-based Task Queue for Python
 .. image:: https://codecov.io/gh/peopledoc/procrastinate/branch/master/graph/badge.svg
     :target: https://codecov.io/gh/peopledoc/procrastinate
     :alt: Coverage Status
-
-.. image:: https://readthedocs.org/projects/procrastinate/badge/?version=latest
-    :target: http://procrastinate.readthedocs.io/en/latest/?badge=latest
-    :alt: Documentation Status
 
 .. image:: https://img.shields.io/badge/License-MIT-green.svg
     :target: https://github.com/peopledoc/procrastinate/blob/master/LICENSE
@@ -64,4 +64,10 @@ feel free to open an `issue <https://github.com/peopledoc/procrastinate/issues>`
 Where to go from here
 ---------------------
 
-The complete docs_ is probably the best place to learn about
+The complete docs_ is probably the best place to learn about the project.
+
+If you encounter a bug, or want to get in touch, you're always welcome to open a
+ticket_.
+
+.. _docs: http://procrastinate.readthedocs.io/en/latest
+.. _ticket: https://github.com/peopledoc/procrastinate/issues/new
