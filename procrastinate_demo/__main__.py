@@ -1,24 +1,19 @@
 import logging
-import sys
 
-from procrastinate_demo.procrastinate_app import app
+from procrastinate_demo import tasks
 
 
 def main():
     logging.basicConfig(level="DEBUG")
-    process = sys.argv[1]
-    if process == "worker":
-        try:
-            queues = [e.strip() for e in sys.argv[2].split(",")]
-        except IndexError:
-            queues = None
 
-        app.run_worker(queues=queues)
-
-    else:
-        from procrastinate_demo import client
-
-        return client.client()
+    tasks.sum.defer(a=3, b=5)
+    tasks.sum.defer(a=5, b=7)
+    tasks.sum.defer(a=5, b="a")
+    tasks.sum_plus_one.defer(a=4, b=7)
+    tasks.sleep.configure(lock="a").defer(i=2)
+    tasks.sleep.configure(lock="a").defer(i=3)
+    tasks.sleep.configure(lock="a").defer(i=4)
+    tasks.random_fail.defer()
 
 
 if __name__ == "__main__":
