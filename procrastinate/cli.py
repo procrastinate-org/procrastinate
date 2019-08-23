@@ -29,18 +29,25 @@ def get_log_level(verbosity: int) -> int:
     )
 
 
-def set_verbosity(ctx: click.Context, param: click.Parameter, value: int) -> int:
-    level = get_log_level(verbosity=value)
-    logging.basicConfig(level=level)
-    logger.info(f"Log level set to {logging.getLevelName(level)}")
+def click_set_verbosity(ctx: click.Context, param: click.Parameter, value: int) -> int:
+    set_verbosity(verbosity=value)
     return value
+
+
+def set_verbosity(verbosity: int) -> None:
+    level = get_log_level(verbosity=verbosity)
+    logging.basicConfig(level=level)
+    logger.info(
+        "Log level set",
+        extra={"action": "set_log_level", "value": logging.getLevelName(level)},
+    )
 
 
 @contextlib.contextmanager
 def handle_errors():
     try:
         yield
-    except exceptions.procrastinateException as exc:
+    except exceptions.ProcrastinateException as exc:
         raise click.ClickException(str(exc))
 
 
@@ -54,12 +61,12 @@ def print_version(ctx, __, value):
 
 @click.group(context_settings=CONTEXT_SETTINGS)
 @click.pass_context
-@click.option("--app", help="Dotted path to the Procrastinate app")
+@click.option("--app", "-a", help="Dotted path to the Procrastinate app")
 @click.option(
     "-v",
     "--verbose",
     is_eager=True,
-    callback=set_verbosity,
+    callback=click_set_verbosity,
     count=True,
     help="Use multiple times to increase verbosity",
 )
@@ -118,7 +125,7 @@ def migrate(app: procrastinate.App, run: bool):
         migrator.migrate()
         click.echo("Done")
     else:
-        click.echo(migrator.get_migration_queries())
+        click.echo(migrator.get_migration_queries(), nl=False)
 
 
 def main():

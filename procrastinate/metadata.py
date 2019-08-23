@@ -11,7 +11,7 @@ def extract_metadata() -> Mapping[str, str]:
     return {
         "author": metadata["Author"],
         "email": metadata["Author-email"],
-        "copyright": metadata["License"],
+        "license": metadata["License"],
         "url": metadata["Home-page"],
         "version": metadata["Version"],
     }

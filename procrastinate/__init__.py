@@ -16,6 +16,6 @@ __all__ = [
 _metadata = _metadata_module.extract_metadata()
 __author__ = _metadata["author"]
 __author_email__ = _metadata["email"]
-__copyright__ = _metadata["copyright"]
+__license__ = _metadata["license"]
 __url__ = _metadata["url"]
 __version__ = _metadata["version"]

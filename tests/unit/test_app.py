@@ -1,3 +1,4 @@
+from procrastinate import app as app_module
 from procrastinate import tasks
 
 
@@ -87,3 +88,9 @@ def test_app_run_worker_only_once(app):
     assert len(app.job_store.finished_jobs) == 0
     app.run_worker(only_once=True)
     assert len(app.job_store.finished_jobs) == 1
+
+
+def test_from_path(mocker):
+    load = mocker.patch("procrastinate.utils.load_from_path")
+    assert app_module.App.from_path("dotted.path") is load.return_value
+    load.assert_called_once_with("dotted.path", app_module.App)

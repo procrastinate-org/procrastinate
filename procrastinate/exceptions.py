@@ -1,22 +1,22 @@
 import datetime
 
 
-class procrastinateException(Exception):
+class ProcrastinateException(Exception):
     pass
 
 
-class TaskNotFound(procrastinateException):
+class TaskNotFound(ProcrastinateException):
     pass
 
 
-class JobError(procrastinateException):
+class JobError(ProcrastinateException):
     pass
 
 
-class LoadFromPathError(ImportError, procrastinateException):
+class LoadFromPathError(ImportError, ProcrastinateException):
     pass
 
 
-class JobRetry(procrastinateException):
+class JobRetry(ProcrastinateException):
     def __init__(self, scheduled_at: datetime.datetime):
         self.scheduled_at = scheduled_at

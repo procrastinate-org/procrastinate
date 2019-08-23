@@ -118,7 +118,7 @@ class Worker:
         # Will raise if not found or not a task
         try:
             task = tasks.load_task(task_name)
-        except exceptions.procrastinateException:
+        except exceptions.ProcrastinateException:
             self.known_missing_tasks.add(task_name)
             raise
 

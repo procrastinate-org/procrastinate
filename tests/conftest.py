@@ -8,7 +8,7 @@ from psycopg2 import sql
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 
 from procrastinate import app as app_module
-from procrastinate import jobs, postgres, testing
+from procrastinate import jobs, migration, postgres, testing
 
 
 def _execute(cursor, query, *identifiers):
@@ -30,13 +30,12 @@ def setup_db():
             )
             _execute(cursor, "CREATE DATABASE {}", "procrastinate_test_template")
 
-    with closing(
-        psycopg2.connect("", dbname="procrastinate_test_template")
-    ) as connection:
-        with connection.cursor() as cursor:
-            with open("procrastinate/structure.sql") as migrations:
-                cursor.execute(migrations.read())
-        connection.commit()
+    migrator = migration.Migrator(
+        job_store=postgres.PostgresJobStore(dbname="procrastinate_test_template")
+    )
+    connection = migrator.job_store.connection
+    with closing(connection):
+        migrator.migrate()
         connection.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
         yield connection
 
