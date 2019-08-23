@@ -1,9 +1,10 @@
 import functools
 import logging
-from typing import Callable, Dict, Iterable, Optional, Set
+from typing import Any, Callable, Dict, Iterable, Optional, Set
 
+from procrastinate import migration
 from procrastinate import retry as retry_module
-from procrastinate import store, tasks, worker
+from procrastinate import store, tasks, utils, worker
 
 logger = logging.getLogger(__name__)
 
@@ -17,6 +18,10 @@ class App:
 
     You can run a worker with :py:func:`App.run_worker`.
     """
+
+    @classmethod
+    def from_path(cls, dotted_path: str):
+        return utils.load_from_path(dotted_path, cls)
 
     def __init__(
         self,
