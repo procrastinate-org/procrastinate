@@ -88,12 +88,12 @@ Glossary
 --------
 
 Procrastinate uses several words with a specific meaning in the documentation and
-reference materials, as well as in the user code and it's own code.
+reference materials, as well as in the user code and its own code.
 
-Let's lay down a few words their meaning.
+Let's go through a few words and their meaning.
 
 Asynchronous
-    In Procrastinate, most of the time asynchronoucity is mentionned, it's not about
+    In Procrastinate, most of the time asynchronicity is mentionned, it's not about
     Python's ``async/await`` features, but about the fact a job is launched
     in the code, and then the calling code moves on, not waiting for the
     completion of the job. Because of this, asynchronous tasks should have a
@@ -129,7 +129,7 @@ Worker
     to launch jobs to execute your tasks.
 
 Job Store
-    The job store resposability is to store and retrieve jobs. In Procrastinate, the
+    The job store responsability is to store and retrieve jobs. In Procrastinate, the
     job store will store your jobs in your PostgreSQL database.
 
 Wasn't this project named "Cabbage" ?

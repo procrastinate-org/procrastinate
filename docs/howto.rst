@@ -42,7 +42,7 @@ Let's imagine we have a task like this::
         with open("/tmp/alphabet.txt", "a") as f:
             f.write(letter)
 
-We write the letter we recieve to a file after wating for a
+We write the letter we receive to a file after waiting for a
 random time (this is a simplified version of a real
 world problem where tasks take a unforseeable amount of time
 and share resources like a database).
@@ -93,7 +93,7 @@ A good string identifier for the lock is a string identifier of
 the shared resource, UUIDs are well suited for this.
 If multiple resources are implicated, a combination
 of their identifiers could be used (there's no hard
-limit on the length of a lock string, but stay reasonable)
+limit on the length of a lock string, but stay reasonable).
 
 A task can only take a single lock so there's no dead-lock scenario possible
 where 2 running tasks are waiting one another.
@@ -106,7 +106,7 @@ Launch a job in the future
 
 If a job is configured with a date in the future, it will run at the
 first opportunity after that date. Let's launch the task that will
-trigger the infamous 2018 bug::
+trigger the infamous 2038 bug::
 
     dt = datetime.datetime(2038, 1, 19, 3, 14, 7).replace(
         tzinfo=datetime.timezone.utc
