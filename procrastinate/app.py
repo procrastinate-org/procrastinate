@@ -111,3 +111,7 @@ class App:
             worker.process_jobs_once()
         else:
             worker.run()
+
+    @property
+    def migrator(self) -> migration.Migrator:
+        return migration.Migrator(job_store=self.job_store)
