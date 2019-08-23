@@ -1,7 +1,7 @@
 import datetime
 from typing import Iterable, Iterator, Optional
 
-from procrastinate import jobs
+from procrastinate import jobs, types
 
 
 class BaseJobStore:
@@ -27,3 +27,11 @@ class BaseJobStore:
 
     def stop(self):
         raise NotImplementedError
+
+    def get_connection(self) -> types.Connection:
+        raise NotImplementedError
+
+    def execute_queries(self, queries: str):
+        with self.get_connection() as connection:
+            with connection.cursor() as cursor:
+                cursor.execute(queries)

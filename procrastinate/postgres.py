@@ -197,6 +197,9 @@ class PostgresJobStore(store.BaseJobStore):
         self.socket_timeout = socket_timeout
         self.stop_pipe = os.pipe()
 
+    def get_connection(self):
+        return self.connection
+
     def launch_job(self, job: jobs.Job) -> int:
         return launch_job(connection=self.connection, job=job)
 
