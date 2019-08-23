@@ -55,3 +55,15 @@ html_static_path: List[str] = []
 autoclass_content = "both"
 
 master_doc = "index"
+
+html_theme_options = {
+    "description": "Python/PostgreSQL task processing library",
+    "sidebar_width": "235px",
+    "github_user": "peopledoc",
+    "github_repo": "procrastinate",
+    "badge_branch": "master",
+    "codecov_button": True,
+    "github_banner": True,
+    "github_button": True,
+    "travis_button": True,
+}
