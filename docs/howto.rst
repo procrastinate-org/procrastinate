@@ -3,8 +3,27 @@
 How-to...
 =========
 
-Connect to a PostgreSQL database
---------------------------------
+Find a correct place for your app
+---------------------------------
+
+We advise you to place your app in one of the following places:
+
+- Your program __init__ or the place where you define your top level objects,
+- A dedicated module (``yourapp.procrastinate`` for example),
+- The place where you define all your tasks if it's a single module.
+
+In the two first case, it's important to specify the location to your tasks using the
+``import_paths`` parameter::
+
+    import procrastinate
+
+    app = procrastinate.App(
+        job_store=job_store,
+        import_paths=["dotted.path.to", "all.the.modules", "that.define.tasks"]
+    )
+
+Create your job store, and connect to a PostgreSQL database
+-----------------------------------------------------------
 
 There are three ways you can specify the connection parameters:
 
@@ -12,6 +31,11 @@ There are three ways you can specify the connection parameters:
 
     $ export PGHOST=my.database.com  # Either export the variables in your shell
     $ PGPORT=5433 python -m myapp  # Or define the variables just for your process
+
+  and then just define::
+
+    import cabbage
+    cabbage.PostgresJobStore()
 
 .. _`libpq environment variables`: https://www.postgresql.org/docs/current/libpq-envars.html
 
@@ -30,6 +54,51 @@ There are three ways you can specify the connection parameters:
 .. _`psycopg2 connection arguments`: http://initd.org/psycopg/docs/module.html#psycopg2.connect
 
 .. _locks:
+
+Avoid specifying the ``--app`` parameter all the time
+-----------------------------------------------------
+
+Procrastinate needs to know your app for most operations. in particular in the
+command line interface, you'll find yourself frequently typing
+``--app=dotted.path.to.app``. You can specify this one in your environment by instead
+using:
+
+.. code-block:: console
+
+    $ export PROCRASTINATE_APP=dotted.path.to.app worker
+
+Define a task
+-------------
+
+You can specify a task with::
+
+    @app.task(...)
+    def mytask(argument, other_argument):
+        ...
+
+See :py:func:`App.task` for the exact parameters.
+
+If you're ok with all the default parameters, it's ok to omit parentheses after
+``task``::
+
+    @app.task
+    def mytask(argument, other_argument):
+        ...
+
+Launch a worker
+---------------
+
+You can either go towards the CLI route with:
+
+.. code-block:: console
+
+    $ procrastinate --verbose --app=dotted.path.to.app worker [queue [...]]
+
+or, identically, use the code way::
+
+    app.run_worker(queues=["queue", ...])
+
+In both case, not specifying queues will tell Procrastinate to listen to every queue.
 
 Ensure jobs don't run concurrently and run in order
 ---------------------------------------------------

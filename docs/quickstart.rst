@@ -40,18 +40,6 @@ Within a virtualenv_, install Procrastinate with:
 
     (venv) $ pip install procrastinate
 
-Install the PostgreSQL structure procrastinate needs in your database with:
-
-.. code-block:: console
-
-    (venv) $ procrastinate migrate
-
-.. note::
-
-    Ok, you caught me, I wrote this doc in advance and the migrate command doesn't
-    exist yet. Follow `#28`_ for details.
-
-.. _`#28`: https://github.com/peopledoc/procrastinate/issues/28
 
 Create a Procrastinate application object
 -----------------------------------------
@@ -66,6 +54,16 @@ The application will be the entry point for both:
 
 - Declaring tasks (a.k.a job templates) to be launched by Procrastinate,
 - Launching the worker that will consume the jobs created frome those tasks.
+- DB migrations
+
+Prepare the database
+--------------------
+
+Install the PostgreSQL structure procrastinate needs in your database with:
+
+.. code-block:: console
+
+    (venv) $ procrastinate --app=tutorial.app migrate
 
 Declare a task
 --------------
@@ -105,11 +103,10 @@ We'll use the ``defer`` method of our task::
     ...
 
     if __name__ == "__main__":
-        if sys.argv[1] == "job":
-            a = int(sys.argv[2])
-            b = int(sys.argv[3])
-            print(f"Scheduling computation of {a} + {b}")
-            sum.defer(a=a, b=b)  # This is the line that launches a job
+        a = int(sys.argv[2])
+        b = int(sys.argv[3])
+        print(f"Scheduling computation of {a} + {b}")
+        sum.defer(a=a, b=b)  # This is the line that launches a job
 
 You can launch your script now with:
 
@@ -122,35 +119,9 @@ But at this point, it should not do a lot. Feel free to create a few tasks in ad
 Run a worker
 ------------
 
- Edit the file this way::
-
-    import logging
-    ...
-
-    if __name__ == "__main__":
-        command = sys.argv[1]
-        if command == "job":
-            a = int(sys.argv[2])
-            b = int(sys.argv[3])
-            print(f"Scheduling computation of {a} + {b}")
-            sum.defer(a=a, b=b)
-
-        elif command == "worker":
-            logging.basicConfig()
-            app.run_worker()
-
-.. note::
-
-    In the future, you might be able to launch a worker from the command line without
-    having to code anything. Follow `#28`_ for details.
-
-.. _`#28`: https://github.com/peopledoc/procrastinate/issues/28
-
-Now launch the worker with:
-
 .. code-block:: console
 
-    (venv) $ python tutorial.py worker
+    (venv) $ procrastinate --verbose --app=tutorial.app worker
 
 In the logs, you should see the values as they are computed.
 
@@ -174,15 +145,11 @@ Your final file
         print(a + b)
 
     if __name__ == "__main__":
-        if sys.argv[1] == "job":
-            a = int(sys.argv[2])
-            b = int(sys.argv[3])
-            print(f"Scheduling computation of {a} + {b}")
-            sum.defer(a=a, b=b)  # This is the line that launches a job
+        a = int(sys.argv[2])
+        b = int(sys.argv[3])
+        print(f"Scheduling computation of {a} + {b}")
+        sum.defer(a=a, b=b)  # This is the line that launches a job
 
-        elif command == "worker":
-            logging.basicConfig()
-            app.run_worker()
 
 Going further
 -------------
