@@ -34,7 +34,7 @@ def setup_db():
         psycopg2.connect("", dbname="procrastinate_test_template")
     ) as connection:
         with connection.cursor() as cursor:
-            with open("init.sql") as migrations:
+            with open("procrastinate/structure.sql") as migrations:
                 cursor.execute(migrations.read())
         connection.commit()
         connection.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
