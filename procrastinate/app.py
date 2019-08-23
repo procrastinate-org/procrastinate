@@ -55,21 +55,23 @@ class App:
         queue: str = "default",
         name: Optional[str] = None,
         retry: retry_module.RetryValue = False,
-    ) -> tasks.Task:
+    ) -> Any:
         """
         Declare a function as a task.
 
         Can be used as a decorator or a simple method.
         """
+        # Because of https://github.com/python/mypy/issues/3157, this function
+        # is quite impossible to type consistently, so, we're just using "Any"
 
-        def _wrap(func: Callable[..., tasks.Task]) -> tasks.Task:
+        def _wrap(func: Callable[..., tasks.Task]):
             task = tasks.Task(func, app=self, queue=queue, name=name, retry=retry)
             self._register(task)
 
-            return functools.update_wrapper(task, func)  # type: ignore
+            return functools.update_wrapper(task, func)
 
         if _func is None:  # Called as @app.task(...)
-            return _wrap  # type: ignore
+            return _wrap
 
         return _wrap(_func)  # Called as @app.task
 
