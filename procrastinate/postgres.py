@@ -206,7 +206,7 @@ class PostgresJobStore(store.BaseJobStore):
     def get_jobs(self, queues: Optional[Iterable[str]]) -> Iterator[jobs.Job]:
         for job_dict in get_jobs(connection=self.connection, queues=queues):
             # Hard to tell mypy that every element of the dict is typed correctly
-            yield jobs.Job(job_store=self, **job_dict)  # type: ignore
+            yield jobs.Job(**job_dict)  # type: ignore
 
     def get_stalled_jobs(
         self,
@@ -218,7 +218,7 @@ class PostgresJobStore(store.BaseJobStore):
             self.connection, nb_seconds=nb_seconds, queue=queue, task_name=task_name
         )
         for job_dict in job_dicts:
-            yield jobs.Job(job_store=self, **job_dict)  # type: ignore
+            yield jobs.Job(**job_dict)  # type: ignore
 
     def finish_job(
         self,

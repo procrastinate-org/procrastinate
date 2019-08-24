@@ -96,14 +96,13 @@ def app(job_store):
 
 
 @pytest.fixture
-def job_factory(job_store):
+def job_factory():
     defaults = {
         "id": 42,
         "task_name": "bla",
         "task_kwargs": {},
         "lock": None,
         "queue": "queue",
-        "job_store": job_store,
     }
 
     def factory(**kwargs):

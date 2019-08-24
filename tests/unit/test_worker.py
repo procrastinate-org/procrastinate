@@ -131,7 +131,6 @@ def test_run_job(app, job_store):
         lock="sherlock",
         task_name="task_func",
         queue="yay",
-        job_store=job_store,
     )
     test_worker = worker.Worker(app, queues=["yay"])
     test_worker.run_job(job)
@@ -159,7 +158,6 @@ def test_run_job_log_result(caplog, app, job_store):
         lock="sherlock",
         task_name="task_func",
         queue="yay",
-        job_store=job_store,
     )
     test_worker = worker.Worker(app, queues=["yay"])
     test_worker.run_job(job)
@@ -187,7 +185,6 @@ def test_run_job_error(app, job_store):
         lock="sherlock",
         task_name="job",
         queue="yay",
-        job_store=job_store,
     )
     test_worker = worker.Worker(app, queues=["yay"])
     with pytest.raises(exceptions.JobError):
@@ -209,7 +206,6 @@ def test_run_job_retry(app, job_store):
         lock="sherlock",
         task_name="job",
         queue="yay",
-        job_store=job_store,
     )
     test_worker = worker.Worker(app, queues=["yay"])
     with pytest.raises(exceptions.JobRetry):
@@ -223,7 +219,6 @@ def test_run_job_not_found(app, job_store):
         lock="sherlock",
         task_name="job",
         queue="yay",
-        job_store=job_store,
     )
     test_worker = worker.Worker(app, queues=["yay"])
     with pytest.raises(exceptions.TaskNotFound):

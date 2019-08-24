@@ -75,7 +75,8 @@ class Task:
         task_kwargs: Optional[types.JSONDict] = None,
         schedule_at: Optional[datetime.datetime] = None,
         schedule_in: Optional[Dict[str, int]] = None,
-    ) -> jobs.Job:
+        queue: Optional[str] = None,
+    ) -> jobs.JobLauncher:
         """
         Configures the job with all the specific settings, defining how the job
         should be launched (but not the actual parameters to the job task).
@@ -91,13 +92,15 @@ class Task:
 
         lock = lock or str(uuid.uuid4())
         task_kwargs = task_kwargs or {}
-        return jobs.Job(
-            id=None,
-            lock=lock,
-            task_name=self.name,
-            queue=self.queue,
-            task_kwargs=task_kwargs,
-            scheduled_at=schedule_at,
+        return jobs.JobLauncher(
+            job=jobs.Job(
+                id=None,
+                lock=lock,
+                task_name=self.name,
+                queue=queue if queue is not None else self.queue,
+                task_kwargs=task_kwargs,
+                scheduled_at=schedule_at,
+            ),
             job_store=self.app.job_store,
         )
 

@@ -17,14 +17,7 @@ def test_wait_for_jobs(pg_job_store, connection_params):
             inner_job_store = postgres.PostgresJobStore(**connection_params)
 
             inner_job_store.launch_job(
-                jobs.Job(
-                    id=0,
-                    queue="yay",
-                    task_name="oh",
-                    lock="sher",
-                    task_kwargs={},
-                    job_store=inner_job_store,
-                )
+                jobs.Job(id=0, queue="yay", task_name="oh", lock="sher", task_kwargs={})
             )
         finally:
             inner_job_store.connection.close()

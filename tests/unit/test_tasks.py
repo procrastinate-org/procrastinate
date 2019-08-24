@@ -43,7 +43,6 @@ def test_task_defer(app):
             task_name="tests.unit.test_tasks.task_func",
             lock=lock,
             task_kwargs={"c": 3},
-            job_store=app.job_store,
         )
     ]
 
@@ -51,7 +50,7 @@ def test_task_defer(app):
 def test_task_configure(app):
     task = tasks.Task(task_func, app=app, queue="queue")
 
-    job = task.configure(lock="sher", task_kwargs={"yay": "ho"})
+    job = task.configure(lock="sher", task_kwargs={"yay": "ho"}).job
 
     assert job.lock == "sher"
     assert job.task_kwargs == {"yay": "ho"}
@@ -60,7 +59,7 @@ def test_task_configure(app):
 def test_task_configure_no_lock(app):
     task = tasks.Task(task_func, app=app, queue="queue")
 
-    job = task.configure()
+    job = task.configure().job
 
     assert uuid.UUID(job.lock)
 
@@ -68,7 +67,9 @@ def test_task_configure_no_lock(app):
 def test_task_configure_schedule_at(app):
     task = tasks.Task(task_func, app=app, queue="queue")
 
-    job = task.configure(schedule_at=pendulum.datetime(2000, 1, 1, tz="Europe/Paris"))
+    job = task.configure(
+        schedule_at=pendulum.datetime(2000, 1, 1, tz="Europe/Paris")
+    ).job
 
     assert job.scheduled_at == pendulum.datetime(2000, 1, 1, tz="Europe/Paris")
 
@@ -78,7 +79,7 @@ def test_task_configure_schedule_in(app):
 
     now = pendulum.datetime(2000, 1, 1, tz="Europe/Paris")
     with pendulum.test(now):
-        job = task.configure(schedule_in={"hours": 2})
+        job = task.configure(schedule_in={"hours": 2}).job
 
     assert job.scheduled_at == pendulum.datetime(2000, 1, 1, 2, tz="Europe/Paris")
 
@@ -95,7 +96,7 @@ def test_task_configure_schedule_in_and_schedule_at(app):
 
 def test_task_get_retry_exception_none(app):
     task = tasks.Task(task_func, app=app, queue="queue")
-    job = task.configure()
+    job = task.configure().job
 
     assert task.get_retry_exception(job) is None
 
@@ -104,7 +105,7 @@ def test_task_get_retry_exception(app, mocker):
     mock = mocker.patch("procrastinate.retry.RetryStrategy.get_retry_exception")
 
     task = tasks.Task(task_func, app=app, queue="queue", retry=10)
-    job = task.configure()
+    job = task.configure().job
 
     assert task.get_retry_exception(job) is mock.return_value
     mock.assert_called_with(0)
