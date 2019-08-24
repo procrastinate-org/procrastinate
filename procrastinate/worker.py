@@ -27,9 +27,9 @@ class Worker:
         queues: Optional[Iterable[str]] = None,
         import_paths: Optional[Iterable[str]] = None,
     ):
-        self._app = app
-        self._queues = queues
-        self._stop_requested = False
+        self.app = app
+        self.queues = queues
+        self.stop_requested = False
         # Handling the info about the currently running task.
         self.log_context: types.JSONDict = {}
         self.known_missing_tasks: Set[str] = set()
@@ -41,17 +41,17 @@ class Worker:
             import_all(import_paths=import_paths)
 
     @property
-    def _job_store(self) -> store.BaseJobStore:
-        return self._app.job_store
+    def job_store(self) -> store.BaseJobStore:
+        return self.app.job_store
 
     def run(self) -> None:
-        self._job_store.listen_for_jobs(queues=self._queues)
+        self.job_store.listen_for_jobs(queues=self.queues)
 
         with signals.on_stop(self.stop):
             while True:
                 self.process_jobs_once()
 
-                if self._stop_requested:
+                if self.stop_requested:
                     logger.debug(
                         "Finished running job at the end of the batch",
                         extra={"action": "stopped_end_batch"},
@@ -61,10 +61,10 @@ class Worker:
                 logger.debug(
                     "Waiting for new jobs", extra={"action": "waiting_for_jobs"}
                 )
-                self._job_store.wait_for_jobs()
+                self.job_store.wait_for_jobs()
 
     def process_jobs_once(self) -> None:
-        for job in self._job_store.get_jobs(self._queues):
+        for job in self.job_store.get_jobs(self.queues):
             assert isinstance(job.id, int)
 
             log_context = {"job": job.get_context()}
@@ -89,7 +89,7 @@ class Worker:
                     extra={"action": "task_not_found", "exception": str(exc)},
                 )
             finally:
-                self._job_store.finish_job(
+                self.job_store.finish_job(
                     job=job, status=status, scheduled_at=next_attempt_scheduled_at
                 )
                 logger.debug(
@@ -97,7 +97,7 @@ class Worker:
                     extra={"action": "finish_task", "status": status, **log_context},
                 )
 
-            if self._stop_requested:
+            if self.stop_requested:
                 break
 
     def load_task(self, task_name) -> tasks.Task:
@@ -108,7 +108,7 @@ class Worker:
 
         try:
             # Simple case: the task is already known
-            return self._app.tasks[task_name]
+            return self.app.tasks[task_name]
         except KeyError:
             pass
 
@@ -124,7 +124,7 @@ class Worker:
             extra={"action": "load_dynamic_task", "task_name": task_name},
         )
 
-        self._app.tasks[task_name] = task
+        self.app.tasks[task_name] = task
         return task
 
     def run_job(self, job: jobs.Job) -> None:
@@ -170,9 +170,9 @@ class Worker:
         signum: Optional[signals.Signals] = None,
         frame: Optional[signals.FrameType] = None,
     ) -> None:
-        self._stop_requested = True
+        self.stop_requested = True
         log_context = self.log_context
-        self._job_store.stop()
+        self.job_store.stop()
 
         logger.info(
             "Stop requested, waiting for current job to finish",
