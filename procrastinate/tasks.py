@@ -62,6 +62,11 @@ class Task:
         return f"{self.func.__module__}.{self.func.__name__}"
 
     def defer(self, **task_kwargs: types.JSONValue) -> int:
+        """
+        Create a job from this task and the given arguments.
+        The job will be created with default parameters, if you want to better
+        specify when and how to launch this job, see :py:func:`Task.configure`
+        """
         job_id = self.configure().defer(**task_kwargs)
 
         return job_id
@@ -74,6 +79,13 @@ class Task:
         schedule_at: Optional[datetime.datetime] = None,
         schedule_in: Optional[Dict[str, int]] = None,
     ) -> jobs.Job:
+        """
+        Configures the job with all the specific settings, defining how the job
+        should be launched (but not the actual parameters to the job task).
+
+        You should call the `defer` method (see :py:func:`Task.defer`) on the resulting
+        object, with the job task parameters.
+        """
         if schedule_at and schedule_in is not None:
             raise ValueError("Cannot set both schedule_at and schedule_in")
 
