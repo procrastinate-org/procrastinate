@@ -1,10 +1,13 @@
 import functools
 import logging
-from typing import Any, Callable, Dict, Iterable, Optional, Set
+from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, Optional, Set
 
 from procrastinate import migration
 from procrastinate import retry as retry_module
-from procrastinate import store, tasks, utils, worker
+from procrastinate import store, utils
+
+if TYPE_CHECKING:
+    from procrastinate import tasks, worker
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +52,7 @@ class App:
             fail to run.
         """
         self.job_store = job_store
-        self.tasks: Dict[str, tasks.Task] = {}
+        self.tasks: Dict[str, "tasks.Task"] = {}
         self.queues: Set[str] = set()
         self.import_paths = import_paths
 
@@ -69,7 +72,9 @@ class App:
         # Because of https://github.com/python/mypy/issues/3157, this function
         # is quite impossible to type consistently, so, we're just using "Any"
 
-        def _wrap(func: Callable[..., tasks.Task]):
+        def _wrap(func: Callable[..., "tasks.Task"]):
+            from procrastinate import tasks
+
             task = tasks.Task(func, app=self, queue=queue, name=name, retry=retry)
             self._register(task)
 
@@ -80,7 +85,7 @@ class App:
 
         return _wrap(_func)  # Called as @app.task
 
-    def _register(self, task: tasks.Task) -> None:
+    def _register(self, task: "tasks.Task") -> None:
         self.tasks[task.name] = task
         if task.queue not in self.queues:
             logger.debug(
@@ -89,7 +94,9 @@ class App:
             )
             self.queues.add(task.queue)
 
-    def _worker(self, queues: Optional[Iterable[str]] = None) -> worker.Worker:
+    def _worker(self, queues: Optional[Iterable[str]] = None) -> "worker.Worker":
+        from procrastinate import worker
+
         return worker.Worker(app=self, queues=queues, import_paths=self.import_paths)
 
     def run_worker(

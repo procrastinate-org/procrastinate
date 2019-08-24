@@ -5,12 +5,9 @@ from typing import TYPE_CHECKING, Any, Callable, Dict, Optional
 
 import pendulum
 
-from procrastinate import exceptions, jobs
+from procrastinate import app, exceptions, jobs
 from procrastinate import retry as retry_module
 from procrastinate import types, utils
-
-if TYPE_CHECKING:  # coverage: exclude
-    from procrastinate import app
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +26,7 @@ class Task:
         self,
         func: Callable,
         *,
-        app: "app.App",
+        app: app.App,
         queue: str,
         name: Optional[str] = None,
         retry: retry_module.RetryValue = False,

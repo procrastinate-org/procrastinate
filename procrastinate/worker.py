@@ -1,14 +1,11 @@
 import importlib
 import logging
 import time
-from typing import TYPE_CHECKING, Iterable, Optional, Set
+from typing import Iterable, Optional, Set
 
-from procrastinate import exceptions, jobs, signals, store, tasks, types
+from procrastinate import app, exceptions, jobs, signals, store, tasks, types
 
 logger = logging.getLogger(__name__)
-
-if TYPE_CHECKING:  # coverage: exclude
-    from procrastinate import app
 
 
 def import_all(import_paths: Iterable[str]) -> None:
@@ -26,7 +23,7 @@ def import_all(import_paths: Iterable[str]) -> None:
 class Worker:
     def __init__(
         self,
-        app: "app.App",
+        app: app.App,
         queues: Optional[Iterable[str]] = None,
         import_paths: Optional[Iterable[str]] = None,
     ):
