@@ -1,7 +1,7 @@
 import contextlib
 import logging
 import os
-from typing import Iterable, Optional
+from typing import Iterable
 
 import click
 
@@ -97,7 +97,7 @@ def cli(ctx: click.Context, app: str, **kwargs) -> None:
 @click.pass_obj
 @handle_errors()
 @click.argument("queue", nargs=-1)
-def worker(app: Optional[procrastinate.App], queue: Iterable[str]):
+def worker(app: procrastinate.App, queue: Iterable[str]):
     """
     Launch a worker, listening on the given queues (or all queues)
     """
