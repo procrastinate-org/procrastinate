@@ -1,7 +1,7 @@
 import datetime
 import logging
 import uuid
-from typing import TYPE_CHECKING, Any, Callable, Dict, Optional
+from typing import Any, Callable, Dict, Optional
 
 import pendulum
 
