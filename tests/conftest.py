@@ -10,6 +10,11 @@ from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 from procrastinate import app as app_module
 from procrastinate import jobs, migration, postgres, testing
 
+# Just ensuring the tests are not polluted by environment
+for key in os.environ:
+    if key.startswith("PROCRASTINATE_"):
+        os.environ.pop(key)
+
 
 def _execute(cursor, query, *identifiers):
     cursor.execute(
