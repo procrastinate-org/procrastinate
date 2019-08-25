@@ -1,12 +1,15 @@
 import contextlib
+import datetime
+import json
 import logging
 import os
-from typing import Iterable
+from typing import Dict, Iterable, Optional
 
 import click
+import pendulum
 
 import procrastinate
-from procrastinate import exceptions
+from procrastinate import exceptions, types
 
 logger = logging.getLogger(__name__)
 
@@ -103,6 +106,73 @@ def worker(app: procrastinate.App, queue: Iterable[str]):
     queue_names = ", ".join(queues) if queues else "all queues"
     click.echo(f"Launching a worker on {queue_names}")
     app.run_worker(queues=queues)
+
+
+@cli.command()
+@click.pass_obj
+@handle_errors()
+@click.argument("task")
+@click.argument("json_args", required=False)
+@click.option(
+    "--lock", help="A lock string. Jobs sharing the same lock will not run concurrently"
+)
+@click.option("--at", help="ISO-8601 localized datetime after which to launch the job")
+@click.option(
+    "--in", "_in", type=int, help="Number of seconds after which to launch the job"
+)
+def defer(
+    app: procrastinate.App,
+    task: str,
+    json_args: str,
+    lock: Optional[str],
+    at: Optional[str],
+    _in: Optional[int],
+):
+    """
+    Creates a job from the given task, to be executed by a worker.
+    TASK should be the name or dotted path to a task declared in the App object.
+    JSON_ARGS should be a json object (a.k.a dictionnary) with the job parameters
+    """
+    # Loading json args
+    args: types.JSONDict
+    if json_args is None:
+        args = {}
+    else:
+        try:
+            args = json.loads(json_args)
+            assert type(args) == dict
+        except Exception:
+            raise click.BadArgumentUsage(
+                "Incorrect JSON_ARGS value expecting a valid json object (or dict)"
+            )
+    if at is not None and _in is not None:
+        raise click.UsageError("Cannot use both --at and --in")
+
+    schedule_at: Optional[datetime.datetime] = None
+    schedule_in: Optional[Dict[str, int]] = None
+    if at is not None:
+        try:
+            schedule_at = pendulum.parse(at)
+        except pendulum.exceptions.ParserError:
+            raise click.BadOptionUsage("--at", f"Cannot parse datetime {at}")
+    elif _in is not None:
+        schedule_in = {"seconds": _in}
+
+    # Retrieving the associated task
+    app.perform_import_paths()
+    try:
+        task_obj = app.tasks[task]
+    except KeyError:
+        raise click.BadArgumentUsage(f"Task {task} not found.")
+
+    # Printing info
+    str_kwargs = ", ".join(f"{k}={repr(v)}" for k, v in args.items())
+    click.echo(f"Launching a job: {task}({str_kwargs})")
+
+    # Finally launching the job
+    task_obj.configure(
+        lock=lock, schedule_at=schedule_at, schedule_in=schedule_in
+    ).defer(**args)
 
 
 @cli.command()

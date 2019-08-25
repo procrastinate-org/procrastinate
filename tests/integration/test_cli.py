@@ -1,6 +1,6 @@
 import pytest
 
-from procrastinate import __version__, cli
+from procrastinate import __version__, cli, jobs
 
 
 @pytest.fixture
@@ -58,3 +58,44 @@ def test_no_app(entrypoint, mocker):
     click_app.run_worker = mocker.MagicMock()
     with pytest.raises(NotImplementedError):
         entrypoint("migrate")
+
+
+def test_defer(entrypoint, click_app):
+    @click_app.task(name="hello")
+    def mytask(a):
+        pass
+
+    # No space in the json helps entrypoint() to simply split args
+    result = entrypoint("""-a yay defer --lock=sherlock hello {"a":1}""")
+
+    assert result.output == "Launching a job: hello(a=1)\n"
+    assert result.exit_code == 0
+    assert click_app.job_store.jobs == [
+        jobs.Job(
+            id=0,
+            queue="default",
+            lock="sherlock",
+            task_name="hello",
+            task_kwargs={"a": 1},
+            scheduled_at=None,
+            attempts=0,
+        )
+    ]
+
+
+@pytest.mark.parametrize(
+    "input",
+    [
+        # Unparsable at
+        "defer --at=yay",
+        # Define both in and at
+        "defer --in=3 --at=2000-01-01T00:00:00Z",
+        # Invalid Json
+        "defer hello {",
+        # Unknown task
+        "defer hello",
+    ],
+)
+def test_defer_error(entrypoint, input):
+    result = entrypoint(input)
+    assert result.exit_code != 0
