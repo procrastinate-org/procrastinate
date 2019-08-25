@@ -65,9 +65,43 @@ class App:
         retry: retry_module.RetryValue = False,
     ) -> Any:
         """
-        Declare a function as a task.
+        Declare a function as a task. This method is meant to be used as a decorator::
 
-        Can be used as a decorator or a simple method.
+            @app.task(...)
+            def my_task(args):
+                ...
+
+        or::
+
+            @app.task
+            def my_task(args):
+                ...
+
+        The second form will use the default value for all parameters.
+
+        Parameters
+        ----------
+        _func :
+            The decorated function
+        queue :
+            The name of the queue in which jobs from this task will be launched, if
+            the queue is not overridden at launch.
+            Default is ``"default"``.
+            When a worker is launched, it can listen to specific queues, or to all
+            queues.
+        name :
+            Name of the task, by default the full dotted path to the decorated function.
+            if the function is nested of dynamically defined, it is important to give
+            it a unique name, and to make sure the module that defines this function
+            is listed in the ``import_paths`` of the :py:class:`procrastinate.App`.
+        retry :
+            Details how to auto-retry the task if it fails. Can be:
+
+            - An ``boolean``: will either not retry or retry indefinitely
+            - An ``int``: the number of retries before it gives up
+            - A :py:class:`procrastinate.RetryStrategy` instance for complex cases
+
+            Default is no retry.
         """
         # Because of https://github.com/python/mypy/issues/3157, this function
         # is quite impossible to type consistently, so, we're just using "Any"
@@ -106,7 +140,7 @@ class App:
         Run a worker. This worker will run in the foreground
         and the function will not return until the worker stops
         (most probably when it recieves a stop signal) (except if
-        `only_once` is True)
+        `only_once` is True).
 
         Parameters
         ----------

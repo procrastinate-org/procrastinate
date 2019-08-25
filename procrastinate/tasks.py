@@ -79,10 +79,39 @@ class Task:
     ) -> jobs.JobLauncher:
         """
         Configures the job with all the specific settings, defining how the job
-        should be launched (but not the actual parameters to the job task).
+        should be launched.
 
         You should call the `defer` method (see :py:func:`Task.defer`) on the resulting
         object, with the job task parameters.
+
+        Parameters
+        ----------
+        lock :
+            No two jobs with the same lock string can run simultaneously
+        task_kwargs :
+            Arguments for the job task. You can also pass them to :py:func:`Task.defer`.
+            If you pass both, they will be updated (:py:func:`Task.defer` has priority)
+        schedule_at :
+            A datetime before which the job should not be launched (incompatible with
+            schedule_in)
+        schedule_in :
+            A dict describing the time interval before the task should be launched.
+            See details in the `pendulum documentation
+            <https://pendulum.eustace.io/docs/#addition-and-subtraction>`__
+            (incompatible with schedule_at)
+
+        queue :
+            By setting a queue on the job launch, you override the task default queue
+
+        Returns
+        -------
+        jobs.JobLauncher
+            An object with a ``defer`` method, identical to :py:func:`Task.defer`
+
+        Raises
+        ------
+        ValueError
+            If you try to define both schedule_at and schedule_in
         """
         if schedule_at and schedule_in is not None:
             raise ValueError("Cannot set both schedule_at and schedule_in")
