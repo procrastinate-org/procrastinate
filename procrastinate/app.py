@@ -54,7 +54,7 @@ class App:
         self.job_store = job_store
         self.tasks: Dict[str, "tasks.Task"] = {}
         self.queues: Set[str] = set()
-        self.import_paths = import_paths
+        self.import_paths = import_paths or []
 
     def task(
         self,
@@ -131,7 +131,19 @@ class App:
     def _worker(self, queues: Optional[Iterable[str]] = None) -> "worker.Worker":
         from procrastinate import worker
 
-        return worker.Worker(app=self, queues=queues, import_paths=self.import_paths)
+        return worker.Worker(app=self, queues=queues)
+
+    @functools.lru_cache(maxsize=1)
+    def perform_import_paths(self):
+        """
+        Whenever using app.tasks, make sure the apps have been imported by calling
+        this method.
+        """
+        utils.import_all(import_paths=self.import_paths)
+        logger.debug(
+            "All tasks imported",
+            extra={"action": "imported_tasks", "tasks": list(self.tasks)},
+        )
 
     def run_worker(
         self, queues: Optional[Iterable[str]] = None, only_once: bool = False

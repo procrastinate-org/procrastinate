@@ -1,4 +1,3 @@
-import importlib
 import logging
 import time
 from typing import Iterable, Optional, Set
@@ -6,18 +5,6 @@ from typing import Iterable, Optional, Set
 from procrastinate import app, exceptions, jobs, signals, store, tasks, types
 
 logger = logging.getLogger(__name__)
-
-
-def import_all(import_paths: Iterable[str]) -> None:
-    """
-    Given a list of paths, just import them all
-    """
-    for import_path in import_paths:
-        logger.info(
-            f"Importing module {import_path}",
-            extra={"action": "import_module", "module_name": import_path},
-        )
-        importlib.import_module(import_path)
 
 
 class Worker:
@@ -34,11 +21,7 @@ class Worker:
         self.log_context: types.JSONDict = {}
         self.known_missing_tasks: Set[str] = set()
 
-        # Import all the given paths. The registration of tasks
-        # often is a side effect of the import of the module they're
-        # defined in.
-        if import_paths:
-            import_all(import_paths=import_paths)
+        self.app.perform_import_paths()
 
     @property
     def job_store(self) -> store.BaseJobStore:

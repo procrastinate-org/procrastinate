@@ -1,9 +1,12 @@
 import importlib
-from typing import Type, TypeVar
+import logging
+from typing import Iterable, Type, TypeVar
 
 from procrastinate import exceptions
 
 T = TypeVar("T")
+
+logger = logging.getLogger(__name__)
 
 
 def load_from_path(path: str, allowed_type: Type[T]) -> T:
@@ -30,3 +33,15 @@ def load_from_path(path: str, allowed_type: Type[T]) -> T:
         )
 
     return imported
+
+
+def import_all(import_paths: Iterable[str]) -> None:
+    """
+    Given a list of paths, just import them all
+    """
+    for import_path in import_paths:
+        logger.debug(
+            f"Importing module {import_path}",
+            extra={"action": "import_module", "module_name": import_path},
+        )
+        importlib.import_module(import_path)

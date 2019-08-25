@@ -51,23 +51,12 @@ def test_app_register_queue_already_exists(app, mocker):
     assert app.tasks == {"bla": task}
 
 
-def test_app_worker_default_params(mocker, app):
-    Worker = mocker.patch("procrastinate.worker.Worker")
-
-    app._worker()
-
-    Worker.assert_called_once_with(import_paths=None, queues=None, app=app)
-
-
 def test_app_worker(app, mocker):
-    app.import_paths = ["json", "os", "sys"]
     Worker = mocker.patch("procrastinate.worker.Worker")
 
     app._worker(queues=["yay"])
 
-    Worker.assert_called_once_with(
-        import_paths=["json", "os", "sys"], queues=["yay"], app=app
-    )
+    Worker.assert_called_once_with(queues=["yay"], app=app)
 
 
 def test_app_run_worker(app, mocker):

@@ -1,3 +1,3 @@
 """
-This module is just here for test_worker.test_import_all
+This module is just here for test_utils.test_import_all
 """
