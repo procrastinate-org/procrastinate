@@ -5,7 +5,7 @@
    :maxdepth: 2
 
    quickstart
-   howto
+   howto_index
    discussions
    reference
    contributing

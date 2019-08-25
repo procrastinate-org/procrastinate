@@ -164,5 +164,5 @@ If you want to better understand some design decisions, head to the :ref:`Discus
 .. toctree::
    :maxdepth: 2
 
-   howto
+   howto_index
    discussions
