@@ -24,9 +24,7 @@ def get_log_level(verbosity: int) -> int:
     Given the number of repetitions of the flag -v,
     returns the desired log level
     """
-    return {0: logging.WARNING, 1: logging.INFO, 2: logging.DEBUG}.get(
-        min((2, verbosity)), 0
-    )
+    return {0: logging.INFO, 1: logging.DEBUG}.get(min((1, verbosity)), 0)
 
 
 def click_set_verbosity(ctx: click.Context, param: click.Parameter, value: int) -> int:
@@ -37,7 +35,7 @@ def click_set_verbosity(ctx: click.Context, param: click.Parameter, value: int) 
 def set_verbosity(verbosity: int) -> None:
     level = get_log_level(verbosity=verbosity)
     logging.basicConfig(level=level)
-    logger.info(
+    logger.debug(
         "Log level set",
         extra={"action": "set_log_level", "value": logging.getLevelName(level)},
     )

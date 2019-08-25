@@ -7,7 +7,7 @@ from procrastinate import cli, exceptions
 
 
 @pytest.mark.parametrize(
-    "verbosity, log_level", [(0, "WARNING"), (1, "INFO"), (2, "DEBUG"), (3, "DEBUG")]
+    "verbosity, log_level", [(0, "INFO"), (1, "DEBUG"), (2, "DEBUG")]
 )
 def test_get_log_level(verbosity, log_level):
     assert cli.get_log_level(verbosity=verbosity) == getattr(logging, log_level)
@@ -16,14 +16,14 @@ def test_get_log_level(verbosity, log_level):
 def test_set_verbosity(mocker, caplog):
     config = mocker.patch("logging.basicConfig")
 
-    caplog.set_level("INFO")
+    caplog.set_level("DEBUG")
 
     cli.set_verbosity(1)
 
-    config.assert_called_once_with(level=logging.INFO)
+    config.assert_called_once_with(level=logging.DEBUG)
     records = [record for record in caplog.records if record.action == "set_log_level"]
     assert len(records) == 1
-    assert records[0].value == "INFO"
+    assert records[0].value == "DEBUG"
 
 
 @pytest.mark.parametrize(
