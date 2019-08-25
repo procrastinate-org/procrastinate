@@ -100,7 +100,7 @@ def cli(ctx: click.Context, app: str, **kwargs) -> None:
 @click.argument("queue", nargs=-1)
 def worker(app: procrastinate.App, queue: Iterable[str]):
     """
-    Launch a worker, listening on the given queues (or all queues)
+    Launch a worker, listening on the given queues (or all queues).
     """
     queues = list(queue) or None
     queue_names = ", ".join(queues) if queues else "all queues"
@@ -185,7 +185,7 @@ def defer(
 )
 def migrate(app: procrastinate.App, run: bool):
     """
-    Launch a worker, listening on the given queues (or all queues)
+    Run database migrations and prepare the database.
     """
     migrator = app.migrator
     if run:

@@ -1,6 +1,10 @@
 Launch a job in the future
 --------------------------
 
+From the code
+^^^^^^^^^^^^^
+
+
 If a job is configured with a date in the future, it will run at the
 first opportunity after that date. Let's launch the task that will
 trigger the infamous 2038 bug::
@@ -18,3 +22,16 @@ The details on the parameters you can use are in the `pendulum documentation`_
 (because we use pendulum under the hood).
 
 .. _`pendulum documentation`: https://pendulum.eustace.io/docs/#addition-and-subtraction
+
+From the command line
+^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: console
+
+    $ procrastinate defer \
+        --at=2038-01-19T03:14:07Z \
+        path.to.create_bug '{"crash_everything": true}'
+
+Or for an interval (in seconds):
+
+    $ procrastinate defer --in=5400 path.to.clean

@@ -9,7 +9,7 @@ How-to...
    howto/job_store_connect
    howto/tasks
    howto/worker
-   howto/env_vars
+   howto/command_line
    howto/locks
    howto/schedule
    howto/retry
