@@ -1,9 +1,11 @@
 Launch a job in the future
 --------------------------
 
+This section is about launching a job once, but in the future. You may want to read
+the :ref:`periodic launch <cron>` section.
+
 From the code
 ^^^^^^^^^^^^^
-
 
 If a job is configured with a date in the future, it will run at the
 first opportunity after that date. Let's launch the task that will
@@ -33,5 +35,7 @@ From the command line
         path.to.create_bug '{"crash_everything": true}'
 
 Or for an interval (in seconds):
+
+.. code-block:: console
 
     $ procrastinate defer --in=5400 path.to.clean

@@ -12,6 +12,7 @@ How-to...
    howto/command_line
    howto/locks
    howto/schedule
+   howto/cron
    howto/retry
    howto/middleware
    howto/logging
