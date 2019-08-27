@@ -20,7 +20,6 @@ def test_job_get_context(job_store, scheduled_at, context_scheduled_at):
         task_name="mytask",
         task_kwargs={"a": "b"},
         scheduled_at=scheduled_at,
-        job_store=job_store,
         attempts=42,
     )
 
@@ -38,14 +37,10 @@ def test_job_get_context(job_store, scheduled_at, context_scheduled_at):
 def test_job_defer(job_store):
 
     job = jobs.Job(
-        queue="marsupilami",
-        lock="sher",
-        task_name="mytask",
-        task_kwargs={"a": "b"},
-        job_store=job_store,
+        queue="marsupilami", lock="sher", task_name="mytask", task_kwargs={"a": "b"}
     )
 
-    id = job.defer(c=3)
+    id = job.defer(job_store=job_store, task_kwargs={"c": 3})
 
     assert id == 0
 
@@ -56,7 +51,6 @@ def test_job_defer(job_store):
             task_name="mytask",
             lock="sher",
             task_kwargs={"a": "b", "c": 3},
-            job_store=job_store,
         )
     ]
 
@@ -70,5 +64,4 @@ def test_job_scheduled_at_naive(job_store):
             task_name="mytask",
             task_kwargs={"a": "b"},
             scheduled_at=pendulum.naive(2000, 1, 1),
-            job_store=job_store,
         )

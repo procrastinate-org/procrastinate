@@ -37,12 +37,7 @@ def get_all(connection):
 def test_launch_job(pg_job_store, get_all):
     queue = "marsupilami"
     job = jobs.Job(
-        id=0,
-        queue=queue,
-        task_name="bob",
-        lock="sher",
-        task_kwargs={"a": 1, "b": 2},
-        job_store=pg_job_store,
+        id=0, queue=queue, task_name="bob", lock="sher", task_kwargs={"a": 1, "b": 2}
     )
     pk = pg_job_store.launch_job(job=job)
 
@@ -66,7 +61,6 @@ def test_get_jobs(pg_job_store):
             task_name="task_1",
             lock="lock_1",
             task_kwargs={"a": "b"},
-            job_store=pg_job_store,
         )
     )
     # We won't see this one because of the lock
@@ -77,7 +71,6 @@ def test_get_jobs(pg_job_store):
             task_name="task_2",
             lock="lock_1",
             task_kwargs={"c": "d"},
-            job_store=pg_job_store,
         )
     )
     pg_job_store.launch_job(
@@ -87,7 +80,6 @@ def test_get_jobs(pg_job_store):
             task_name="task_3",
             lock="lock_2",
             task_kwargs={"e": "f"},
-            job_store=pg_job_store,
         )
     )
     # We won't see this one because of the queue
@@ -98,7 +90,6 @@ def test_get_jobs(pg_job_store):
             task_name="task_4",
             lock="lock_3",
             task_kwargs={"g": "h"},
-            job_store=pg_job_store,
         )
     )
     pg_job_store.launch_job(
@@ -109,7 +100,6 @@ def test_get_jobs(pg_job_store):
             lock="lock_5",
             task_kwargs={"i": "j"},
             scheduled_at=pendulum.datetime(2000, 1, 1),
-            job_store=pg_job_store,
         )
     )
     # We won't see this one because of the scheduled date
@@ -121,7 +111,6 @@ def test_get_jobs(pg_job_store):
             lock="lock_6",
             task_kwargs={"k": "l"},
             scheduled_at=pendulum.datetime(2050, 1, 1),
-            job_store=pg_job_store,
         )
     )
 
@@ -135,7 +124,6 @@ def test_get_jobs(pg_job_store):
             lock="lock_1",
             task_name="task_1",
             queue="queue_a",
-            job_store=pg_job_store,
         ),
         jobs.Job(
             id=t2.id,
@@ -143,7 +131,6 @@ def test_get_jobs(pg_job_store):
             lock="lock_2",
             task_name="task_3",
             queue="queue_a",
-            job_store=pg_job_store,
         ),
         jobs.Job(
             id=t3.id,
@@ -152,7 +139,6 @@ def test_get_jobs(pg_job_store):
             lock="lock_5",
             task_kwargs={"i": "j"},
             scheduled_at=pendulum.datetime(2000, 1, 1),
-            job_store=pg_job_store,
         ),
     ]
 
@@ -165,7 +151,6 @@ def test_get_stalled_jobs(get_all, pg_job_store):
             task_name="task_1",
             lock="lock_1",
             task_kwargs={"a": "b"},
-            job_store=pg_job_store,
         )
     )
     job_id = list(get_all("procrastinate_jobs", "id"))[0]["id"]
@@ -207,7 +192,6 @@ def test_finish_job(get_all, pg_job_store):
             task_name="task_1",
             lock="lock_1",
             task_kwargs={"a": "b"},
-            job_store=pg_job_store,
         )
     )
     job = next(pg_job_store.get_jobs(queues=["queue_a"]))

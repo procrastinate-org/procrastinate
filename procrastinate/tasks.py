@@ -1,16 +1,13 @@
 import datetime
 import logging
 import uuid
-from typing import TYPE_CHECKING, Any, Callable, Dict, Optional
+from typing import Any, Callable, Dict, Optional
 
 import pendulum
 
-from procrastinate import exceptions, jobs
+from procrastinate import app, exceptions, jobs
 from procrastinate import retry as retry_module
 from procrastinate import types, utils
-
-if TYPE_CHECKING:  # coverage: exclude
-    from procrastinate import app
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +26,7 @@ class Task:
         self,
         func: Callable,
         *,
-        app: "app.App",
+        app: app.App,
         queue: str,
         name: Optional[str] = None,
         retry: retry_module.RetryValue = False,
@@ -62,6 +59,11 @@ class Task:
         return f"{self.func.__module__}.{self.func.__name__}"
 
     def defer(self, **task_kwargs: types.JSONValue) -> int:
+        """
+        Create a job from this task and the given arguments.
+        The job will be created with default parameters, if you want to better
+        specify when and how to launch this job, see :py:func:`Task.configure`
+        """
         job_id = self.configure().defer(**task_kwargs)
 
         return job_id
@@ -73,7 +75,44 @@ class Task:
         task_kwargs: Optional[types.JSONDict] = None,
         schedule_at: Optional[datetime.datetime] = None,
         schedule_in: Optional[Dict[str, int]] = None,
-    ) -> jobs.Job:
+        queue: Optional[str] = None,
+    ) -> jobs.JobLauncher:
+        """
+        Configure the job with all the specific settings, defining how the job
+        should be launched.
+
+        You should call the `defer` method (see :py:func:`Task.defer`) on the resulting
+        object, with the job task parameters.
+
+        Parameters
+        ----------
+        lock :
+            No two jobs with the same lock string can run simultaneously
+        task_kwargs :
+            Arguments for the job task. You can also pass them to :py:func:`Task.defer`.
+            If you pass both, they will be updated (:py:func:`Task.defer` has priority)
+        schedule_at :
+            A datetime before which the job should not be launched (incompatible with
+            schedule_in)
+        schedule_in :
+            A dict describing the time interval before the task should be launched.
+            See details in the `pendulum documentation
+            <https://pendulum.eustace.io/docs/#addition-and-subtraction>`__
+            (incompatible with schedule_at)
+
+        queue :
+            By setting a queue on the job launch, you override the task default queue
+
+        Returns
+        -------
+        jobs.JobLauncher
+            An object with a ``defer`` method, identical to :py:func:`Task.defer`
+
+        Raises
+        ------
+        ValueError
+            If you try to define both schedule_at and schedule_in
+        """
         if schedule_at and schedule_in is not None:
             raise ValueError("Cannot set both schedule_at and schedule_in")
 
@@ -82,13 +121,15 @@ class Task:
 
         lock = lock or str(uuid.uuid4())
         task_kwargs = task_kwargs or {}
-        return jobs.Job(
-            id=None,
-            lock=lock,
-            task_name=self.name,
-            queue=self.queue,
-            task_kwargs=task_kwargs,
-            scheduled_at=schedule_at,
+        return jobs.JobLauncher(
+            job=jobs.Job(
+                id=None,
+                lock=lock,
+                task_name=self.name,
+                queue=queue if queue is not None else self.queue,
+                task_kwargs=task_kwargs,
+                scheduled_at=schedule_at,
+            ),
             job_store=self.app.job_store,
         )
 

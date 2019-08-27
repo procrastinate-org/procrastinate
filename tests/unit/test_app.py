@@ -1,3 +1,4 @@
+from procrastinate import app as app_module
 from procrastinate import tasks
 
 
@@ -50,23 +51,12 @@ def test_app_register_queue_already_exists(app, mocker):
     assert app.tasks == {"bla": task}
 
 
-def test_app_worker_default_params(mocker, app):
-    Worker = mocker.patch("procrastinate.worker.Worker")
-
-    app._worker()
-
-    Worker.assert_called_once_with(import_paths=None, queues=None, app=app)
-
-
 def test_app_worker(app, mocker):
-    app.import_paths = ["json", "os", "sys"]
     Worker = mocker.patch("procrastinate.worker.Worker")
 
     app._worker(queues=["yay"])
 
-    Worker.assert_called_once_with(
-        import_paths=["json", "os", "sys"], queues=["yay"], app=app
-    )
+    Worker.assert_called_once_with(queues=["yay"], app=app)
 
 
 def test_app_run_worker(app, mocker):
@@ -87,3 +77,9 @@ def test_app_run_worker_only_once(app):
     assert len(app.job_store.finished_jobs) == 0
     app.run_worker(only_once=True)
     assert len(app.job_store.finished_jobs) == 1
+
+
+def test_from_path(mocker):
+    load = mocker.patch("procrastinate.utils.load_from_path")
+    assert app_module.App.from_path("dotted.path") is load.return_value
+    load.assert_called_once_with("dotted.path", app_module.App)

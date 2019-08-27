@@ -1,5 +1,3 @@
-import sys
-
 import pendulum
 import pytest
 
@@ -131,7 +129,6 @@ def test_run_job(app, job_store):
         lock="sherlock",
         task_name="task_func",
         queue="yay",
-        job_store=job_store,
     )
     test_worker = worker.Worker(app, queues=["yay"])
     test_worker.run_job(job)
@@ -159,7 +156,6 @@ def test_run_job_log_result(caplog, app, job_store):
         lock="sherlock",
         task_name="task_func",
         queue="yay",
-        job_store=job_store,
     )
     test_worker = worker.Worker(app, queues=["yay"])
     test_worker.run_job(job)
@@ -187,7 +183,6 @@ def test_run_job_error(app, job_store):
         lock="sherlock",
         task_name="job",
         queue="yay",
-        job_store=job_store,
     )
     test_worker = worker.Worker(app, queues=["yay"])
     with pytest.raises(exceptions.JobError):
@@ -209,7 +204,6 @@ def test_run_job_retry(app, job_store):
         lock="sherlock",
         task_name="job",
         queue="yay",
-        job_store=job_store,
     )
     test_worker = worker.Worker(app, queues=["yay"])
     with pytest.raises(exceptions.JobRetry):
@@ -223,27 +217,19 @@ def test_run_job_not_found(app, job_store):
         lock="sherlock",
         task_name="job",
         queue="yay",
-        job_store=job_store,
     )
     test_worker = worker.Worker(app, queues=["yay"])
     with pytest.raises(exceptions.TaskNotFound):
         test_worker.run_job(job)
 
 
-def test_import_all():
-    module = "tests.unit.unused_module"
-    assert module not in sys.modules
-
-    worker.import_all([module])
-
-    assert module in sys.modules
-
-
 def test_worker_call_import_all(app, mocker):
 
-    import_all = mocker.patch("procrastinate.worker.import_all")
+    import_all = mocker.patch("procrastinate.utils.import_all")
 
-    worker.Worker(app=app, queues=["yay"], import_paths=["hohoho"])
+    app.import_paths = ["hohoho"]
+
+    worker.Worker(app=app, queues=["yay"])
 
     import_all.assert_called_with(import_paths=["hohoho"])
 

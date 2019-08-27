@@ -36,27 +36,43 @@ class Job:
         default=None, validator=check_aware
     )
     attempts: int = 0
-    job_store: "procrastinate.store.BaseJobStore"
 
-    def defer(self, **task_kwargs: types.JSONValue) -> int:
-
+    def defer(
+        self, job_store: "procrastinate.store.BaseJobStore", task_kwargs: types.JSONDict
+    ) -> int:
         final_kwargs = self.task_kwargs.copy()
         final_kwargs.update(task_kwargs)
 
         job = attr.evolve(self, task_kwargs=final_kwargs)
 
-        id = self.job_store.launch_job(job=job)
+        id = job_store.launch_job(job=job)
         logger.info(
             "Scheduled job", extra={"action": "job_defer", "job": self.get_context()}
         )
         return id
 
     def get_context(self) -> types.JSONDict:
-        context = attr.asdict(
-            self, filter=attr.filters.exclude(attr.fields(Job).job_store)
-        )
+        context = attr.asdict(self)
 
         if context["scheduled_at"]:
             context["scheduled_at"] = context["scheduled_at"].isoformat()
 
         return context
+
+
+class JobLauncher:
+    """
+    The main purpose of JobLauncher is to get a hold of the job_store and the job, so
+    that we can call ``defer`` without having to specify the job_store, and the job
+    doesn't need a job_store property.
+    """
+
+    def __init__(self, job_store: "procrastinate.store.BaseJobStore", job: Job):
+        self.job = job
+        self.job_store = job_store
+
+    def defer(self, **task_kwargs: types.JSONValue) -> int:
+        """
+        See :py:func:`Task.defer` for details.
+        """
+        return self.job.defer(job_store=self.job_store, task_kwargs=task_kwargs)

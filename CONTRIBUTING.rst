@@ -13,7 +13,7 @@ Create your dev database
 
     $ docker-compose up -d
     $ export PGDATABASE=procrastinate PGHOST=localhost PGUSER=postgres
-    $ createdb && psql -v ON_ERROR_STOP=ON -f init.sql
+    $ createdb
 
 Installation for development
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -39,7 +39,8 @@ dependencies:
 
     $ pip install -r requirements.txt
 
-## Testing
+Testing
+^^^^^^^
 
 With a running database:
 
@@ -87,11 +88,12 @@ Launch a worker with:
 
 .. code-block:: console
 
-    (venv) $ python -m procrastinate_demo worker sums,products
+    (venv) $ export PROCRASTINATE_APP=procrastinate_demo.app.app
+    (venv) $ procrastinate migrate
+    (venv) $ procrastinate worker
 
 Schedule some tasks with:
 
 .. code-block:: console
 
-    (venv) $ python -m procrastinate_demo client
-
+    (venv) $ python -m procrastinate_demo

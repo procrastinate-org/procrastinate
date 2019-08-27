@@ -1,6 +1,6 @@
 import random
 
-from procrastinate_demo.procrastinate_app import app
+from procrastinate_demo.app import app
 
 
 @app.task(queue="sums")

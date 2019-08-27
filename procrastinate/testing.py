@@ -39,6 +39,7 @@ class InMemoryJobStore(store.BaseJobStore):
         self.listening_queues: Set[str] = set()
         self.listening_all_queues = False
         self.waited = False
+        self.queries = []
 
     def launch_job(self, job: jobs.Job) -> int:
         id = next(self.job_counter)
@@ -79,3 +80,6 @@ class InMemoryJobStore(store.BaseJobStore):
 
     def stop(self):
         pass
+
+    def execute_queries(self, queries: str):
+        self.queries.append(str)

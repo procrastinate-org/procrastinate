@@ -1,0 +1,9 @@
+prune tests
+prune docs
+prune procrastinate_demo
+exclude requirements.txt
+exclude CONTRIBUTING.rst
+exclude docker-compose.yml
+exclude tox.ini
+recursive-include procrastinate *.sql
+include LICENSE.rst

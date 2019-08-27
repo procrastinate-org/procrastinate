@@ -1,3 +1,4 @@
+import sys
 import types
 
 import pytest
@@ -21,3 +22,12 @@ def test_load_from_path_error(input):
 def test_load_from_path_wrong_type():
     with pytest.raises(exceptions.LoadFromPathError):
         utils.load_from_path("json.loads", int)
+
+
+def test_import_all():
+    module = "tests.unit.unused_module"
+    assert module not in sys.modules
+
+    utils.import_all([module])
+
+    assert module in sys.modules

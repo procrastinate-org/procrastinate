@@ -28,7 +28,12 @@ author = "Peopledoc"
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = ["sphinx.ext.napoleon", "sphinx.ext.autodoc", "sphinx_autodoc_typehints"]
+extensions = [
+    "sphinx.ext.napoleon",
+    "sphinx.ext.autodoc",
+    "sphinx_autodoc_typehints",
+    "sphinxcontrib.programoutput",
+]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
@@ -55,3 +60,15 @@ html_static_path: List[str] = []
 autoclass_content = "both"
 
 master_doc = "index"
+
+html_theme_options = {
+    "description": "Python/PostgreSQL task processing library",
+    "sidebar_width": "235px",
+    "github_user": "peopledoc",
+    "github_repo": "procrastinate",
+    "badge_branch": "master",
+    "codecov_button": True,
+    "github_banner": True,
+    "github_button": True,
+    "travis_button": True,
+}

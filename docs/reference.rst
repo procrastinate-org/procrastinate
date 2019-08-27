@@ -15,6 +15,12 @@ Job stores
 .. autoclass:: procrastinate.testing.InMemoryJobStore
     :members: reset
 
+Tasks
+-----
+.. autoclass:: procrastinate.tasks.Task
+    :members: defer, configure
+
+
 Retry strategies
 ----------------
 
