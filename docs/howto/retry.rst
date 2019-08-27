@@ -4,7 +4,12 @@ Define a retry strategy on a task
 We sometimes know in advance that a task may fail randomly. For example a task
 fetching resources on another network. You can define a retry strategy on a
 task and Procrastinate will enforce it.
-Available strategies are:
+
+Note that a job waiting to be retried lives in the database. It will persist across
+app / machine reboots.
+
+Simple strategies
+^^^^^^^^^^^^^^^^^
 
 - Define a number of attempts::
 
@@ -23,7 +28,11 @@ Available strategies are:
             raise Exception("Who could have seen this coming?")
         print("Hello world")
 
-- You can get a more precise strategy using a RetryStrategy instance::
+
+Advanced strategies
+^^^^^^^^^^^^^^^^^^^
+
+You can get a more precise strategy using a :py:class:`RetryStrategy` instance::
 
     from procrastinate import RetryStrategy
 
@@ -31,20 +40,29 @@ Available strategies are:
     def my_other_task():
         print("Hello world")
 
-- If you want to go for a fully fledged custom retry strategy, you can implement your
-  own retry strategy::
+:py:class:`RetryStrategy` takes 3 parameters related to how much it will wait
+between retries:
 
-    class MyRetryStrategy(procrastinate.BaseRetryStrategy):
-        growth: Optional[str] = "linear"
+- ``wait=5`` to wait 5 seconds between each retry
+- ``linear_wait=5`` to wait 5 seconds then 10 then 15 and so on
+- ``exponential_wait=5`` to wait 5 seconds then 25 then 125 and so on
+
+Implementing your own strategy
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+- If you want to go for a fully fledged custom retry strategy, you can implement your
+  own retry strategy (though we recommand always keeping a max_retry)::
+
+    import random
+
+    class RandomRetryStrategy(procrastinate.BaseRetryStrategy):
+        max_attempts = 3
+        min = 1
+        max = 10
 
         def get_schedule_in(self, attempts: int) -> int:
-            if super().get_schedule_in(attempts) is None:
+            if attempts >= max_attempts:
                 return None
 
-            if self.growth == "linear":
-                return self.wait * attempts
-            elif self.growth == "exponential":
-                ...
+            return random.uniform(self.min, self.max)
 
-Note that a job waiting to be retried lives in the database. It will persist across
-app / machine reboots.

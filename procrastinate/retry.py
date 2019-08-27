@@ -25,7 +25,7 @@ class BaseRetryStrategy:
         schedule_at = pendulum.now("UTC").add(seconds=schedule_in)
         return exceptions.JobRetry(schedule_at)
 
-    def get_schedule_in(self, attempts: int) -> Optional[int]:
+    def get_schedule_in(self, attempts: int) -> Optional[float]:
         """
         Parameters
         ----------
@@ -35,7 +35,7 @@ class BaseRetryStrategy:
 
         Returns
         -------
-        Optional[int]
+        Optional[float]
             If a job should not be retried, this function should return None.
             Otherwise, it should return the duration after which to schedule the
             new job run, *in seconds*.
@@ -46,24 +46,39 @@ class BaseRetryStrategy:
 @attr.dataclass(kw_only=True)
 class RetryStrategy(BaseRetryStrategy):
     """
-    The RetryStrategy class should handle simple retry strategies.
+    The RetryStrategy class should handle classic retry strategies.
+
+    You can mix and match several waiting strategies. The formula is::
+
+        total_wait = wait + lineal_wait * attempts + exponential_wait ** attempts
 
     Parameters
     ----------
     max_attempts:
         The maximum number of attempts the job should be retried
     wait:
-        The number of seconds to wait between attempts
+        Number of seconds to wait between attempts will follow a constant series
+        (e.g. if 3, then successive runs will wait 3, 3, 3, 3, 3 seconds)
+    linear_wait:
+        Number of seconds to wait between attempts will follow an arithmetic series
+        (e.g. if 3, then successive runs will wait 0, 3, 6, 9, 12 seconds)
+    exponential_wait:
+        Number of seconds to wait between attempts will follow a geometric series
+        (e.g. if 3, then successive runs will wait 1, 3, 9, 27, 81 seconds)
     """
 
     max_attempts: Optional[int] = None
-    wait: int = 0
+    wait: float = 0.0
+    linear_wait: float = 0.0
+    exponential_wait: float = 0.0
 
-    def get_schedule_in(self, attempts: int) -> Optional[int]:
+    def get_schedule_in(self, attempts: int) -> Optional[float]:
         if self.max_attempts and attempts >= self.max_attempts:
             return None
-
-        return self.wait
+        wait: float = self.wait
+        wait += self.linear_wait * attempts
+        wait += self.exponential_wait ** attempts
+        return wait
 
 
 RetryValue = Union[bool, int, RetryStrategy]
