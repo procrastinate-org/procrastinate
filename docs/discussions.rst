@@ -129,7 +129,7 @@ Worker
     to launch jobs to execute your tasks.
 
 Job Store
-    The job store responsability is to store and retrieve jobs. In Procrastinate, the
+    The job store responsibility is to store and retrieve jobs. In Procrastinate, the
     job store will store your jobs in your PostgreSQL database.
 
 Wasn't this project named "Cabbage" ?

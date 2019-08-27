@@ -21,7 +21,7 @@ or:
 
     $ python -m procrastinate --help
 
-Please read the included help to get famailiar with its commands and parameters:
+Please read the included help to get familiar with its commands and parameters:
 
 .. command-output:: procrastinate --help
 

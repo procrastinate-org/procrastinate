@@ -129,7 +129,7 @@ def defer(
     _in: Optional[int],
 ):
     """
-    Creates a job from the given task, to be executed by a worker.
+    Create a job from the given task, to be executed by a worker.
     TASK should be the name or dotted path to a task declared in the App object.
     JSON_ARGS should be a json object (a.k.a dictionnary) with the job parameters
     """

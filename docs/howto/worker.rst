@@ -11,4 +11,4 @@ or, identically, use the code way::
 
     app.run_worker(queues=["queue", ...])
 
-In both case, not specifying queues will tell Procrastinate to listen to every queue.
+In both cases, not specifying queues will tell Procrastinate to listen to every queue.

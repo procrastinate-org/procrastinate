@@ -78,7 +78,7 @@ class Task:
         queue: Optional[str] = None,
     ) -> jobs.JobLauncher:
         """
-        Configures the job with all the specific settings, defining how the job
+        Configure the job with all the specific settings, defining how the job
         should be launched.
 
         You should call the `defer` method (see :py:func:`Task.defer`) on the resulting

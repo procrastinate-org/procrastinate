@@ -65,7 +65,7 @@ of their identifiers could be used (there's no hard
 limit on the length of a lock string, but stay reasonable).
 
 A task can only take a single lock so there's no dead-lock scenario possible
-where 2 running tasks are waiting one another.
+where two running tasks are waiting one another.
 
 There is no mechanism in place to expire locks yet, but if a task fails
 without the whole Python process crashing, it will free its lock.
