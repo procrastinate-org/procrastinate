@@ -98,7 +98,7 @@ $$;
 
 CREATE INDEX ON procrastinate_jobs(queue_name);
 
-CREATE TRIGGER procrastinate_jobs_procrastinate_notify_queue
+CREATE TRIGGER procrastinate_jobs_notify_queue
     AFTER INSERT ON procrastinate_jobs
     FOR EACH ROW WHEN ((new.status = 'todo'::procrastinate_job_status))
     EXECUTE PROCEDURE procrastinate_notify_queue();
