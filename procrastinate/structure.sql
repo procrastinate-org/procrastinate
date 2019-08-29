@@ -1,10 +1,10 @@
 CREATE EXTENSION IF NOT EXISTS plpgsql WITH SCHEMA pg_catalog;
 
 CREATE TYPE procrastinate_job_status AS ENUM (
-    'todo',
-    'doing',
-    'done',
-    'error'
+    'todo',  -- The job is queued
+    'doing',  -- The job has been fetched by a worker
+    'succeeded',  -- The job ended succesfully
+    'failed'  -- The job ended with an error
 );
 
 CREATE TYPE procrastinate_job_event_type AS ENUM (
