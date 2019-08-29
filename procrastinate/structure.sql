@@ -29,6 +29,13 @@ CREATE TABLE procrastinate_jobs (
     attempts integer DEFAULT 0 NOT NULL
 );
 
+CREATE TABLE procrastinate_events (
+    id BIGSERIAL PRIMARY KEY,
+    job_id integer NOT NULL REFERENCES procrastinate_jobs,
+    type procrastinate_job_event_type,
+    at timestamp with time zone DEFAULT NOW() NULL
+);
+
 CREATE UNLOGGED TABLE procrastinate_job_locks (
     object text NOT NULL
 );
