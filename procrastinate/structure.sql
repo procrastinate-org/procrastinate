@@ -96,9 +96,53 @@ BEGIN
 END;
 $$;
 
+CREATE FUNCTION procrastinate_trigger_status_events_procedure() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    WITH event_type AS (
+        SELECT CASE
+            WHEN OLD IS NULL
+                AND NEW.status = 'doing'::procrastinate_job_status
+                THEN 'deferred'::procrastinate_job_event_type
+            WHEN OLD.status = 'todo'::procrastinate_job_status
+                AND NEW.status = 'doing'::procrastinate_job_status
+                THEN 'started'::procrastinate_job_event_type
+            WHEN OLD.status = 'doing'::procrastinate_job_status
+                AND NEW.status = 'todo'::procrastinate_job_status
+                THEN 'retried'::procrastinate_job_event_type
+            WHEN OLD.status = 'doing'::procrastinate_job_status
+                AND NEW.status = 'failed'::procrastinate_job_status
+                THEN 'failed'::procrastinate_job_event_type
+            WHEN OLD.status = 'doing'::procrastinate_job_status
+                AND NEW.status = 'succeeded'::procrastinate_job_status
+                THEN 'succeeded'::procrastinate_job_event_type
+            WHEN OLD.status = 'todo'::procrastinate_job_status
+                AND (
+                    NEW.status = 'failed'::procrastinate_job_status
+                    OR NEW.status = 'succeeded'::procrastinate_job_status
+                )
+                THEN 'cancelled'::procrastinate_job_event_type
+            ELSE NULL
+        END CASE
+    )
+    INSERT INTO procrastinate_events(job_id, type)
+        SELECT NEW.job_id, event_type
+        WHERE event_type IS NOT NULL
+	RETURN NEW;
+END;
+$$;
+
 CREATE INDEX ON procrastinate_jobs(queue_name);
 
 CREATE TRIGGER procrastinate_jobs_notify_queue
     AFTER INSERT ON procrastinate_jobs
     FOR EACH ROW WHEN ((new.status = 'todo'::procrastinate_job_status))
     EXECUTE PROCEDURE procrastinate_notify_queue();
+
+CREATE TRIGGER procrastinate_trigger_status_events
+    AFTER UPDATE OF status OR INSERT ON procrastinate_jobs
+    FOR EACH ROW WHEN ((new.status != old.status))
+    EXECUTE PROCEDURE procrastinate_trigger_status_events_procedure();
+
+
