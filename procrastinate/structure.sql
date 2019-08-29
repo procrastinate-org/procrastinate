@@ -8,7 +8,7 @@ CREATE TYPE procrastinate_job_status AS ENUM (
 );
 
 CREATE TABLE procrastinate_jobs (
-    id integer NOT NULL,
+    id bigserial,
     queue_name character varying(128) NOT NULL,
     task_name character varying(128) NOT NULL,
     lock text,
@@ -78,13 +78,6 @@ BEGIN
 	RETURN NEW;
 END;
 $$;
-
-CREATE SEQUENCE procrastinate_jobs_id_seq;
-
-ALTER SEQUENCE procrastinate_jobs_id_seq OWNED BY procrastinate_jobs.id;
-
-ALTER TABLE ONLY procrastinate_jobs ALTER COLUMN id
-    SET DEFAULT nextval('procrastinate_jobs_id_seq'::regclass);
 
 ALTER TABLE ONLY procrastinate_job_locks
     ADD CONSTRAINT procrastinate_job_locks_object_key UNIQUE (object);
