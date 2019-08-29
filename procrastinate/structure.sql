@@ -8,7 +8,7 @@ CREATE TYPE procrastinate_job_status AS ENUM (
 );
 
 CREATE TABLE procrastinate_jobs (
-    id bigserial,
+    id bigserial PRIMARY KEY,
     queue_name character varying(128) NOT NULL,
     task_name character varying(128) NOT NULL,
     lock text,
@@ -78,12 +78,6 @@ BEGIN
 	RETURN NEW;
 END;
 $$;
-
-ALTER TABLE ONLY procrastinate_job_locks
-    ADD CONSTRAINT procrastinate_job_locks_object_key UNIQUE (object);
-
-ALTER TABLE ONLY procrastinate_jobs
-    ADD CONSTRAINT procrastinate_jobs_pkey PRIMARY KEY (id);
 
 CREATE INDEX ON procrastinate_jobs(queue_name);
 
