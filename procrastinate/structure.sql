@@ -7,6 +7,16 @@ CREATE TYPE procrastinate_job_status AS ENUM (
     'error'
 );
 
+CREATE TYPE procrastinate_job_event_type AS ENUM (
+    'deferred',  -- Job created, in todo
+    'started',  -- todo -> doing
+    'retried',  -- doing -> todo
+    'failed',  -- doing -> failed
+    'succeeded',  -- doing -> succeeded
+    'cancelled', -- todo -> failed or succeeded
+    'scheduled' -- not an event transition, but recording when a task is scheduled for
+);
+
 CREATE TABLE procrastinate_jobs (
     id bigserial PRIMARY KEY,
     queue_name character varying(128) NOT NULL,
