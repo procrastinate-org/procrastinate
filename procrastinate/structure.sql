@@ -1,29 +1,29 @@
 CREATE EXTENSION IF NOT EXISTS plpgsql WITH SCHEMA pg_catalog;
 
-CREATE TYPE public.procrastinate_job_status AS ENUM (
+CREATE TYPE procrastinate_job_status AS ENUM (
     'todo',
     'doing',
     'done',
     'error'
 );
 
-CREATE TABLE public.procrastinate_jobs (
+CREATE TABLE procrastinate_jobs (
     id integer NOT NULL,
     queue_name character varying(128) NOT NULL,
     task_name character varying(128) NOT NULL,
     lock text,
     args jsonb DEFAULT '{}' NOT NULL,
-    status public.procrastinate_job_status DEFAULT 'todo'::public.procrastinate_job_status NOT NULL,
+    status procrastinate_job_status DEFAULT 'todo'::procrastinate_job_status NOT NULL,
     scheduled_at timestamp with time zone NULL,
     started_at timestamp with time zone NULL,
     attempts integer DEFAULT 0 NOT NULL
 );
 
-CREATE UNLOGGED TABLE public.procrastinate_job_locks (
+CREATE UNLOGGED TABLE procrastinate_job_locks (
     object text NOT NULL
 );
 
-CREATE FUNCTION public.procrastinate_fetch_job(target_queue_names character varying[]) RETURNS public.procrastinate_jobs
+CREATE FUNCTION procrastinate_fetch_job(target_queue_names character varying[]) RETURNS procrastinate_jobs
     LANGUAGE plpgsql
     AS $$
 DECLARE
@@ -54,7 +54,7 @@ BEGIN
 END;
 $$;
 
-CREATE FUNCTION public.procrastinate_finish_job(job_id integer, end_status public.procrastinate_job_status, next_scheduled_at timestamp with time zone) RETURNS void
+CREATE FUNCTION procrastinate_finish_job(job_id integer, end_status procrastinate_job_status, next_scheduled_at timestamp with time zone) RETURNS void
     LANGUAGE plpgsql
     AS $$
 BEGIN
@@ -69,7 +69,7 @@ BEGIN
 END;
 $$;
 
-CREATE FUNCTION public.procrastinate_notify_queue() RETURNS trigger
+CREATE FUNCTION procrastinate_notify_queue() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
 BEGIN
@@ -79,22 +79,22 @@ BEGIN
 END;
 $$;
 
-CREATE SEQUENCE public.procrastinate_jobs_id_seq;
+CREATE SEQUENCE procrastinate_jobs_id_seq;
 
-ALTER SEQUENCE public.procrastinate_jobs_id_seq OWNED BY public.procrastinate_jobs.id;
+ALTER SEQUENCE procrastinate_jobs_id_seq OWNED BY procrastinate_jobs.id;
 
-ALTER TABLE ONLY public.procrastinate_jobs ALTER COLUMN id
-    SET DEFAULT nextval('public.procrastinate_jobs_id_seq'::regclass);
+ALTER TABLE ONLY procrastinate_jobs ALTER COLUMN id
+    SET DEFAULT nextval('procrastinate_jobs_id_seq'::regclass);
 
-ALTER TABLE ONLY public.procrastinate_job_locks
+ALTER TABLE ONLY procrastinate_job_locks
     ADD CONSTRAINT procrastinate_job_locks_object_key UNIQUE (object);
 
-ALTER TABLE ONLY public.procrastinate_jobs
+ALTER TABLE ONLY procrastinate_jobs
     ADD CONSTRAINT procrastinate_jobs_pkey PRIMARY KEY (id);
 
 CREATE INDEX ON procrastinate_jobs(queue_name);
 
 CREATE TRIGGER procrastinate_jobs_procrastinate_notify_queue
-    AFTER INSERT ON public.procrastinate_jobs
-    FOR EACH ROW WHEN ((new.status = 'todo'::public.procrastinate_job_status))
-    EXECUTE PROCEDURE public.procrastinate_notify_queue();
+    AFTER INSERT ON procrastinate_jobs
+    FOR EACH ROW WHEN ((new.status = 'todo'::procrastinate_job_status))
+    EXECUTE PROCEDURE procrastinate_notify_queue();
