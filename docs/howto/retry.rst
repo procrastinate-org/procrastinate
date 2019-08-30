@@ -51,7 +51,7 @@ Implementing your own strategy
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 - If you want to go for a fully fledged custom retry strategy, you can implement your
-  own retry strategy (though we recommand always keeping a max_retry)::
+  own retry strategy (though we recommend always keeping a max_retry)::
 
     import random
 

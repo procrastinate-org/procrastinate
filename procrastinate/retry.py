@@ -57,13 +57,16 @@ class RetryStrategy(BaseRetryStrategy):
     max_attempts:
         The maximum number of attempts the job should be retried
     wait:
-        Number of seconds to wait between attempts will follow a constant series
+        Use this if you want to use a constant backoff.
+        Give a number of seconds as argument, it will be used to compute the backoff.
         (e.g. if 3, then successive runs will wait 3, 3, 3, 3, 3 seconds)
     linear_wait:
-        Number of seconds to wait between attempts will follow an arithmetic series
+        Use this if you want to use a linear backoff.
+        Give a number of seconds as argument, it will be used to compute the backoff.
         (e.g. if 3, then successive runs will wait 0, 3, 6, 9, 12 seconds)
     exponential_wait:
-        Number of seconds to wait between attempts will follow a geometric series
+        Use this if you want to use an exponential backoff.
+        Give a number of seconds as argument, it will be used to compute the backoff.
         (e.g. if 3, then successive runs will wait 1, 3, 9, 27, 81 seconds)
     """
 
