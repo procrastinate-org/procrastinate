@@ -100,7 +100,7 @@ CREATE FUNCTION procrastinate_trigger_status_events_procedure() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
 BEGIN
-    WITH event_type AS (
+    WITH t AS (
         SELECT CASE
             WHEN OLD IS NULL
                 AND NEW.status = 'doing'::procrastinate_job_status
@@ -124,11 +124,12 @@ BEGIN
                 )
                 THEN 'cancelled'::procrastinate_job_event_type
             ELSE NULL
-        END CASE
+        END as event_type
     )
     INSERT INTO procrastinate_events(job_id, type)
-        SELECT NEW.job_id, event_type
-        WHERE event_type IS NOT NULL
+        SELECT NEW.id, t.event_type
+        FROM t
+        WHERE t.event_type IS NOT NULL;
 	RETURN NEW;
 END;
 $$;
@@ -137,8 +138,8 @@ CREATE FUNCTION procrastinate_trigger_scheduled_events_procedure() RETURNS trigg
     LANGUAGE plpgsql
     AS $$
 BEGIN
-    INSERT INTO procrastinate_events(job_id, type)
-        VALUES (NEW.job_id, 'scheduled'::procrastinate_job_status, NEW.scheduled_at)
+    INSERT INTO procrastinate_events(job_id, type, at)
+        VALUES (NEW.id, 'scheduled'::procrastinate_job_event_type, NEW.scheduled_at);
 
 	RETURN NEW;
 END;
@@ -153,7 +154,7 @@ CREATE TRIGGER procrastinate_jobs_notify_queue
 
 CREATE TRIGGER procrastinate_trigger_status_events
     AFTER UPDATE OF status OR INSERT ON procrastinate_jobs
-    FOR EACH ROW WHEN ((new.status != old.status))
+    FOR EACH ROW
     EXECUTE PROCEDURE procrastinate_trigger_status_events_procedure();
 
 CREATE TRIGGER procrastinate_trigger_scheduled_events
