@@ -201,9 +201,9 @@ def test_finish_job(get_all, pg_job_store):
     assert started_at.date() == datetime.datetime.utcnow().date()
     assert get_all("procrastinate_jobs", "attempts") == [{"attempts": 0}]
 
-    pg_job_store.finish_job(job=job, status=jobs.Status.DONE)
+    pg_job_store.finish_job(job=job, status=jobs.Status.SUCCEEDED)
 
-    expected = [{"status": "done", "started_at": started_at, "attempts": 1}]
+    expected = [{"status": "succeeded", "started_at": started_at, "attempts": 1}]
     assert get_all("procrastinate_jobs", "status", "started_at", "attempts") == expected
 
 
