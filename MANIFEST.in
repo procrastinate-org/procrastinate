@@ -3,6 +3,7 @@ prune docs
 prune procrastinate_demo
 exclude requirements.txt
 exclude CONTRIBUTING.rst
+exclude CODE_OF_CONDUCT.md
 exclude docker-compose.yml
 exclude tox.ini
 recursive-include procrastinate *.sql
