@@ -87,9 +87,9 @@ def test_defer(entrypoint, click_app):
     "input",
     [
         # Unparsable at
-        "defer --at=yay",
+        "defer --at=yay mytask",
         # Define both in and at
-        "defer --in=3 --at=2000-01-01T00:00:00Z",
+        "defer --in=3 --at=2000-01-01T00:00:00Z mytask",
         # Invalid Json
         "defer hello {",
         # Unknown task

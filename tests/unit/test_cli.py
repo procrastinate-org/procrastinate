@@ -1,3 +1,4 @@
+import datetime
 import logging
 
 import click
@@ -59,3 +60,54 @@ def test_main(mocker):
     cli.main()
 
     assert environ == {"LANG": "fr-FR.UTF-8", "LC_ALL": "C.UTF-8"}
+
+
+@pytest.mark.parametrize(
+    "input, output", [(None, {}), ("{}", {}), ("""{"a": "b"}""", {"a": "b"})]
+)
+def test_load_json_args(input, output):
+    assert cli.load_json_args(input) == output
+
+
+@pytest.mark.parametrize("input", ["", "{", "[1, 2, 3]", '"yay"'])
+def test_load_json_args_error(input):
+    with pytest.raises(click.BadArgumentUsage):
+        assert cli.load_json_args(input)
+
+
+@pytest.mark.parametrize(
+    "input, output",
+    [
+        (None, None),
+        (
+            "2000-01-01T00:00:00Z",
+            datetime.datetime(2000, 1, 1, tzinfo=datetime.timezone.utc),
+        ),
+    ],
+)
+def test_get_schedule_at(input, output):
+    assert cli.get_schedule_at(input) == output
+
+
+@pytest.mark.parametrize("input", ["yay", "2000-01-34T00:00:00Z"])
+def test_get_schedule_at_error(input):
+    with pytest.raises(click.BadOptionUsage):
+        assert cli.get_schedule_at(input)
+
+
+@pytest.mark.parametrize("input, output", [(None, None), (12, {"seconds": 12})])
+def test_get_schedule_in(input, output):
+    assert cli.get_schedule_in(input) == output
+
+
+def test_get_task(app):
+    @app.task(name="foobar")
+    def mytask():
+        pass
+
+    assert cli.get_task(app, "foobar") == mytask
+
+
+def test_get_task_error(app):
+    with pytest.raises(click.BadArgumentUsage):
+        assert cli.get_task(app, "foobar")
