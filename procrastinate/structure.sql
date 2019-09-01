@@ -96,15 +96,22 @@ BEGIN
 END;
 $$;
 
-CREATE FUNCTION procrastinate_trigger_status_events_procedure() RETURNS trigger
+CREATE FUNCTION procrastinate_trigger_status_events_procedure_insert() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    INSERT INTO procrastinate_events(job_id, type)
+        VALUES (NEW.id, 'deferred'::procrastinate_job_event_type);
+	RETURN NEW;
+END;
+$$;
+
+CREATE FUNCTION procrastinate_trigger_status_events_procedure_update() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
 BEGIN
     WITH t AS (
         SELECT CASE
-            WHEN OLD IS NULL
-                AND NEW.status = 'doing'::procrastinate_job_status
-                THEN 'deferred'::procrastinate_job_event_type
             WHEN OLD.status = 'todo'::procrastinate_job_status
                 AND NEW.status = 'doing'::procrastinate_job_status
                 THEN 'started'::procrastinate_job_event_type
@@ -152,10 +159,15 @@ CREATE TRIGGER procrastinate_jobs_notify_queue
     FOR EACH ROW WHEN ((new.status = 'todo'::procrastinate_job_status))
     EXECUTE PROCEDURE procrastinate_notify_queue();
 
-CREATE TRIGGER procrastinate_trigger_status_events
-    AFTER UPDATE OF status OR INSERT ON procrastinate_jobs
+CREATE TRIGGER procrastinate_trigger_status_events_update
+    AFTER UPDATE OF status ON procrastinate_jobs
     FOR EACH ROW
-    EXECUTE PROCEDURE procrastinate_trigger_status_events_procedure();
+    EXECUTE PROCEDURE procrastinate_trigger_status_events_procedure_update();
+
+CREATE TRIGGER procrastinate_trigger_status_events_insert
+    AFTER INSERT ON procrastinate_jobs
+    FOR EACH ROW WHEN ((new.status = 'doing'::procrastinate_job_status))
+    EXECUTE PROCEDURE procrastinate_trigger_status_events_procedure_insert();
 
 CREATE TRIGGER procrastinate_trigger_scheduled_events
     AFTER UPDATE OR INSERT ON procrastinate_jobs
