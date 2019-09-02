@@ -4,10 +4,11 @@ import select
 from typing import Any, Iterable, Iterator, Optional, Tuple
 
 import psycopg2
-from psycopg2 import extras, sql
+from psycopg2 import extras
+from psycopg2 import sql as psycopg2_sql
 from psycopg2.extras import RealDictCursor
 
-from procrastinate import jobs, store, types
+from procrastinate import jobs, sql, store, types
 
 SOCKET_TIMEOUT = 5.0  # seconds
 
@@ -24,7 +25,7 @@ def launch_job(connection: psycopg2._psycopg.connection, job: jobs.Job) -> int:
     with connection:
         with connection.cursor() as cursor:
             cursor.execute(
-                insert_jobs_sql,
+                sql.queries["insert_job"],
                 {
                     "task_name": job.task_name,
                     "lock": job.lock,
@@ -43,7 +44,7 @@ def get_jobs(
 ) -> Iterator[types.JSONDict]:
     with connection.cursor(cursor_factory=RealDictCursor) as cursor:
         while True:
-            cursor.execute(select_jobs_sql, {"queues": queues})
+            cursor.execute(sql.queries["select_job"], {"queues": queues})
             connection.commit()
 
             row = cursor.fetchone()
@@ -72,7 +73,7 @@ def get_stalled_jobs(
     with connection:
         with connection.cursor(cursor_factory=RealDictCursor) as cursor:
             cursor.execute(
-                select_stalled_jobs_sql,
+                sql.queries["select_stalled_jobs"],
                 {"nb_seconds": nb_seconds, "queue": queue, "task_name": task_name},
             )
 
@@ -97,7 +98,7 @@ def delete_old_jobs(
     with connection:
         with connection.cursor(cursor_factory=RealDictCursor) as cursor:
             cursor.execute(
-                delete_old_jobs_sql,
+                sql.queries["delete_old_jobs"],
                 {"nb_hours": nb_hours, "queue": queue, "statuses": tuple(statuses)},
             )
 
@@ -111,27 +112,28 @@ def finish_job(
     with connection:
         with connection.cursor() as cursor:
             cursor.execute(
-                finish_job_sql,
+                sql.queries["finish_job"],
                 {"job_id": job_id, "status": status, "scheduled_at": scheduled_at},
             )
+
+
+def channel_names(queues: Optional[Iterable[str]]) -> Iterable[str]:
+    if queues is None:
+        return ["procrastinate_any_queue"]
+    else:
+        return ["procrastinate_queue#" + queue for queue in queues]
 
 
 def listen_queues(
     connection: psycopg2._psycopg.connection, queues: Optional[Iterable[str]]
 ) -> None:
-    if queues is None:
-        listen_to = [listen_any_queue]
-    else:
-        listen_to = [listen_queue_pattern.format(queue=queue) for queue in queues]
-
-    queries = [
-        sql.SQL(listen_queue_raw_sql).format(queue_name=sql.Identifier(element))
-        for element in listen_to
-    ]
 
     with connection:
         with connection.cursor() as cursor:
-            for query in queries:
+            for channel_name in channel_names(queues=queues):
+                query = psycopg2_sql.SQL(sql.queries["listen_queue"]).format(
+                    channel_name=psycopg2_sql.Identifier(channel_name)
+                )
                 cursor.execute(query)
 
 
@@ -186,8 +188,8 @@ class PostgresJobStore(store.BaseJobStore):
     def launch_job(self, job: jobs.Job) -> int:
         return launch_job(connection=self.connection, job=job)
 
-    def get_jobs(self, queues: Optional[Iterable[str]]) -> Iterator[jobs.Job]:
-        for job_dict in get_jobs(connection=self.connection, queues=queues):
+    def get_job(self, queues: Optional[Iterable[str]]) -> Iterator[jobs.Job]:
+        for job_dict in get_job(connection=self.connection, queues=queues):
             # Hard to tell mypy that every element of the dict is typed correctly
             yield jobs.Job(**job_dict)  # type: ignore
 
