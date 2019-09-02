@@ -68,7 +68,7 @@ members of the project's leadership.
 ## Contacts
 
 - Joachim Jablon - @ewjoachim (first name arobase last name dot fr)
-- Pierre Mourlanne - @pmourlanne (...?)
+- Pierre Mourlanne - @pmourlanne (github handle arobase gee mail dot com)
 
 ## Attribution
 
