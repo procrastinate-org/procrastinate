@@ -11,52 +11,6 @@ from procrastinate import jobs, store, types
 
 SOCKET_TIMEOUT = 5.0  # seconds
 
-insert_jobs_sql = """
-INSERT INTO procrastinate_jobs (queue_name, task_name, lock, args, scheduled_at)
-VALUES (%(queue)s, %(task_name)s, %(lock)s, %(args)s, %(scheduled_at)s)
-RETURNING id;
-"""
-
-select_jobs_sql = """
-SELECT id, task_name, lock, args, scheduled_at, queue_name
-    FROM procrastinate_fetch_job(%(queues)s);
-"""
-
-select_stalled_jobs_sql = """
-SELECT job.id, task_name, lock, args, scheduled_at, queue_name
-    FROM procrastinate_jobs job
-WHERE status = 'doing'
-  AND started_at < NOW() - (%(nb_seconds)s || 'SECOND')::INTERVAL
-  AND (%(queue)s IS NULL OR queue_name = %(queue)s)
-  AND (%(task_name)s IS NULL OR task_name = %(task_name)s)
-"""
-
-delete_old_jobs_sql = """
-DELETE FROM procrastinate_jobs
-WHERE status IN %(statuses)s
-  AND (%(queue)s IS NULL OR queue_name = %(queue)s)
-  AND (id IN (
-      SELECT DISTINCT ON (job_id) job_id
-          FROM procrastinate_events
-      WHERE at < NOW() - (%(nb_hours)s || 'HOUR')::INTERVAL
-      ORDER BY job_id, at DESC
-      LIMIT 1
-    )
-  )
-"""
-
-
-finish_job_sql = """
-SELECT procrastinate_finish_job(%(job_id)s, %(status)s, %(scheduled_at)s);
-"""
-
-listen_queue_raw_sql = """
-LISTEN {queue_name};
-"""
-
-listen_any_queue = "procrastinate_any_queue"
-listen_queue_pattern = "procrastinate_queue#{queue}"
-
 
 def get_connection(*args, **kwargs) -> psycopg2._psycopg.connection:
     return psycopg2.connect(*args, **kwargs)
