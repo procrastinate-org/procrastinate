@@ -94,4 +94,4 @@ class InMemoryJobStore(store.BaseJobStore):
         pass
 
     def execute_queries(self, queries: str):
-        self.queries.append(str)
+        self.queries.append(queries)
