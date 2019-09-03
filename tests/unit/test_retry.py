@@ -24,6 +24,8 @@ def test_get_retry_strategy(retry, expected_strategy):
 @pytest.mark.parametrize(
     "attempts, wait, linear_wait, exponential_wait, schedule_in",
     [
+        # No wait
+        (0, 0.0, 0.0, 0.0, 0.0),
         # Constant, first try
         (1, 5.0, 0.0, 0.0, 5.0),
         # Constant, last try
@@ -34,10 +36,10 @@ def test_get_retry_strategy(retry, expected_strategy):
         (100, 5.0, 0.0, 0.0, None),
         # Linear (3 * 7)
         (3, 0.0, 7.0, 0.0, 21.0),
-        # Exponential (2 ** 5)
-        (5, 0.0, 0.0, 2.0, 32.0),
-        # Mix & match 8 + 3*4 + 2**4 = 36
-        (4, 8.0, 3.0, 2.0, 36.0),
+        # Exponential (2 ** (5+1))
+        (5, 0.0, 0.0, 2.0, 64.0),
+        # Mix & match 8 + 3*4 + 2**(4+1) = 52
+        (4, 8.0, 3.0, 2.0, 52.0),
     ],
 )
 def test_get_schedule_in(attempts, schedule_in, wait, linear_wait, exponential_wait):
