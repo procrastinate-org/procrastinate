@@ -198,7 +198,7 @@ def test_delete_old_jobs_job_is_not_finished(get_all, pg_job_store):
     assert len(get_all("procrastinate_jobs", "id")) == 1
 
     # We start a job
-    job = next(pg_job_store.get_jobs(queues=["queue_a"]))
+    job = pg_job_store.get_job(queues=["queue_a"])
     # We back date the started event
     with pg_job_store.connection.cursor() as cursor:
         cursor.execute(
@@ -232,8 +232,8 @@ def test_delete_old_jobs_multiple_jobs(get_all, pg_job_store):
     )
 
     # We start both jobs
-    job_a = next(pg_job_store.get_jobs(queues=["queue_a"]))
-    job_b = next(pg_job_store.get_jobs(queues=["queue_b"]))
+    job_a = pg_job_store.get_job(queues=["queue_a"])
+    job_b = pg_job_store.get_job(queues=["queue_b"])
     # We finish both jobs
     pg_job_store.finish_job(job_a, status=jobs.Status.SUCCEEDED)
     pg_job_store.finish_job(job_b, status=jobs.Status.SUCCEEDED)
@@ -281,7 +281,7 @@ def test_delete_old_jobs_parameters(
     )
 
     # We start a job and fake its `started_at`
-    job = next(pg_job_store.get_jobs(queues=["queue_a"]))
+    job = pg_job_store.get_job(queues=["queue_a"])
     # We finish the job
     pg_job_store.finish_job(job, status=status)
     # We back date its events

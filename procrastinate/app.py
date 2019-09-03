@@ -2,7 +2,7 @@ import functools
 import logging
 from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, Optional, Set
 
-from procrastinate import builtin_tasks, migration
+from procrastinate import builtin_tasks, exceptions, migration
 from procrastinate import retry as retry_module
 from procrastinate import store, utils
 
@@ -166,13 +166,16 @@ class App:
             List of queues to listen to, or None to listen to
             every queue.
         only_once:
-            If True, the worker will rune but just for the currently
+            If True, the worker will run but just for the currently
             defined tasks. This function will return when the
             listened queues are empty.
         """
         worker = self._worker(queues=queues)
         if only_once:
-            worker.process_jobs_once()
+            try:
+                worker.process_jobs_once()
+            except (exceptions.NoMoreJobs, exceptions.StopRequested):
+                pass
         else:
             worker.run()
 
