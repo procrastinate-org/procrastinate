@@ -36,7 +36,7 @@ class InMemoryJobStore(store.BaseJobStore):
         self.jobs: List[jobs.Job] = []
         self.current_job_ids: Set[int] = set()
         self.finished_jobs: List[Tuple[jobs.Job, jobs.Status]] = []
-        self.job_counter = count()
+        self.job_counter = count(1)
         self.listening_queues: Set[str] = set()
         self.listening_all_queues = False
         self.waited = False

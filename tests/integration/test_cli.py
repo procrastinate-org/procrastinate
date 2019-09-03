@@ -72,7 +72,7 @@ def test_defer(entrypoint, click_app):
     assert result.exit_code == 0
     assert click_app.job_store.jobs == [
         jobs.Job(
-            id=0,
+            id=1,
             queue="default",
             lock="sherlock",
             task_name="hello",
