@@ -60,6 +60,7 @@ def get_job(
             "task_kwargs": row["args"],
             "scheduled_at": row["scheduled_at"],
             "queue": row["queue_name"],
+            "attempts": row["attempts"],
         }
 
 
@@ -85,6 +86,7 @@ def get_stalled_jobs(
                     "task_kwargs": row["args"],
                     "scheduled_at": row["scheduled_at"],
                     "queue": row["queue_name"],
+                    "attempts": row["attempts"],
                 }
 
 

@@ -324,6 +324,25 @@ def test_finish_job(get_all, pg_job_store):
     assert get_all("procrastinate_jobs", "status", "started_at", "attempts") == expected
 
 
+def test_finish_job_retry(get_all, pg_job_store):
+    pg_job_store.launch_job(
+        jobs.Job(
+            id=0,
+            queue="queue_a",
+            task_name="task_1",
+            lock="lock_1",
+            task_kwargs={"a": "b"},
+        )
+    )
+    job1 = pg_job_store.get_job(queues=None)
+    pg_job_store.finish_job(job=job1, status=jobs.Status.TODO)
+
+    job2 = pg_job_store.get_job(queues=None)
+
+    assert job2.id == job1.id
+    assert job2.attempts == job1.attempts + 1
+
+
 def test_listen_queue(pg_job_store):
     queue = "".join(random.choices(string.ascii_letters, k=10))
     queue_full_name = f"procrastinate_queue#{queue}"

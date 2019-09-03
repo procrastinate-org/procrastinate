@@ -11,12 +11,12 @@ RETURNING id;
 
 -- fetch_job --
 -- Get the first awaiting job
-SELECT id, task_name, lock, args, scheduled_at, queue_name
+SELECT id, task_name, lock, args, scheduled_at, queue_name, attempts
     FROM procrastinate_fetch_job(%(queues)s);
 
 -- select_stalled_jobs --
 -- Get running jobs that started more than a given time ago
-SELECT job.id, task_name, lock, args, scheduled_at, queue_name
+SELECT job.id, task_name, lock, args, scheduled_at, queue_name, attempts
     FROM procrastinate_jobs job
 WHERE status = 'doing'
   AND started_at < NOW() - (%(nb_seconds)s || 'SECOND')::INTERVAL
