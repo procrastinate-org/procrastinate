@@ -10,7 +10,7 @@ CREATE TYPE procrastinate_job_status AS ENUM (
 CREATE TYPE procrastinate_job_event_type AS ENUM (
     'deferred',  -- Job created, in todo
     'started',  -- todo -> doing
-    'retried',  -- doing -> todo
+    'deferred_for_retry',  -- doing -> todo
     'failed',  -- doing -> failed
     'succeeded',  -- doing -> succeeded
     'cancelled', -- todo -> failed or succeeded
@@ -117,7 +117,7 @@ BEGIN
                 THEN 'started'::procrastinate_job_event_type
             WHEN OLD.status = 'doing'::procrastinate_job_status
                 AND NEW.status = 'todo'::procrastinate_job_status
-                THEN 'retried'::procrastinate_job_event_type
+                THEN 'deferred_for_retry'::procrastinate_job_event_type
             WHEN OLD.status = 'doing'::procrastinate_job_status
                 AND NEW.status = 'failed'::procrastinate_job_status
                 THEN 'failed'::procrastinate_job_event_type
@@ -173,5 +173,3 @@ CREATE TRIGGER procrastinate_trigger_scheduled_events
     AFTER UPDATE OR INSERT ON procrastinate_jobs
     FOR EACH ROW WHEN ((new.scheduled_at IS NOT NULL AND new.status = 'todo'::procrastinate_job_status))
     EXECUTE PROCEDURE procrastinate_trigger_scheduled_events_procedure();
-
-
