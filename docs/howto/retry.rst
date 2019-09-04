@@ -1,3 +1,5 @@
+.. _retry:
+
 Define a retry strategy on a task
 ---------------------------------
 

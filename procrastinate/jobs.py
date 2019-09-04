@@ -21,8 +21,8 @@ def check_aware(
 class Status(Enum):
     TODO = "todo"
     DOING = "doing"
-    DONE = "done"
-    ERROR = "error"
+    SUCCEEDED = "succeeded"
+    FAILED = "failed"
 
 
 @attr.dataclass(frozen=True, kw_only=True)

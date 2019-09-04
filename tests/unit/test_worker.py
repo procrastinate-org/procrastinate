@@ -73,10 +73,10 @@ def test_process_jobs_once(mocker, app, job_factory):
     ]
 
     assert app.job_store.finished_jobs == [
-        (job_1, jobs.Status.DONE),
-        (job_2, jobs.Status.ERROR),
-        (job_3, jobs.Status.ERROR),
-        (job_4, jobs.Status.DONE),
+        (job_1, jobs.Status.SUCCEEDED),
+        (job_2, jobs.Status.FAILED),
+        (job_3, jobs.Status.FAILED),
+        (job_4, jobs.Status.SUCCEEDED),
     ]
 
 
@@ -89,7 +89,7 @@ def test_process_jobs_once_until_no_more_jobs(mocker, app, job_factory):
     test_worker = worker.Worker(app, queues=["queue"])
     test_worker.process_jobs_once()
 
-    assert app.job_store.finished_jobs == [(job, jobs.Status.DONE)]
+    assert app.job_store.finished_jobs == [(job, jobs.Status.SUCCEEDED)]
 
 
 def test_process_jobs_once_retry_failed_job(mocker, app, job_factory):

@@ -62,7 +62,7 @@ class InMemoryJobStore(store.BaseJobStore):
         scheduled_at: Optional[datetime.datetime] = None,
     ) -> None:
         self.jobs.remove(job)
-        if status in [jobs.Status.DONE, jobs.Status.ERROR]:
+        if status in [jobs.Status.SUCCEEDED, jobs.Status.FAILED]:
             self.finished_jobs.append((job, status))
         else:
             self.jobs.append(

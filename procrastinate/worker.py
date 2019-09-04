@@ -56,11 +56,11 @@ class Worker:
                 extra={"action": "loaded_job_info", **log_context},
             )
 
-            status = jobs.Status.ERROR
+            status = jobs.Status.FAILED
             next_attempt_scheduled_at = None
             try:
                 self.run_job(job=job)
-                status = jobs.Status.DONE
+                status = jobs.Status.SUCCEEDED
             except exceptions.JobRetry as e:
                 status = jobs.Status.TODO
                 next_attempt_scheduled_at = e.scheduled_at

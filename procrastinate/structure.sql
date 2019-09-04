@@ -1,29 +1,46 @@
 CREATE EXTENSION IF NOT EXISTS plpgsql WITH SCHEMA pg_catalog;
 
-CREATE TYPE public.procrastinate_job_status AS ENUM (
-    'todo',
-    'doing',
-    'done',
-    'error'
+CREATE TYPE procrastinate_job_status AS ENUM (
+    'todo',  -- The job is queued
+    'doing',  -- The job has been fetched by a worker
+    'succeeded',  -- The job ended succesfully
+    'failed'  -- The job ended with an error
 );
 
-CREATE TABLE public.procrastinate_jobs (
-    id integer NOT NULL,
+CREATE TYPE procrastinate_job_event_type AS ENUM (
+    'deferred',  -- Job created, in todo
+    'started',  -- todo -> doing
+    'deferred_for_retry',  -- doing -> todo
+    'failed',  -- doing -> failed
+    'succeeded',  -- doing -> succeeded
+    'cancelled', -- todo -> failed or succeeded
+    'scheduled' -- not an event transition, but recording when a task is scheduled for
+);
+
+CREATE TABLE procrastinate_jobs (
+    id bigserial PRIMARY KEY,
     queue_name character varying(128) NOT NULL,
     task_name character varying(128) NOT NULL,
     lock text,
     args jsonb DEFAULT '{}' NOT NULL,
-    status public.procrastinate_job_status DEFAULT 'todo'::public.procrastinate_job_status NOT NULL,
+    status procrastinate_job_status DEFAULT 'todo'::procrastinate_job_status NOT NULL,
     scheduled_at timestamp with time zone NULL,
     started_at timestamp with time zone NULL,
     attempts integer DEFAULT 0 NOT NULL
 );
 
-CREATE UNLOGGED TABLE public.procrastinate_job_locks (
+CREATE TABLE procrastinate_events (
+    id BIGSERIAL PRIMARY KEY,
+    job_id integer NOT NULL REFERENCES procrastinate_jobs,
+    type procrastinate_job_event_type,
+    at timestamp with time zone DEFAULT NOW() NULL
+);
+
+CREATE UNLOGGED TABLE procrastinate_job_locks (
     object text NOT NULL
 );
 
-CREATE FUNCTION public.procrastinate_fetch_job(target_queue_names character varying[]) RETURNS public.procrastinate_jobs
+CREATE FUNCTION procrastinate_fetch_job(target_queue_names character varying[]) RETURNS procrastinate_jobs
     LANGUAGE plpgsql
     AS $$
 DECLARE
@@ -54,7 +71,7 @@ BEGIN
 END;
 $$;
 
-CREATE FUNCTION public.procrastinate_finish_job(job_id integer, end_status public.procrastinate_job_status, next_scheduled_at timestamp with time zone) RETURNS void
+CREATE FUNCTION procrastinate_finish_job(job_id integer, end_status procrastinate_job_status, next_scheduled_at timestamp with time zone) RETURNS void
     LANGUAGE plpgsql
     AS $$
 BEGIN
@@ -69,7 +86,7 @@ BEGIN
 END;
 $$;
 
-CREATE FUNCTION public.procrastinate_notify_queue() RETURNS trigger
+CREATE FUNCTION procrastinate_notify_queue() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
 BEGIN
@@ -79,22 +96,80 @@ BEGIN
 END;
 $$;
 
-CREATE SEQUENCE public.procrastinate_jobs_id_seq;
+CREATE FUNCTION procrastinate_trigger_status_events_procedure_insert() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    INSERT INTO procrastinate_events(job_id, type)
+        VALUES (NEW.id, 'deferred'::procrastinate_job_event_type);
+	RETURN NEW;
+END;
+$$;
 
-ALTER SEQUENCE public.procrastinate_jobs_id_seq OWNED BY public.procrastinate_jobs.id;
+CREATE FUNCTION procrastinate_trigger_status_events_procedure_update() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    WITH t AS (
+        SELECT CASE
+            WHEN OLD.status = 'todo'::procrastinate_job_status
+                AND NEW.status = 'doing'::procrastinate_job_status
+                THEN 'started'::procrastinate_job_event_type
+            WHEN OLD.status = 'doing'::procrastinate_job_status
+                AND NEW.status = 'todo'::procrastinate_job_status
+                THEN 'deferred_for_retry'::procrastinate_job_event_type
+            WHEN OLD.status = 'doing'::procrastinate_job_status
+                AND NEW.status = 'failed'::procrastinate_job_status
+                THEN 'failed'::procrastinate_job_event_type
+            WHEN OLD.status = 'doing'::procrastinate_job_status
+                AND NEW.status = 'succeeded'::procrastinate_job_status
+                THEN 'succeeded'::procrastinate_job_event_type
+            WHEN OLD.status = 'todo'::procrastinate_job_status
+                AND (
+                    NEW.status = 'failed'::procrastinate_job_status
+                    OR NEW.status = 'succeeded'::procrastinate_job_status
+                )
+                THEN 'cancelled'::procrastinate_job_event_type
+            ELSE NULL
+        END as event_type
+    )
+    INSERT INTO procrastinate_events(job_id, type)
+        SELECT NEW.id, t.event_type
+        FROM t
+        WHERE t.event_type IS NOT NULL;
+	RETURN NEW;
+END;
+$$;
 
-ALTER TABLE ONLY public.procrastinate_jobs ALTER COLUMN id
-    SET DEFAULT nextval('public.procrastinate_jobs_id_seq'::regclass);
+CREATE FUNCTION procrastinate_trigger_scheduled_events_procedure() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    INSERT INTO procrastinate_events(job_id, type, at)
+        VALUES (NEW.id, 'scheduled'::procrastinate_job_event_type, NEW.scheduled_at);
 
-ALTER TABLE ONLY public.procrastinate_job_locks
-    ADD CONSTRAINT procrastinate_job_locks_object_key UNIQUE (object);
-
-ALTER TABLE ONLY public.procrastinate_jobs
-    ADD CONSTRAINT procrastinate_jobs_pkey PRIMARY KEY (id);
+	RETURN NEW;
+END;
+$$;
 
 CREATE INDEX ON procrastinate_jobs(queue_name);
 
-CREATE TRIGGER procrastinate_jobs_procrastinate_notify_queue
-    AFTER INSERT ON public.procrastinate_jobs
-    FOR EACH ROW WHEN ((new.status = 'todo'::public.procrastinate_job_status))
-    EXECUTE PROCEDURE public.procrastinate_notify_queue();
+CREATE TRIGGER procrastinate_jobs_notify_queue
+    AFTER INSERT ON procrastinate_jobs
+    FOR EACH ROW WHEN ((new.status = 'todo'::procrastinate_job_status))
+    EXECUTE PROCEDURE procrastinate_notify_queue();
+
+CREATE TRIGGER procrastinate_trigger_status_events_update
+    AFTER UPDATE OF status ON procrastinate_jobs
+    FOR EACH ROW
+    EXECUTE PROCEDURE procrastinate_trigger_status_events_procedure_update();
+
+CREATE TRIGGER procrastinate_trigger_status_events_insert
+    AFTER INSERT ON procrastinate_jobs
+    FOR EACH ROW WHEN ((new.status = 'doing'::procrastinate_job_status))
+    EXECUTE PROCEDURE procrastinate_trigger_status_events_procedure_insert();
+
+CREATE TRIGGER procrastinate_trigger_scheduled_events
+    AFTER UPDATE OR INSERT ON procrastinate_jobs
+    FOR EACH ROW WHEN ((new.scheduled_at IS NOT NULL AND new.status = 'todo'::procrastinate_job_status))
+    EXECUTE PROCEDURE procrastinate_trigger_scheduled_events_procedure();
