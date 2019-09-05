@@ -9,7 +9,7 @@ import click
 import pendulum
 
 import procrastinate
-from procrastinate import exceptions, types
+from procrastinate import exceptions, tasks, types
 
 logger = logging.getLogger(__name__)
 
@@ -118,7 +118,7 @@ def worker(app: procrastinate.App, queue: Iterable[str]):
 )
 @click.option("--at", help="ISO-8601 localized datetime after which to launch the job")
 @click.option(
-    "--in", "_in", type=int, help="Number of seconds after which to launch the job"
+    "--in", "in_", type=int, help="Number of seconds after which to launch the job"
 )
 def defer(
     app: procrastinate.App,
@@ -126,7 +126,7 @@ def defer(
     json_args: str,
     lock: Optional[str],
     at: Optional[str],
-    _in: Optional[int],
+    in_: Optional[int],
 ):
     """
     Create a job from the given task, to be executed by a worker.
@@ -134,36 +134,16 @@ def defer(
     JSON_ARGS should be a json object (a.k.a dictionnary) with the job parameters
     """
     # Loading json args
-    args: types.JSONDict
-    if json_args is None:
-        args = {}
-    else:
-        try:
-            args = json.loads(json_args)
-            assert type(args) == dict
-        except Exception:
-            raise click.BadArgumentUsage(
-                "Incorrect JSON_ARGS value expecting a valid json object (or dict)"
-            )
-    if at is not None and _in is not None:
+    args = load_json_args(json_args=json_args)
+
+    if at is not None and in_ is not None:
         raise click.UsageError("Cannot use both --at and --in")
 
-    schedule_at: Optional[datetime.datetime] = None
-    schedule_in: Optional[Dict[str, int]] = None
-    if at is not None:
-        try:
-            schedule_at = pendulum.parse(at)
-        except pendulum.exceptions.ParserError:
-            raise click.BadOptionUsage("--at", f"Cannot parse datetime {at}")
-    elif _in is not None:
-        schedule_in = {"seconds": _in}
+    schedule_at = get_schedule_at(at=at)
+    schedule_in = get_schedule_in(in_=in_)
 
     # Retrieving the associated task
-    app.perform_import_paths()
-    try:
-        task_obj = app.tasks[task]
-    except KeyError:
-        raise click.BadArgumentUsage(f"Task {task} not found.")
+    task_obj = get_task(app=app, task_name=task)
 
     # Printing info
     str_kwargs = ", ".join(f"{k}={repr(v)}" for k, v in args.items())
@@ -173,6 +153,45 @@ def defer(
     task_obj.configure(
         lock=lock, schedule_at=schedule_at, schedule_in=schedule_in
     ).defer(**args)
+
+
+def load_json_args(json_args) -> types.JSONDict:
+    if json_args is None:
+        return {}
+    else:
+        try:
+            args = json.loads(json_args)
+            assert type(args) == dict
+        except Exception:
+            raise click.BadArgumentUsage(
+                "Incorrect JSON_ARGS value expecting a valid json object (or dict)"
+            )
+    return args
+
+
+def get_schedule_at(at: Optional[str]) -> Optional[datetime.datetime]:
+    if at is None:
+        return None
+
+    try:
+        return pendulum.parse(at)
+    except pendulum.exceptions.ParserError:
+        raise click.BadOptionUsage("--at", f"Cannot parse datetime {at}")
+
+
+def get_schedule_in(in_: Optional[int]) -> Optional[Dict[str, int]]:
+    if in_ is None:
+        return None
+
+    return {"seconds": in_}
+
+
+def get_task(app: procrastinate.App, task_name: str) -> tasks.Task:
+    app.perform_import_paths()
+    try:
+        return app.tasks[task_name]
+    except KeyError:
+        raise click.BadArgumentUsage(f"Task {task_name} not found.")
 
 
 @cli.command()
