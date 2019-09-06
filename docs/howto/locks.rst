@@ -12,8 +12,8 @@ Let's imagine we have a task like this::
             f.write(letter)
 
 We write the letter we receive to a file after waiting for a
-random time (this is a simplified version of a real
-world problem where tasks take a unforseeable amount of time
+random amount of time (this is a simplified version of a real
+world problem where tasks take an unforseeable amount of time
 and share resources like a database).
 
 We call it::
