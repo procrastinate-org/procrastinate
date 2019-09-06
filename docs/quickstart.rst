@@ -87,10 +87,7 @@ At this point, nothing is running yet. We've just created a task, which is the t
 Our task doesn't really have an impact on the world (a side effect). It doesn't write a
 file, or update a database, it doesn't make an API call. In real life, this is a
 problem, because at this point, all the job is doing is wasting CPU cycle. In our case,
-though, we'll just monitor the standard output to see if our task executed successfully,
-and check the result of the "print" call
-
-Time to...
+though, we'll just monitor the standard output to see if our task executed successfully.
 
 Launch a job
 ------------
@@ -114,6 +111,8 @@ You can launch your script now with:
     (venv) $ python tutorial.py launch 2 3
 
 But at this point, it should not do a lot. Feel free to create a few tasks in advance.
+
+Let's run all of this, and check if we can spot the "print" call.
 
 Run a worker
 ------------

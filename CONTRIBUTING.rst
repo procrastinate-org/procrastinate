@@ -16,7 +16,7 @@ Create your dev database
     $ createdb
 
 Set up your development environment
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 You may need to install some required packages for psycopg:
 
@@ -39,8 +39,8 @@ dependencies:
 
     $ pip install -r requirements.txt
 
-Test your setup
-^^^^^^^
+Run the project automated tests
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 With a running database:
 
@@ -59,7 +59,7 @@ If you don't know Tox_, have a look at their documentation, it's a very nice too
 .. _Tox: https://tox.readthedocs.io/en/latest/
 
 Keep your code clean
-^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^
 
 Before committing:
 
