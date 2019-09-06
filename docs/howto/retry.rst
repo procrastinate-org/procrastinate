@@ -42,10 +42,10 @@ You can get a more precise strategy using a :py:class:`RetryStrategy` instance::
     def my_other_task():
         print("Hello world")
 
-:py:class:`RetryStrategy` takes 3 parameters related to how much it will wait
+:py:class:`RetryStrategy` takes 3 parameters related to how long it will wait
 between retries:
 
-- ``wait=5`` to wait 5 seconds between each retry
+- ``wait=5`` to wait 5 seconds before each retry
 - ``linear_wait=5`` to wait 5 seconds then 10 then 15 and so on
 - ``exponential_wait=5`` to wait 5 seconds then 25 then 125 and so on
 
