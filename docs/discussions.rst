@@ -52,8 +52,8 @@ There are 14 standards...
 
 We are aware that Procrastinate is an addition to an already crowded market of
 Python task queues, and the aim is not to replace them all, but to provide
-an alternative that fits our need, where we could not find one we were
-completely satifified with.
+an alternative that fits our need, as we could not find one we were
+completely satisfied with.
 
 Nethertheless, we acknowledge the impressive Open Source work accomplished by
 some projects that really stand out, to name a few:
@@ -93,7 +93,7 @@ reference materials, as well as in the user code and its own code.
 Let's go through a few words and their meaning.
 
 Asynchronous
-    In Procrastinate, most of the time asynchronicity is mentionned, it's not about
+    In Procrastinate, most of the time asynchronicity is mentioned, it's not about
     Python's ``async/await`` features, but about the fact a job is launched
     in the code, and then the calling code moves on, not waiting for the
     completion of the job. Because of this, asynchronous tasks should have a
