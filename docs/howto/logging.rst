@@ -7,7 +7,7 @@ messages, they are added as extra_ elements to the logs themselves.
 
 .. _extra: https://timber.io/blog/the-pythonic-guide-to-logging/#adding-context
 
-This way, you can adapt the logs to whatever formats suits your needs the most, using
+This way, you can adapt the logs to whatever format suits your needs the most, using
 a log filter::
 
     import logging
