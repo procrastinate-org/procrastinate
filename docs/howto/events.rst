@@ -5,7 +5,7 @@ Get statistics regarding job executions
 
     This is quite early-stage, likely to get a better interface in the future
 
-At anypoint, you can look at the ``procrastinate_jobs`` table for information regarding
+At any point, you can look at the ``procrastinate_jobs`` table for information regarding
 the success rate and the average number of retries of your jobs, but this doesn't
 help if you're interested in time-related information, or if you want to search
 for jobs based on the date of some events they went through.
