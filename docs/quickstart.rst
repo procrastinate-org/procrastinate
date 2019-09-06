@@ -8,8 +8,7 @@ Prerequisites & installation
 ----------------------------
 
 If you already have a PostgreSQL database around, make sure to note the connection
-parameters. Otherwise, we'll create one together with Docker_, but is works all the
-same if you'd rather install PostgreSQL directly in your system.
+parameters. Otherwise, we'll create one together with Docker_:
 
 .. _Docker: https://docs.docker.com/
 
@@ -86,10 +85,10 @@ At this point, nothing is running yet. We've just created a task, which is the t
 (or blueprint) for a job.
 
 Our task doesn't really have an impact on the world (a side effect). It doesn't write a
-file, or update a database, it doesn't make an API call. In the real life, this is a
+file, or update a database, it doesn't make an API call. In real life, this is a
 problem, because at this point, all the job is doing is wasting CPU cycle. In our case,
 though, we'll just monitor the standard output to see if our task executed successfully,
-we should be able to see the result of the "print" call
+and check the result of the "print" call
 
 Time to...
 
@@ -123,7 +122,7 @@ Run a worker
 
     (venv) $ procrastinate --verbose --app=tutorial.app worker
 
-In the logs, you should see the values as they are computed.
+In the logs, you can see the values as they are computed.
 
 Congratulations, you've succefully procrastinated the execution of your first task :)
 
