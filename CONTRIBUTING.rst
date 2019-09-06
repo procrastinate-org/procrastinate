@@ -6,7 +6,7 @@ You're welcome to come and procrastinate with us :)
 Instructions for contribution
 -----------------------------
 
-Create your dev database 
+Create your dev database
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: console
