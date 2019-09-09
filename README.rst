@@ -28,7 +28,11 @@ Procrastinate: PostgreSQL-based Task Queue for Python
 
 Procrastinate is an open-source Python 3.6+ distributed task processing
 library, leveraging PostgreSQL to store task definitions, manage locks and
-dispatch tasks. The project is still quite early-stage and will probably evolve.
+dispatch tasks.
+
+In other words, from your main code, you schedule jobs (a.k.a. function calls)
+and a dedicated worker process will execute all the enqueued jobs immediately or
+later.
 
 Here's an example
 
@@ -52,12 +56,24 @@ Here's an example
         queues=["sums"]
     )
     worker.run()
+    
+Similarly, from the command line:
 
+.. code-block:: bash
+    
+    export PROCRASTINATE_APP="mycode.app"
+    
+    procrastinate defer mycode.sum '{"a": 3, "b": 5}'
+    
+    procrastinate worker sums
+    
 There are quite a few interesting features that Procrastinate adds to the mix.
 You can head to the Quickstart section for a general tour or
 to the How-To sections for specific features. The Discussion
 section should hopefully answer your questions. Otherwise,
 feel free to open an `issue <https://github.com/peopledoc/procrastinate/issues>`_.
+
+The project is still quite early-stage and will probably evolve.
 
 *Note to my future self: add a quick note here on why this project is named*
 "Procrastinate_".
