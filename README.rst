@@ -30,13 +30,15 @@ Procrastinate is an open-source Python 3.6+ distributed task processing
 library, leveraging PostgreSQL to store task definitions, manage locks and
 dispatch tasks.
 
-In other words, from your main code, you schedule jobs (a.k.a. function calls)
-and a dedicated worker process will execute all the enqueued jobs immediately or
-later.
+In other words, from your main code, you call specific functions (tasks) in a
+special way and instead of being run on the spot, they're scheduled to
+be run elsewhere, now or in the future.
 
 Here's an example
 
 .. code-block:: python
+
+    # mycode.py
 
     # Make a app in your code
     app = procrastinate.App(job_store=procrastinate.PostgresJobStore())
@@ -47,26 +49,31 @@ Here's an example
         with open("myfile", "w") as f:
             f.write(str(a + b))
 
-    # Launch tasks
+    # Launch a job
     sum.defer(a=3, b=5)
 
-    # Somewhere in your program, launch a worker
+    # Somewhere in your program, run a worker
     worker = procrastinate.Worker(
         app=app,
         queues=["sums"]
     )
     worker.run()
-    
+
+The worker will run the job, which will create a text file
+named ``myfile`` with the result of the sum ``3 + 5`` (that's ``8``).
+
 Similarly, from the command line:
 
 .. code-block:: bash
-    
+
     export PROCRASTINATE_APP="mycode.app"
-    
+
+    # Launch a job
     procrastinate defer mycode.sum '{"a": 3, "b": 5}'
-    
+
+    # Run a worker
     procrastinate worker sums
-    
+
 There are quite a few interesting features that Procrastinate adds to the mix.
 You can head to the Quickstart section for a general tour or
 to the How-To sections for specific features. The Discussion
