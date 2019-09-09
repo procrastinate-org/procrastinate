@@ -8,4 +8,5 @@
    howto_index
    discussions
    reference
+   glossary
    contributing

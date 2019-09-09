@@ -15,8 +15,8 @@ Create your dev database
     $ export PGDATABASE=procrastinate PGHOST=localhost PGUSER=postgres
     $ createdb
 
-Installation for development
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Set up your development environment
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 You may need to install some required packages for psycopg:
 
@@ -39,8 +39,8 @@ dependencies:
 
     $ pip install -r requirements.txt
 
-Testing
-^^^^^^^
+Run the project automated tests
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 With a running database:
 
@@ -58,10 +58,10 @@ If you don't know Tox_, have a look at their documentation, it's a very nice too
 
 .. _Tox: https://tox.readthedocs.io/en/latest/
 
-Code cleaning
-^^^^^^^^^^^^^
+Keep your code clean
+^^^^^^^^^^^^^^^^^^^^
 
-Before commiting:
+Before committing:
 
 .. code-block:: console
 

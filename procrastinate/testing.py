@@ -25,7 +25,7 @@ class InMemoryJobStore(store.BaseJobStore):
             Currently running Job objects. They are removed from this
             list upon completion
         finished_jobs: List[Tuple[jobs.Job, jobs.Status]]
-            List of finished jobs, with their associate status
+            List of finished jobs, with their related status
         """
         self.reset()
 

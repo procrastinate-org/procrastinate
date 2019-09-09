@@ -91,13 +91,13 @@ class App:
             queues.
         name :
             Name of the task, by default the full dotted path to the decorated function.
-            if the function is nested of dynamically defined, it is important to give
+            if the function is nested or dynamically defined, it is important to give
             it a unique name, and to make sure the module that defines this function
             is listed in the ``import_paths`` of the :py:class:`procrastinate.App`.
         retry :
             Details how to auto-retry the task if it fails. Can be:
 
-            - An ``boolean``: will either not retry or retry indefinitely
+            - A ``boolean``: will either not retry or retry indefinitely
             - An ``int``: the number of retries before it gives up
             - A :py:class:`procrastinate.RetryStrategy` instance for complex cases
 
