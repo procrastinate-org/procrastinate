@@ -3,3 +3,5 @@
 
 # Documentation
 /docs/                  @ewjoachim @mgu @pmourlanne @CorBott
+*.rst                   @ewjoachim @mgu @pmourlanne @CorBott
+*.md                    @ewjoachim @mgu @pmourlanne @CorBott
