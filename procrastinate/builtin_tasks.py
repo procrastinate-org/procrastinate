@@ -1,3 +1,4 @@
+import functools
 from typing import Optional
 
 from procrastinate import store
@@ -26,4 +27,13 @@ def remove_old_jobs(
     """
     job_store.delete_old_jobs(
         nb_hours=max_hours, queue=queue, include_error=remove_error
+    )
+
+
+# Register your builtin tasks here
+def register_builtin_tasks(app) -> None:
+    app.builtin_tasks["remove_old_jobs"] = app.task(
+        functools.partial(remove_old_jobs, app.job_store),
+        queue="builtin",
+        name="procrastinate.builtin_tasks.remove_old_jobs",
     )

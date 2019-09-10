@@ -2,7 +2,7 @@ import functools
 import logging
 from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, Optional, Set
 
-from procrastinate import migration
+from procrastinate import builtin_tasks, migration
 from procrastinate import retry as retry_module
 from procrastinate import store, utils
 
@@ -53,8 +53,11 @@ class App:
         """
         self.job_store = job_store
         self.tasks: Dict[str, "tasks.Task"] = {}
+        self.builtin_tasks: Dict[str, "tasks.Task"] = {}
         self.queues: Set[str] = set()
         self.import_paths = import_paths or []
+
+        self._register_builtin_tasks()
 
     def task(
         self,
@@ -127,6 +130,9 @@ class App:
                 extra={"action": "register_queue", "queue": task.queue},
             )
             self.queues.add(task.queue)
+
+    def _register_builtin_tasks(self) -> None:
+        builtin_tasks.register_builtin_tasks(self)
 
     def _worker(self, queues: Optional[Iterable[str]] = None) -> "worker.Worker":
         from procrastinate import worker

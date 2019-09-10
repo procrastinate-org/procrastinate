@@ -32,23 +32,31 @@ def test_app_task_implicit(app, mocker):
     assert registered_task.func is wrapped.__wrapped__
 
 
-def test_app_register(app, mocker):
+def test_app_register_builtins(app):
+    assert app.queues == {"builtin"}
+    assert "procrastinate.builtin_tasks.remove_old_jobs" in app.tasks
+    assert "remove_old_jobs" in app.builtin_tasks
+
+
+def test_app_register(app):
     task = tasks.Task(task_func, app=app, queue="queue", name="bla")
 
     app._register(task)
 
-    assert app.queues == {"queue"}
-    assert app.tasks == {"bla": task}
+    assert app.queues == {"queue", "builtin"}
+    assert "bla" in app.tasks
+    assert app.tasks["bla"] == task
 
 
-def test_app_register_queue_already_exists(app, mocker):
+def test_app_register_queue_already_exists(app):
     app.queues.add("queue")
     task = tasks.Task(task_func, app=app, queue="queue", name="bla")
 
     app._register(task)
 
-    assert app.queues == {"queue"}
-    assert app.tasks == {"bla": task}
+    assert app.queues == {"queue", "builtin"}
+    assert "bla" in app.tasks
+    assert app.tasks["bla"] == task
 
 
 def test_app_worker(app, mocker):
