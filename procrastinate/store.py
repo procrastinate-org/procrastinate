@@ -11,6 +11,14 @@ class BaseJobStore:
     def get_jobs(self, queues: Optional[Iterable[str]]) -> Iterator[jobs.Job]:
         raise NotImplementedError
 
+    def delete_old_jobs(
+        self,
+        nb_hours: int,
+        queue: Optional[str] = None,
+        include_error: Optional[bool] = False,
+    ) -> None:
+        raise NotImplementedError
+
     def finish_job(
         self,
         job: jobs.Job,
