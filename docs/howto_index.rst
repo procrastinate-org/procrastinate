@@ -21,3 +21,4 @@ How-to...
     howto/testing
     howto/deployment
     howto/monitoring
+    howto/remove_old_jobs
