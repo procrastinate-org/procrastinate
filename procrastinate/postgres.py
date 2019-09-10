@@ -31,6 +31,21 @@ WHERE status = 'doing'
   AND (%(task_name)s IS NULL OR task_name = %(task_name)s)
 """
 
+delete_old_jobs_sql = """
+DELETE FROM procrastinate_jobs
+WHERE status IN %(statuses)s
+  AND (%(queue)s IS NULL OR queue_name = %(queue)s)
+  AND (id IN (
+      SELECT DISTINCT ON (job_id) job_id
+          FROM procrastinate_events
+      WHERE at < NOW() - (%(nb_hours)s || 'HOUR')::INTERVAL
+      ORDER BY job_id, at DESC
+      LIMIT 1
+    )
+  )
+"""
+
+
 finish_job_sql = """
 SELECT procrastinate_finish_job(%(job_id)s, %(status)s, %(scheduled_at)s);
 """
@@ -117,6 +132,20 @@ def get_stalled_jobs(
                     "scheduled_at": row["scheduled_at"],
                     "queue": row["queue_name"],
                 }
+
+
+def delete_old_jobs(
+    connection: psycopg2._psycopg.connection,
+    nb_hours: int,
+    statuses: Iterable[str],
+    queue: str = None,
+) -> None:
+    with connection:
+        with connection.cursor(cursor_factory=RealDictCursor) as cursor:
+            cursor.execute(
+                delete_old_jobs_sql,
+                {"nb_hours": nb_hours, "queue": queue, "statuses": tuple(statuses)},
+            )
 
 
 def finish_job(
@@ -219,6 +248,22 @@ class PostgresJobStore(store.BaseJobStore):
         )
         for job_dict in job_dicts:
             yield jobs.Job(**job_dict)  # type: ignore
+
+    def delete_old_jobs(
+        self,
+        nb_hours: int,
+        queue: Optional[str] = None,
+        include_error: Optional[bool] = False,
+    ) -> None:
+        # We only consider finished jobs by default
+        if not include_error:
+            statuses = [jobs.Status.SUCCEEDED.value]
+        else:
+            statuses = [jobs.Status.SUCCEEDED.value, jobs.Status.FAILED.value]
+
+        delete_old_jobs(
+            self.connection, nb_hours=nb_hours, queue=queue, statuses=statuses
+        )
 
     def finish_job(
         self,

@@ -184,6 +184,125 @@ def test_get_stalled_jobs(get_all, pg_job_store):
     )
 
 
+def test_delete_old_jobs_job_is_not_finished(get_all, pg_job_store):
+    pg_job_store.launch_job(
+        jobs.Job(
+            id=0,
+            queue="queue_a",
+            task_name="task_1",
+            lock="lock_1",
+            task_kwargs={"a": "b"},
+        )
+    )
+
+    # No started job
+    pg_job_store.delete_old_jobs(nb_hours=0)
+    assert len(get_all("procrastinate_jobs", "id")) == 1
+
+    # We start a job
+    job = next(pg_job_store.get_jobs(queues=["queue_a"]))
+    # We back date the started event
+    with pg_job_store.connection.cursor() as cursor:
+        cursor.execute(
+            f"UPDATE procrastinate_events SET at=at - INTERVAL '2 hours'"
+            f"WHERE job_id={job.id}"
+        )
+
+    # The job is not finished so it's not deleted
+    pg_job_store.delete_old_jobs(nb_hours=0)
+    assert len(get_all("procrastinate_jobs", "id")) == 1
+
+
+def test_delete_old_jobs_multiple_jobs(get_all, pg_job_store):
+    pg_job_store.launch_job(
+        jobs.Job(
+            id=0,
+            queue="queue_a",
+            task_name="task_1",
+            lock="lock_1",
+            task_kwargs={"a": "b"},
+        )
+    )
+    pg_job_store.launch_job(
+        jobs.Job(
+            id=0,
+            queue="queue_b",
+            task_name="task_2",
+            lock="lock_2",
+            task_kwargs={"a": "b"},
+        )
+    )
+
+    # We start both jobs
+    job_a = next(pg_job_store.get_jobs(queues=["queue_a"]))
+    job_b = next(pg_job_store.get_jobs(queues=["queue_b"]))
+    # We finish both jobs
+    pg_job_store.finish_job(job_a, status=jobs.Status.SUCCEEDED)
+    pg_job_store.finish_job(job_b, status=jobs.Status.SUCCEEDED)
+    # We back date the events for job_a
+    with pg_job_store.connection.cursor() as cursor:
+        cursor.execute(
+            f"UPDATE procrastinate_events SET at=at - INTERVAL '2 hours'"
+            f"WHERE job_id={job_a.id}"
+        )
+
+    # Only job_a is deleted
+    pg_job_store.delete_old_jobs(nb_hours=2)
+    rows = get_all("procrastinate_jobs", "id")
+    assert len(rows) == 1
+    assert rows[0]["id"] == job_b.id
+
+
+@pytest.mark.parametrize(
+    "status, nb_hours, queue, include_error, should_delete",
+    [
+        # nb_hours
+        (jobs.Status.SUCCEEDED, 1, None, False, True),
+        (jobs.Status.SUCCEEDED, 3, None, False, False),
+        # queue
+        (jobs.Status.SUCCEEDED, 1, "queue_a", False, True),
+        (jobs.Status.SUCCEEDED, 3, "queue_a", False, False),
+        (jobs.Status.SUCCEEDED, 1, "queue_b", False, False),
+        (jobs.Status.SUCCEEDED, 1, "queue_b", False, False),
+        # include_error
+        (jobs.Status.FAILED, 1, None, False, False),
+        (jobs.Status.FAILED, 1, None, True, True),
+    ],
+)
+def test_delete_old_jobs_parameters(
+    get_all, pg_job_store, status, nb_hours, queue, include_error, should_delete
+):
+    pg_job_store.launch_job(
+        jobs.Job(
+            id=0,
+            queue="queue_a",
+            task_name="task_1",
+            lock="lock_1",
+            task_kwargs={"a": "b"},
+        )
+    )
+
+    # We start a job and fake its `started_at`
+    job = next(pg_job_store.get_jobs(queues=["queue_a"]))
+    # We finish the job
+    pg_job_store.finish_job(job, status=status)
+    # We back date its events
+    with pg_job_store.connection.cursor() as cursor:
+        cursor.execute(
+            f"UPDATE procrastinate_events SET at=at - INTERVAL '2 hours'"
+            f"WHERE job_id={job.id}"
+        )
+
+    pg_job_store.delete_old_jobs(
+        nb_hours=nb_hours, queue=queue, include_error=include_error
+    )
+    nb_jobs = len(get_all("procrastinate_jobs", "id"))
+    if should_delete:
+        assert nb_jobs == 0
+    else:
+        assert nb_jobs == 1
+
+
 def test_finish_job(get_all, pg_job_store):
     pg_job_store.launch_job(
         jobs.Job(

@@ -31,7 +31,7 @@ CREATE TABLE procrastinate_jobs (
 
 CREATE TABLE procrastinate_events (
     id BIGSERIAL PRIMARY KEY,
-    job_id integer NOT NULL REFERENCES procrastinate_jobs,
+    job_id integer NOT NULL REFERENCES procrastinate_jobs ON DELETE CASCADE,
     type procrastinate_job_event_type,
     at timestamp with time zone DEFAULT NOW() NULL
 );
