@@ -42,7 +42,7 @@ class InMemoryJobStore(store.BaseJobStore):
         self.waited = False
         self.queries = []
 
-    def launch_job(self, job: jobs.Job) -> int:
+    def defer_job(self, job: jobs.Job) -> int:
         id = next(self.job_counter)
         self.jobs.append(attr.evolve(job, id=id))
 
@@ -52,7 +52,7 @@ class InMemoryJobStore(store.BaseJobStore):
     def current_locks(self) -> Iterable[str]:
         return {job.lock for job in self.jobs if job.id in self.current_job_ids}
 
-    def get_job(self, queues: Optional[Iterable[str]]) -> Optional[jobs.Job]:
+    def fetch_job(self, queues: Optional[Iterable[str]]) -> Optional[jobs.Job]:
         # Creating a copy of the iterable so that we can modify it while we iterate
 
         for job in self.jobs:

@@ -55,7 +55,7 @@ class Worker:
             self.process_next_job()
 
     def process_next_job(self) -> None:
-        job = self.job_store.get_job(self.queues)
+        job = self.job_store.fetch_job(self.queues)
         if job is None:
             raise exceptions.NoMoreJobs
 

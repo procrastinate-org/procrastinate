@@ -45,7 +45,7 @@ class Job:
 
         job = attr.evolve(self, task_kwargs=final_kwargs)
 
-        id = job_store.launch_job(job=job)
+        id = job_store.defer_job(job=job)
         logger.info(
             "Scheduled job", extra={"action": "job_defer", "job": self.get_context()}
         )

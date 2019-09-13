@@ -11,8 +11,8 @@ def test_reset(job_store, job_factory):
 
 
 def test_launch_job(job_store, job_factory):
-    job1 = job_store.launch_job(job_factory())
-    job2 = job_store.launch_job(job_factory())
+    job1 = job_store.defer_job(job_factory())
+    job2 = job_store.defer_job(job_factory())
 
     assert job1 == 1
     assert job2 == 2
@@ -42,7 +42,7 @@ def test_launch_job(job_store, job_factory):
 )
 def test_get_job(job_store, job):
     # Add a first started job
-    job_store.launch_job(
+    job_store.defer_job(
         jobs.Job(
             id=1,
             queue="queue_a",
@@ -51,12 +51,12 @@ def test_get_job(job_store, job):
             task_kwargs={"a": "b"},
         )
     )
-    job_store.get_job(queues=None)
+    job_store.fetch_job(queues=None)
 
     # Now add the job we're testing
-    job_store.launch_job(job)
+    job_store.defer_job(job)
 
-    assert job_store.get_job(queues=["queue_a"]) == job
+    assert job_store.fetch_job(queues=["queue_a"]) == job
 
 
 @pytest.mark.parametrize(
@@ -91,7 +91,7 @@ def test_get_job(job_store, job):
 )
 def test_get_job_no_result(job_store, job):
     # Add a first started job
-    job_store.launch_job(
+    job_store.defer_job(
         jobs.Job(
             id=1,
             queue="queue_a",
@@ -100,19 +100,19 @@ def test_get_job_no_result(job_store, job):
             task_kwargs={"a": "b"},
         )
     )
-    job_store.get_job(queues=None)
+    job_store.fetch_job(queues=None)
 
     # Now add the job we're testing
-    job_store.launch_job(job)
+    job_store.defer_job(job)
 
-    assert job_store.get_job(queues=["queue_a"]) is None
+    assert job_store.fetch_job(queues=["queue_a"]) is None
 
 
 @pytest.mark.parametrize("status", [jobs.Status.SUCCEEDED, jobs.Status.FAILED])
 def test_finish_job_finished(job_factory, job_store, status):
 
-    job_store.launch_job(job_factory(id=1))
-    job = job_store.get_job(queues=None)
+    job_store.defer_job(job_factory(id=1))
+    job = job_store.fetch_job(queues=None)
     job_store.finish_job(job=job, status=status)
 
     assert job_store.jobs == []
@@ -121,8 +121,8 @@ def test_finish_job_finished(job_factory, job_store, status):
 
 def test_finish_job_retried(job_factory, job_store):
 
-    job_store.launch_job(job_factory(id=1))
-    job = job_store.get_job(queues=None)
+    job_store.defer_job(job_factory(id=1))
+    job = job_store.fetch_job(queues=None)
     job_store.finish_job(job=job, status=jobs.Status.TODO)
 
     new_job, = job_store.jobs
