@@ -39,29 +39,28 @@ def launch_job(connection: psycopg2._psycopg.connection, job: jobs.Job) -> int:
     return row[0]
 
 
-def get_jobs(
+def get_job(
     connection: psycopg2._psycopg.connection, queues: Optional[Iterable[str]]
-) -> Iterator[types.JSONDict]:
+) -> Optional[types.JSONDict]:
     with connection.cursor(cursor_factory=RealDictCursor) as cursor:
-        while True:
-            cursor.execute(sql.queries["select_job"], {"queues": queues})
-            connection.commit()
+        cursor.execute(sql.queries["fetch_job"], {"queues": queues})
+        connection.commit()
 
-            row = cursor.fetchone()
+        row = cursor.fetchone()
 
-            # fetch_tasks will always return a row, but is there's no relevant
-            # value, it will all be None
-            if row["id"] is None:
-                return
+        # fetch_tasks will always return a row, but is there's no relevant
+        # value, it will all be None
+        if row["id"] is None:
+            return None
 
-            yield {
-                "id": row["id"],
-                "lock": row["lock"],
-                "task_name": row["task_name"],
-                "task_kwargs": row["args"],
-                "scheduled_at": row["scheduled_at"],
-                "queue": row["queue_name"],
-            }
+        return {
+            "id": row["id"],
+            "lock": row["lock"],
+            "task_name": row["task_name"],
+            "task_kwargs": row["args"],
+            "scheduled_at": row["scheduled_at"],
+            "queue": row["queue_name"],
+        }
 
 
 def get_stalled_jobs(
@@ -188,10 +187,14 @@ class PostgresJobStore(store.BaseJobStore):
     def launch_job(self, job: jobs.Job) -> int:
         return launch_job(connection=self.connection, job=job)
 
-    def get_job(self, queues: Optional[Iterable[str]]) -> Iterator[jobs.Job]:
-        for job_dict in get_job(connection=self.connection, queues=queues):
-            # Hard to tell mypy that every element of the dict is typed correctly
-            yield jobs.Job(**job_dict)  # type: ignore
+    def get_job(self, queues: Optional[Iterable[str]]) -> Optional[jobs.Job]:
+        job_dict = get_job(connection=self.connection, queues=queues)
+        if not job_dict:
+            return None
+        # Hard to tell mypy that every element of the dict is typed correctly
+        return jobs.Job(  # type: ignore
+            **job_dict
+        )
 
     def get_stalled_jobs(
         self,

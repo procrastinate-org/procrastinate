@@ -53,94 +53,92 @@ def test_launch_job(pg_job_store, get_all):
     ]
 
 
-def test_get_jobs(pg_job_store):
+@pytest.mark.parametrize(
+    "job",
+    [
+        jobs.Job(
+            id=2,
+            queue="queue_a",
+            task_name="task_2",
+            lock="lock_2",
+            task_kwargs={"c": "d"},
+        ),
+        jobs.Job(
+            id=2,
+            queue="queue_a",
+            task_name="task_3",
+            lock="lock_3",
+            task_kwargs={"i": "j"},
+            scheduled_at=pendulum.datetime(2000, 1, 1),
+        ),
+    ],
+)
+def test_get_job(pg_job_store, job):
+    # Add a first started job
     pg_job_store.launch_job(
         jobs.Job(
-            id=0,
+            id=1,
             queue="queue_a",
             task_name="task_1",
             lock="lock_1",
             task_kwargs={"a": "b"},
         )
     )
-    # We won't see this one because of the lock
-    pg_job_store.launch_job(
+    pg_job_store.get_job(queues=None)
+
+    # Now add the job we're testing
+    pg_job_store.launch_job(job)
+
+    assert pg_job_store.get_job(queues=["queue_a"]) == job
+
+
+@pytest.mark.parametrize(
+    "job",
+    [
+        # We won't see this one because of the lock
         jobs.Job(
-            id=0,
+            id=2,
             queue="queue_a",
             task_name="task_2",
             lock="lock_1",
-            task_kwargs={"c": "d"},
-        )
-    )
-    pg_job_store.launch_job(
-        jobs.Job(
-            id=0,
-            queue="queue_a",
-            task_name="task_3",
-            lock="lock_2",
             task_kwargs={"e": "f"},
-        )
-    )
-    # We won't see this one because of the queue
-    pg_job_store.launch_job(
+        ),
+        # We won't see this one because of the queue
         jobs.Job(
-            id=0,
+            id=2,
             queue="queue_b",
-            task_name="task_4",
-            lock="lock_3",
-            task_kwargs={"g": "h"},
-        )
-    )
-    pg_job_store.launch_job(
-        jobs.Job(
-            id=0,
-            queue="queue_a",
-            task_name="task_5",
-            lock="lock_5",
-            task_kwargs={"i": "j"},
-            scheduled_at=pendulum.datetime(2000, 1, 1),
-        )
-    )
-    # We won't see this one because of the scheduled date
-    pg_job_store.launch_job(
-        jobs.Job(
-            id=0,
-            queue="queue_a",
-            task_name="task_6",
-            lock="lock_6",
-            task_kwargs={"k": "l"},
-            scheduled_at=pendulum.datetime(2050, 1, 1),
-        )
-    )
-
-    result = list(pg_job_store.get_jobs(queues=["queue_a"]))
-
-    t1, t2, t3 = result
-    assert result == [
-        jobs.Job(
-            id=t1.id,
-            task_kwargs={"a": "b"},
-            lock="lock_1",
-            task_name="task_1",
-            queue="queue_a",
-        ),
-        jobs.Job(
-            id=t2.id,
-            task_kwargs={"e": "f"},
-            lock="lock_2",
             task_name="task_3",
-            queue="queue_a",
-        ),
-        jobs.Job(
-            id=t3.id,
-            queue="queue_a",
-            task_name="task_5",
-            lock="lock_5",
+            lock="lock_3",
             task_kwargs={"i": "j"},
-            scheduled_at=pendulum.datetime(2000, 1, 1),
         ),
-    ]
+        # We won't see this one because of the scheduled date
+        jobs.Job(
+            id=2,
+            queue="queue_a",
+            task_name="task_4",
+            lock="lock_4",
+            task_kwargs={"i": "j"},
+            scheduled_at=pendulum.datetime(2100, 1, 1),
+        ),
+    ],
+)
+def test_get_job_no_result(pg_job_store, job):
+    # Add a first started job
+    pg_job_store.launch_job(
+        jobs.Job(
+            id=1,
+            queue="queue_a",
+            task_name="task_1",
+            lock="lock_1",
+            task_kwargs={"a": "b"},
+        )
+    )
+    pg_job_store.get_job(queues=None)
+
+    # Now add the job we're testing
+    pg_job_store.launch_job(job)
+
+    assert pg_job_store.get_job(queues=["queue_a"]) is None
 
 
 def test_get_stalled_jobs(get_all, pg_job_store):
@@ -159,7 +157,7 @@ def test_get_stalled_jobs(get_all, pg_job_store):
     assert list(pg_job_store.get_stalled_jobs(nb_seconds=3600)) == []
 
     # We start a job and fake its `started_at`
-    job = next(pg_job_store.get_jobs(queues=["queue_a"]))
+    job = pg_job_store.get_job(queues=["queue_a"])
     with pg_job_store.connection.cursor() as cursor:
         cursor.execute(
             f"UPDATE procrastinate_jobs SET started_at=NOW() - INTERVAL '30 minutes' "
@@ -313,7 +311,7 @@ def test_finish_job(get_all, pg_job_store):
             task_kwargs={"a": "b"},
         )
     )
-    job = next(pg_job_store.get_jobs(queues=["queue_a"]))
+    job = pg_job_store.get_job(queues=["queue_a"])
 
     assert get_all("procrastinate_jobs", "status") == [{"status": "doing"}]
     started_at = get_all("procrastinate_jobs", "started_at")[0]["started_at"]

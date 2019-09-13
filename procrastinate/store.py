@@ -1,5 +1,5 @@
 import datetime
-from typing import Iterable, Iterator, Optional
+from typing import Iterable, Optional
 
 from procrastinate import jobs, types
 
@@ -8,7 +8,7 @@ class BaseJobStore:
     def launch_job(self, job: jobs.Job) -> int:
         raise NotImplementedError
 
-    def get_jobs(self, queues: Optional[Iterable[str]]) -> Iterator[jobs.Job]:
+    def get_job(self, queues: Optional[Iterable[str]]) -> Optional[jobs.Job]:
         raise NotImplementedError
 
     def delete_old_jobs(
