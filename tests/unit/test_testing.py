@@ -108,7 +108,7 @@ def test_get_job_no_result(job_store, job):
     assert job_store.get_job(queues=["queue_a"]) is None
 
 
-@pytest.mark.parametrize("status", [jobs.Status.DONE, jobs.Status.ERROR])
+@pytest.mark.parametrize("status", [jobs.Status.SUCCEEDED, jobs.Status.FAILED])
 def test_finish_job_finished(job_factory, job_store, status):
 
     job_store.launch_job(job_factory(id=1))
