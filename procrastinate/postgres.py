@@ -39,7 +39,7 @@ def defer_job(connection: psycopg2._psycopg.connection, job: jobs.Job) -> int:
     return row[0]
 
 
-def get_job(
+def fetch_job(
     connection: psycopg2._psycopg.connection, queues: Optional[Iterable[str]]
 ) -> Optional[types.JSONDict]:
     with connection.cursor(cursor_factory=RealDictCursor) as cursor:
@@ -189,8 +189,8 @@ class PostgresJobStore(store.BaseJobStore):
     def defer_job(self, job: jobs.Job) -> int:
         return defer_job(connection=self.connection, job=job)
 
-    def get_job(self, queues: Optional[Iterable[str]]) -> Optional[jobs.Job]:
-        job_dict = get_job(connection=self.connection, queues=queues)
+    def fetch_job(self, queues: Optional[Iterable[str]]) -> Optional[jobs.Job]:
+        job_dict = fetch_job(connection=self.connection, queues=queues)
         if not job_dict:
             return None
         # Hard to tell mypy that every element of the dict is typed correctly

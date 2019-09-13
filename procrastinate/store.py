@@ -8,7 +8,7 @@ class BaseJobStore:
     def defer_job(self, job: jobs.Job) -> int:
         raise NotImplementedError
 
-    def get_job(self, queues: Optional[Iterable[str]]) -> Optional[jobs.Job]:
+    def fetch_job(self, queues: Optional[Iterable[str]]) -> Optional[jobs.Job]:
         raise NotImplementedError
 
     def delete_old_jobs(
