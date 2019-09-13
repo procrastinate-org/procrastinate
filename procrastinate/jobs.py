@@ -1,7 +1,7 @@
 import datetime
 import logging
 from enum import Enum
-from typing import Optional
+from typing import Any, Dict, Optional
 
 import attr
 
@@ -36,6 +36,18 @@ class Job:
         default=None, validator=check_aware
     )
     attempts: int = 0
+
+    @classmethod
+    def from_row(cls, row: Dict[str, Any]) -> "Job":
+        return cls(
+            id=row["id"],
+            lock=row["lock"],
+            task_name=row["task_name"],
+            task_kwargs=row["args"],
+            scheduled_at=row["scheduled_at"],
+            queue=row["queue_name"],
+            attempts=row["attempts"],
+        )
 
     def defer(
         self, job_store: "procrastinate.store.BaseJobStore", task_kwargs: types.JSONDict

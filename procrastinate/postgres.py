@@ -1,14 +1,13 @@
-import datetime
 import os
 import select
-from typing import Any, Iterable, Iterator, Optional, Tuple
+from typing import Any, Dict, List, Tuple
 
 import psycopg2
 from psycopg2 import extras
 from psycopg2 import sql as psycopg2_sql
 from psycopg2.extras import RealDictCursor
 
-from procrastinate import jobs, sql, store, types
+from procrastinate import store
 
 SOCKET_TIMEOUT = 5.0  # seconds
 
@@ -21,121 +20,33 @@ def init_pg_extensions() -> None:
     psycopg2.extensions.register_adapter(dict, extras.Json)
 
 
-def defer_job(connection: psycopg2._psycopg.connection, job: jobs.Job) -> int:
+def execute_query(
+    connection: psycopg2._psycopg.connection, query: str, **arguments: Any
+) -> None:
     with connection:
         with connection.cursor() as cursor:
-            cursor.execute(
-                sql.queries["insert_job"],
-                {
-                    "task_name": job.task_name,
-                    "lock": job.lock,
-                    "args": job.task_kwargs,
-                    "scheduled_at": job.scheduled_at,
-                    "queue": job.queue,
-                },
-            )
-            row = cursor.fetchone()
-
-    return row[0]
+            cursor.execute(query, arguments)
+            connection.commit()
 
 
-def fetch_job(
-    connection: psycopg2._psycopg.connection, queues: Optional[Iterable[str]]
-) -> Optional[types.JSONDict]:
-    with connection.cursor(cursor_factory=RealDictCursor) as cursor:
-        cursor.execute(sql.queries["fetch_job"], {"queues": queues})
-        connection.commit()
-
-        row = cursor.fetchone()
-
-        # fetch_tasks will always return a row, but is there's no relevant
-        # value, it will all be None
-        if row["id"] is None:
-            return None
-
-        return {
-            "id": row["id"],
-            "lock": row["lock"],
-            "task_name": row["task_name"],
-            "task_kwargs": row["args"],
-            "scheduled_at": row["scheduled_at"],
-            "queue": row["queue_name"],
-            "attempts": row["attempts"],
-        }
-
-
-def get_stalled_jobs(
-    connection: psycopg2._psycopg.connection,
-    nb_seconds: int,
-    queue: str = None,
-    task_name: str = None,
-) -> Iterator[types.JSONDict]:
+def execute_query_one(
+    connection: psycopg2._psycopg.connection, query: str, **arguments: Any
+) -> Dict[str, Any]:
     with connection:
         with connection.cursor(cursor_factory=RealDictCursor) as cursor:
-            cursor.execute(
-                sql.queries["select_stalled_jobs"],
-                {"nb_seconds": nb_seconds, "queue": queue, "task_name": task_name},
-            )
-
-            rows = cursor.fetchall()
-            for row in rows:
-                yield {
-                    "id": row["id"],
-                    "lock": row["lock"],
-                    "task_name": row["task_name"],
-                    "task_kwargs": row["args"],
-                    "scheduled_at": row["scheduled_at"],
-                    "queue": row["queue_name"],
-                    "attempts": row["attempts"],
-                }
+            cursor.execute(query, arguments)
+            connection.commit()
+            return cursor.fetchone()
 
 
-def delete_old_jobs(
-    connection: psycopg2._psycopg.connection,
-    nb_hours: int,
-    statuses: Iterable[str],
-    queue: str = None,
-) -> None:
+def execute_query_all(
+    connection: psycopg2._psycopg.connection, query: str, **arguments: Any
+) -> List[Dict[str, Any]]:
     with connection:
         with connection.cursor(cursor_factory=RealDictCursor) as cursor:
-            cursor.execute(
-                sql.queries["delete_old_jobs"],
-                {"nb_hours": nb_hours, "queue": queue, "statuses": tuple(statuses)},
-            )
-
-
-def finish_job(
-    connection: psycopg2._psycopg.connection,
-    job_id: int,
-    status: str,
-    scheduled_at: Optional[datetime.datetime] = None,
-) -> None:
-    with connection:
-        with connection.cursor() as cursor:
-            cursor.execute(
-                sql.queries["finish_job"],
-                {"job_id": job_id, "status": status, "scheduled_at": scheduled_at},
-            )
-
-
-def channel_names(queues: Optional[Iterable[str]]) -> Iterable[str]:
-    if queues is None:
-        return ["procrastinate_any_queue"]
-    else:
-        return ["procrastinate_queue#" + queue for queue in queues]
-
-
-def listen_queues(
-    connection: psycopg2._psycopg.connection, queues: Optional[Iterable[str]]
-) -> None:
-
-    with connection:
-        with connection.cursor() as cursor:
-            for channel_name in channel_names(queues=queues):
-                query = psycopg2_sql.SQL(sql.queries["listen_queue"]).format(
-                    channel_name=psycopg2_sql.Identifier(channel_name)
-                )
-                cursor.execute(query)
+            cursor.execute(query, arguments)
+            connection.commit()
+            return cursor.fetchall()
 
 
 def wait_for_jobs(
@@ -186,62 +97,14 @@ class PostgresJobStore(store.BaseJobStore):
     def get_connection(self):
         return self.connection
 
-    def defer_job(self, job: jobs.Job) -> int:
-        return defer_job(connection=self.connection, job=job)
+    def execute_query(self, query: str, **arguments: Any) -> None:
+        execute_query(self.connection, query=query, **arguments)
 
-    def fetch_job(self, queues: Optional[Iterable[str]]) -> Optional[jobs.Job]:
-        job_dict = fetch_job(connection=self.connection, queues=queues)
-        if not job_dict:
-            return None
-        # Hard to tell mypy that every element of the dict is typed correctly
-        return jobs.Job(  # type: ignore
-            **job_dict
-        )
+    def execute_query_one(self, query: str, **arguments: Any) -> Dict[str, Any]:
+        return execute_query_one(self.connection, query=query, **arguments)
 
-    def get_stalled_jobs(
-        self,
-        nb_seconds: int,
-        queue: Optional[str] = None,
-        task_name: Optional[str] = None,
-    ) -> Iterator[jobs.Job]:
-        job_dicts = get_stalled_jobs(
-            self.connection, nb_seconds=nb_seconds, queue=queue, task_name=task_name
-        )
-        for job_dict in job_dicts:
-            yield jobs.Job(**job_dict)  # type: ignore
-
-    def delete_old_jobs(
-        self,
-        nb_hours: int,
-        queue: Optional[str] = None,
-        include_error: Optional[bool] = False,
-    ) -> None:
-        # We only consider finished jobs by default
-        if not include_error:
-            statuses = [jobs.Status.SUCCEEDED.value]
-        else:
-            statuses = [jobs.Status.SUCCEEDED.value, jobs.Status.FAILED.value]
-
-        delete_old_jobs(
-            self.connection, nb_hours=nb_hours, queue=queue, statuses=statuses
-        )
-
-    def finish_job(
-        self,
-        job: jobs.Job,
-        status: jobs.Status,
-        scheduled_at: Optional[datetime.datetime] = None,
-    ) -> None:
-        assert job.id
-        return finish_job(
-            connection=self.connection,
-            job_id=job.id,
-            status=status.value,
-            scheduled_at=scheduled_at,
-        )
-
-    def listen_for_jobs(self, queues: Optional[Iterable[str]] = None) -> None:
-        listen_queues(connection=self.connection, queues=queues)
+    def execute_query_all(self, query: str, **arguments: Any) -> List[Dict[str, Any]]:
+        return execute_query_all(self.connection, query=query, **arguments)
 
     def wait_for_jobs(self) -> None:
         wait_for_jobs(
@@ -252,3 +115,8 @@ class PostgresJobStore(store.BaseJobStore):
 
     def stop(self):
         send_stop(stop_pipe=self.stop_pipe)
+
+    def make_dynamic_query(self, query: str, **identifiers: str) -> str:
+        return psycopg2_sql.SQL(query).format(
+            **{key: psycopg2_sql.Identifier(value) for key, value in identifiers}
+        )
