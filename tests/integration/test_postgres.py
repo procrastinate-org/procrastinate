@@ -39,7 +39,7 @@ def test_launch_job(pg_job_store, get_all):
     job = jobs.Job(
         id=0, queue=queue, task_name="bob", lock="sher", task_kwargs={"a": 1, "b": 2}
     )
-    pk = pg_job_store.launch_job(job=job)
+    pk = pg_job_store.defer_job(job=job)
 
     result = get_all("procrastinate_jobs", "id", "args", "status", "lock", "task_name")
     assert result == [
@@ -75,7 +75,7 @@ def test_launch_job(pg_job_store, get_all):
 )
 def test_get_job(pg_job_store, job):
     # Add a first started job
-    pg_job_store.launch_job(
+    pg_job_store.defer_job(
         jobs.Job(
             id=1,
             queue="queue_a",
@@ -87,7 +87,7 @@ def test_get_job(pg_job_store, job):
     pg_job_store.get_job(queues=None)
 
     # Now add the job we're testing
-    pg_job_store.launch_job(job)
+    pg_job_store.defer_job(job)
 
     assert pg_job_store.get_job(queues=["queue_a"]) == job
 
@@ -124,7 +124,7 @@ def test_get_job(pg_job_store, job):
 )
 def test_get_job_no_result(pg_job_store, job):
     # Add a first started job
-    pg_job_store.launch_job(
+    pg_job_store.defer_job(
         jobs.Job(
             id=1,
             queue="queue_a",
@@ -136,13 +136,13 @@ def test_get_job_no_result(pg_job_store, job):
     pg_job_store.get_job(queues=None)
 
     # Now add the job we're testing
-    pg_job_store.launch_job(job)
+    pg_job_store.defer_job(job)
 
     assert pg_job_store.get_job(queues=["queue_a"]) is None
 
 
 def test_get_stalled_jobs(get_all, pg_job_store):
-    pg_job_store.launch_job(
+    pg_job_store.defer_job(
         jobs.Job(
             id=0,
             queue="queue_a",
@@ -183,7 +183,7 @@ def test_get_stalled_jobs(get_all, pg_job_store):
 
 
 def test_delete_old_jobs_job_is_not_finished(get_all, pg_job_store):
-    pg_job_store.launch_job(
+    pg_job_store.defer_job(
         jobs.Job(
             id=0,
             queue="queue_a",
@@ -212,7 +212,7 @@ def test_delete_old_jobs_job_is_not_finished(get_all, pg_job_store):
 
 
 def test_delete_old_jobs_multiple_jobs(get_all, pg_job_store):
-    pg_job_store.launch_job(
+    pg_job_store.defer_job(
         jobs.Job(
             id=0,
             queue="queue_a",
@@ -221,7 +221,7 @@ def test_delete_old_jobs_multiple_jobs(get_all, pg_job_store):
             task_kwargs={"a": "b"},
         )
     )
-    pg_job_store.launch_job(
+    pg_job_store.defer_job(
         jobs.Job(
             id=0,
             queue="queue_b",
@@ -252,7 +252,7 @@ def test_delete_old_jobs_multiple_jobs(get_all, pg_job_store):
 
 
 def test_delete_old_job_filter_on_end_date(get_all, pg_job_store):
-    pg_job_store.launch_job(
+    pg_job_store.defer_job(
         jobs.Job(
             id=0,
             queue="queue_a",
@@ -297,7 +297,7 @@ def test_delete_old_job_filter_on_end_date(get_all, pg_job_store):
 def test_delete_old_jobs_parameters(
     get_all, pg_job_store, status, nb_hours, queue, include_error, should_delete
 ):
-    pg_job_store.launch_job(
+    pg_job_store.defer_job(
         jobs.Job(
             id=0,
             queue="queue_a",
@@ -329,7 +329,7 @@ def test_delete_old_jobs_parameters(
 
 
 def test_finish_job(get_all, pg_job_store):
-    pg_job_store.launch_job(
+    pg_job_store.defer_job(
         jobs.Job(
             id=0,
             queue="queue_a",
@@ -352,7 +352,7 @@ def test_finish_job(get_all, pg_job_store):
 
 
 def test_finish_job_retry(get_all, pg_job_store):
-    pg_job_store.launch_job(
+    pg_job_store.defer_job(
         jobs.Job(
             id=0,
             queue="queue_a",

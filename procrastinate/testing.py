@@ -42,7 +42,7 @@ class InMemoryJobStore(store.BaseJobStore):
         self.waited = False
         self.queries = []
 
-    def launch_job(self, job: jobs.Job) -> int:
+    def defer_job(self, job: jobs.Job) -> int:
         id = next(self.job_counter)
         self.jobs.append(attr.evolve(job, id=id))
 

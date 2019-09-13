@@ -16,7 +16,7 @@ def test_wait_for_jobs(pg_job_store, connection_params):
         try:
             inner_job_store = postgres.PostgresJobStore(**connection_params)
 
-            inner_job_store.launch_job(
+            inner_job_store.defer_job(
                 jobs.Job(id=0, queue="yay", task_name="oh", lock="sher", task_kwargs={})
             )
         finally:

@@ -21,7 +21,7 @@ def init_pg_extensions() -> None:
     psycopg2.extensions.register_adapter(dict, extras.Json)
 
 
-def launch_job(connection: psycopg2._psycopg.connection, job: jobs.Job) -> int:
+def defer_job(connection: psycopg2._psycopg.connection, job: jobs.Job) -> int:
     with connection:
         with connection.cursor() as cursor:
             cursor.execute(
@@ -186,8 +186,8 @@ class PostgresJobStore(store.BaseJobStore):
     def get_connection(self):
         return self.connection
 
-    def launch_job(self, job: jobs.Job) -> int:
-        return launch_job(connection=self.connection, job=job)
+    def defer_job(self, job: jobs.Job) -> int:
+        return defer_job(connection=self.connection, job=job)
 
     def get_job(self, queues: Optional[Iterable[str]]) -> Optional[jobs.Job]:
         job_dict = get_job(connection=self.connection, queues=queues)

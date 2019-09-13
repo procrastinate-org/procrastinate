@@ -5,7 +5,7 @@ from procrastinate import jobs, types
 
 
 class BaseJobStore:
-    def launch_job(self, job: jobs.Job) -> int:
+    def defer_job(self, job: jobs.Job) -> int:
         raise NotImplementedError
 
     def get_job(self, queues: Optional[Iterable[str]]) -> Optional[jobs.Job]:
