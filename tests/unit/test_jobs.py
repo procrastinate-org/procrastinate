@@ -42,11 +42,11 @@ def test_job_defer(job_store):
 
     id = job.defer(job_store=job_store, task_kwargs={"c": 3})
 
-    assert id == 0
+    assert id == 1
 
     assert job_store.jobs == [
         jobs.Job(
-            id=0,
+            id=1,
             queue="marsupilami",
             task_name="mytask",
             lock="sher",

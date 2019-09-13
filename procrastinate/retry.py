@@ -50,7 +50,7 @@ class RetryStrategy(BaseRetryStrategy):
 
     You can mix and match several waiting strategies. The formula is::
 
-        total_wait = wait + lineal_wait * attempts + exponential_wait ** attempts
+        total_wait = wait + lineal_wait * attempts + exponential_wait ** (attempts + 1)
 
     Parameters
     ----------
@@ -67,7 +67,7 @@ class RetryStrategy(BaseRetryStrategy):
     exponential_wait:
         Use this if you want to use an exponential backoff.
         Give a number of seconds as argument, it will be used to compute the backoff.
-        (e.g. if 3, then successive runs will wait 1, 3, 9, 27, 81 seconds)
+        (e.g. if 3, then successive runs will wait 3, 9, 27, 81, 243 seconds)
     """
 
     max_attempts: Optional[int] = None
@@ -80,7 +80,7 @@ class RetryStrategy(BaseRetryStrategy):
             return None
         wait: float = self.wait
         wait += self.linear_wait * attempts
-        wait += self.exponential_wait ** attempts
+        wait += self.exponential_wait ** (attempts + 1)
         return wait
 
 

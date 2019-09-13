@@ -1,6 +1,6 @@
 import logging
 import time
-from typing import Iterable, Optional, Set
+from typing import Iterable, NoReturn, Optional, Set
 
 from procrastinate import app, exceptions, jobs, signals, store, tasks, types
 
@@ -32,56 +32,65 @@ class Worker:
 
         with signals.on_stop(self.stop):
             while True:
-                self.process_jobs_once()
-
                 if self.stop_requested:
-                    logger.debug(
-                        "Finished running job at the end of the batch",
-                        extra={"action": "stopped_end_batch"},
-                    )
                     break
 
-                logger.debug(
-                    "Waiting for new jobs", extra={"action": "waiting_for_jobs"}
-                )
+                try:
+                    self.process_jobs_once()
+                except exceptions.StopRequested:
+                    break
+                except exceptions.NoMoreJobs:
+                    logger.debug(
+                        "Waiting for new jobs", extra={"action": "waiting_for_jobs"}
+                    )
+
                 self.job_store.wait_for_jobs()
 
-    def process_jobs_once(self) -> None:
-        for job in self.job_store.get_jobs(self.queues):
-            assert isinstance(job.id, int)
+        logger.debug("Stopped worker", extra={"action": "stopped_worker"})
 
-            log_context = {"job": job.get_context()}
+    def process_jobs_once(self) -> NoReturn:
+        while True:
+            # We only leave this loop with an exception:
+            # either NoMoreJobs or StopRequested
+            self.process_next_job()
+
+    def process_next_job(self) -> None:
+        job = self.job_store.get_job(self.queues)
+        if job is None:
+            raise exceptions.NoMoreJobs
+
+        log_context = {"job": job.get_context()}
+        logger.debug(
+            "Loaded job info, about to start job",
+            extra={"action": "loaded_job_info", **log_context},
+        )
+
+        status = jobs.Status.FAILED
+        next_attempt_scheduled_at = None
+        try:
+            self.run_job(job=job)
+            status = jobs.Status.SUCCEEDED
+        except exceptions.JobRetry as e:
+            status = jobs.Status.TODO
+            next_attempt_scheduled_at = e.scheduled_at
+        except exceptions.JobError:
+            pass
+        except exceptions.TaskNotFound as exc:
+            logger.exception(
+                f"Task was not found: {exc}",
+                extra={"action": "task_not_found", "exception": str(exc)},
+            )
+        finally:
+            self.job_store.finish_job(
+                job=job, status=status, scheduled_at=next_attempt_scheduled_at
+            )
             logger.debug(
-                "Loaded job info, about to start job",
-                extra={"action": "loaded_job_info", **log_context},
+                "Acknowledged job completion",
+                extra={"action": "finish_task", "status": status, **log_context},
             )
 
-            status = jobs.Status.FAILED
-            next_attempt_scheduled_at = None
-            try:
-                self.run_job(job=job)
-                status = jobs.Status.SUCCEEDED
-            except exceptions.JobRetry as e:
-                status = jobs.Status.TODO
-                next_attempt_scheduled_at = e.scheduled_at
-            except exceptions.JobError:
-                pass
-            except exceptions.TaskNotFound as exc:
-                logger.exception(
-                    f"Task was not found: {exc}",
-                    extra={"action": "task_not_found", "exception": str(exc)},
-                )
-            finally:
-                self.job_store.finish_job(
-                    job=job, status=status, scheduled_at=next_attempt_scheduled_at
-                )
-                logger.debug(
-                    "Acknowledged job completion",
-                    extra={"action": "finish_task", "status": status, **log_context},
-                )
-
-            if self.stop_requested:
-                break
+        if self.stop_requested:
+            raise exceptions.StopRequested
 
     def load_task(self, task_name) -> tasks.Task:
         if task_name in self.known_missing_tasks:

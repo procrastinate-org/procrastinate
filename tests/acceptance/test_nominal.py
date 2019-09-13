@@ -28,7 +28,7 @@ def test_nominal(app, kill_own_pid, caplog):
         sum_results.append(a + 1)
 
     @app.task
-    def stop_sum():
+    def stop_task():
         kill_own_pid(signal.SIGINT)
 
     @app.task(queue="product_queue")
@@ -36,7 +36,7 @@ def test_nominal(app, kill_own_pid, caplog):
         product_results.append(a * b)
 
     @app.task(queue="product_queue")
-    def stop_product():
+    def stop_task_product_queue():
         kill_own_pid(signal.SIGTERM)
 
     nb_tries = 0
@@ -54,13 +54,13 @@ def test_nominal(app, kill_own_pid, caplog):
     sum_task.defer(a=3, b=4)
     increment_task.defer(a=3)
     product_task.defer(a=5, b=4)
-    stop_product.defer()
+    stop_task_product_queue.defer()
     two_fails.defer()
 
     def stop():
         time.sleep(1)
         sum_task.defer(a=2, b=3)
-        stop_sum.defer()
+        stop_task.defer()
 
     thread = threading.Thread(target=stop)
     thread.start()

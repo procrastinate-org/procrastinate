@@ -1,6 +1,6 @@
 import datetime
 from itertools import count
-from typing import Iterable, Iterator, List, Optional, Set, Tuple
+from typing import Iterable, List, Optional, Set, Tuple
 
 import attr
 import pendulum
@@ -34,8 +34,9 @@ class InMemoryJobStore(store.BaseJobStore):
         Removes anything the store contains, to ensure test independance.
         """
         self.jobs: List[jobs.Job] = []
+        self.current_job_ids: Set[int] = set()
         self.finished_jobs: List[Tuple[jobs.Job, jobs.Status]] = []
-        self.job_counter = count()
+        self.job_counter = count(1)
         self.listening_queues: Set[str] = set()
         self.listening_all_queues = False
         self.waited = False
@@ -47,13 +48,23 @@ class InMemoryJobStore(store.BaseJobStore):
 
         return id
 
-    def get_jobs(self, queues: Optional[Iterable[str]]) -> Iterator[jobs.Job]:
+    @property
+    def current_locks(self) -> Iterable[str]:
+        return {job.lock for job in self.jobs if job.id in self.current_job_ids}
+
+    def get_job(self, queues: Optional[Iterable[str]]) -> Optional[jobs.Job]:
         # Creating a copy of the iterable so that we can modify it while we iterate
 
-        for job in list(self.jobs):
+        for job in self.jobs:
             if queues is None or job.queue in queues:
-                if not job.scheduled_at or job.scheduled_at <= pendulum.now("UTC"):
-                    yield job
+                if (
+                    (not job.scheduled_at or job.scheduled_at <= pendulum.now("UTC"))
+                    and job.id not in self.current_job_ids
+                    and job.lock not in self.current_locks
+                ):
+                    self.current_job_ids.add(job.id or 0)
+                    return job
+        return None
 
     def finish_job(
         self,
@@ -62,6 +73,7 @@ class InMemoryJobStore(store.BaseJobStore):
         scheduled_at: Optional[datetime.datetime] = None,
     ) -> None:
         self.jobs.remove(job)
+        self.current_job_ids.remove(job.id or 0)
         if status in [jobs.Status.SUCCEEDED, jobs.Status.FAILED]:
             self.finished_jobs.append((job, status))
         else:
@@ -82,4 +94,4 @@ class InMemoryJobStore(store.BaseJobStore):
         pass
 
     def execute_queries(self, queries: str):
-        self.queries.append(str)
+        self.queries.append(queries)

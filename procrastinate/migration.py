@@ -8,7 +8,7 @@ class Migrator:
         self.job_store = job_store
 
     def get_migration_queries(self) -> str:
-        return read_text("procrastinate", "structure.sql")
+        return read_text("procrastinate.sql", "structure.sql")
 
     def migrate(self) -> None:
         queries = self.get_migration_queries()

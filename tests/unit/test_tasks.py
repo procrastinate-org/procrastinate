@@ -38,7 +38,7 @@ def test_task_defer(app):
     lock = app.job_store.jobs[0].lock
     assert app.job_store.jobs == [
         jobs.Job(
-            id=0,
+            id=1,
             queue="queue",
             task_name="tests.unit.test_tasks.task_func",
             lock=lock,

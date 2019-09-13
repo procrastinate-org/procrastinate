@@ -8,10 +8,12 @@ def test_run(app):
     class TestWorker(worker.Worker):
         i = 0
 
-        def process_jobs_once(self):
-            if self.i == 2:
-                self.stop(None, None)
+        def process_next_job(self):
             self.i += 1
+            if self.i == 2:
+                raise exceptions.NoMoreJobs
+            elif self.i == 3:
+                raise exceptions.StopRequested
 
     test_worker = TestWorker(app=app, queues=["marsupilami"])
 
@@ -21,78 +23,51 @@ def test_run(app):
     assert app.job_store.waited is True
 
 
-def test_run_all_tasks(app):
-    class TestWorker(worker.Worker):
-        def process_jobs_once(self):
-            self.stop(None, None)
-
-    test_worker = TestWorker(app=app)
-    test_worker.run()
-
-    assert app.job_store.listening_all_queues is True
-
-
-def test_process_jobs_once(mocker, app, job_factory):
-    job_1 = job_factory(id=42)
-    job_2 = job_factory(id=43)
-    job_3 = job_factory(id=44)
-    job_4 = job_factory(id=45)
-    app.job_store.jobs = [job_1, job_2, job_3, job_4]
+@pytest.mark.parametrize(
+    "side_effect, status",
+    [
+        (None, jobs.Status.SUCCEEDED),
+        (exceptions.JobError(), jobs.Status.FAILED),
+        (exceptions.TaskNotFound(), jobs.Status.FAILED),
+    ],
+)
+def test_process_next_job(mocker, app, job_factory, side_effect, status):
+    job = job_factory(id=42)
+    app.job_store.jobs = [job]
 
     test_worker = worker.Worker(app, queues=["queue"])
-
-    i = 0
-
-    def side_effect(job):
-        nonlocal i
-        i += 1
-        if i == 1:
-            # First time the task runs
-            return None
-        elif i == 2:
-            # Then the task fails
-            raise exceptions.JobError()
-        elif i == 3:
-            # Then the task fails
-            raise exceptions.TaskNotFound()
-        else:
-            # While the third task runs, a stop signal is received
-            test_worker.stop(None, None)
 
     run_job = mocker.patch(
         "procrastinate.worker.Worker.run_job", side_effect=side_effect
     )
+    test_worker.process_next_job()
 
-    test_worker.process_jobs_once()
+    run_job.assert_called_with(job=job)
 
-    assert run_job.call_args_list == [
-        mocker.call(job=job_1),
-        mocker.call(job=job_2),
-        mocker.call(job=job_3),
-        mocker.call(job=job_4),
-    ]
-
-    assert app.job_store.finished_jobs == [
-        (job_1, jobs.Status.SUCCEEDED),
-        (job_2, jobs.Status.FAILED),
-        (job_3, jobs.Status.FAILED),
-        (job_4, jobs.Status.SUCCEEDED),
-    ]
+    assert app.job_store.finished_jobs == [(job, status)]
 
 
-def test_process_jobs_once_until_no_more_jobs(mocker, app, job_factory):
-    job = job_factory(id=42)
-    app.job_store.jobs = [job]
+def test_process_next_job_raise_no_more_jobs(app):
+    test_worker = worker.Worker(app)
 
-    mocker.patch("procrastinate.worker.Worker.run_job")
-
-    test_worker = worker.Worker(app, queues=["queue"])
-    test_worker.process_jobs_once()
-
-    assert app.job_store.finished_jobs == [(job, jobs.Status.SUCCEEDED)]
+    with pytest.raises(exceptions.NoMoreJobs):
+        test_worker.process_next_job()
 
 
-def test_process_jobs_once_retry_failed_job(mocker, app, job_factory):
+def test_process_next_job_raise_stop_requested(app):
+    test_worker = worker.Worker(app)
+
+    @app.task
+    def empty():
+        test_worker.stop_requested = True
+
+    empty.defer()
+
+    with pytest.raises(exceptions.StopRequested):
+        test_worker.process_next_job()
+
+
+def test_process_next_job_retry_failed_job(mocker, app, job_factory):
     job = job_factory(id=42)
     app.job_store.jobs = [job]
 
@@ -104,7 +79,7 @@ def test_process_jobs_once_retry_failed_job(mocker, app, job_factory):
     )
 
     test_worker = worker.Worker(app, queues=["queue"])
-    test_worker.process_jobs_once()
+    test_worker.process_next_job()
 
     assert app.job_store.finished_jobs == []
     assert len(app.job_store.jobs) == 1
