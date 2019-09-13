@@ -26,16 +26,18 @@ WHERE status = 'doing'
 -- delete_old_jobs --
 -- Delete jobs that have been in a final state for longer than nb_hours
 DELETE FROM procrastinate_jobs
-WHERE status IN %(statuses)s
-  AND (%(queue)s IS NULL OR queue_name = %(queue)s)
-  AND (id IN (
-      SELECT DISTINCT ON (job_id) job_id
-          FROM procrastinate_events
-      WHERE at < NOW() - (%(nb_hours)s || 'HOUR')::INTERVAL
-      ORDER BY job_id, at DESC
-      LIMIT 1
-    )
-  )
+WHERE id IN (
+    SELECT job.id FROM (
+        SELECT DISTINCT ON (job.id) job.*, event.at AS latest_at
+            FROM procrastinate_jobs job
+            JOIN procrastinate_events event
+              ON job.id = event.job_id
+            ORDER BY job.id, event.at DESC
+    ) AS job
+    WHERE job.status in %(statuses)s
+      AND (%(queue)s IS NULL OR job.queue_name = %(queue)s)
+      AND latest_at < NOW() - (%(nb_hours)s || 'HOUR')::INTERVAL
+)
 
 -- finish_job --
 -- Stop a job, free the lock and record the relevant events

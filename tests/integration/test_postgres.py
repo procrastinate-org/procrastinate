@@ -251,6 +251,33 @@ def test_delete_old_jobs_multiple_jobs(get_all, pg_job_store):
     assert rows[0]["id"] == job_b.id
 
 
+def test_delete_old_job_filter_on_end_date(get_all, pg_job_store):
+    pg_job_store.launch_job(
+        jobs.Job(
+            id=0,
+            queue="queue_a",
+            task_name="task_1",
+            lock="lock_1",
+            task_kwargs={"a": "b"},
+        )
+    )
+    # We start the job
+    job = pg_job_store.get_job(queues=["queue_a"])
+    # We finish the job
+    pg_job_store.finish_job(job, status=jobs.Status.SUCCEEDED)
+    # We back date only the start event
+    with pg_job_store.connection.cursor() as cursor:
+        cursor.execute(
+            f"UPDATE procrastinate_events SET at=at - INTERVAL '2 hours'"
+            f"WHERE job_id={job.id} AND TYPE='started'"
+        )
+
+    # Job is not deleted since it finished recently
+    pg_job_store.delete_old_jobs(nb_hours=2)
+    rows = get_all("procrastinate_jobs", "id")
+    assert len(rows) == 1
+
+
 @pytest.mark.parametrize(
     "status, nb_hours, queue, include_error, should_delete",
     [
