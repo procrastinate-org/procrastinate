@@ -3,7 +3,7 @@ import uuid
 import pendulum
 import pytest
 
-from procrastinate import exceptions, jobs, tasks
+from procrastinate import exceptions, tasks
 
 
 def task_func():

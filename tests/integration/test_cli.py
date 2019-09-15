@@ -2,7 +2,7 @@ from collections import defaultdict
 
 import pytest
 
-from procrastinate import __version__, cli, jobs
+from procrastinate import __version__, cli
 
 
 @pytest.fixture

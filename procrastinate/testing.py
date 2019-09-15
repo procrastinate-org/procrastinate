@@ -1,6 +1,6 @@
 import datetime
 from itertools import count
-from typing import Any, Dict, Iterable, List, Optional, Set
+from typing import Any, Dict, Iterable, List, Optional
 
 import pendulum
 

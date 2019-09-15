@@ -49,7 +49,7 @@ class BaseJobStore:
         nb_seconds: int,
         queue: Optional[str] = None,
         task_name: Optional[str] = None,
-    ) -> List[jobs.Job]:
+    ) -> Iterator[jobs.Job]:
 
         rows = self.execute_query_all(
             query=sql.queries["select_stalled_jobs"],
