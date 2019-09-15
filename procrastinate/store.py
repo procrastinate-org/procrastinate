@@ -25,7 +25,7 @@ class BaseJobStore:
 
     def defer_job(self, job: jobs.Job) -> int:
         return self.execute_query_one(
-            query=sql.queries["insert_job"],
+            query=sql.queries["defer_job"],
             task_name=job.task_name,
             lock=job.lock,
             args=job.task_kwargs,
