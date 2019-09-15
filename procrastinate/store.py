@@ -49,7 +49,7 @@ class BaseJobStore:
         nb_seconds: int,
         queue: Optional[str] = None,
         task_name: Optional[str] = None,
-    ) -> Iterator[jobs.Job]:
+    ) -> List[jobs.Job]:
 
         rows = self.execute_query_all(
             query=sql.queries["select_stalled_jobs"],
@@ -89,7 +89,7 @@ class BaseJobStore:
         self.execute_query(
             query=sql.queries["finish_job"],
             job_id=job.id,
-            status=status,
+            status=status.value,
             scheduled_at=scheduled_at,
         )
 
@@ -102,7 +102,7 @@ class BaseJobStore:
         for channel_name in channel_names:
 
             self.execute_query(
-                self.make_dynamic_query(
+                query=self.make_dynamic_query(
                     query=sql.queries["listen_queue"], channel_name=channel_name
                 )
             )

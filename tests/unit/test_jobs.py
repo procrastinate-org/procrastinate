@@ -44,15 +44,19 @@ def test_job_defer(job_store):
 
     assert id == 1
 
-    assert job_store.jobs == [
-        jobs.Job(
-            id=1,
-            queue="marsupilami",
-            task_name="mytask",
-            lock="sher",
-            task_kwargs={"a": "b", "c": 3},
-        )
-    ]
+    assert job_store.jobs == {
+        1: {
+            "args": {"a": "b", "c": 3},
+            "attempts": 0,
+            "id": 1,
+            "lock": "sher",
+            "queue_name": "marsupilami",
+            "scheduled_at": None,
+            "started_at": None,
+            "status": "todo",
+            "task_name": "mytask",
+        }
+    }
 
 
 def test_job_scheduled_at_naive(job_store):

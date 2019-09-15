@@ -94,9 +94,6 @@ class PostgresJobStore(store.BaseJobStore):
         self.socket_timeout = socket_timeout
         self.stop_pipe = os.pipe()
 
-    def get_connection(self):
-        return self.connection
-
     def execute_query(self, query: str, **arguments: Any) -> None:
         execute_query(self.connection, query=query, **arguments)
 
@@ -118,5 +115,8 @@ class PostgresJobStore(store.BaseJobStore):
 
     def make_dynamic_query(self, query: str, **identifiers: str) -> str:
         return psycopg2_sql.SQL(query).format(
-            **{key: psycopg2_sql.Identifier(value) for key, value in identifiers}
+            **{
+                key: psycopg2_sql.Identifier(value)
+                for key, value in identifiers.items()
+            }
         )
