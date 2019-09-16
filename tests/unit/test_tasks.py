@@ -3,7 +3,7 @@ import uuid
 import pendulum
 import pytest
 
-from procrastinate import exceptions, jobs, tasks
+from procrastinate import exceptions, tasks
 
 
 def task_func():
@@ -35,16 +35,20 @@ def test_task_defer(app):
     task.defer(c=3)
 
     # The lock is the only thing we can't predict
-    lock = app.job_store.jobs[0].lock
-    assert app.job_store.jobs == [
-        jobs.Job(
-            id=1,
-            queue="queue",
-            task_name="tests.unit.test_tasks.task_func",
-            lock=lock,
-            task_kwargs={"c": 3},
-        )
-    ]
+    lock = app.job_store.jobs[1]["lock"]
+    assert app.job_store.jobs == {
+        1: {
+            "id": 1,
+            "queue_name": "queue",
+            "task_name": "tests.unit.test_tasks.task_func",
+            "lock": lock,
+            "args": {"c": 3},
+            "status": "todo",
+            "scheduled_at": None,
+            "started_at": None,
+            "attempts": 0,
+        }
+    }
 
 
 def test_task_configure(app):

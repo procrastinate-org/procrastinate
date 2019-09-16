@@ -19,21 +19,20 @@ def test_run(app):
 
     test_worker.run()
 
-    assert app.job_store.listening_queues == {"marsupilami"}
-    assert app.job_store.waited is True
+    assert app.job_store.queries == ["listen_for_jobs"]
 
 
 @pytest.mark.parametrize(
     "side_effect, status",
     [
-        (None, jobs.Status.SUCCEEDED),
-        (exceptions.JobError(), jobs.Status.FAILED),
-        (exceptions.TaskNotFound(), jobs.Status.FAILED),
+        (None, "succeeded"),
+        (exceptions.JobError(), "failed"),
+        (exceptions.TaskNotFound(), "failed"),
     ],
 )
 def test_process_next_job(mocker, app, job_factory, side_effect, status):
-    job = job_factory(id=42)
-    app.job_store.jobs = [job]
+    job = job_factory(id=1)
+    app.job_store.defer_job(job)
 
     test_worker = worker.Worker(app, queues=["queue"])
 
@@ -44,7 +43,7 @@ def test_process_next_job(mocker, app, job_factory, side_effect, status):
 
     run_job.assert_called_with(job=job)
 
-    assert app.job_store.finished_jobs == [(job, status)]
+    assert app.job_store.jobs[1]["status"] == status
 
 
 def test_process_next_job_raise_no_more_jobs(app):
@@ -68,8 +67,8 @@ def test_process_next_job_raise_stop_requested(app):
 
 
 def test_process_next_job_retry_failed_job(mocker, app, job_factory):
-    job = job_factory(id=42)
-    app.job_store.jobs = [job]
+    job = job_factory(id=1)
+    app.job_store.defer_job(job)
 
     mocker.patch(
         "procrastinate.worker.Worker.run_job",
@@ -81,11 +80,11 @@ def test_process_next_job_retry_failed_job(mocker, app, job_factory):
     test_worker = worker.Worker(app, queues=["queue"])
     test_worker.process_next_job()
 
-    assert app.job_store.finished_jobs == []
+    new_job = app.job_store.jobs[1]
     assert len(app.job_store.jobs) == 1
-    new_job = app.job_store.jobs[0]
-    assert new_job.id == 42
-    assert new_job.scheduled_at == pendulum.datetime(2000, 1, 1, tz="UTC")
+    assert new_job["status"] == "todo"
+    assert new_job["id"] == 1
+    assert new_job["scheduled_at"] == pendulum.datetime(2000, 1, 1, tz="UTC")
 
 
 def test_run_job(app, job_store):

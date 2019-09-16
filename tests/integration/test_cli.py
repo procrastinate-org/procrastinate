@@ -1,6 +1,8 @@
+from collections import defaultdict
+
 import pytest
 
-from procrastinate import __version__, cli, jobs
+from procrastinate import __version__, cli
 
 
 @pytest.fixture
@@ -38,7 +40,9 @@ def test_worker(entrypoint, click_app, mocker):
     click_app.run_worker.assert_called_once_with(queues=["a", "b"])
 
 
-def test_migrate(entrypoint, click_app, mocker):
+def test_migrate(entrypoint, click_app, mocker, job_store):
+    job_store.reverse_queries = defaultdict(lambda: "migrate")
+
     migrate = mocker.patch("procrastinate.migration.Migrator.migrate")
     result = entrypoint("-a yay migrate")
 
@@ -70,17 +74,19 @@ def test_defer(entrypoint, click_app):
 
     assert result.output == "Launching a job: hello(a=1)\n"
     assert result.exit_code == 0
-    assert click_app.job_store.jobs == [
-        jobs.Job(
-            id=1,
-            queue="default",
-            lock="sherlock",
-            task_name="hello",
-            task_kwargs={"a": 1},
-            scheduled_at=None,
-            attempts=0,
-        )
-    ]
+    assert click_app.job_store.jobs == {
+        1: {
+            "args": {"a": 1},
+            "attempts": 0,
+            "id": 1,
+            "lock": "sherlock",
+            "queue_name": "default",
+            "scheduled_at": None,
+            "started_at": None,
+            "status": "todo",
+            "task_name": "hello",
+        }
+    }
 
 
 @pytest.mark.parametrize(

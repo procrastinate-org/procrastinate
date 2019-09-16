@@ -12,4 +12,4 @@ class Migrator:
 
     def migrate(self) -> None:
         queries = self.get_migration_queries()
-        self.job_store.execute_queries(queries=queries)
+        self.job_store.execute_query(query=queries)

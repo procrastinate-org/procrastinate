@@ -3,7 +3,7 @@
     -- description
     -- %s-templated QUERY
 
--- insert_job --
+-- defer_job --
 -- Create and enqueue a job
 INSERT INTO procrastinate_jobs (queue_name, task_name, lock, args, scheduled_at)
 VALUES (%(queue)s, %(task_name)s, %(lock)s, %(args)s, %(scheduled_at)s)
