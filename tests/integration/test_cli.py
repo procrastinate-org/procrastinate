@@ -89,6 +89,27 @@ def test_defer(entrypoint, click_app):
     }
 
 
+def test_defer_unknown(entrypoint, click_app):
+    # No space in the json helps entrypoint() to simply split args
+    result = entrypoint("""-a yay defer --unknown --lock=sherlock hello {"a":1}""")
+
+    assert result.output == "Launching a job: hello(a=1)\n"
+    assert result.exit_code == 0
+    assert click_app.job_store.jobs == {
+        1: {
+            "args": {"a": 1},
+            "attempts": 0,
+            "id": 1,
+            "lock": "sherlock",
+            "queue_name": "default",
+            "scheduled_at": None,
+            "started_at": None,
+            "status": "todo",
+            "task_name": "hello",
+        }
+    }
+
+
 @pytest.mark.parametrize(
     "input",
     [
