@@ -1,3 +1,5 @@
+import pendulum
+
 from procrastinate import app as app_module
 from procrastinate import tasks
 
@@ -91,3 +93,20 @@ def test_from_path(mocker):
     load = mocker.patch("procrastinate.utils.load_from_path")
     assert app_module.App.from_path("dotted.path") is load.return_value
     load.assert_called_once_with("dotted.path", app_module.App)
+
+
+def test_app_configure_task(app):
+    scheduled_at = pendulum.datetime(2000, 1, 1)
+    job = app.configure_task(
+        name="my_name",
+        queue="marsupilami",
+        lock="sher",
+        schedule_at=scheduled_at,
+        task_kwargs={"a": 1},
+    ).job
+
+    assert job.task_name == "my_name"
+    assert job.queue == "marsupilami"
+    assert job.lock == "sher"
+    assert job.scheduled_at == scheduled_at
+    assert job.task_kwargs == {"a": 1}

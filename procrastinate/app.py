@@ -134,6 +134,28 @@ class App:
     def _register_builtin_tasks(self) -> None:
         builtin_tasks.register_builtin_tasks(self)
 
+    def configure_task(self, name: str, **kwargs: Any) -> jobs.JobLauncher:
+        """
+        Configure a task for deferring, using its name
+
+        Parameters
+        ----------
+        name : str
+            Name of the task. If not explicitely defined, this will be the dotted path
+            to the task (``my.module.my_task``)
+
+        **kwargs: Any
+            Parameters from :py:func:`Task.configure`
+
+        Returns
+        -------
+        ``jobs.JobLauncher``
+            Launch ``.defer(**task_kwargs)`` on this object to defer your job.
+        """
+        from procrastinate import tasks
+
+        return tasks.configure_task(name=name, job_store=self.job_store, **kwargs)
+
     def _worker(self, queues: Optional[Iterable[str]] = None) -> "worker.Worker":
         from procrastinate import worker
 
