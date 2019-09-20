@@ -2,7 +2,7 @@ import functools
 import logging
 from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, Optional, Set
 
-from procrastinate import builtin_tasks, exceptions, migration
+from procrastinate import builtin_tasks, exceptions, jobs, migration
 from procrastinate import retry as retry_module
 from procrastinate import store, utils
 
@@ -63,7 +63,7 @@ class App:
         self,
         _func: Optional[Callable] = None,
         *,
-        queue: str = "default",
+        queue: str = jobs.DEFAULT_QUEUE,
         name: Optional[str] = None,
         retry: retry_module.RetryValue = False,
     ) -> Any:
