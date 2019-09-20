@@ -8,7 +8,7 @@ from psycopg2 import sql
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 
 from procrastinate import app as app_module
-from procrastinate import jobs, migration, postgres, testing
+from procrastinate import jobs, migration, postgres, testing, aiopg_connector
 
 # Just ensuring the tests are not polluted by environment
 for key in os.environ:
@@ -80,6 +80,14 @@ def pg_job_store(connection_params):
     job_store = postgres.PostgresJobStore(**connection_params)
     yield job_store
     job_store.connection.close()
+
+
+@pytest.fixture
+async def aiopg_job_store(connection_params):
+    job_store = aiopg_connector.AiopgJobStore(**connection_params)
+    yield job_store
+    connection = await job_store.get_connection()
+    await connection.close()
 
 
 @pytest.fixture
