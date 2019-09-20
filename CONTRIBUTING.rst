@@ -11,6 +11,7 @@ Create your dev database
 
 .. code-block:: console
 
+    $ sudo apt install postgresql-client
     $ docker-compose up -d
     $ export PGDATABASE=procrastinate PGHOST=localhost PGUSER=postgres
     $ createdb
