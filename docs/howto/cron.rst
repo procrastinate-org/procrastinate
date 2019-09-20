@@ -23,8 +23,9 @@ in turn schedule the appropriate jobs is up to you, following your own constrain
 
 Launching a job from cron every 15 minutes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. highlight:: none
 
-.. code-block::
+::
 
     */15 * * * * /path/to/env/bin/procrastinate \
                     --app=dotted.path.to.app defer my.maintenance.task
