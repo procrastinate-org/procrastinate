@@ -10,21 +10,21 @@ There are three ways you can specify the connection parameters:
 
   and then just define::
 
-    import cabbage
-    cabbage.PostgresJobStore()
+    import procrastinate
+    procrastinate.PostgresJobStore()
 
 .. _`libpq environment variables`: https://www.postgresql.org/docs/current/libpq-envars.html
 
 - You can use `psycopg2 dsn`_::
 
-    import cabbage
-    cabbage.PostgresJobStore(dsn="postgres://user:password@host:port/dbname")
+    import procrastinate
+    procrastinate.PostgresJobStore(dsn="postgres://user:password@host:port/dbname")
 
 .. _`psycopg2 dsn`: http://initd.org/psycopg/docs/module.html#psycopg2.connect
 
 - You can use other `psycopg2 connection arguments`_::
 
-    import cabbage
-    cabbage.PostgresJobStore(user="user", password="password", host="host")
+    import procrastinate
+    procrastinate.PostgresJobStore(user="user", password="password", host="host")
 
 .. _`psycopg2 connection arguments`: http://initd.org/psycopg/docs/module.html#psycopg2.connect
