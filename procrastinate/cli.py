@@ -50,6 +50,11 @@ def handle_errors():
         yield
     except exceptions.ProcrastinateException as exc:
         raise click.ClickException(str(exc))
+    except NotImplementedError:
+        raise click.UsageError(
+            "Missing app. This most probably happened because procrastinate needs an "
+            "app via --app or the PROCRASTINATE_APP environment variable"
+        )
 
 
 def print_version(ctx, __, value):
@@ -62,7 +67,11 @@ def print_version(ctx, __, value):
 
 @click.group(context_settings=CONTEXT_SETTINGS)
 @click.pass_context
-@click.option("--app", "-a", help="Dotted path to the Procrastinate app")
+@click.option(
+    "--app",
+    "-a",
+    help="Dotted path to the Procrastinate app. Its job store must be synchronous",
+)
 @click.option(
     "-v",
     "--verbose",
@@ -94,6 +103,9 @@ def cli(ctx: click.Context, app: str, **kwargs) -> None:
         # If we don't provide an app, initialize a default one that will fail if it
         # needs its job store.
         ctx.obj = procrastinate.App(job_store=procrastinate.BaseJobStore())
+
+    if ctx.obj.job_store.asynchronous:
+        raise click.UsageError("Procrastinate CLI can only use synchronous job stores.")
 
 
 @cli.command()
