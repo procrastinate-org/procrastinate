@@ -196,7 +196,6 @@ class App:
         scheduler = self._scheduler()
         scheduler.run()
 
-
     @property
     def migrator(self) -> migration.Migrator:
         return migration.Migrator(job_store=self.job_store)
