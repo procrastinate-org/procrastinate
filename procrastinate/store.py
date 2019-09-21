@@ -17,6 +17,13 @@ SOCKET_TIMEOUT = 5.0  # seconds
 
 
 
+def get_channel_for_queues(queues: Optional[Iterable[str]] = None) -> Iterable[str]:
+    if queues is None:
+        return ["procrastinate_any_queue"]
+    else:
+        return ["procrastinate_queue#" + queue for queue in queues]
+
+
 class BaseJobStore:
     def wait_for_jobs(self):
         raise NotImplementedError
@@ -107,12 +114,8 @@ class BaseJobStore:
         )
 
     def listen_for_jobs(self, queues: Optional[Iterable[str]] = None) -> None:
-        if queues is None:
-            channel_names = ["procrastinate_any_queue"]
-        else:
-            channel_names = ["procrastinate_queue#" + queue for queue in queues]
 
-        for channel_name in channel_names:
+        for channel_name in get_channel_for_queues(queues=queues):
 
             self.execute_query(
                 query=self.make_dynamic_query(
