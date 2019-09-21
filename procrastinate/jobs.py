@@ -1,12 +1,14 @@
 import datetime
 import logging
 from enum import Enum
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Union, TYPE_CHECKING
 
 import attr
 
-import procrastinate
 from procrastinate import types
+
+if TYPE_CHECKING:
+    from procrastinate import store  # noqa
 
 logger = logging.getLogger(__name__)
 
@@ -68,21 +70,57 @@ class JobLauncher:
     doesn't need a job_store property.
     """
 
-    def __init__(self, job_store: "procrastinate.store.BaseJobStore", job: Job):
+    def __init__(
+        self,
+        job_store: Union["store.BaseJobStore", "store.AsyncBaseJobStore"],
+        job: Job,
+    ):
         self.job = job
         self.job_store = job_store
+
+    def make_new_job(self, **task_kwargs: types.JSONValue) -> Job:
+        final_kwargs = self.job.task_kwargs.copy()
+        final_kwargs.update(task_kwargs)
+
+        return attr.evolve(self.job, task_kwargs=final_kwargs)
 
     def defer(self, **task_kwargs: types.JSONValue) -> int:
         """
         See :py:func:`Task.defer` for details.
         """
-        final_kwargs = self.job.task_kwargs.copy()
-        final_kwargs.update(task_kwargs)
+        from procrastinate import store as store_module
 
-        job = attr.evolve(self.job, task_kwargs=final_kwargs)
+        assert isinstance(
+            self.job_store, store_module.BaseJobStore
+        ), "defer() can only be used with a sync job store. Use defer_async()."
+
+        job = self.make_new_job(**task_kwargs)
 
         logger.info(
             "Deferring job", extra={"action": "job_defer", "job": job.get_context()}
         )
         id = self.job_store.defer_job(job=job)
+        return id
+
+    async def defer_async(self, **task_kwargs: types.JSONValue) -> int:
+        """
+        See :py:func:`Task.defer` for details.
+        """
+        from procrastinate import store as store_module
+
+        assert isinstance(
+            self.job_store, store_module.AsyncBaseJobStore
+        ), "defer_async() can only be used with an async job store. Use defer()."
+
+        job = self.make_new_job(**task_kwargs)
+
+        logger.info(
+            "Deferring job",
+            extra={
+                "action": "job_defer",
+                "asynchronous": True,
+                "job": job.get_context(),
+            },
+        )
+        id = await self.job_store.defer_job(job=job)
         return id

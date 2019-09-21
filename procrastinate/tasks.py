@@ -108,6 +108,16 @@ class Task:
 
         return job_id
 
+    async def defer_async(self, **task_kwargs: types.JSONValue) -> int:
+        """
+        Create a job from this task and the given arguments.
+        The job will be created with default parameters, if you want to better
+        specify when and how to launch this job, see :py:func:`Task.configure`
+        """
+        job_id = await self.configure().defer_async(**task_kwargs)
+
+        return job_id
+
     def configure(
         self,
         *,
