@@ -15,6 +15,35 @@ SOCKET_TIMEOUT = 5.0  # seconds
 # outsource decisions to pure functions (without I/O) for consistency.
 
 
+class SyncActivityMonitor:
+    def __init__(self, selectable: types.Selectable, timeout: float = SOCKET_TIMEOUT):
+        """
+        Wait for activity on the selectable (fileno) object until something happens,
+        or timeout is reached. Wait using :py:func:`Stopper.wait` or cancel the wait
+        by calling :py:func:`Stopper.interrupt`
+
+        Parameters
+        ----------
+        selectable : types.Selectable
+            Integer or object with a ``.fileno() -> int`` method to monitor
+        timeout : float, optional
+            Number of seconds to wait, by default SOCKET_TIMEOUT
+        """
+        self.selectable = selectable
+        self.read_interrupter, self.write_interrupter = os.pipe()
+        self.timeout = timeout
+
+    def interrupt(self):
+        os.write(self.write_interrupter, b"s")
+
+    def wait(self) -> None:
+
+        ready_fds = select.select(
+            [self.selectable, self.read_interrupter], [], [], self.timeout
+        )
+        # Don't let things accumulate in the pipe
+        if self.read_interrupter in ready_fds[0]:
+            os.read(self.read_interrupter, 1)
 
 
 def get_channel_for_queues(queues: Optional[Iterable[str]] = None) -> Iterable[str]:
@@ -25,10 +54,20 @@ def get_channel_for_queues(queues: Optional[Iterable[str]] = None) -> Iterable[s
 
 
 class BaseJobStore:
-    def wait_for_jobs(self):
-        raise NotImplementedError
+    """
+    A JobStore is tasked with storing and fetching the tasks in the postgres database.
+    The BaseJobStore makes the high-level logic, using primitives that need to be
+    implemented by the specific implementation inheriting it.
+    """
 
-    def stop(self):
+    asynchronous = False
+
+    def __init__(self, socket_timeout: float = SOCKET_TIMEOUT):
+        self.monitor = SyncActivityMonitor(
+            timeout=socket_timeout, selectable=self.get_connection()
+        )
+
+    def get_connection(self) -> Any:
         raise NotImplementedError
 
     def execute_query(self, query: str, **arguments: Any) -> None:
@@ -42,6 +81,12 @@ class BaseJobStore:
 
     def make_dynamic_query(self, query: str, **identifiers: str) -> str:
         raise NotImplementedError
+
+    def wait_for_jobs(self):
+        self.get_monitor().wait()
+
+    def stop(self):
+        self.get_monitor().interrupt()
 
     def defer_job(self, job: jobs.Job) -> int:
         return self.execute_query_one(
