@@ -1,61 +1,46 @@
-import os
-import select
-from typing import Any, Dict, List, Tuple, Optional
+import asyncio
+from typing import Any, Dict, List, Optional
 
-from psycopg2 import sql as psycopg2_sql
-from psycopg2.extras import RealDictCursor
+from psycopg2.extras import RealDictCursor, Json
 
 import aiopg
-
-from procrastinate import store
-
-SOCKET_TIMEOUT = 5.0  # seconds
+from procrastinate import postgres, store
 
 
 async def get_connection(*args, **kwargs) -> aiopg.Connection:
     return await aiopg.connect(*args, **kwargs)
 
 
+def wrap_json(arguments: Dict[str, Any]):
+    return {
+        key: Json(value) if isinstance(value, dict) else value
+        for key, value in arguments.items()
+    }
+
+
 async def execute_query(
     connection: aiopg.Connection, query: str, **arguments: Any
 ) -> None:
-    async with connection:
-        async with connection.cursor() as cursor:
-            await cursor.execute(query, arguments)
+    async with connection.cursor() as cursor:
+        await cursor.execute(query, wrap_json(arguments))
 
 
 async def execute_query_one(
     connection: aiopg.Connection, query: str, **arguments: Any
 ) -> Dict[str, Any]:
-    async with connection:
-        async with connection.cursor(cursor_factory=RealDictCursor) as cursor:
-            await cursor.execute(query, arguments)
+    # Strangely, aiopg can work with psycopg2's cursor class.
+    async with connection.cursor(cursor_factory=RealDictCursor) as cursor:
+        await cursor.execute(query, wrap_json(arguments))
 
-            return await cursor.fetchone()
+        return await cursor.fetchone()
 
 
 async def execute_query_all(
     connection: aiopg.Connection, query: str, **arguments: Any
 ) -> List[Dict[str, Any]]:
-    async with connection:
-        async with connection.cursor(cursor_factory=RealDictCursor) as cursor:
-            await cursor.execute(query, arguments)
-            return await cursor.fetchall()
-
-
-def wait_for_jobs(
-    connection: aiopg.Connection,
-    socket_timeout: float,
-    stop_pipe: Tuple[int, int],
-) -> None:
-    ready_fds = select.select([connection, stop_pipe[0]], [], [], socket_timeout)
-    # Don't let things accumulate in the pipe
-    if stop_pipe[0] in ready_fds[0]:
-        os.read(stop_pipe[0], 1)
-
-
-def send_stop(stop_pipe: Tuple[int, int]):
-    os.write(stop_pipe[1], b"s")
+    async with connection.cursor(cursor_factory=RealDictCursor) as cursor:
+        await cursor.execute(query, wrap_json(arguments))
+        return await cursor.fetchall()
 
 
 class AiopgJobStore(store.AsyncBaseJobStore):
@@ -64,7 +49,7 @@ class AiopgJobStore(store.AsyncBaseJobStore):
     connection to a Postgres database.
     """
 
-    def __init__(self, *, socket_timeout: float = SOCKET_TIMEOUT, **kwargs: Any):
+    def __init__(self, *, socket_timeout: float = store.SOCKET_TIMEOUT, **kwargs: Any):
         """
         All parameters except `socket_timeout` are passed to
         :py:func:`psycopg2.connect` (see the documentation_)
@@ -85,7 +70,6 @@ class AiopgJobStore(store.AsyncBaseJobStore):
         self._connection_parameters = kwargs
         self._connection: Optional[aiopg.Connection] = None
         self.socket_timeout = socket_timeout
-        self.stop_pipe = os.pipe()
 
     async def get_connection(self):
         if not self._connection:
@@ -96,25 +80,16 @@ class AiopgJobStore(store.AsyncBaseJobStore):
         await execute_query(await self.get_connection(), query=query, **arguments)
 
     async def execute_query_one(self, query: str, **arguments: Any) -> Dict[str, Any]:
-        return await execute_query_one(await self.get_connection(), query=query, **arguments)
-
-    async def execute_query_all(self, query: str, **arguments: Any) -> List[Dict[str, Any]]:
-        return await execute_query_all(await self.get_connection(), query=query, **arguments)
-
-    async def wait_for_jobs(self) -> None:
-        wait_for_jobs(
-            connection=await self.get_connection(),
-            socket_timeout=self.socket_timeout,
-            stop_pipe=self.stop_pipe,
+        return await execute_query_one(
+            await self.get_connection(), query=query, **arguments
         )
 
-    def stop(self):
-        send_stop(stop_pipe=self.stop_pipe)
+    async def execute_query_all(
+        self, query: str, **arguments: Any
+    ) -> List[Dict[str, Any]]:
+        return await execute_query_all(
+            await self.get_connection(), query=query, **arguments
+        )
 
     def make_dynamic_query(self, query: str, **identifiers: str) -> str:
-        return psycopg2_sql.SQL(query).format(
-            **{
-                key: psycopg2_sql.Identifier(value)
-                for key, value in identifiers.items()
-            }
-        )
+        return postgres.make_dynamic_query(query=query, **identifiers)

@@ -1,7 +1,20 @@
 import datetime
-from typing import Any, Dict, Iterable, Iterator, List, Optional
+import os
+import select
+from typing import Any, Dict, Iterable, Iterator, List, Optional, AsyncGenerator
 
-from procrastinate import jobs, sql
+from procrastinate import jobs, sql, types
+
+SOCKET_TIMEOUT = 5.0  # seconds
+
+# Because of how async works, it's very hard to make a common class that will
+# manage both sync and async, because the caller needs to know if it needs
+# to await it or not, and it needs to know whether to await its I/Os or not.
+# Consequently, there are 2 classes (BaseJobStore and AsyncBaseJobStore implementing
+# the same-ish API, they're expected to have very little logic on themselves, and
+# outsource decisions to pure functions (without I/O) for consistency.
+
+
 
 
 class BaseJobStore:
@@ -109,10 +122,13 @@ class BaseJobStore:
 
 
 class AsyncBaseJobStore:
+    asynchronous = True
+
     async def wait_for_jobs(self):
         raise NotImplementedError
 
-    async def stop(self):
+    # stop, being called in a signal handler, may NOT be an awaitable
+    def stop(self):
         raise NotImplementedError
 
     async def execute_query(self, query: str, **arguments: Any) -> None:
@@ -121,10 +137,12 @@ class AsyncBaseJobStore:
     async def execute_query_one(self, query: str, **arguments: Any) -> Dict[str, Any]:
         raise NotImplementedError
 
-    async def execute_query_all(self, query: str, **arguments: Any) -> List[Dict[str, Any]]:
+    async def execute_query_all(
+        self, query: str, **arguments: Any
+    ) -> List[Dict[str, Any]]:
         raise NotImplementedError
 
-    async def make_dynamic_query(self, query: str, **identifiers: str) -> str:
+    def make_dynamic_query(self, query: str, **identifiers: str) -> str:
         raise NotImplementedError
 
     async def defer_job(self, job: jobs.Job) -> int:
@@ -140,7 +158,9 @@ class AsyncBaseJobStore:
 
     async def fetch_job(self, queues: Optional[Iterable[str]]) -> Optional[jobs.Job]:
 
-        row = await self.execute_query_one(query=sql.queries["fetch_job"], queues=queues)
+        row = await self.execute_query_one(
+            query=sql.queries["fetch_job"], queues=queues
+        )
 
         # fetch_tasks will always return a row, but is there's no relevant
         # value, it will all be None
@@ -154,7 +174,7 @@ class AsyncBaseJobStore:
         nb_seconds: int,
         queue: Optional[str] = None,
         task_name: Optional[str] = None,
-    ) -> Iterator[jobs.Job]:
+    ) -> AsyncGenerator[jobs.Job, None]:
 
         rows = await self.execute_query_all(
             query=sql.queries["select_stalled_jobs"],
@@ -199,15 +219,10 @@ class AsyncBaseJobStore:
         )
 
     async def listen_for_jobs(self, queues: Optional[Iterable[str]] = None) -> None:
-        if queues is None:
-            channel_names = ["procrastinate_any_queue"]
-        else:
-            channel_names = ["procrastinate_queue#" + queue for queue in queues]
-
-        for channel_name in channel_names:
+        for channel_name in get_channel_for_queues(queues=queues):
 
             await self.execute_query(
-                query=await self.make_dynamic_query(
+                query=self.make_dynamic_query(
                     query=sql.queries["listen_queue"], channel_name=channel_name
                 )
             )

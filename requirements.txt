@@ -1,1 +1,1 @@
--e .[dev,test,lint,docs]
+-e .[async,dev,test,lint,docs]
