@@ -52,20 +52,6 @@ class Job:
             attempts=row["attempts"],
         )
 
-    def defer(
-        self, job_store: "procrastinate.store.BaseJobStore", task_kwargs: types.JSONDict
-    ) -> int:
-        final_kwargs = self.task_kwargs.copy()
-        final_kwargs.update(task_kwargs)
-
-        job = attr.evolve(self, task_kwargs=final_kwargs)
-
-        id = job_store.defer_job(job=job)
-        logger.info(
-            "Scheduled job", extra={"action": "job_defer", "job": self.get_context()}
-        )
-        return id
-
     def get_context(self) -> types.JSONDict:
         context = attr.asdict(self)
 
@@ -90,4 +76,13 @@ class JobLauncher:
         """
         See :py:func:`Task.defer` for details.
         """
-        return self.job.defer(job_store=self.job_store, task_kwargs=task_kwargs)
+        final_kwargs = self.job.task_kwargs.copy()
+        final_kwargs.update(task_kwargs)
+
+        job = attr.evolve(self.job, task_kwargs=final_kwargs)
+
+        logger.info(
+            "Deferring job", extra={"action": "job_defer", "job": job.get_context()}
+        )
+        id = self.job_store.defer_job(job=job)
+        return id
