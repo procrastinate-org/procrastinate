@@ -1,7 +1,7 @@
 import threading
 import time
 
-from procrastinate import App, jobs, postgres
+from procrastinate import App, jobs, psycopg2_connector
 
 
 def test_wait_for_jobs(pg_job_store, connection_params):
@@ -14,7 +14,7 @@ def test_wait_for_jobs(pg_job_store, connection_params):
     def stop():
         time.sleep(0.5)
         try:
-            inner_job_store = postgres.PostgresJobStore(**connection_params)
+            inner_job_store = psycopg2_connector.PostgresJobStore(**connection_params)
 
             inner_job_store.defer_job(
                 jobs.Job(id=0, queue="yay", task_name="oh", lock="sher", task_kwargs={})

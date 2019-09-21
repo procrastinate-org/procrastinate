@@ -6,11 +6,11 @@ import pendulum
 import psycopg2
 import pytest
 
-from procrastinate import jobs, postgres
+from procrastinate import jobs, psycopg2_connector
 
 
 def test_init_pg_extensions():
-    postgres.init_pg_extensions()
+    psycopg2_connector.init_pg_extensions()
     json = psycopg2.extensions.adapt({"hello": ["world", 42]})
 
     assert type(json).__name__ == "Json"
@@ -19,7 +19,7 @@ def test_init_pg_extensions():
 def test_get_connection(connection):
     dsn = connection.get_dsn_parameters()
 
-    new_connection = postgres.get_connection(**dsn)
+    new_connection = psycopg2_connector.get_connection(**dsn)
 
     assert new_connection.get_dsn_parameters() == dsn
 
@@ -27,7 +27,9 @@ def test_get_connection(connection):
 @pytest.fixture
 def get_all(connection):
     def f(table, *fields):
-        with connection.cursor(cursor_factory=postgres.RealDictCursor) as cursor:
+        with connection.cursor(
+            cursor_factory=psycopg2_connector.RealDictCursor
+        ) as cursor:
             cursor.execute(f"SELECT {', '.join(fields)} FROM {table}")
             return list(iter(cursor.fetchone, None))
 

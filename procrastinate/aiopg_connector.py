@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Optional
 from psycopg2.extras import RealDictCursor, Json
 
 import aiopg
-from procrastinate import postgres, store
+from procrastinate import psycopg2_connector, store
 
 
 async def get_connection(*args, **kwargs) -> aiopg.Connection:
@@ -92,7 +92,7 @@ class AiopgJobStore(store.AsyncBaseJobStore):
         )
 
     def make_dynamic_query(self, query: str, **identifiers: str) -> str:
-        return postgres.make_dynamic_query(query=query, **identifiers)
+        return psycopg2_connector.make_dynamic_query(query=query, **identifiers)
 
     async def wait_for_jobs(self):
         connection = await self.get_connection()
