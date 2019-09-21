@@ -1,8 +1,11 @@
+import os
+
 import procrastinate
 
+DSN = os.environ.get('PROCRASTINATE_POSTGRES_DSN', 'postgresql://postgres@localhost/procrastinate')
 app = procrastinate.App(
     job_store=procrastinate.PostgresJobStore(
-        dsn="postgresql://postgres@localhost/procrastinate"
+        dsn=DSN
     ),
     import_paths=["procrastinate_demo.tasks"],
     schedule=[
