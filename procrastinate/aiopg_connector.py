@@ -93,3 +93,11 @@ class AiopgJobStore(store.AsyncBaseJobStore):
 
     def make_dynamic_query(self, query: str, **identifiers: str) -> str:
         return postgres.make_dynamic_query(query=query, **identifiers)
+
+    async def wait_for_jobs(self):
+        connection = await self.get_connection()
+        await asyncio.wait_for(connection.notifies.get(), timeout=self.socket_timeout)
+
+    def stop(self):
+        if self._connection:
+            self._connection.notifies.put_nowait("s")
