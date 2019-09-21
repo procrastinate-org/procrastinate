@@ -28,3 +28,7 @@ class StopRequested(ProcrastinateException):
 
 class NoMoreJobs(ProcrastinateException):
     pass
+
+
+class SchedulerConfigError(ProcrastinateException):
+    pass

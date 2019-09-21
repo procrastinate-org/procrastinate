@@ -111,6 +111,17 @@ def worker(app: procrastinate.App, queue: Iterable[str]):
 @cli.command()
 @click.pass_obj
 @handle_errors()
+def scheduler(app: procrastinate.App):
+    """
+    Launch the scheduler process
+    """
+    click.echo(f"Launching scheduler")
+    app.run_scheduler()
+
+
+@cli.command()
+@click.pass_obj
+@handle_errors()
 @click.argument("task")
 @click.argument("json_args", required=False)
 @click.option(

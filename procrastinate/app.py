@@ -31,6 +31,7 @@ class App:
         *,
         job_store: store.BaseJobStore,
         import_paths: Optional[Iterable[str]] = None,
+        schedule: Optional[Iterable[dict]] = None,
     ):
         """
         Parameters
@@ -50,12 +51,16 @@ class App:
             A :py:func:`App.task` that has a custom "name" parameter, that is not
             imported and whose module path is not in this list will
             fail to run.
+        schedule:
+            List of dictionaries describing jobs that must be run periodically.
+            These jobs are inserted by the scheduler process.
         """
         self.job_store = job_store
         self.tasks: Dict[str, "tasks.Task"] = {}
         self.builtin_tasks: Dict[str, "tasks.Task"] = {}
         self.queues: Set[str] = set()
         self.import_paths = import_paths or []
+        self.schedule = schedule
 
         self._register_builtin_tasks()
 
@@ -139,6 +144,11 @@ class App:
 
         return worker.Worker(app=self, queues=queues)
 
+    def _scheduler(self) -> "scheduler.Scheduler":
+        from procrastinate import scheduler
+
+        return scheduler.Scheduler(app=self)
+
     @functools.lru_cache(maxsize=1)
     def perform_import_paths(self):
         """
@@ -178,6 +188,14 @@ class App:
                 pass
         else:
             worker.run()
+
+    def run_scheduler(self) -> None:
+        """
+        Run the scheduler process.
+        """
+        scheduler = self._scheduler()
+        scheduler.run()
+
 
     @property
     def migrator(self) -> migration.Migrator:
