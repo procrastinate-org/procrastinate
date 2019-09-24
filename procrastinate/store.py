@@ -63,9 +63,8 @@ class BaseJobStore:
     asynchronous = False
 
     def __init__(self, socket_timeout: float = SOCKET_TIMEOUT):
-        self.monitor = SyncActivityMonitor(
-            timeout=socket_timeout, selectable=self.get_connection()
-        )
+        self.socket_timeout = socket_timeout
+        self._monitor: Optional[SyncActivityMonitor] = None
 
     def get_connection(self) -> Any:
         raise NotImplementedError
@@ -82,11 +81,19 @@ class BaseJobStore:
     def make_dynamic_query(self, query: str, **identifiers: str) -> str:
         raise NotImplementedError
 
+    def get_monitor(self):
+        if not self._monitor:
+            self._monitor = SyncActivityMonitor(
+                timeout=self.socket_timeout, selectable=self.get_connection()
+            )
+
+        return self._monitor
+
     def wait_for_jobs(self):
-        self.monitor.wait()
+        self.get_monitor().wait()
 
     def stop(self):
-        self.monitor.interrupt()
+        self.get_monitor().interrupt()
 
     def defer_job(self, job: jobs.Job) -> int:
         return self.execute_query_one(
