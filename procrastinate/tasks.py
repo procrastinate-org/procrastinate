@@ -30,7 +30,7 @@ def configure_task(
     schedule_at: Optional[datetime.datetime] = None,
     schedule_in: Optional[Dict[str, int]] = None,
     queue: str = jobs.DEFAULT_QUEUE,
-) -> jobs.JobLauncher:
+) -> jobs.JobDeferrer:
     if schedule_at and schedule_in is not None:
         raise ValueError("Cannot set both schedule_at and schedule_in")
 
@@ -39,7 +39,7 @@ def configure_task(
 
     lock = lock or str(uuid.uuid4())
     task_kwargs = task_kwargs or {}
-    return jobs.JobLauncher(
+    return jobs.JobDeferrer(
         job=jobs.Job(
             id=None,
             lock=lock,
@@ -126,7 +126,7 @@ class Task:
         schedule_at: Optional[datetime.datetime] = None,
         schedule_in: Optional[Dict[str, int]] = None,
         queue: Optional[str] = None,
-    ) -> jobs.JobLauncher:
+    ) -> jobs.JobDeferrer:
         """
         Configure the job with all the specific settings, defining how the job
         should be launched.
@@ -155,7 +155,7 @@ class Task:
 
         Returns
         -------
-        jobs.JobLauncher
+        jobs.JobDeferrer
             An object with a ``defer`` method, identical to :py:func:`Task.defer`
 
         Raises

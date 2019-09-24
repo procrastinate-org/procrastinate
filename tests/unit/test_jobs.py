@@ -34,13 +34,13 @@ def test_job_get_context(job_store, scheduled_at, context_scheduled_at):
     }
 
 
-def test_job_defer(job_store):
+def test_job_launcher_defer(job_store):
 
     job = jobs.Job(
         queue="marsupilami", lock="sher", task_name="mytask", task_kwargs={"a": "b"}
     )
 
-    id = job.defer(job_store=job_store, task_kwargs={"c": 3})
+    id = jobs.JobDeferrer(job=job, job_store=job_store).defer(c=3)
 
     assert id == 1
 

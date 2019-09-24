@@ -225,7 +225,7 @@ def configure_job(
     task_name: str,
     configure_kwargs: Dict[str, Any],
     unknown: bool,
-) -> jobs.JobLauncher:
+) -> jobs.JobDeferrer:
     app.perform_import_paths()
     try:
         return app.tasks[task_name].configure(**configure_kwargs)

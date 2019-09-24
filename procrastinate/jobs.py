@@ -63,9 +63,9 @@ class Job:
         return context
 
 
-class JobLauncher:
+class JobDeferrer:
     """
-    The main purpose of JobLauncher is to get a hold of the job_store and the job, so
+    The main purpose of JobDeferrer is to get a hold of the job_store and the job, so
     that we can call ``defer`` without having to specify the job_store, and the job
     doesn't need a job_store property.
     """
