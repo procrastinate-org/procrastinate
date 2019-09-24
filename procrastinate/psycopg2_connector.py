@@ -3,7 +3,7 @@ from typing import Any, Dict, List
 import psycopg2
 from psycopg2 import extras
 from psycopg2 import sql as psycopg2_sql
-from psycopg2.extras import RealDictCursor
+from psycopg2.extras import RealDictCursor, Json
 
 from procrastinate import store
 
@@ -16,12 +16,19 @@ def init_pg_extensions() -> None:
     psycopg2.extensions.register_adapter(dict, extras.Json)
 
 
+def wrap_json(arguments: Dict[str, Any]):
+    return {
+        key: Json(value) if isinstance(value, dict) else value
+        for key, value in arguments.items()
+    }
+
+
 def execute_query(
     connection: psycopg2._psycopg.connection, query: str, **arguments: Any
 ) -> None:
     with connection:
         with connection.cursor() as cursor:
-            cursor.execute(query, arguments)
+            cursor.execute(query, wrap_json(arguments))
             connection.commit()
 
 
@@ -30,7 +37,7 @@ def execute_query_one(
 ) -> Dict[str, Any]:
     with connection:
         with connection.cursor(cursor_factory=RealDictCursor) as cursor:
-            cursor.execute(query, arguments)
+            cursor.execute(query, wrap_json(arguments))
             connection.commit()
             return cursor.fetchone()
 
@@ -40,7 +47,7 @@ def execute_query_all(
 ) -> List[Dict[str, Any]]:
     with connection:
         with connection.cursor(cursor_factory=RealDictCursor) as cursor:
-            cursor.execute(query, arguments)
+            cursor.execute(query, wrap_json(arguments))
             connection.commit()
             return cursor.fetchall()
 
