@@ -83,10 +83,10 @@ class BaseJobStore:
         raise NotImplementedError
 
     def wait_for_jobs(self):
-        self.get_monitor().wait()
+        self.monitor.wait()
 
     def stop(self):
-        self.get_monitor().interrupt()
+        self.monitor.interrupt()
 
     def defer_job(self, job: jobs.Job) -> int:
         return self.execute_query_one(
