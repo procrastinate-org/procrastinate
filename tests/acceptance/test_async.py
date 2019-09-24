@@ -28,10 +28,9 @@ async def test_defer(async_app, sync_app):
 
     await sum_task.defer_async(a=1, b=2)
     await sum_task.configure().defer_async(a=3, b=4)
-    # await async_app.configure_task().defer_async(a=5, b=6)
+    await async_app.configure_task().defer_async(a=5, b=6)
 
     # Worker still runs synchrously
     sync_app.run_worker(queues=["default"], only_once=True)
 
-    # assert sum_results == [3, 7, 11]
-    assert sum_results == [3, 7]
+    assert sum_results == [3, 7, 11]
