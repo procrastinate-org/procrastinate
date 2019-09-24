@@ -3,13 +3,13 @@ import datetime
 import json
 import logging
 import os
-from typing import Dict, Iterable, Optional
+from typing import Any, Dict, Iterable, Optional
 
 import click
 import pendulum
 
 import procrastinate
-from procrastinate import exceptions, tasks, types
+from procrastinate import exceptions, jobs, types
 
 logger = logging.getLogger(__name__)
 
@@ -84,7 +84,9 @@ def cli(ctx: click.Context, app: str, **kwargs) -> None:
     """
     Interact with a Procrastinate app. See subcommands for details.
 
-    All arguments can be passed by environment variables: PROCRASTINATE_UPPERCASE_NAME.
+    All arguments can be passed by environment variables: PROCRASTINATE_UPPERCASE_NAME
+    or PROCRASTINATE_COMMAND_UPPERCASE_NAME (examples: PROCRASTINATE_APP,
+    PROCRASTINATE_DEFER_UNKNOWN, ...).
     """
     if app:
         ctx.obj = procrastinate.App.from_path(dotted_path=app)
@@ -116,21 +118,28 @@ def worker(app: procrastinate.App, queue: Iterable[str]):
 @click.option(
     "--lock", help="A lock string. Jobs sharing the same lock will not run concurrently"
 )
+@click.option("--queue", help="The queue for deferring. Defaults to the task ")
 @click.option("--at", help="ISO-8601 localized datetime after which to launch the job")
 @click.option(
     "--in", "in_", type=int, help="Number of seconds after which to launch the job"
+)
+@click.option(
+    "--unknown/--no-unknown",
+    help="Whether unknown tasks can be deferred (default false)",
 )
 def defer(
     app: procrastinate.App,
     task: str,
     json_args: str,
     lock: Optional[str],
+    queue: Optional[str],
     at: Optional[str],
     in_: Optional[int],
+    unknown: bool,
 ):
     """
     Create a job from the given task, to be executed by a worker.
-    TASK should be the name or dotted path to a task declared in the App object.
+    TASK should be the name or dotted path to a task.
     JSON_ARGS should be a json object (a.k.a dictionnary) with the job parameters
     """
     # Loading json args
@@ -142,17 +151,30 @@ def defer(
     schedule_at = get_schedule_at(at=at)
     schedule_in = get_schedule_in(in_=in_)
 
-    # Retrieving the associated task
-    task_obj = get_task(app=app, task_name=task)
+    # Build kwargs. Remove all None kwargs to use their default values.
+    configure_kwargs = {
+        "lock": lock,
+        "schedule_at": schedule_at,
+        "schedule_in": schedule_in,
+        "queue": queue,
+    }
+    configure_kwargs = filter_none(configure_kwargs)
+
+    # Configure the job. If the task is known, it will be used.
+    job_launcher = configure_job(
+        app=app, task_name=task, configure_kwargs=configure_kwargs, unknown=unknown
+    )
 
     # Printing info
     str_kwargs = ", ".join(f"{k}={repr(v)}" for k, v in args.items())
     click.echo(f"Launching a job: {task}({str_kwargs})")
 
-    # Finally launching the job
-    task_obj.configure(
-        lock=lock, schedule_at=schedule_at, schedule_in=schedule_in
-    ).defer(**args)
+    # And launching the job
+    job_launcher.defer(**args)
+
+
+def filter_none(dictionnary: Dict) -> Dict:
+    return {key: value for key, value in dictionnary.items() if value is not None}
 
 
 def load_json_args(json_args) -> types.JSONDict:
@@ -186,12 +208,21 @@ def get_schedule_in(in_: Optional[int]) -> Optional[Dict[str, int]]:
     return {"seconds": in_}
 
 
-def get_task(app: procrastinate.App, task_name: str) -> tasks.Task:
+def configure_job(
+    app: procrastinate.App,
+    task_name: str,
+    configure_kwargs: Dict[str, Any],
+    unknown: bool,
+) -> jobs.JobLauncher:
     app.perform_import_paths()
     try:
-        return app.tasks[task_name]
+        return app.tasks[task_name].configure(**configure_kwargs)
+
     except KeyError:
-        raise click.BadArgumentUsage(f"Task {task_name} not found.")
+        if unknown:
+            return app.configure_task(name=task_name, **configure_kwargs)
+        else:
+            raise click.BadArgumentUsage(f"Task {task_name} not found.")
 
 
 @cli.command()

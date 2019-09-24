@@ -5,7 +5,7 @@ App
 ---
 
 .. autoclass:: procrastinate.App
-    :members: task, run_worker
+    :members: task, run_worker, configure_task
 
 App.builtin_tasks
 """""""""""""""""

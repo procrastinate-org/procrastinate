@@ -7,7 +7,7 @@ import pendulum
 
 from procrastinate import app, exceptions, jobs
 from procrastinate import retry as retry_module
-from procrastinate import types, utils
+from procrastinate import store, types, utils
 
 logger = logging.getLogger(__name__)
 
@@ -19,6 +19,37 @@ def load_task(path: str) -> "Task":
         raise exceptions.TaskNotFound(f"Task at {path} cannot be imported: {str(exc)}")
 
     return task
+
+
+def configure_task(
+    *,
+    name: str,
+    job_store: store.BaseJobStore,
+    lock: Optional[str] = None,
+    task_kwargs: Optional[types.JSONDict] = None,
+    schedule_at: Optional[datetime.datetime] = None,
+    schedule_in: Optional[Dict[str, int]] = None,
+    queue: str = jobs.DEFAULT_QUEUE,
+) -> jobs.JobLauncher:
+    if schedule_at and schedule_in is not None:
+        raise ValueError("Cannot set both schedule_at and schedule_in")
+
+    if schedule_in is not None:
+        schedule_at = pendulum.now("UTC").add(**schedule_in)
+
+    lock = lock or str(uuid.uuid4())
+    task_kwargs = task_kwargs or {}
+    return jobs.JobLauncher(
+        job=jobs.Job(
+            id=None,
+            lock=lock,
+            task_name=name,
+            queue=queue,
+            task_kwargs=task_kwargs,
+            scheduled_at=schedule_at,
+        ),
+        job_store=job_store,
+    )
 
 
 class Task:
@@ -122,24 +153,14 @@ class Task:
         ValueError
             If you try to define both schedule_at and schedule_in
         """
-        if schedule_at and schedule_in is not None:
-            raise ValueError("Cannot set both schedule_at and schedule_in")
-
-        if schedule_in is not None:
-            schedule_at = pendulum.now("UTC").add(**schedule_in)
-
-        lock = lock or str(uuid.uuid4())
-        task_kwargs = task_kwargs or {}
-        return jobs.JobLauncher(
-            job=jobs.Job(
-                id=None,
-                lock=lock,
-                task_name=self.name,
-                queue=queue if queue is not None else self.queue,
-                task_kwargs=task_kwargs,
-                scheduled_at=schedule_at,
-            ),
+        return configure_task(
+            name=self.name,
             job_store=self.app.job_store,
+            lock=lock,
+            task_kwargs=task_kwargs,
+            schedule_at=schedule_at,
+            schedule_in=schedule_in,
+            queue=queue if queue is not None else self.queue,
         )
 
     def get_retry_exception(self, job: jobs.Job) -> Optional[exceptions.JobRetry]:

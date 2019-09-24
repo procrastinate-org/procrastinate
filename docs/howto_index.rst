@@ -9,6 +9,7 @@ How-to...
     howto/app
     howto/job_store_connect
     howto/tasks
+    howto/defer
     howto/worker
     howto/command_line
     howto/locks

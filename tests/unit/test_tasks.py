@@ -51,51 +51,68 @@ def test_task_defer(app):
     }
 
 
-def test_task_configure(app):
-    task = tasks.Task(task_func, app=app, queue="queue")
-
-    job = task.configure(lock="sher", task_kwargs={"yay": "ho"}).job
+def test_configure_task(job_store):
+    job = tasks.configure_task(
+        name="my_name", job_store=job_store, lock="sher", task_kwargs={"yay": "ho"}
+    ).job
 
     assert job.lock == "sher"
     assert job.task_kwargs == {"yay": "ho"}
 
 
-def test_task_configure_no_lock(app):
-    task = tasks.Task(task_func, app=app, queue="queue")
-
-    job = task.configure().job
+def test_configure_task_no_lock(job_store):
+    job = tasks.configure_task(name="my_name", job_store=job_store).job
 
     assert uuid.UUID(job.lock)
 
 
-def test_task_configure_schedule_at(app):
-    task = tasks.Task(task_func, app=app, queue="queue")
-
-    job = task.configure(
-        schedule_at=pendulum.datetime(2000, 1, 1, tz="Europe/Paris")
+def test_configure_task_schedule_at(job_store):
+    job = tasks.configure_task(
+        name="my_name",
+        job_store=job_store,
+        schedule_at=pendulum.datetime(2000, 1, 1, tz="Europe/Paris"),
     ).job
 
     assert job.scheduled_at == pendulum.datetime(2000, 1, 1, tz="Europe/Paris")
 
 
-def test_task_configure_schedule_in(app):
-    task = tasks.Task(task_func, app=app, queue="queue")
-
+def test_configure_task_schedule_in(job_store):
     now = pendulum.datetime(2000, 1, 1, tz="Europe/Paris")
     with pendulum.test(now):
-        job = task.configure(schedule_in={"hours": 2}).job
+        job = tasks.configure_task(
+            name="my_name", job_store=job_store, schedule_in={"hours": 2}
+        ).job
 
     assert job.scheduled_at == pendulum.datetime(2000, 1, 1, 2, tz="Europe/Paris")
 
 
-def test_task_configure_schedule_in_and_schedule_at(app):
-    task = tasks.Task(task_func, app=app, queue="queue")
-
+def test_configure_task_schedule_in_and_schedule_at(job_store):
     with pytest.raises(ValueError):
-        task.configure(
+        tasks.configure_task(
+            name="my_name",
+            job_store=job_store,
             schedule_at=pendulum.datetime(2000, 1, 1, tz="Europe/Paris"),
             schedule_in={"hours": 2},
         )
+
+
+def test_task_configure(app):
+    task = tasks.Task(task_func, app=app, queue="queue")
+
+    job = task.configure(lock="sher", task_kwargs={"yay": "ho"}).job
+
+    assert job.task_name == "tests.unit.test_tasks.task_func"
+    assert job.lock == "sher"
+    assert job.task_kwargs == {"yay": "ho"}
+    assert job.queue == "queue"
+
+
+def test_task_configure_override_queue(app):
+    task = tasks.Task(task_func, app=app, queue="queue")
+
+    job = task.configure(queue="other_queue").job
+
+    assert job.queue == "other_queue"
 
 
 def test_task_get_retry_exception_none(app):

@@ -11,6 +11,9 @@ from procrastinate import types
 logger = logging.getLogger(__name__)
 
 
+DEFAULT_QUEUE = "default"
+
+
 def check_aware(
     instance: "Job", attribute: attr.Attribute, value: datetime.datetime
 ) -> None:
