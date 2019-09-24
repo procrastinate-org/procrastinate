@@ -24,19 +24,7 @@ def test_get_connection(connection):
     assert new_connection.get_dsn_parameters() == dsn
 
 
-@pytest.fixture
-def get_all(connection):
-    def f(table, *fields):
-        with connection.cursor(
-            cursor_factory=psycopg2_connector.RealDictCursor
-        ) as cursor:
-            cursor.execute(f"SELECT {', '.join(fields)} FROM {table}")
-            return list(iter(cursor.fetchone, None))
-
-    return f
-
-
-def test_launch_job(pg_job_store, get_all):
+def test_defer_job(pg_job_store, get_all):
     queue = "marsupilami"
     job = jobs.Job(
         id=0, queue=queue, task_name="bob", lock="sher", task_kwargs={"a": 1, "b": 2}

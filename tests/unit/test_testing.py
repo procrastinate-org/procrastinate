@@ -1,4 +1,5 @@
 import pendulum
+import pytest
 
 
 def test_reset(job_store):
@@ -268,3 +269,36 @@ def test_migrate_run(job_store):
 def test_stop(job_store):
     # If we don't crash, it's enough
     job_store.stop()
+
+
+@pytest.mark.asyncio
+async def test_async_execute_query(async_job_store, mocker):
+    async_job_store.generic_execute = mocker.Mock()
+    await async_job_store.execute_query("a", b="c")
+    async_job_store.generic_execute.assert_called_with("a", "run", b="c")
+
+
+@pytest.mark.asyncio
+async def test_async_execute_query_one(async_job_store, mocker):
+    async_job_store.generic_execute = mocker.Mock()
+    assert (
+        await async_job_store.execute_query_one("a", b="c")
+        == async_job_store.generic_execute.return_value
+    )
+    async_job_store.generic_execute.assert_called_with("a", "one", b="c")
+
+
+@pytest.mark.asyncio
+async def test_async_execute_query_all(async_job_store, mocker):
+    async_job_store.generic_execute = mocker.Mock()
+    assert (
+        await async_job_store.execute_query_all("a", b="c")
+        == async_job_store.generic_execute.return_value
+    )
+    async_job_store.generic_execute.assert_called_with("a", "all", b="c")
+
+
+@pytest.mark.asyncio
+async def test_async_wait_for_jobs(async_job_store):
+    # If we don't crash, it's enough
+    await async_job_store.wait_for_jobs()

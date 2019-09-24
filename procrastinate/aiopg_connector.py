@@ -1,5 +1,4 @@
-import asyncio
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional, Awaitable
 
 from psycopg2.extras import RealDictCursor
 
@@ -7,15 +6,8 @@ import aiopg
 from procrastinate import psycopg2_connector, store
 
 
-async def get_connection(*args, **kwargs) -> aiopg.Connection:
-    return await aiopg.connect(*args, **kwargs)
-
-
-async def execute_query(
-    connection: aiopg.Connection, query: str, **arguments: Any
-) -> None:
-    async with connection.cursor() as cursor:
-        await cursor.execute(query, psycopg2_connector.wrap_json(arguments))
+def get_connection(*args, **kwargs) -> Awaitable[aiopg.Connection]:
+    return aiopg.connect(*args, **kwargs)
 
 
 async def execute_query_one(
@@ -26,14 +18,6 @@ async def execute_query_one(
         await cursor.execute(query, psycopg2_connector.wrap_json(arguments))
 
         return await cursor.fetchone()
-
-
-async def execute_query_all(
-    connection: aiopg.Connection, query: str, **arguments: Any
-) -> List[Dict[str, Any]]:
-    async with connection.cursor(cursor_factory=RealDictCursor) as cursor:
-        await cursor.execute(query, psycopg2_connector.wrap_json(arguments))
-        return await cursor.fetchall()
 
 
 class AiopgJobStore(store.AsyncBaseJobStore):
@@ -69,28 +53,7 @@ class AiopgJobStore(store.AsyncBaseJobStore):
             self._connection = await get_connection(**self._connection_parameters)
         return self._connection
 
-    async def execute_query(self, query: str, **arguments: Any) -> None:
-        await execute_query(await self.get_connection(), query=query, **arguments)
-
     async def execute_query_one(self, query: str, **arguments: Any) -> Dict[str, Any]:
         return await execute_query_one(
             await self.get_connection(), query=query, **arguments
         )
-
-    async def execute_query_all(
-        self, query: str, **arguments: Any
-    ) -> List[Dict[str, Any]]:
-        return await execute_query_all(
-            await self.get_connection(), query=query, **arguments
-        )
-
-    def make_dynamic_query(self, query: str, **identifiers: str) -> str:
-        return psycopg2_connector.make_dynamic_query(query=query, **identifiers)
-
-    async def wait_for_jobs(self):
-        connection = await self.get_connection()
-        await asyncio.wait_for(connection.notifies.get(), timeout=self.socket_timeout)
-
-    def stop(self):
-        if self._connection:
-            self._connection.notifies.put_nowait("s")

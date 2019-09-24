@@ -106,8 +106,30 @@ def job_store():
 
 
 @pytest.fixture
+def async_job_store():
+    return testing.InMemoryAsyncJobStore()
+
+
+@pytest.fixture
+def get_all(connection):
+    def f(table, *fields):
+        with connection.cursor(
+            cursor_factory=psycopg2_connector.RealDictCursor
+        ) as cursor:
+            cursor.execute(f"SELECT {', '.join(fields)} FROM {table}")
+            return list(iter(cursor.fetchone, None))
+
+    return f
+
+
+@pytest.fixture
 def app(job_store):
     return app_module.App(job_store=job_store)
+
+
+@pytest.fixture
+def async_app(async_job_store):
+    return app_module.App(job_store=async_job_store)
 
 
 @pytest.fixture
