@@ -1,13 +1,30 @@
-from typing import Any, Awaitable, Dict, Optional
+import asyncio
+from typing import Any, Awaitable, Dict, List, Optional
 
 import aiopg
-from psycopg2.extras import RealDictCursor
+import psycopg2.sql
+from psycopg2.extras import Json, RealDictCursor
 
-from procrastinate import psycopg2_connector, store
+from procrastinate import store
+
+
+def wrap_json(arguments: Dict[str, Any]):
+    return {
+        key: Json(value) if isinstance(value, dict) else value
+        for key, value in arguments.items()
+    }
 
 
 def get_connection(**kwargs) -> Awaitable[aiopg.Connection]:
     return aiopg.connect(**kwargs)
+
+
+async def execute_query(
+    connection: aiopg.Connection, query: str, **arguments: Any
+) -> None:
+    # Strangely, aiopg can work with psycopg2's cursor class.
+    async with connection.cursor(cursor_factory=RealDictCursor) as cursor:
+        await cursor.execute(query, wrap_json(arguments))
 
 
 async def execute_query_one(
@@ -15,12 +32,28 @@ async def execute_query_one(
 ) -> Dict[str, Any]:
     # Strangely, aiopg can work with psycopg2's cursor class.
     async with connection.cursor(cursor_factory=RealDictCursor) as cursor:
-        await cursor.execute(query, psycopg2_connector.wrap_json(arguments))
+        await cursor.execute(query, wrap_json(arguments))
 
         return await cursor.fetchone()
 
 
-class AiopgJobStore(store.AsyncBaseJobStore):
+async def execute_query_all(
+    connection: aiopg.Connection, query: str, **arguments: Any
+) -> List[Dict[str, Any]]:
+    # Strangely, aiopg can work with psycopg2's cursor class.
+    async with connection.cursor(cursor_factory=RealDictCursor) as cursor:
+        await cursor.execute(query, wrap_json(arguments))
+
+        return await cursor.fetchall()
+
+
+def make_dynamic_query(query: str, **identifiers: str) -> str:
+    return psycopg2.sql.SQL(query).format(
+        **{key: psycopg2.sql.Identifier(value) for key, value in identifiers.items()}
+    )
+
+
+class PostgresJobStore(store.BaseJobStore):
     """
     Uses ``aiopg`` to establish an asynchronous
     connection to a Postgres database.
@@ -52,14 +85,39 @@ class AiopgJobStore(store.AsyncBaseJobStore):
             self._connection = await get_connection(**self._connection_parameters)
         return self._connection
 
+    async def close_connection(self) -> None:
+        if not self._connection:
+            return
+
+        await self._connection.close()
+
+    async def execute_query(self, query: str, **arguments: Any) -> None:
+        await execute_query(await self.get_connection(), query=query, **arguments)
+
     async def execute_query_one(self, query: str, **arguments: Any) -> Dict[str, Any]:
         return await execute_query_one(
             await self.get_connection(), query=query, **arguments
         )
 
-    def get_sync_store(self) -> store.BaseJobStore:
-        from procrastinate.psycopg2_connector import PostgresJobStore
-
-        return PostgresJobStore(
-            socket_timeout=self.socket_timeout, **self._connection_parameters
+    async def execute_query_all(
+        self, query: str, **arguments: Any
+    ) -> List[Dict[str, Any]]:
+        return await execute_query_all(
+            await self.get_connection(), query=query, **arguments
         )
+
+    def make_dynamic_query(self, query: str, **identifiers: str) -> str:
+        return make_dynamic_query(query=query, **identifiers)
+
+    async def wait_for_jobs(self):
+        connection = await self.get_connection()
+        try:
+            await asyncio.wait_for(
+                connection.notifies.get(), timeout=self.socket_timeout
+            )
+        except asyncio.futures.TimeoutError:
+            pass
+
+    def stop(self):
+        if self._connection:
+            self._connection.notifies.put_nowait("s")
