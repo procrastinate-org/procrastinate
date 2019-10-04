@@ -7,7 +7,7 @@ JSONDict = t.Dict[str, JSONValue]
 
 
 class SelectableObject(Protocol):
-    def fileno(self):
+    def fileno(self) -> int:
         ...
 
 
