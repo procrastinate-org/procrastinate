@@ -4,8 +4,9 @@ from procrastinate import store
 
 
 class Migrator:
-    def __init__(self, job_store: store.BaseJobStore):
-        self.job_store = job_store
+    def __init__(self, job_store: store.AnyBaseJobStore):
+
+        self.job_store = job_store.get_sync_store()
 
     def get_migration_queries(self) -> str:
         return read_text("procrastinate.sql", "structure.sql")

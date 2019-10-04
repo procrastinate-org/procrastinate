@@ -50,6 +50,11 @@ def handle_errors():
         yield
     except exceptions.ProcrastinateException as exc:
         raise click.ClickException(str(exc))
+    except NotImplementedError:
+        raise click.UsageError(
+            "Missing app. This most probably happened because procrastinate needs an "
+            "app via --app or the PROCRASTINATE_APP environment variable"
+        )
 
 
 def print_version(ctx, __, value):
@@ -90,6 +95,7 @@ def cli(ctx: click.Context, app: str, **kwargs) -> None:
     """
     if app:
         ctx.obj = procrastinate.App.from_path(dotted_path=app)
+        ctx.obj.job_store = ctx.obj.job_store.get_sync_store()
     else:
         # If we don't provide an app, initialize a default one that will fail if it
         # needs its job store.
@@ -161,7 +167,7 @@ def defer(
     configure_kwargs = filter_none(configure_kwargs)
 
     # Configure the job. If the task is known, it will be used.
-    job_launcher = configure_job(
+    job_deferrer = configure_job(
         app=app, task_name=task, configure_kwargs=configure_kwargs, unknown=unknown
     )
 
@@ -170,7 +176,7 @@ def defer(
     click.echo(f"Launching a job: {task}({str_kwargs})")
 
     # And launching the job
-    job_launcher.defer(**args)
+    job_deferrer.defer(**args)
 
 
 def filter_none(dictionnary: Dict) -> Dict:
@@ -213,7 +219,7 @@ def configure_job(
     task_name: str,
     configure_kwargs: Dict[str, Any],
     unknown: bool,
-) -> jobs.JobLauncher:
+) -> jobs.JobDeferrer:
     app.perform_import_paths()
     try:
         return app.tasks[task_name].configure(**configure_kwargs)

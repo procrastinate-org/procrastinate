@@ -51,6 +51,29 @@ def test_task_defer(app):
     }
 
 
+@pytest.mark.asyncio
+async def test_task_defer_async(async_app):
+    task = tasks.Task(task_func, app=async_app, queue="queue")
+
+    await task.defer_async(c=3)
+
+    # The lock is the only thing we can't predict
+    lock = async_app.job_store.jobs[1]["lock"]
+    assert async_app.job_store.jobs == {
+        1: {
+            "id": 1,
+            "queue_name": "queue",
+            "task_name": "tests.unit.test_tasks.task_func",
+            "lock": lock,
+            "args": {"c": 3},
+            "status": "todo",
+            "scheduled_at": None,
+            "started_at": None,
+            "attempts": 0,
+        }
+    }
+
+
 def test_configure_task(job_store):
     job = tasks.configure_task(
         name="my_name", job_store=job_store, lock="sher", task_kwargs={"yay": "ho"}

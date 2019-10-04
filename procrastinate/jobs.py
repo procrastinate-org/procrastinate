@@ -1,12 +1,14 @@
 import datetime
 import logging
 from enum import Enum
-from typing import Any, Dict, Optional
+from typing import TYPE_CHECKING, Any, Dict, Optional, Union
 
 import attr
 
-import procrastinate
 from procrastinate import types
+
+if TYPE_CHECKING:
+    from procrastinate import store  # noqa
 
 logger = logging.getLogger(__name__)
 
@@ -52,20 +54,6 @@ class Job:
             attempts=row["attempts"],
         )
 
-    def defer(
-        self, job_store: "procrastinate.store.BaseJobStore", task_kwargs: types.JSONDict
-    ) -> int:
-        final_kwargs = self.task_kwargs.copy()
-        final_kwargs.update(task_kwargs)
-
-        job = attr.evolve(self, task_kwargs=final_kwargs)
-
-        id = job_store.defer_job(job=job)
-        logger.info(
-            "Scheduled job", extra={"action": "job_defer", "job": self.get_context()}
-        )
-        return id
-
     def get_context(self) -> types.JSONDict:
         context = attr.asdict(self)
 
@@ -75,19 +63,64 @@ class Job:
         return context
 
 
-class JobLauncher:
+class JobDeferrer:
     """
-    The main purpose of JobLauncher is to get a hold of the job_store and the job, so
+    The main purpose of JobDeferrer is to get a hold of the job_store and the job, so
     that we can call ``defer`` without having to specify the job_store, and the job
     doesn't need a job_store property.
     """
 
-    def __init__(self, job_store: "procrastinate.store.BaseJobStore", job: Job):
+    def __init__(
+        self,
+        job_store: Union["store.BaseJobStore", "store.AsyncBaseJobStore"],
+        job: Job,
+    ):
         self.job = job
         self.job_store = job_store
+
+    def make_new_job(self, **task_kwargs: types.JSONValue) -> Job:
+        final_kwargs = self.job.task_kwargs.copy()
+        final_kwargs.update(task_kwargs)
+
+        return attr.evolve(self.job, task_kwargs=final_kwargs)
 
     def defer(self, **task_kwargs: types.JSONValue) -> int:
         """
         See :py:func:`Task.defer` for details.
         """
-        return self.job.defer(job_store=self.job_store, task_kwargs=task_kwargs)
+        from procrastinate import store as store_module
+
+        assert isinstance(
+            self.job_store, store_module.BaseJobStore
+        ), "defer() can only be used with a sync job store. Use defer_async()."
+
+        job = self.make_new_job(**task_kwargs)
+
+        logger.info(
+            "Deferring job", extra={"action": "job_defer", "job": job.get_context()}
+        )
+        id = self.job_store.defer_job(job=job)
+        return id
+
+    async def defer_async(self, **task_kwargs: types.JSONValue) -> int:
+        """
+        See :py:func:`Task.defer` for details.
+        """
+        from procrastinate import store as store_module
+
+        assert isinstance(
+            self.job_store, store_module.AsyncBaseJobStore
+        ), "defer_async() can only be used with an async job store. Use defer()."
+
+        job = self.make_new_job(**task_kwargs)
+
+        logger.info(
+            "Deferring job",
+            extra={
+                "action": "job_defer",
+                "asynchronous": True,
+                "job": job.get_context(),
+            },
+        )
+        id = await self.job_store.defer_job(job=job)
+        return id

@@ -7,8 +7,9 @@ import pytest
 from psycopg2 import sql
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 
+from procrastinate import aiopg_connector
 from procrastinate import app as app_module
-from procrastinate import jobs, migration, postgres, testing
+from procrastinate import jobs, migration, psycopg2_connector, testing
 
 # Just ensuring the tests are not polluted by environment
 for key in os.environ:
@@ -36,7 +37,9 @@ def setup_db():
             _execute(cursor, "CREATE DATABASE {}", "procrastinate_test_template")
 
     migrator = migration.Migrator(
-        job_store=postgres.PostgresJobStore(dbname="procrastinate_test_template")
+        job_store=psycopg2_connector.PostgresJobStore(
+            dbname="procrastinate_test_template"
+        )
     )
     connection = migrator.job_store.connection
     with closing(connection):
@@ -77,9 +80,17 @@ def connection(connection_params):
 
 @pytest.fixture
 def pg_job_store(connection_params):
-    job_store = postgres.PostgresJobStore(**connection_params)
+    job_store = psycopg2_connector.PostgresJobStore(**connection_params)
     yield job_store
     job_store.connection.close()
+
+
+@pytest.fixture
+async def aiopg_job_store(connection_params):
+    job_store = aiopg_connector.AiopgJobStore(**connection_params)
+    yield job_store
+    connection = await job_store.get_connection()
+    await connection.close()
 
 
 @pytest.fixture
@@ -96,8 +107,30 @@ def job_store():
 
 
 @pytest.fixture
+def async_job_store():
+    return testing.InMemoryAsyncJobStore()
+
+
+@pytest.fixture
+def get_all(connection):
+    def f(table, *fields):
+        with connection.cursor(
+            cursor_factory=psycopg2_connector.RealDictCursor
+        ) as cursor:
+            cursor.execute(f"SELECT {', '.join(fields)} FROM {table}")
+            return list(iter(cursor.fetchone, None))
+
+    return f
+
+
+@pytest.fixture
 def app(job_store):
     return app_module.App(job_store=job_store)
+
+
+@pytest.fixture
+def async_app(async_job_store):
+    return app_module.App(job_store=async_job_store)
 
 
 @pytest.fixture

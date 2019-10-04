@@ -134,7 +134,7 @@ class App:
     def _register_builtin_tasks(self) -> None:
         builtin_tasks.register_builtin_tasks(self)
 
-    def configure_task(self, name: str, **kwargs: Any) -> jobs.JobLauncher:
+    def configure_task(self, name: str, **kwargs: Any) -> jobs.JobDeferrer:
         """
         Configure a task for deferring, using its name
 
@@ -149,7 +149,7 @@ class App:
 
         Returns
         -------
-        ``jobs.JobLauncher``
+        ``jobs.JobDeferrer``
             Launch ``.defer(**task_kwargs)`` on this object to defer your job.
         """
         from procrastinate import tasks

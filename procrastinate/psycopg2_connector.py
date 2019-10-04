@@ -1,15 +1,11 @@
-import os
-import select
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List
 
 import psycopg2
 from psycopg2 import extras
 from psycopg2 import sql as psycopg2_sql
-from psycopg2.extras import RealDictCursor
+from psycopg2.extras import Json, RealDictCursor
 
 from procrastinate import store
-
-SOCKET_TIMEOUT = 5.0  # seconds
 
 
 def get_connection(*args, **kwargs) -> psycopg2._psycopg.connection:
@@ -20,12 +16,19 @@ def init_pg_extensions() -> None:
     psycopg2.extensions.register_adapter(dict, extras.Json)
 
 
+def wrap_json(arguments: Dict[str, Any]):
+    return {
+        key: Json(value) if isinstance(value, dict) else value
+        for key, value in arguments.items()
+    }
+
+
 def execute_query(
     connection: psycopg2._psycopg.connection, query: str, **arguments: Any
 ) -> None:
     with connection:
         with connection.cursor() as cursor:
-            cursor.execute(query, arguments)
+            cursor.execute(query, wrap_json(arguments))
             connection.commit()
 
 
@@ -34,7 +37,7 @@ def execute_query_one(
 ) -> Dict[str, Any]:
     with connection:
         with connection.cursor(cursor_factory=RealDictCursor) as cursor:
-            cursor.execute(query, arguments)
+            cursor.execute(query, wrap_json(arguments))
             connection.commit()
             return cursor.fetchone()
 
@@ -44,24 +47,15 @@ def execute_query_all(
 ) -> List[Dict[str, Any]]:
     with connection:
         with connection.cursor(cursor_factory=RealDictCursor) as cursor:
-            cursor.execute(query, arguments)
+            cursor.execute(query, wrap_json(arguments))
             connection.commit()
             return cursor.fetchall()
 
 
-def wait_for_jobs(
-    connection: psycopg2._psycopg.connection,
-    socket_timeout: float,
-    stop_pipe: Tuple[int, int],
-) -> None:
-    ready_fds = select.select([connection, stop_pipe[0]], [], [], socket_timeout)
-    # Don't let things accumulate in the pipe
-    if stop_pipe[0] in ready_fds[0]:
-        os.read(stop_pipe[0], 1)
-
-
-def send_stop(stop_pipe: Tuple[int, int]):
-    os.write(stop_pipe[1], b"s")
+def make_dynamic_query(query: str, **identifiers: str) -> str:
+    return psycopg2_sql.SQL(query).format(
+        **{key: psycopg2_sql.Identifier(value) for key, value in identifiers.items()}
+    )
 
 
 init_pg_extensions()
@@ -69,30 +63,31 @@ init_pg_extensions()
 
 class PostgresJobStore(store.BaseJobStore):
     """
-    Uses `psycopg2` to establish a synchronous
+    Uses ``psycopg2`` to establish a synchronous
     connection to a Postgres database.
     """
 
-    def __init__(self, *, socket_timeout: float = SOCKET_TIMEOUT, **kwargs: Any):
+    def __init__(self, socket_timeout: float = store.SOCKET_TIMEOUT, **kwargs: Any):
         """
-        All parameters except `socket_timeout` are passed to
-        :py:func:`psycopg2.connect` (see the documentation_)
+        All parameters except ``socket_timeout`` are passed to
+        :py:func:`psycopg2.connect` (see the documentation__)
 
-        .. _documentation: http://initd.org/psycopg/docs/module.html#psycopg2.connect
+        .. __: http://initd.org/psycopg/docs/module.html#psycopg2.connect
 
         Parameters
         ----------
         socket_timeout:
             This parameter should generally not be changed.
-            It indicates how long procrastinate waits (in seconds) between
-            renewing the socket `select` calls when waiting for tasks.
-            The shorter the timeout, the more `select` calls it does.
-            The longer the timeout, the longer the server will wait idle if, for
-            some reason, the postgres LISTEN call doesn't work.
+            It indicates the maximum duration (in seconds) procrastinate workers wait
+            between each database job pull. Job activity will be pushed from the db to
+            the worker, but in case the push mechanism fails somehow, workers will not
+            stay idle longer than the number of seconds indicated by this parameters.
         """
         self.connection = get_connection(**kwargs)
-        self.socket_timeout = socket_timeout
-        self.stop_pipe = os.pipe()
+        super().__init__(socket_timeout=socket_timeout)
+
+    def get_connection(self):
+        return self.connection
 
     def execute_query(self, query: str, **arguments: Any) -> None:
         execute_query(self.connection, query=query, **arguments)
@@ -103,20 +98,5 @@ class PostgresJobStore(store.BaseJobStore):
     def execute_query_all(self, query: str, **arguments: Any) -> List[Dict[str, Any]]:
         return execute_query_all(self.connection, query=query, **arguments)
 
-    def wait_for_jobs(self) -> None:
-        wait_for_jobs(
-            connection=self.connection,
-            socket_timeout=self.socket_timeout,
-            stop_pipe=self.stop_pipe,
-        )
-
-    def stop(self):
-        send_stop(stop_pipe=self.stop_pipe)
-
     def make_dynamic_query(self, query: str, **identifiers: str) -> str:
-        return psycopg2_sql.SQL(query).format(
-            **{
-                key: psycopg2_sql.Identifier(value)
-                for key, value in identifiers.items()
-            }
-        )
+        return make_dynamic_query(query=query, **identifiers)

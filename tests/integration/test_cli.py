@@ -59,9 +59,9 @@ def test_migrate_text(entrypoint):
 
 
 def test_no_app(entrypoint, mocker):
-    click_app.run_worker = mocker.MagicMock()
-    with pytest.raises(NotImplementedError):
-        entrypoint("migrate")
+    result = entrypoint("migrate")
+    assert result.exit_code != 0
+    assert "Missing app" in result.output
 
 
 def test_defer(entrypoint, click_app):
