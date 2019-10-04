@@ -19,11 +19,8 @@ class InMemoryBaseJobStore:
         """
         Attributes
         ----------
-        jobs : List[jobs.Job]
-            Currently running Job objects. They are removed from this
-            list upon completion
-        finished_jobs: List[Tuple[jobs.Job, jobs.Status]]
-            List of finished jobs, with their related status
+        jobs : Dict[int, Dict]
+            Mapping of ``{<job id>: <Job database row as a dictionary>}``
         """
         self.reset()
         self.reverse_queries = {value: key for key, value in sql.queries.items()}

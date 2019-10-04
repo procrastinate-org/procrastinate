@@ -63,26 +63,25 @@ init_pg_extensions()
 
 class PostgresJobStore(store.BaseJobStore):
     """
-    Uses `psycopg2` to establish a synchronous
+    Uses ``psycopg2`` to establish a synchronous
     connection to a Postgres database.
     """
 
     def __init__(self, socket_timeout: float = store.SOCKET_TIMEOUT, **kwargs: Any):
         """
-        All parameters except `socket_timeout` are passed to
-        :py:func:`psycopg2.connect` (see the documentation_)
+        All parameters except ``socket_timeout`` are passed to
+        :py:func:`psycopg2.connect` (see the documentation__)
 
-        .. _documentation: http://initd.org/psycopg/docs/module.html#psycopg2.connect
+        .. __: http://initd.org/psycopg/docs/module.html#psycopg2.connect
 
         Parameters
         ----------
         socket_timeout:
             This parameter should generally not be changed.
-            It indicates how long procrastinate waits (in seconds) between
-            renewing the socket `select` calls when waiting for tasks.
-            The shorter the timeout, the more `select` calls it does.
-            The longer the timeout, the longer the server will wait idle if, for
-            some reason, the postgres LISTEN call doesn't work.
+            It indicates the maximum duration (in seconds) procrastinate workers wait
+            between each database job pull. Job activity will be pushed from the db to
+            the worker, but in case the push mechanism fails somehow, workers will not
+            stay idle longer than the number of seconds indicated by this parameters.
         """
         self.connection = get_connection(**kwargs)
         super().__init__(socket_timeout=socket_timeout)

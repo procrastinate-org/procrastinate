@@ -22,13 +22,15 @@ Job stores
 
 .. autoclass:: procrastinate.PostgresJobStore
 
+.. autoclass:: procrastinate.aiopg_connector.AiopgJobStore
+
 .. autoclass:: procrastinate.testing.InMemoryJobStore
     :members: reset
 
 Tasks
 -----
 .. autoclass:: procrastinate.tasks.Task
-    :members: defer, configure
+    :members: defer, defer_async, configure
 
 
 Builtin tasks

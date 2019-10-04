@@ -18,6 +18,7 @@ How-to...
     howto/retry
     howto/middleware
     howto/events
+    howto/async
     howto/logging
     howto/testing
     howto/deployment

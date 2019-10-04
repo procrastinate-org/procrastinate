@@ -74,6 +74,42 @@ some projects that really stand out, to name a few:
 .. _Dramatiq: https://dramatiq.io/
 .. _dramatiq-pg: https://pypi.org/project/dramatiq-pg/
 
+.. _discussion-async:
+
+Asynchronous interface
+----------------------
+
+Here, asynchronous means "using the Python `async/await` keywords, to make I/Os
+run in parallel". Asynchronous work can be tricky in Python because once you start
+having something asynchronous, you soon realize everything needs to be asynchronous
+for it to work.
+
+Procrastinate aims at being compatible with both sync and async codebases.
+See :ref:`how-to-async` for API details.
+
+There are two distinct parts in procrastinate that are relevant for asynchronous work:
+deferring a job, and executing it. As a rule of thumb, only use asynchronous interface
+when you need it.
+
+If you have, for example, an async web application, you will need to defer jobs
+asynchronously. You can't afford blocking the whole event loop while you connect to
+the database and send your job.
+
+There are mainly two use-cases where you may want to execute your jobs asynchronously.
+Either they do long I/O calls that you would like to run in parallel, or you plan to
+reuse parts of your codebase written with the asynchronous interface (say, an async ORM)
+and you don't want to have to maintain their equivalent using a synchronous interface.
+
+There's a catch, though. If your tasks are not async-friendly (time consuming,
+either CPU intensive or they do synchronous I/O calls), you probably want to avoid
+executing them asynchronously. They will probably not perform worse but it may
+be disturbing for the reader, and if you ever implement tasks with real asynchronous
+I/O calls, they will perform badly because your event loop will be blocked.
+
+You can have a combination of synchronous and asynchronous tasks in your codebase, as
+long as they are handled by two distinct workers (one async and one sync)
+
+So far, the only asynchronous interface implemented in procrastinate is job deferring.
 
 How stable is Procrastinate ?
 -----------------------------
