@@ -4,7 +4,7 @@ from typing import Optional
 from procrastinate import store
 
 
-def remove_old_jobs(
+async def remove_old_jobs(
     job_store: store.BaseJobStore,
     max_hours: int,
     queue: Optional[str] = None,
@@ -25,7 +25,7 @@ def remove_old_jobs(
         By default only successful jobs will be removed. When this parameter is True
         failed jobs will also be deleted.
     """
-    job_store.delete_old_jobs(
+    await job_store.delete_old_jobs(
         nb_hours=max_hours, queue=queue, include_error=remove_error
     )
 

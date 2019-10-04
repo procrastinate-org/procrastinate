@@ -132,6 +132,9 @@ class Worker:
         logger.info("Starting job", extra={"action": "start_job", "job": log_context})
         try:
             task_result = task(**job.task_kwargs)
+            if asyncio.iscoroutinefunction(task.func):
+                task_result = await task_result
+
         except Exception as e:
             task_result = None
             log_title = "Job error"
