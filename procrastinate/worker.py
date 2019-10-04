@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import time
 from typing import Iterable, NoReturn, Optional, Set
@@ -22,10 +23,10 @@ class Worker:
         self.known_missing_tasks: Set[str] = set()
 
         self.app.perform_import_paths()
-        self.job_store = self.app.job_store.get_sync_store()
+        self.job_store = self.app.job_store
 
-    def run(self) -> None:
-        self.job_store.listen_for_jobs(queues=self.queues)
+    async def run(self) -> None:
+        await self.job_store.listen_for_jobs(queues=self.queues)
 
         with signals.on_stop(self.stop):
             while True:
@@ -33,7 +34,7 @@ class Worker:
                     break
 
                 try:
-                    self.process_jobs_once()
+                    await self.process_jobs_once()
                 except exceptions.StopRequested:
                     break
                 except exceptions.NoMoreJobs:
@@ -41,18 +42,18 @@ class Worker:
                         "Waiting for new jobs", extra={"action": "waiting_for_jobs"}
                     )
 
-                self.job_store.wait_for_jobs()
+                await self.job_store.wait_for_jobs()
 
         logger.debug("Stopped worker", extra={"action": "stopped_worker"})
 
-    def process_jobs_once(self) -> NoReturn:
+    async def process_jobs_once(self) -> NoReturn:
         while True:
             # We only leave this loop with an exception:
             # either NoMoreJobs or StopRequested
-            self.process_next_job()
+            await self.process_next_job()
 
-    def process_next_job(self) -> None:
-        job = self.job_store.fetch_job(self.queues)
+    async def process_next_job(self) -> None:
+        job = await self.job_store.fetch_job(self.queues)
         if job is None:
             raise exceptions.NoMoreJobs
 
@@ -65,7 +66,7 @@ class Worker:
         status = jobs.Status.FAILED
         next_attempt_scheduled_at = None
         try:
-            self.run_job(job=job)
+            await self.run_job(job=job)
             status = jobs.Status.SUCCEEDED
         except exceptions.JobRetry as e:
             status = jobs.Status.TODO
@@ -78,7 +79,7 @@ class Worker:
                 extra={"action": "task_not_found", "exception": str(exc)},
             )
         finally:
-            self.job_store.finish_job(
+            await self.job_store.finish_job(
                 job=job, status=status, scheduled_at=next_attempt_scheduled_at
             )
             logger.debug(
@@ -116,7 +117,7 @@ class Worker:
         self.app.tasks[task_name] = task
         return task
 
-    def run_job(self, job: jobs.Job) -> None:
+    async def run_job(self, job: jobs.Job) -> None:
         task_name = job.task_name
 
         task = self.load_task(task_name=task_name)
