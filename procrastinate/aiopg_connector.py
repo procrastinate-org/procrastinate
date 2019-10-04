@@ -57,3 +57,10 @@ class AiopgJobStore(store.AsyncBaseJobStore):
         return await execute_query_one(
             await self.get_connection(), query=query, **arguments
         )
+
+    def get_sync_store(self) -> store.BaseJobStore:
+        from procrastinate.psycopg2_connector import PostgresJobStore
+
+        return PostgresJobStore(
+            socket_timeout=self.socket_timeout, **self._connection_parameters
+        )

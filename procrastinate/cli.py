@@ -99,13 +99,11 @@ def cli(ctx: click.Context, app: str, **kwargs) -> None:
     """
     if app:
         ctx.obj = procrastinate.App.from_path(dotted_path=app)
+        ctx.obj.job_store = ctx.obj.job_store.get_sync_store()
     else:
         # If we don't provide an app, initialize a default one that will fail if it
         # needs its job store.
         ctx.obj = procrastinate.App(job_store=procrastinate.BaseJobStore())
-
-    if ctx.obj.job_store.asynchronous:
-        raise click.UsageError("Procrastinate CLI can only use synchronous job stores.")
 
 
 @cli.command()

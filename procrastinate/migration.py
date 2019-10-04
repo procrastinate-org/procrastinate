@@ -1,14 +1,13 @@
 from importlib_resources import read_text
 
-from procrastinate import store, exceptions
+from procrastinate import store
 
 
 class Migrator:
-    def __init__(self, job_store: store.BaseJobStore):
-        if job_store.asynchronous:
-            raise exceptions.ProcrastinateException(
-                "Migrations cannot bu run from an asynchronous job store."
-            )
+    def __init__(self, job_store: store.AnyBaseJobStore):
+
+        job_store = job_store.get_sync_store()
+
         self.job_store = job_store
 
     def get_migration_queries(self) -> str:

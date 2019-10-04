@@ -60,11 +60,12 @@ class BaseJobStore:
     implemented by the specific implementation inheriting it.
     """
 
-    asynchronous = False
-
     def __init__(self, socket_timeout: float = SOCKET_TIMEOUT):
         self.socket_timeout = socket_timeout
         self._monitor: Optional[SyncActivityMonitor] = None
+
+    def get_sync_store(self) -> "BaseJobStore":
+        return self
 
     def get_connection(self) -> Any:
         raise NotImplementedError
@@ -177,7 +178,8 @@ class BaseJobStore:
 
 
 class AsyncBaseJobStore:
-    asynchronous = True
+    def get_sync_store(self) -> BaseJobStore:
+        raise NotImplementedError
 
     async def wait_for_jobs(self):
         raise NotImplementedError
@@ -281,3 +283,4 @@ class AsyncBaseJobStore:
                     query=sql.queries["listen_queue"], channel_name=channel_name
                 )
             )
+AnyBaseJobStore = Union[BaseJobStore, AsyncBaseJobStore]
