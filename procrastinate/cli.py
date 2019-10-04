@@ -171,7 +171,7 @@ def defer(
     configure_kwargs = filter_none(configure_kwargs)
 
     # Configure the job. If the task is known, it will be used.
-    job_launcher = configure_job(
+    job_deferrer = configure_job(
         app=app, task_name=task, configure_kwargs=configure_kwargs, unknown=unknown
     )
 
@@ -180,7 +180,7 @@ def defer(
     click.echo(f"Launching a job: {task}({str_kwargs})")
 
     # And launching the job
-    job_launcher.defer(**args)
+    job_deferrer.defer(**args)
 
 
 def filter_none(dictionnary: Dict) -> Dict:

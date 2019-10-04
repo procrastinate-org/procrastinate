@@ -34,7 +34,7 @@ def test_job_get_context(job_store, scheduled_at, context_scheduled_at):
     }
 
 
-def test_job_launcher_defer(job_store):
+def test_job_deferrer_defer(job_store):
 
     job = jobs.Job(
         queue="marsupilami", lock="sher", task_name="mytask", task_kwargs={"a": "b"}
