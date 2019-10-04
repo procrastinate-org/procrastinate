@@ -1,6 +1,6 @@
 import pytest
 
-from procrastinate import jobs, aiopg_connector
+from procrastinate import aiopg_connector, jobs
 
 pytestmark = pytest.mark.asyncio
 

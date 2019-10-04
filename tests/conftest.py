@@ -7,8 +7,9 @@ import pytest
 from psycopg2 import sql
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 
+from procrastinate import aiopg_connector
 from procrastinate import app as app_module
-from procrastinate import jobs, migration, psycopg2_connector, testing, aiopg_connector
+from procrastinate import jobs, migration, psycopg2_connector, testing
 
 # Just ensuring the tests are not polluted by environment
 for key in os.environ:

@@ -1,8 +1,8 @@
-from typing import Any, Dict, Optional, Awaitable
-
-from psycopg2.extras import RealDictCursor
+from typing import Any, Awaitable, Dict, Optional
 
 import aiopg
+from psycopg2.extras import RealDictCursor
+
 from procrastinate import psycopg2_connector, store
 
 

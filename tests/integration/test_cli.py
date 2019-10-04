@@ -61,7 +61,7 @@ def test_migrate_text(entrypoint):
 def test_no_app(entrypoint, mocker):
     result = entrypoint("migrate")
     assert result.exit_code != 0
-    assert 'Missing app' in result.output
+    assert "Missing app" in result.output
 
 
 def test_defer(entrypoint, click_app):
