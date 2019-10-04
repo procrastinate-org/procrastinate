@@ -2,7 +2,7 @@ import logging
 import time
 from typing import Iterable, NoReturn, Optional, Set
 
-from procrastinate import app, exceptions, jobs, signals, store, tasks, types
+from procrastinate import app, exceptions, jobs, signals, tasks, types
 
 logger = logging.getLogger(__name__)
 
@@ -22,10 +22,7 @@ class Worker:
         self.known_missing_tasks: Set[str] = set()
 
         self.app.perform_import_paths()
-
-    @property
-    def job_store(self) -> store.BaseJobStore:
-        return self.app.job_store
+        self.job_store = self.app.job_store.get_sync_store()
 
     def run(self) -> None:
         self.job_store.listen_for_jobs(queues=self.queues)

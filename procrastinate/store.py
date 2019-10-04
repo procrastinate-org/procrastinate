@@ -55,9 +55,11 @@ def get_channel_for_queues(queues: Optional[Iterable[str]] = None) -> Iterable[s
 
 class BaseJobStore:
     """
-    A JobStore is tasked with storing and fetching the tasks in the postgres database.
+    A job store is tasked with storing and fetching the tasks in the postgres database.
     The BaseJobStore makes the high-level logic, using primitives that need to be
     implemented by the specific implementation inheriting it.
+    ``BaseJobStore`` is synchronous, and expected to be called only in synchronous
+    contexts.
     """
 
     def __init__(self, socket_timeout: float = SOCKET_TIMEOUT):
@@ -178,6 +180,11 @@ class BaseJobStore:
 
 
 class AsyncBaseJobStore:
+    """
+    ``AsyncBaseJobStore`` is asynchronous, and expected to be called only in
+    asynchronous contexts.
+    """
+
     def get_sync_store(self) -> BaseJobStore:
         raise NotImplementedError
 

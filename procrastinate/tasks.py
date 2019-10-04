@@ -102,7 +102,8 @@ class Task:
         """
         Create a job from this task and the given arguments.
         The job will be created with default parameters, if you want to better
-        specify when and how to launch this job, see :py:func:`Task.configure`
+        specify when and how to launch this job, see :py:func:`Task.configure`.
+        This method is synchronous.
         """
         job_id = self.configure().defer(**task_kwargs)
 
@@ -112,7 +113,8 @@ class Task:
         """
         Create a job from this task and the given arguments.
         The job will be created with default parameters, if you want to better
-        specify when and how to launch this job, see :py:func:`Task.configure`
+        specify when and how to launch this job, see :py:func:`Task.configure`.
+        This method is asynchronous.
         """
         job_id = await self.configure().defer_async(**task_kwargs)
 

@@ -67,11 +67,7 @@ def print_version(ctx, __, value):
 
 @click.group(context_settings=CONTEXT_SETTINGS)
 @click.pass_context
-@click.option(
-    "--app",
-    "-a",
-    help="Dotted path to the Procrastinate app. Its job store must be synchronous",
-)
+@click.option("--app", "-a", help="Dotted path to the Procrastinate app")
 @click.option(
     "-v",
     "--verbose",
