@@ -10,13 +10,9 @@ JobRow = Dict[str, Any]
 EventRow = Dict[str, Any]
 
 
-class InMemoryJobStore(store.BaseJobStore):
+class InMemoryBaseJobStore:
     """
-    An InMemoryJobStore may be used for testing only. Tasks are not
-    persisted and will be lost when the process ends.
-
-    While implementing the JobStore interface, it also adds a few
-    methods and attributes to ease testing.
+    Common methods for InMemoryJobStore and InMemoryAsyncJobStore
     """
 
     def __init__(self):
@@ -53,15 +49,6 @@ class InMemoryJobStore(store.BaseJobStore):
             query_name = self.reverse_queries[query]
         self.queries.append(query_name)
         return getattr(self, f"{query_name}_{suffix}")(**arguments)
-
-    def execute_query(self, query: str, **arguments: Any) -> None:
-        self.generic_execute(query, "run", **arguments)
-
-    def execute_query_one(self, query: str, **arguments: Any) -> Dict[str, Any]:
-        return self.generic_execute(query, "one", **arguments)
-
-    def execute_query_all(self, query: str, **arguments: Any) -> List[Dict[str, Any]]:
-        return self.generic_execute(query, "all", **arguments)
 
     def make_dynamic_query(self, query, **identifiers: str) -> str:
         return query.format(**identifiers)
@@ -166,8 +153,43 @@ class InMemoryJobStore(store.BaseJobStore):
     def migrate_run(self):
         pass
 
+    def stop(self):
+        pass
+
+
+class InMemoryJobStore(InMemoryBaseJobStore, store.BaseJobStore):
+    """
+    An InMemoryJobStore may be used for testing only. Tasks are not
+    persisted and will be lost when the process ends.
+
+    While implementing the JobStore interface, it also adds a few
+    methods and attributes to ease testing.
+    """
+
+    def execute_query(self, query: str, **arguments: Any) -> None:
+        self.generic_execute(query, "run", **arguments)
+
+    def execute_query_one(self, query: str, **arguments: Any) -> Dict[str, Any]:
+        return self.generic_execute(query, "one", **arguments)
+
+    def execute_query_all(self, query: str, **arguments: Any) -> List[Dict[str, Any]]:
+        return self.generic_execute(query, "all", **arguments)
+
     def wait_for_jobs(self):
         pass
 
-    def stop(self):
+
+class InMemoryAsyncJobStore(InMemoryBaseJobStore, store.AsyncBaseJobStore):
+    async def execute_query(self, query: str, **arguments: Any) -> None:
+        self.generic_execute(query, "run", **arguments)
+
+    async def execute_query_one(self, query: str, **arguments: Any) -> Dict[str, Any]:
+        return self.generic_execute(query, "one", **arguments)
+
+    async def execute_query_all(
+        self, query: str, **arguments: Any
+    ) -> List[Dict[str, Any]]:
+        return self.generic_execute(query, "all", **arguments)
+
+    async def wait_for_jobs(self):
         pass
