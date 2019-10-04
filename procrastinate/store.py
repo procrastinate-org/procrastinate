@@ -33,7 +33,8 @@ class BaseJobStore:
         raise NotImplementedError
 
     async def close_connection(self) -> None:
-        raise NotImplementedError
+        # Implement this in your child class if you need to close the connection
+        pass
 
     def make_dynamic_query(self, query: str, **identifiers: str) -> str:
         raise NotImplementedError

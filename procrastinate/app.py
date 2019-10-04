@@ -205,3 +205,6 @@ class App:
     @property
     def migrator(self) -> migration.Migrator:
         return migration.Migrator(job_store=self.job_store)
+
+    async def close_connection_async(self):
+        await self.job_store.close_connection()

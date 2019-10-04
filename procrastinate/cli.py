@@ -101,6 +101,13 @@ def cli(ctx: click.Context, app: str, **kwargs) -> None:
         ctx.obj = procrastinate.App(job_store=procrastinate.BaseJobStore())
 
 
+@cli.resultcallback()
+@click.pass_obj
+def close_connection(procrastinate_app: procrastinate.App, *args, **kwargs):
+    # There's an internal click param named app, we can't name our variable "app" too.
+    procrastinate_app.close_connection()
+
+
 @cli.command()
 @click.pass_obj
 @handle_errors()
