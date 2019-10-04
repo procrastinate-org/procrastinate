@@ -3,7 +3,7 @@ from typing import Any, Dict, List
 import psycopg2
 from psycopg2 import extras
 from psycopg2 import sql as psycopg2_sql
-from psycopg2.extras import RealDictCursor, Json
+from psycopg2.extras import Json, RealDictCursor
 
 from procrastinate import store
 
@@ -67,7 +67,7 @@ class PostgresJobStore(store.BaseJobStore):
     connection to a Postgres database.
     """
 
-    def __init__(self, **kwargs: Any):
+    def __init__(self, socket_timeout: float = store.SOCKET_TIMEOUT, **kwargs: Any):
         """
         All parameters except `socket_timeout` are passed to
         :py:func:`psycopg2.connect` (see the documentation_)
@@ -84,12 +84,8 @@ class PostgresJobStore(store.BaseJobStore):
             The longer the timeout, the longer the server will wait idle if, for
             some reason, the postgres LISTEN call doesn't work.
         """
-        super_kwargs = {}
-        if "socket_timeout" in kwargs:
-            super_kwargs["socket_timeout"] = kwargs.pop("socket_timeout")
-
         self.connection = get_connection(**kwargs)
-        super().__init__(**super_kwargs)
+        super().__init__(socket_timeout=socket_timeout)
 
     def get_connection(self):
         return self.connection
