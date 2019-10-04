@@ -1,7 +1,7 @@
 import datetime
 import os
 import select
-from typing import Any, Dict, Iterable, Iterator, List, Optional, AsyncGenerator
+from typing import Any, Dict, Iterable, Iterator, List, Optional, Union
 
 from procrastinate import jobs, sql, types
 
@@ -213,74 +213,5 @@ class AsyncBaseJobStore:
         )
         return result["id"]
 
-    async def fetch_job(self, queues: Optional[Iterable[str]]) -> Optional[jobs.Job]:
 
-        row = await self.execute_query_one(
-            query=sql.queries["fetch_job"], queues=queues
-        )
-
-        # fetch_tasks will always return a row, but is there's no relevant
-        # value, it will all be None
-        if row["id"] is None:
-            return None
-
-        return jobs.Job.from_row(row)
-
-    async def get_stalled_jobs(
-        self,
-        nb_seconds: int,
-        queue: Optional[str] = None,
-        task_name: Optional[str] = None,
-    ) -> AsyncGenerator[jobs.Job, None]:
-
-        rows = await self.execute_query_all(
-            query=sql.queries["select_stalled_jobs"],
-            nb_seconds=nb_seconds,
-            queue=queue,
-            task_name=task_name,
-        )
-        for row in rows:
-            yield jobs.Job.from_row(row)
-
-    async def delete_old_jobs(
-        self,
-        nb_hours: int,
-        queue: Optional[str] = None,
-        include_error: Optional[bool] = False,
-    ) -> None:
-        # We only consider finished jobs by default
-        if not include_error:
-            statuses = [jobs.Status.SUCCEEDED.value]
-        else:
-            statuses = [jobs.Status.SUCCEEDED.value, jobs.Status.FAILED.value]
-
-        await self.execute_query(
-            query=sql.queries["delete_old_jobs"],
-            nb_hours=nb_hours,
-            queue=queue,
-            statuses=tuple(statuses),
-        )
-
-    async def finish_job(
-        self,
-        job: jobs.Job,
-        status: jobs.Status,
-        scheduled_at: Optional[datetime.datetime] = None,
-    ) -> None:
-        assert job.id  # TODO remove this
-        await self.execute_query(
-            query=sql.queries["finish_job"],
-            job_id=job.id,
-            status=status.value,
-            scheduled_at=scheduled_at,
-        )
-
-    async def listen_for_jobs(self, queues: Optional[Iterable[str]] = None) -> None:
-        for channel_name in get_channel_for_queues(queues=queues):
-
-            await self.execute_query(
-                query=self.make_dynamic_query(
-                    query=sql.queries["listen_queue"], channel_name=channel_name
-                )
-            )
 AnyBaseJobStore = Union[BaseJobStore, AsyncBaseJobStore]
