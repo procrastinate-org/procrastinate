@@ -6,8 +6,8 @@ import aiopg
 from procrastinate import psycopg2_connector, store
 
 
-def get_connection(*args, **kwargs) -> Awaitable[aiopg.Connection]:
-    return aiopg.connect(*args, **kwargs)
+def get_connection(**kwargs) -> Awaitable[aiopg.Connection]:
+    return aiopg.connect(**kwargs)
 
 
 async def execute_query_one(
