@@ -52,6 +52,7 @@ def configure_task(
     )
 
 
+@utils.add_sync_api
 class Task:
     def __init__(
         self,
@@ -98,23 +99,11 @@ class Task:
     def full_path(self) -> str:
         return f"{self.func.__module__}.{self.func.__name__}"
 
-    def defer(self, **task_kwargs: types.JSONValue) -> int:
-        """
-        Create a job from this task and the given arguments.
-        The job will be created with default parameters, if you want to better
-        specify when and how to launch this job, see :py:func:`Task.configure`.
-        This method is synchronous.
-        """
-        job_id = self.configure().defer(**task_kwargs)
-
-        return job_id
-
     async def defer_async(self, **task_kwargs: types.JSONValue) -> int:
         """
         Create a job from this task and the given arguments.
         The job will be created with default parameters, if you want to better
         specify when and how to launch this job, see :py:func:`Task.configure`.
-        This method is asynchronous.
         """
         job_id = await self.configure().defer_async(**task_kwargs)
 
