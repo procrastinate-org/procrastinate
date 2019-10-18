@@ -31,3 +31,9 @@ def test_import_all():
     utils.import_all([module])
 
     assert module in sys.modules
+
+
+@pytest.mark.skip("Test not written yet")
+def test_add_sync_api():
+    # TODO
+    assert False
