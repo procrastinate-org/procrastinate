@@ -2,6 +2,7 @@ import os
 import signal as stdlib_signal
 from contextlib import closing
 
+import aiopg
 import psycopg2
 import pytest
 from psycopg2 import sql
@@ -9,7 +10,7 @@ from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 
 from procrastinate import aiopg_connector
 from procrastinate import app as app_module
-from procrastinate import jobs, migration, psycopg2_connector, testing
+from procrastinate import jobs, migration, testing
 
 # Just ensuring the tests are not polluted by environment
 for key in os.environ:
@@ -36,14 +37,15 @@ def setup_db():
             )
             _execute(cursor, "CREATE DATABASE {}", "procrastinate_test_template")
 
-    migrator = migration.Migrator(
-        job_store=psycopg2_connector.PostgresJobStore(
-            dbname="procrastinate_test_template"
-        )
-    )
-    connection = migrator.job_store.connection
-    with closing(connection):
-        migrator.migrate()
+    job_store = aiopg_connector.PostgresJobStore(dbname="procrastinate_test_template")
+    migrator = migration.Migrator(job_store=job_store)
+    migrator.migrate()
+    # We need to close the psycopg2 underlying connection synchronously
+    job_store._connection._conn.close()
+
+    with closing(
+        psycopg2.connect("", dbname="procrastinate_test_template")
+    ) as connection:
         connection.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
         yield connection
 
@@ -73,21 +75,14 @@ def connection_params(setup_db):
 
 
 @pytest.fixture
-def connection(connection_params):
-    with closing(psycopg2.connect(**connection_params)) as connection:
+async def connection(connection_params):
+    async with aiopg.connect(**connection_params) as connection:
         yield connection
 
 
 @pytest.fixture
-def pg_job_store(connection_params):
-    job_store = psycopg2_connector.PostgresJobStore(**connection_params)
-    yield job_store
-    job_store.connection.close()
-
-
-@pytest.fixture
-async def aiopg_job_store(connection_params):
-    job_store = aiopg_connector.AiopgJobStore(**connection_params)
+async def pg_job_store(connection_params):
+    job_store = aiopg_connector.PostgresJobStore(**connection_params)
     yield job_store
     connection = await job_store.get_connection()
     await connection.close()
@@ -107,18 +102,13 @@ def job_store():
 
 
 @pytest.fixture
-def async_job_store():
-    return testing.InMemoryAsyncJobStore()
-
-
-@pytest.fixture
 def get_all(connection):
-    def f(table, *fields):
-        with connection.cursor(
-            cursor_factory=psycopg2_connector.RealDictCursor
+    async def f(table, *fields):
+        async with connection.cursor(
+            cursor_factory=aiopg_connector.RealDictCursor
         ) as cursor:
-            cursor.execute(f"SELECT {', '.join(fields)} FROM {table}")
-            return list(iter(cursor.fetchone, None))
+            await cursor.execute(f"SELECT {', '.join(fields)} FROM {table}")
+            return await cursor.fetchall()
 
     return f
 
@@ -129,8 +119,8 @@ def app(job_store):
 
 
 @pytest.fixture
-def async_app(async_job_store):
-    return app_module.App(job_store=async_job_store)
+def pg_app(pg_job_store):
+    return app_module.App(job_store=pg_job_store)
 
 
 @pytest.fixture
