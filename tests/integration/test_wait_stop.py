@@ -1,7 +1,9 @@
 import threading
 import time
 
-from procrastinate import App, jobs, psycopg2_connector
+import pytest
+
+from procrastinate import App, PostgresJobStore, jobs
 
 
 def test_wait_for_jobs(pg_job_store, connection_params):
@@ -14,7 +16,7 @@ def test_wait_for_jobs(pg_job_store, connection_params):
     def stop():
         time.sleep(0.5)
         try:
-            inner_job_store = psycopg2_connector.PostgresJobStore(**connection_params)
+            inner_job_store = PostgresJobStore(**connection_params)
 
             inner_job_store.defer_job(
                 jobs.Job(id=0, queue="yay", task_name="oh", lock="sher", task_kwargs={})
@@ -64,7 +66,7 @@ async def test_wait_for_jobs_stop_from_pipe(pg_job_store):
     """
     # This is a sub-case from above but we never know.
     pg_job_store.socket_timeout = 2
-    pg_job_store.listen_for_jobs()
+    await pg_job_store.listen_for_jobs()
 
     def stop():
         time.sleep(0.5)
@@ -74,7 +76,7 @@ async def test_wait_for_jobs_stop_from_pipe(pg_job_store):
     thread.start()
 
     before = time.perf_counter()
-    pg_job_store.wait_for_jobs()
+    await pg_job_store.wait_for_jobs()
     after = time.perf_counter()
 
     # If we wait less than 1 sec, it means the wait didn't reach the timeout.
