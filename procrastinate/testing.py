@@ -1,6 +1,6 @@
 import datetime
 from itertools import count
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 import pendulum
 
@@ -36,7 +36,7 @@ class InMemoryJobStore(store.BaseJobStore):
         self.jobs: Dict[int, JobRow] = {}
         self.events: Dict[int, List[EventRow]] = {}
         self.job_counter = count(1)
-        self.queries: List[str] = []
+        self.queries: List[Tuple[str, Dict[str, Any]]] = []
 
     def generic_execute(self, query, suffix, **arguments) -> Any:
         """
@@ -46,9 +46,11 @@ class InMemoryJobStore(store.BaseJobStore):
         """
         if query.startswith("LISTEN"):
             query_name = "listen_for_jobs"
+            prefix_length = len("LISTEN ")
+            self.queries.append((query_name, query[prefix_length:-1]))
         else:
             query_name = self.reverse_queries[query]
-        self.queries.append(query_name)
+            self.queries.append((query_name, arguments))
         return getattr(self, f"{query_name}_{suffix}")(**arguments)
 
     def make_dynamic_query(self, query, **identifiers: str) -> str:

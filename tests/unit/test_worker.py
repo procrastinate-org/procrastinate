@@ -19,7 +19,9 @@ def test_run(app):
 
     test_worker.run()
 
-    assert app.job_store.queries == ["listen_for_jobs"]
+    assert app.job_store.queries == [
+        ("listen_for_jobs", "procrastinate_queue#marsupilami")
+    ]
 
 
 @pytest.mark.parametrize(

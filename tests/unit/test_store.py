@@ -52,42 +52,38 @@ def test_get_stalled_jobs_stalled(job_store, job_factory):
     "include_error, statuses",
     [(False, ("succeeded",)), (True, ("succeeded", "failed"))],
 )
-def test_delete_old_jobs(job_store, job_factory, include_error, statuses, mocker):
+async def test_delete_old_jobs(job_store, job_factory, include_error, statuses, mocker):
 
-    job_store.execute_query = mocker.Mock()
-    job_store.delete_old_jobs(
+    await job_store.delete_old_jobs(
         nb_hours=5, queue="marsupilami", include_error=include_error
     )
-    job_store.execute_query.assert_called_with(
-        query=mocker.ANY, nb_hours=5, queue="marsupilami", statuses=statuses
-    )
+    assert job_store.queries == [
+        (
+            "delete_old_jobs",
+            {"nb_hours": 5, "queue": "marsupilami", "statuses": statuses},
+        )
+    ]
 
 
-def test_finish_job(job_store, job_factory, mocker):
-
-    job_store.execute_query = mocker.Mock()
+async def test_finish_job(job_store, job_factory):
     job = job_factory(id=1)
+    await job_store.defer_job(job=job)
     retry_at = pendulum.datetime(2000, 1, 1)
 
-    job_store.finish_job(job=job, status=jobs.Status.TODO, scheduled_at=retry_at)
-    job_store.execute_query.assert_called_with(
-        query=mocker.ANY, job_id=1, status="todo", scheduled_at=retry_at
+    await job_store.finish_job(job=job, status=jobs.Status.TODO, scheduled_at=retry_at)
+    assert job_store.queries[-1] == (
+        "finish_job",
+        {"job_id": 1, "scheduled_at": retry_at, "status": "todo"},
     )
 
 
 @pytest.mark.parametrize(
-    "queues, queries",
+    "queues, channels",
     [
-        (None, ["LISTEN procrastinate_any_queue;"]),
-        (
-            ["a", "b"],
-            ["LISTEN procrastinate_queue#a;", "LISTEN procrastinate_queue#b;"],
-        ),
+        (None, ["procrastinate_any_queue"]),
+        (["a", "b"], ["procrastinate_queue#a", "procrastinate_queue#b"]),
     ],
 )
-def test_listen_for_jobs(job_store, mocker, queues, queries):
-    job_store.execute_query = mocker.Mock()
-    job_store.listen_for_jobs(queues)
-    assert job_store.execute_query.call_args_list == [
-        mocker.call(query=query) for query in queries
-    ]
+async def test_listen_for_jobs(job_store, mocker, queues, channels):
+    await job_store.listen_for_jobs(queues)
+    assert job_store.queries == [("listen_for_jobs", channel) for channel in channels]
