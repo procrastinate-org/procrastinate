@@ -6,7 +6,8 @@ import pytest
 
 
 @pytest.mark.skip("We'll fix this later")
-def test_nominal(pg_app, kill_own_pid, caplog):
+@pytest.mark.asyncio
+async def test_nominal_(pg_app, kill_own_pid, caplog):
 
     caplog.set_level("DEBUG")
 
@@ -118,3 +119,24 @@ def test_lock(app, caplog):
     thread2.join()
 
     assert task_order == ["before-1", "after-1", "before-2", "after-2"]
+
+
+import subprocess
+import json
+import os
+
+
+def test_nominal(connection_params):
+    env = os.environ.copy()
+    env['PROCRASTINATE_APP'] = 'tests.acceptance.app.app'
+
+    def defer(task_name, **kwargs):
+        full_task_name = f'tests.acceptance.app.{task_name}'
+        subprocess.check_output(
+            ['procrastinate', 'defer', full_task_name, json.dumps(kwargs)], env=env)
+
+    defer('sum_task', a=5, b=7)
+    defer('sum_task', a=3, b=4)
+    defer('increment_task', a=3)
+    defer('product_task', a=5, b=4)
+    defer('two_fails')
