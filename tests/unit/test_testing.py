@@ -22,25 +22,28 @@ def test_generic_execute(job_store):
     assert result == {"i": "j"}
 
 
-def test_execute_query(job_store, mocker):
+@pytest.mark.asyncio
+async def test_execute_query(job_store, mocker):
     job_store.generic_execute = mocker.Mock()
-    job_store.execute_query("a", b="c")
+    await job_store.execute_query("a", b="c")
     job_store.generic_execute.assert_called_with("a", "run", b="c")
 
 
-def test_execute_query_one(job_store, mocker):
+@pytest.mark.asyncio
+async def test_execute_query_one(job_store, mocker):
     job_store.generic_execute = mocker.Mock()
     assert (
-        job_store.execute_query_one("a", b="c")
+        await job_store.execute_query_one("a", b="c")
         == job_store.generic_execute.return_value
     )
     job_store.generic_execute.assert_called_with("a", "one", b="c")
 
 
-def test_execute_query_all(job_store, mocker):
+@pytest.mark.asyncio
+async def test_execute_query_all(job_store, mocker):
     job_store.generic_execute = mocker.Mock()
     assert (
-        job_store.execute_query_all("a", b="c")
+        await job_store.execute_query_all("a", b="c")
         == job_store.generic_execute.return_value
     )
     job_store.generic_execute.assert_called_with("a", "all", b="c")

@@ -3,9 +3,11 @@ import pytest
 
 from procrastinate import jobs
 
+pytestmark = pytest.mark.asyncio
 
-def test_store_defer(job_store, job_factory):
-    job_row = job_store.defer_job(job=job_factory(task_kwargs={"a": "b"}))
+
+async def test_store_defer(job_store, job_factory):
+    job_row = await job_store.defer_job(job=job_factory(task_kwargs={"a": "b"}))
 
     assert job_row == 1
 
@@ -24,28 +26,28 @@ def test_store_defer(job_store, job_factory):
     }
 
 
-def test_fetch_job_no_suitable_job(job_store):
-    assert job_store.fetch_job(queues=None) is None
+async def test_fetch_job_no_suitable_job(job_store):
+    assert await job_store.fetch_job(queues=None) is None
 
 
-def test_fetch_job(job_store, job_factory):
+async def test_fetch_job(job_store, job_factory):
     job = job_factory(id=1)
-    job_store.defer_job(job=job)
-    assert job_store.fetch_job(queues=None) == job
+    await job_store.defer_job(job=job)
+    assert await job_store.fetch_job(queues=None) == job
 
 
-def test_get_stalled_jobs_not_stalled(job_store, job_factory):
+async def test_get_stalled_jobs_not_stalled(job_store, job_factory):
     job = job_factory(id=1)
-    job_store.defer_job(job=job)
-    assert list(job_store.get_stalled_jobs(nb_seconds=1000)) == []
+    await job_store.defer_job(job=job)
+    assert await job_store.get_stalled_jobs(nb_seconds=1000) == []
 
 
-def test_get_stalled_jobs_stalled(job_store, job_factory):
+async def test_get_stalled_jobs_stalled(job_store, job_factory):
     job = job_factory(id=1)
-    job_store.defer_job(job=job)
-    job_store.fetch_job(queues=None)
+    await job_store.defer_job(job=job)
+    await job_store.fetch_job(queues=None)
     job_store.jobs[1]["started_at"] = pendulum.datetime(2000, 1, 1)
-    assert list(job_store.get_stalled_jobs(nb_seconds=1000)) == [job]
+    assert await job_store.get_stalled_jobs(nb_seconds=1000) == [job]
 
 
 @pytest.mark.parametrize(
