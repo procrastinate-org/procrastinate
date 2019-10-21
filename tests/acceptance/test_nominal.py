@@ -1,142 +1,129 @@
-import multiprocessing
-import signal
+import json
+import os
+import subprocess
 import time
+import signal
 
 import pytest
 
 
-@pytest.mark.skip("We'll fix this later")
-@pytest.mark.asyncio
-async def test_nominal_(pg_app, kill_own_pid, caplog):
+@pytest.fixture
+def process_env(connection_params):
+    env = os.environ.copy()
+    env.update(
+        {
+            "PROCRASTINATE_APP": "tests.acceptance.app.app",
+            "PROCRASTINATE_VERBOSE": "3",
+            "PGDATABASE": connection_params["dbname"],
+        }
+    )
+    return env
 
-    caplog.set_level("DEBUG")
 
-    sum_results = []
-    product_results = []
+@pytest.fixture
+def defer(process_env):
+    def func(task_name, lock=None, **kwargs):
+        lock_args = ["--lock", lock] if lock else []
+        full_task_name = f"tests.acceptance.app.{task_name}"
+        subprocess.check_output(
+            ["procrastinate", "defer", full_task_name, *lock_args, json.dumps(kwargs)],
+            env=process_env,
+        )
 
-    @pg_app.task(queue="default")
-    def sum_task(a, b):
-        sum_results.append(a + b)
+    return func
 
-    @pg_app.task()
-    def increment_task(a):
-        sum_results.append(a + 1)
 
-    @pg_app.task
-    def stop_task():
-        kill_own_pid(signal.SIGINT)
-
-    @pg_app.task(queue="product_queue")
-    def product_task(a, b):
-        product_results.append(a * b)
-
-    @pg_app.task(queue="product_queue")
-    def stop_task_product_queue():
-        kill_own_pid(signal.SIGTERM)
-
-    nb_tries = 0
-
-    @pg_app.task(queue="retry", retry=10)
-    def two_fails():
-        nonlocal nb_tries
-        if nb_tries < 2:
-            nb_tries += 1
-            raise Exception("This should fail")
-
-        kill_own_pid(signal.SIGINT)
-
-    sum_task.defer(a=5, b=7)
-    sum_task.defer(a=3, b=4)
-    increment_task.defer(a=3)
-    product_task.defer(a=5, b=4)
-    stop_task_product_queue.defer()
-    two_fails.defer()
-
-    def stop():
+@pytest.fixture
+def worker(running_worker):
+    def func(*queues):
+        process = running_worker(*queues)
         time.sleep(1)
-        sum_task.defer(a=2, b=3)
-        stop_task.defer()
+        process.send_signal(signal.SIGINT)
+        return process.communicate()
 
-    process = multiprocessing.Process(target=stop)
-    process.start()
-
-    pg_app.run_worker(queues=["default"])
-    process.join()
-
-    assert sum_results == [12]
-    assert product_results == []
-
-    pg_app.run_worker(queues=["product_queue"])
-
-    assert sum_results == [12, 7, 4, 5]
-    assert product_results == [20]
-
-    assert nb_tries == 0
-    pg_app.run_worker(queues=["retry"])
-    assert nb_tries == 2
+    return func
 
 
-@pytest.mark.skip("We'll fix this later")
-def test_lock(app, caplog):
+@pytest.fixture
+def running_worker(process_env):
+    def func(*queues):
+        return subprocess.Popen(
+            ["procrastinate", "worker", *queues],
+            env=process_env,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            encoding="utf-8",
+        )
+
+    return func
+
+
+def test_nominal(defer, worker):
+
+    defer("sum_task", a=5, b=7)
+    defer("sum_task", a=3, b=4)
+    defer("increment_task", a=3)
+
+    stdout, stderr = worker()
+
+    assert stdout.splitlines() == ["Launching a worker on all queues", "12", "7", "4"]
+    assert stderr.startswith("DEBUG:procrastinate.")
+
+    defer("product_task", a=5, b=4)
+
+    stdout, stderr = worker("default")
+    assert "20" not in stdout
+
+    stdout, stderr = worker("product_queue")
+    assert stdout.splitlines() == ["Launching a worker on product_queue", "20"]
+
+    defer("two_fails")
+    stdout, stderr = worker()
+    assert "Yay" in stdout
+    assert stderr.count("Exception: This should fail") == 2
+
+
+def test_lock(defer, running_worker):
     """
     In this test, we launch 2 workers in two parallel threads, and ask them
     both to process tasks with the same lock. We check that the second task is
     not started before the first one was finished.
     """
-    caplog.set_level("DEBUG")
 
-    task_order = []
+    defer(
+        "sleep_and_write",
+        lock="a",
+        sleep=0.5,
+        write_before="before-1",
+        write_after="after-1",
+    )
+    defer(
+        "sleep_and_write",
+        lock="a",
+        sleep=0.001,
+        write_before="before-2",
+        write_after="after-2",
+    )
+    # Run the 2 workers concurrently
+    process1 = running_worker()
+    process2 = running_worker()
+    time.sleep(2)
+    # And stop them
+    process1.send_signal(signal.SIGINT)
+    process2.send_signal(signal.SIGINT)
 
-    @app.task(queue="queue")
-    def sleep_and_write(sleep, write_before, write_after):
-        task_order.append(write_before)
-        time.sleep(sleep)
-        task_order.append(write_after)
+    # Gather their stdout
+    stdout1, _ = process1.communicate()
+    stdout2, _ = process2.communicate()
+    stdout = stdout1 + stdout2
 
-    workers = []
+    # Sort the interesting lines by timestamp to reconstitute a consistent view
+    lines = dict(
+        line.split()[1:] for line in stdout.splitlines() if line.startswith("->")
+    )
+    lines = sorted(lines, key=lines.get)
 
-    def launch_worker():
-        worker = app._worker()
-        workers.append(worker)
-        worker.run()
-
-    thread1 = threading.Thread(target=launch_worker)
-    thread2 = threading.Thread(target=launch_worker)
-
-    job_template = sleep_and_write.configure(lock="sher")
-
-    job_template.defer(sleep=1, write_before="before-1", write_after="after-1")
-    job_template.defer(sleep=0.001, write_before="before-2", write_after="after-2")
-
-    thread1.start()
-    thread2.start()
-
-    time.sleep(1.1)
-    for worker in workers:
-        worker.stop()
-
-    thread1.join()
-    thread2.join()
-
-    assert task_order == ["before-1", "after-1", "before-2", "after-2"]
-
-
-import subprocess
-import json
-import os
-
-
-def test_nominal(connection_params):
-    env = os.environ.copy()
-    env['PROCRASTINATE_APP'] = 'tests.acceptance.app.app'
-
-    def defer(task_name, **kwargs):
-        full_task_name = f'tests.acceptance.app.{task_name}'
-        subprocess.check_output(
-            ['procrastinate', 'defer', full_task_name, json.dumps(kwargs)], env=env)
-
-    defer('sum_task', a=5, b=7)
-    defer('sum_task', a=3, b=4)
-    defer('increment_task', a=3)
-    defer('product_task', a=5, b=4)
-    defer('two_fails')
+    # Check that it all happened in order
+    assert lines == ["before-1", "after-1", "before-2", "after-2"]
+    # If locks didnt work, we would have
+    # ["before-1", "before-2", "after-2", "after-1"]

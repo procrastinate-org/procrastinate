@@ -1,7 +1,8 @@
 import procrastinate
+import time
 
 
-app = procrastinate.App(job_store=procrastinate.PostgresJobStore(dsn='', dbname='procrastinate_test'))
+app = procrastinate.App(job_store=procrastinate.PostgresJobStore())
 
 
 @app.task(queue="default")
@@ -28,3 +29,11 @@ def two_fails():
     if nb_tries < 2:
         nb_tries += 1
         raise Exception("This should fail")
+    print("Yay")
+
+
+@app.task(queue="lock_test")
+def sleep_and_write(sleep, write_before, write_after):
+    print("->", write_before, time.time())
+    time.sleep(sleep)
+    print("->", write_after, time.time())
