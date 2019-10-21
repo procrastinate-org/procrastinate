@@ -15,8 +15,8 @@ def wrap_json(arguments: Dict[str, Any]):
     }
 
 
-def get_connection(**kwargs) -> Awaitable[aiopg.Connection]:
-    return aiopg.connect(**kwargs)
+def get_connection(dsn="", **kwargs) -> Awaitable[aiopg.Connection]:
+    return aiopg.connect(dsn=dsn, **kwargs)
 
 
 async def execute_query(
@@ -120,4 +120,6 @@ class PostgresJobStore(store.BaseJobStore):
 
     def stop(self):
         if self._connection:
-            self._connection.notifies.put_nowait("s")
+            asyncio.get_running_loop().call_soon_threadsafe(
+                self._connection.notifies.put_nowait, "s"
+            )
