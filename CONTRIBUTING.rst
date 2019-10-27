@@ -131,3 +131,9 @@ Schedule some tasks with:
 .. code-block:: console
 
     (venv) $ python -m procrastinate_demo
+
+Wait, there are ``async`` and ``await`` keywords everywhere!?
+-------------------------------------------------------------
+
+Yes, in order to provide both a synchronous **and** asynchronous API, Procrastinate
+needs to be asynchronous at core. Find out more in the Discussions section.
