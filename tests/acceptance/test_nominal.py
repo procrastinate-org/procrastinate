@@ -1,8 +1,8 @@
 import json
 import os
+import signal
 import subprocess
 import time
-import signal
 
 import pytest
 

@@ -1,6 +1,6 @@
-import procrastinate
 import time
 
+import procrastinate
 
 app = procrastinate.App(job_store=procrastinate.PostgresJobStore())
 

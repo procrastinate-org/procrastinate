@@ -28,7 +28,7 @@ async def test_wait_for_jobs(pg_job_store, get_all):
     assert after - before < 1
 
     # We *did* create a job
-    rows = await(get_all('procrastinate_jobs', 'id'))
+    rows = await get_all("procrastinate_jobs", "id")
     assert len(rows) == 1
 
 

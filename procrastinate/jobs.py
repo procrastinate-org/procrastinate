@@ -1,7 +1,7 @@
 import datetime
 import logging
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Dict, Optional, Union
+from typing import TYPE_CHECKING, Any, Dict, Optional
 
 import attr
 
@@ -71,11 +71,7 @@ class JobDeferrer:
     doesn't need a job_store property.
     """
 
-    def __init__(
-        self,
-        job_store: Union["store.BaseJobStore", "store.AsyncBaseJobStore"],
-        job: Job,
-    ):
+    def __init__(self, job_store: "store.BaseJobStore", job: Job):
         self.job = job
         self.job_store = job_store
 

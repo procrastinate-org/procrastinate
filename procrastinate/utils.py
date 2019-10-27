@@ -2,7 +2,7 @@ import asyncio
 import functools
 import importlib
 import logging
-from typing import Iterable, Type, TypeVar, Awaitable
+from typing import Awaitable, Iterable, Type, TypeVar
 
 from procrastinate import exceptions
 
