@@ -29,7 +29,8 @@ def two_fails():
     if nb_tries < 2:
         nb_tries += 1
         raise Exception("This should fail")
-    print("Yay")
+    # The subprocess will print, the main process will analyze stdout
+    print("Print something to stdout")
 
 
 @app.task(queue="lock_test")
