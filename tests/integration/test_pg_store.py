@@ -403,3 +403,19 @@ async def test_execute_query(pg_job_store):
         "SELECT obj_description('public.procrastinate_jobs'::regclass)"
     )
     assert result == [{"obj_description": "foo"}]
+
+
+async def test_close_connection(pg_job_store):
+    await pg_job_store.get_connection()
+    await pg_job_store.close_connection()
+    assert pg_job_store._connection.closed == 1
+
+
+async def test_close_connection_no_connection(pg_job_store):
+    await pg_job_store.close_connection()
+    # Well we didn't crash. Great.
+
+
+async def test_stop_no_connection(pg_job_store):
+    pg_job_store.stop()
+    # Well we didn't crash. Great.

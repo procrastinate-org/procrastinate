@@ -53,6 +53,17 @@ def make_dynamic_query(query: str, **identifiers: str) -> str:
     )
 
 
+async def wait_for_jobs(connection: aiopg.Connection, socket_timeout: float):
+    try:
+        await asyncio.wait_for(connection.notifies.get(), timeout=socket_timeout)
+    except asyncio.futures.TimeoutError:
+        pass
+
+
+def interrupt_wait(connection: aiopg.Connection):
+    asyncio.get_event_loop().call_soon_threadsafe(connection.notifies.put_nowait, "s")
+
+
 class PostgresJobStore(store.BaseJobStore):
     """
     Uses ``aiopg`` to establish an asynchronous
@@ -110,16 +121,10 @@ class PostgresJobStore(store.BaseJobStore):
         return make_dynamic_query(query=query, **identifiers)
 
     async def wait_for_jobs(self):
-        connection = await self.get_connection()
-        try:
-            await asyncio.wait_for(
-                connection.notifies.get(), timeout=self.socket_timeout
-            )
-        except asyncio.futures.TimeoutError:
-            pass
+        return await wait_for_jobs(
+            connection=await self.get_connection(), socket_timeout=self.socket_timeout
+        )
 
     def stop(self):
         if self._connection:
-            asyncio.get_event_loop().call_soon_threadsafe(
-                self._connection.notifies.put_nowait, "s"
-            )
+            interrupt_wait(connection=self._connection)

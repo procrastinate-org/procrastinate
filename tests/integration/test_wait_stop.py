@@ -33,6 +33,20 @@ async def test_wait_for_jobs(pg_job_store, get_all):
 
 
 @pytest.mark.asyncio
+async def test_wait_for_jobs_timeout(pg_job_store, get_all):
+    """
+    Testing that we timeout if nothing happens
+    """
+    pg_job_store.socket_timeout = 0.01
+
+    before = time.perf_counter()
+    await pg_job_store.wait_for_jobs()
+    after = time.perf_counter()
+
+    assert after - before < 0.1
+
+
+@pytest.mark.asyncio
 async def test_wait_for_jobs_stop_from_signal(pg_job_store, kill_own_pid):
     """
     Testing than ctrl+c interrupts the wait

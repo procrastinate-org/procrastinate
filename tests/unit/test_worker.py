@@ -97,12 +97,29 @@ async def test_process_next_job_retry_failed_job(mocker, app, job_factory):
 async def test_run_job(app, job_store):
     result = []
 
-    def task_func(a, b):  # pylint: disable=unused-argument
+    @app.task(queue="yay", name="task_func")
+    def task_func(a, b):
         result.append(a + b)
 
-    task = tasks.Task(task_func, app=app, queue="yay", name="job")
+    job = jobs.Job(
+        id=16,
+        task_kwargs={"a": 9, "b": 3},
+        lock="sherlock",
+        task_name="task_func",
+        queue="yay",
+    )
+    test_worker = worker.Worker(app, queues=["yay"])
+    await test_worker.run_job(job)
 
-    app.tasks = {"task_func": task}
+    assert result == [12]
+
+
+async def test_run_job_async(app, job_store):
+    result = []
+
+    @app.task(queue="yay", name="task_func")
+    async def task_func(a, b):
+        result.append(a + b)
 
     job = jobs.Job(
         id=16,
