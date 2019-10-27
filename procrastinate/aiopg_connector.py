@@ -120,6 +120,6 @@ class PostgresJobStore(store.BaseJobStore):
 
     def stop(self):
         if self._connection:
-            asyncio.get_running_loop().call_soon_threadsafe(
+            asyncio.get_event_loop().call_soon_threadsafe(
                 self._connection.notifies.put_nowait, "s"
             )
