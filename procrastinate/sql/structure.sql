@@ -68,12 +68,15 @@ BEGIN
 	), lock_object AS (
 		INSERT INTO procrastinate_job_locks
 			SELECT lock FROM potential_job
+            ON CONFLICT DO NOTHING
+            RETURNING object
 	)
 	UPDATE procrastinate_jobs
 		SET status = 'doing',
             started_at = NOW()
-		FROM potential_job
-		WHERE procrastinate_jobs.id = potential_job.id
+		FROM potential_job, lock_object
+        WHERE lock_object.object IS NOT NULL
+		AND procrastinate_jobs.id = potential_job.id
 		RETURNING * INTO found_jobs;
 
 	RETURN found_jobs;
