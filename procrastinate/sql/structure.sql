@@ -1,5 +1,14 @@
 CREATE EXTENSION IF NOT EXISTS plpgsql WITH SCHEMA pg_catalog;
 
+CREATE TABLE IF NOT EXISTS procrastinate_version (
+    id BIGSERIAL PRIMARY KEY,
+    version TEXT,
+    name TEXT,
+    applied_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+INSERT INTO procrastinate_version
+    VALUES (DEFAULT, '0.2.1', 'procrastinate version 0.2.1', DEFAULT);
+
 CREATE TYPE procrastinate_job_status AS ENUM (
     'todo',  -- The job is queued
     'doing',  -- The job has been fetched by a worker
@@ -36,8 +45,8 @@ CREATE TABLE procrastinate_events (
     at timestamp with time zone DEFAULT NOW() NULL
 );
 
-CREATE UNLOGGED TABLE procrastinate_job_locks (
-    object text NOT NULL
+CREATE TABLE procrastinate_job_locks (
+    object text PRIMARY KEY
 );
 
 CREATE FUNCTION procrastinate_fetch_job(target_queue_names character varying[]) RETURNS procrastinate_jobs
@@ -173,3 +182,5 @@ CREATE TRIGGER procrastinate_trigger_scheduled_events
     AFTER UPDATE OR INSERT ON procrastinate_jobs
     FOR EACH ROW WHEN ((new.scheduled_at IS NOT NULL AND new.status = 'todo'::procrastinate_job_status))
     EXECUTE PROCEDURE procrastinate_trigger_scheduled_events_procedure();
+
+CREATE INDEX procrastinate_events_job_id_fkey ON procrastinate_events(job_id);
