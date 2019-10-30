@@ -33,8 +33,13 @@ extensions = [
     "sphinx.ext.autodoc",
     "sphinx_autodoc_typehints",
     "sphinxcontrib.programoutput",
-    "sphinxcontrib.spelling",
 ]
+try:
+    import sphinxcontrib.spelling  # noqa
+except ImportError:
+    pass
+else:
+    extensions.append("sphinxcontrib.spelling")
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
