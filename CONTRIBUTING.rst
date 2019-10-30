@@ -61,6 +61,12 @@ If you don't know Tox_, have a look at their documentation, it's a very nice too
 
 .. _Tox: https://tox.readthedocs.io/en/latest/
 
+To look at coverage in the browser after launching the tests, use:
+
+.. code-block:: console
+
+    $ python -m webbrowser htmlcov/index.html
+
 Keep your code clean
 ^^^^^^^^^^^^^^^^^^^^
 
@@ -81,6 +87,31 @@ If you've never done an `interactive rebase`_ before, it may seem complicated, s
 don't have to, but... Learn it, it's really cool !
 
 .. _`interactive rebase`: https://git-scm.com/book/en/v2/Git-Tools-Rewriting-History
+
+Build the documentation
+^^^^^^^^^^^^^^^^^^^^^^^
+
+Without spell checking:
+
+.. code-block:: console
+
+    $ tox -e docs
+    $ python -m webbrowser docs/_build/html/index.html
+
+Run spell checking on the documentation:
+
+.. code-block:: console
+
+    $ sudo apt install enchant
+    $ tox -e docs-spelling
+
+Because of outdated software and version incompatibilities, spell checking is not
+checked in the CI, and we don't require people to run it in their PR. Though, it's
+always a nice thing to do. Feel free to include any spell fix in your PR, even if it's
+not related to your PR (but please put it in a dedicated commit).
+
+If you need to add words to the spell checking dictionnary, it's in
+``docs/spelling_wordlist.txt``. Make sure the file is alphabetically sorted!
 
 Try our demo
 ------------
