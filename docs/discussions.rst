@@ -76,6 +76,52 @@ some projects that really stand out, to name a few:
 
 .. _discussion-async:
 
+About locks
+-----------
+
+Let's say we have a task that writes a character at the end of a file after waiting for
+a random amount of time. This represents real world problem where tasks take an
+unforseeable amount of time and share resources like a database)
+
+We launch 4 tasks respectively writing ``a``, ``b``, ``c`` and ``d``. We would expect
+the file to contain ``abcd``, but it's not the case, for example maybe it's ``badc``.
+The jobs were taken from the queue in order, but because we have several workers, the
+jobs were launched in parallel and because their duration is random, the final result
+pretty much is too.
+
+We can solve this problem by using locks. Procrastinate gives us two guarantees:
+
+- Tasks are consumed in creation order. When a worker requests a task, it will always
+  receive the oldest available task. Unavailable tasks, either locked, scheduled for the
+  future or in a queue that the worker doesn't listen to, will be ignored.
+- If a group of tasks share the same lock, then only one can be executed at a time.
+
+These two facts allow us to draw the following conclusion for our 4 letter tasks from
+above. If our 4 tasks share the same lock (for example, the name of the file we're
+writing to):
+
+- The 4 tasks will be started in order;
+- A task will not start before the previous one
+is finished.
+
+This says we can safely expect the file to contain ``abcd``.
+
+Note that Procrastinate will use PostgreSQL to search the jobs table for suitable jobs.
+Even if the database contains a high proportion of locked tasks, this will barely affect
+Procrastinates's capacity to quickly find the free tasks.
+
+A good string identifier for the lock is a string identifier of the shared resource,
+UUIDs are well suited for this. If multiple resources are implicated, a combination of
+their identifiers could be used (there's no hard limit on the length of a lock string,
+but stay reasonable).
+
+A task can only take a single lock so there's no dead-lock scenario possible where two
+running tasks are waiting one another. That being said, if a worker dies with a lock, it
+will be up tou you to free it. If the task fails but the worker survives though, the
+lock will be freed.
+
+For a more practical approach, see :ref:`hot-to-locks`.
+
 Asynchronous interface
 ----------------------
 
