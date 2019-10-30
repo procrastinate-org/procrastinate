@@ -80,8 +80,8 @@ About locks
 -----------
 
 Let's say we have a task that writes a character at the end of a file after waiting for
-a random amount of time. This represents real world problem where tasks take an
-unforseeable amount of time and share resources like a database)
+a random amount of time. This represents a real world problem where tasks take an
+unforseeable amount of time and share resources like a database.
 
 We launch 4 tasks respectively writing ``a``, ``b``, ``c`` and ``d``. We would expect
 the file to contain ``abcd``, but it's not the case, for example maybe it's ``badc``.
