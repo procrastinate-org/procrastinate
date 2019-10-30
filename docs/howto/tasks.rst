@@ -9,7 +9,7 @@ You can specify a task with::
 
 See :py:func:`App.task` for the exact parameters.
 
-If you're ok with all the default parameters, it's ok to omit parentheses after
+If you're OK with all the default parameters, you can omit parentheses after
 ``task``::
 
     @app.task

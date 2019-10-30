@@ -23,7 +23,7 @@ parameters. Otherwise, we'll create one together with Docker_:
 
 You'll also need ``psycopg2``, which is notoriously complex to install. Procrastinate
 will install the ``psycopg2`` python package, but will expect the system to already
-have the prerequesites (on ubuntu)::
+have the prerequisites (on ``Ubuntu``)::
 
     $ sudo apt install libpq-dev python-dev
 
@@ -52,7 +52,7 @@ We'll do this in a single file. Start an empty file named ``tutorial.py``::
 The application will be the entry point for both:
 
 - Declaring tasks (a.k.a job templates) to be launched by Procrastinate,
-- Launching the worker that will consume the jobs created frome those tasks.
+- Launching the worker that will consume the jobs created from those tasks.
 - DB migrations
 
 Prepare the database
@@ -123,7 +123,7 @@ Run a worker
 
 In the logs, you can see the values as they are computed.
 
-Congratulations, you've succefully procrastinated the execution of your first task :)
+Congratulations, you've successfully procrastinated the execution of your first task :)
 
 Your final file
 ---------------

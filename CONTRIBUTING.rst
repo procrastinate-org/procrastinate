@@ -6,8 +6,8 @@ You're welcome to come and procrastinate with us :)
 Instructions for contribution
 -----------------------------
 
-Create your dev database
-^^^^^^^^^^^^^^^^^^^^^^^^
+Create your development database
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: console
 
@@ -19,7 +19,7 @@ Create your dev database
 Set up your development environment
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-You may need to install some required packages for psycopg:
+You may need to install some required packages for ``psycopg2``:
 
 .. code-block:: console
 
@@ -27,7 +27,7 @@ You may need to install some required packages for psycopg:
     $ apt install libpq-dev python-dev
 
 If you don't plan to run the code interactively and just want to run tests,
-linting and build the doc, you'll just need tox:
+linting and build the doc, you'll just need ``tox``:
 
 .. code-block:: console
 

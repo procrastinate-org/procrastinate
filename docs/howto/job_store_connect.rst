@@ -3,8 +3,7 @@ Create your job store, and connect to a PostgreSQL database
 
 There are three ways you can specify the connection parameters:
 
-- You can use `libpq environment variables`_ (with ``PGPASSWORD`` or pgpass file):
-
+- You can use `libpq environment variables`_ (with ``PGPASSWORD`` or ``pgpass`` file):
 
 .. code-block:: console
 

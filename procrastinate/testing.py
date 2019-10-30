@@ -27,7 +27,7 @@ class InMemoryBaseJobStore:
 
     def reset(self):
         """
-        Removes anything the store contains, to ensure test independance.
+        Removes anything the store contains, to ensure test independence.
         """
         self.jobs: Dict[int, JobRow] = {}
         self.events: Dict[int, List[EventRow]] = {}

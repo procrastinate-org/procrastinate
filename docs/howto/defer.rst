@@ -48,7 +48,7 @@ Create a job pattern, launch multiple jobs
 Defer a job if you can't access the task
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-This is useful if the code that defers jobs is not in the same codebase as the code
+This is useful if the code that defers jobs is not in the same code base as the code
 that runs the jobs. You can defer a job with just the name of its task.
 
 ::

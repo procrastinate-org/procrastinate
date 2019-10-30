@@ -157,7 +157,7 @@ class Task:
 
         Returns
         -------
-        jobs.JobDeferrer
+        ``jobs.JobDeferrer``
             An object with a ``defer`` method, identical to :py:func:`Task.defer`
 
         Raises

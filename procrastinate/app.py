@@ -14,9 +14,9 @@ logger = logging.getLogger(__name__)
 
 class App:
     """
-    The App is the main entrypoint for procrastinate integration.
+    The App is the main entry point for procrastinate integration.
 
-    Instanciate a single :py:class:`App` in your code
+    Instantiate a single :py:class:`App` in your code
     and use it to decorate your tasks with :py:func:`App.task`.
 
     You can run a worker with :py:func:`App.run_worker`.
@@ -141,7 +141,7 @@ class App:
         Parameters
         ----------
         name : str
-            Name of the task. If not explicitely defined, this will be the dotted path
+            Name of the task. If not explicitly defined, this will be the dotted path
             to the task (``my.module.my_task``)
 
         **kwargs: Any
@@ -179,7 +179,7 @@ class App:
         """
         Run a worker. This worker will run in the foreground
         and the function will not return until the worker stops
-        (most probably when it recieves a stop signal) (except if
+        (most probably when it receives a stop signal) (except if
         `only_once` is True).
 
         Parameters
