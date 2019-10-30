@@ -34,11 +34,13 @@ linting and build the doc, you'll just need ``tox``:
     $ pip install tox
 
 If you plan to launch the project locally, install the package itself with development
-dependencies:
+dependencies in a virtual environment:
 
 .. code-block:: console
 
-    $ pip install -r requirements.txt
+    $ python3 -m venv .venv
+    $ source .venv/bin/activate
+    (venv) $ pip install -r requirements.txt
 
 Run the project automated tests
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
