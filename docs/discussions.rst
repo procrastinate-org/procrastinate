@@ -21,7 +21,7 @@ Procrastinate is based on several things:
 Why are you doing a task queue in PostgreSQL ?
 ----------------------------------------------
 
-Because while maintaining a large Postgres_ database in good shape in
+Because while maintaining a large PostgreSQL_ database in good shape in
 our infrastructure is no small feat, also maintaining a RabbitMQ_/Redis_/...
 service is double the trouble. It introduces plenty of problems around backups,
 high availability, monitoring, etc. If you already have a stable robust
@@ -38,7 +38,7 @@ Finally, the idea that the core operations around tasks are handled by the
 database itself using stored procedures eases the possibility of porting
 Procrastinate to another language, while staying compatible with Python-based jobs.
 
-.. _Postgres: https://www.postgresql.org/
+.. _PostgreSQL: https://www.postgresql.org/
 .. _RabbitMQ: https://www.rabbitmq.com/
 .. _Redis: https://redis.io/
 
@@ -74,7 +74,7 @@ some projects that really stand out, to name a few:
 .. _Dramatiq: https://dramatiq.io/
 .. _dramatiq-pg: https://pypi.org/project/dramatiq-pg/
 
-.. _discussion-async:
+.. _discussion-locks:
 
 About locks
 -----------
@@ -101,8 +101,7 @@ above. If our 4 tasks share the same lock (for example, the name of the file we'
 writing to):
 
 - The 4 tasks will be started in order;
-- A task will not start before the previous one
-is finished.
+- A task will not start before the previous one is finished.
 
 This says we can safely expect the file to contain ``abcd``.
 
@@ -120,7 +119,9 @@ running tasks are waiting one another. That being said, if a worker dies with a 
 will be up tou you to free it. If the task fails but the worker survives though, the
 lock will be freed.
 
-For a more practical approach, see :ref:`hot-to-locks`.
+For a more practical approach, see :ref:`how-to-locks`.
+
+.. _discussion-async:
 
 Asynchronous interface
 ----------------------
@@ -131,7 +132,6 @@ having something asynchronous, you soon realize everything needs to be asynchron
 for it to work.
 
 Procrastinate aims at being compatible with both sync and async codebases.
-See :ref:`how-to-async` for API details.
 
 There are two distinct parts in procrastinate that are relevant for asynchronous work:
 deferring a job, and executing it. As a rule of thumb, only use asynchronous interface
@@ -156,6 +156,32 @@ You can have a combination of synchronous and asynchronous tasks in your codebas
 long as they are handled by two distinct workers (one async and one sync)
 
 So far, the only asynchronous interface implemented in procrastinate is job deferring.
+
+See :ref:`how-to-async` for API details.
+
+Procrastinate's database interactions
+-------------------------------------
+
+A few things are worth noting in our PostgreSQL usage.
+
+Using procedures
+^^^^^^^^^^^^^^^^
+
+For critical requests, we tend to using PostgreSQL procedures where we could do the same
+thing directly with queries. This is so that the database is solely responsible for
+consistency, and would allow us to have the same behaviour if someone were to write
+a procrastinate compatible client, in Python or in another language altogether.
+
+The ``procrastinate_job_locks`` table
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+We could have used PostgreSQL's `advisory locks`_, and we choose to kinda "reimplement
+the wheel" with a dedicated table. This is because we made the choice that if a worker
+dies holding a lock, we'd rather have a human examine the situation and manually free
+the lock than having the lock been automatically freed, and fail our locks consistency
+guarantee.
+
+.. _`advisory locks`: https://www.postgresql.org/docs/10/explicit-locking.html#ADVISORY-LOCKS
 
 How stable is Procrastinate ?
 -----------------------------
