@@ -152,8 +152,8 @@ Your final file
 Going further
 -------------
 
-To continue with practical steps, head to the :ref:`How-to... <how-to>` section. To take
-the most out of Procrastinate, have a look at the :ref:`locks <locks>` feature.
+To continue with practical steps, head to the :ref:`How-to... <how-to>` section. For
+example, have a look at the locks feature: :ref:`how-to-locks`.
 
 If you want to better understand some design decisions, head to the :ref:`Discussions
 <discussions>` sections.
