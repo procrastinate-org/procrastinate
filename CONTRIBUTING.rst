@@ -110,7 +110,7 @@ checked in the CI, and we don't require people to run it in their PR. Though, it
 always a nice thing to do. Feel free to include any spell fix in your PR, even if it's
 not related to your PR (but please put it in a dedicated commit).
 
-If you need to add words to the spell checking dictionnary, it's in
+If you need to add words to the spell checking dictionary, it's in
 ``docs/spelling_wordlist.txt``. Make sure the file is alphabetically sorted!
 
 Try our demo

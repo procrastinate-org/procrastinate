@@ -81,7 +81,7 @@ About locks
 
 Let's say we have a task that writes a character at the end of a file after waiting for
 a random amount of time. This represents a real world problem where tasks take an
-unforseeable amount of time and share resources like a database.
+unforeseeable amount of time and share resources like a database.
 
 We launch 4 tasks respectively writing ``a``, ``b``, ``c`` and ``d``. We would expect
 the file to contain ``abcd``, but it's not the case, for example maybe it's ``badc``.
@@ -116,7 +116,7 @@ but stay reasonable).
 
 A task can only take a single lock so there's no dead-lock scenario possible where two
 running tasks are waiting one another. That being said, if a worker dies with a lock, it
-will be up tou you to free it. If the task fails but the worker survives though, the
+will be up to you to free it. If the task fails but the worker survives though, the
 lock will be freed.
 
 For a more practical approach, see :ref:`how-to-locks`.
@@ -169,7 +169,7 @@ Using procedures
 
 For critical requests, we tend to using PostgreSQL procedures where we could do the same
 thing directly with queries. This is so that the database is solely responsible for
-consistency, and would allow us to have the same behaviour if someone were to write
+consistency, and would allow us to have the same behavior if someone were to write
 a procrastinate compatible client, in Python or in another language altogether.
 
 The ``procrastinate_job_locks`` table
