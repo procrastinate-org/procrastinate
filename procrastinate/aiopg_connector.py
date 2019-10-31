@@ -22,7 +22,7 @@ def get_connection(dsn="", **kwargs) -> Awaitable[aiopg.Connection]:
 async def execute_query(
     connection: aiopg.Connection, query: str, **arguments: Any
 ) -> None:
-    # Strangely, aiopg can work with psycopg2's cursor class.
+    # aiopg can work with psycopg2's cursor class
     async with connection.cursor(cursor_factory=RealDictCursor) as cursor:
         await cursor.execute(query, wrap_json(arguments))
 
@@ -30,7 +30,7 @@ async def execute_query(
 async def execute_query_one(
     connection: aiopg.Connection, query: str, **arguments: Any
 ) -> Dict[str, Any]:
-    # Strangely, aiopg can work with psycopg2's cursor class.
+    # aiopg can work with psycopg2's cursor class
     async with connection.cursor(cursor_factory=RealDictCursor) as cursor:
         await cursor.execute(query, wrap_json(arguments))
 
@@ -40,7 +40,7 @@ async def execute_query_one(
 async def execute_query_all(
     connection: aiopg.Connection, query: str, **arguments: Any
 ) -> List[Dict[str, Any]]:
-    # Strangely, aiopg can work with psycopg2's cursor class.
+    # aiopg can work with psycopg2's cursor class
     async with connection.cursor(cursor_factory=RealDictCursor) as cursor:
         await cursor.execute(query, wrap_json(arguments))
 
