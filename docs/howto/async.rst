@@ -36,12 +36,6 @@ If your job is a coroutine, it will be awaited::
     # or
     my_task.defer(a=1, b=2)
 
-.. note::
-
-    To distinguish between sync and async tasks, Procrastinate inspects your task. if
-    it returns a coroutine but it is not a ``coroutine function`` (a.k.a. a function
-    defined with ``async``), it will not be awaited.
-
 As of today, jobs are still executed
 sequentially, so if you have 100 asynchronous jobs that each take 1 second doing
 asynchronous I/O, you would expect the complete queue to run in little over 1 second,
@@ -50,4 +44,3 @@ and instead it will take 100 seconds.
 In the future, you will be able to process asynchronous jobs in parallel (see ticket__).
 
 __ https://github.com/peopledoc/procrastinate/issues/106
-
