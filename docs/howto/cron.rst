@@ -7,7 +7,7 @@ Launching anything periodically (every X units of time) is a really complicated
 problem, mainly because of how the system is supposed to react when it's off or too
 busy. Should it accumulate or discard jobs when it's too late and it couldn't
 launch the jobs in time? How to define properly a unit of time, given there's
-timezones, and leap years and such?
+time zones, and leap years and such?
 
 Procrastinate doesn't aim at answering these questions, but mature stable software
 already has, in the form of `unix cron`_ and `systemd timers`_, to name just two.

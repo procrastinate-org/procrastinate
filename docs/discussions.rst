@@ -55,7 +55,7 @@ Python task queues, and the aim is not to replace them all, but to provide
 an alternative that fits our need, as we could not find one we were
 completely satisfied with.
 
-Nethertheless, we acknowledge the impressive Open Source work accomplished by
+Nevertheless, we acknowledge the impressive Open Source work accomplished by
 some projects that really stand out, to name a few:
 
 - Celery_: Is really big and supports a whole variety of cases, but not using
@@ -81,7 +81,7 @@ About locks
 
 Let's say we have a task that writes a character at the end of a file after waiting for
 a random amount of time. This represents a real world problem where tasks take an
-unforseeable amount of time and share resources like a database.
+unforeseeable amount of time and share resources like a database.
 
 We launch 4 tasks respectively writing ``a``, ``b``, ``c`` and ``d``. We would expect
 the file to contain ``abcd``, but it's not the case, for example maybe it's ``badc``.
@@ -116,7 +116,7 @@ but stay reasonable).
 
 A task can only take a single lock so there's no dead-lock scenario possible where two
 running tasks are waiting one another. That being said, if a worker dies with a lock, it
-will be up tou you to free it. If the task fails but the worker survives though, the
+will be up to you to free it. If the task fails but the worker survives though, the
 lock will be freed.
 
 For a more practical approach, see :ref:`how-to-locks`.
@@ -126,10 +126,10 @@ For a more practical approach, see :ref:`how-to-locks`.
 Asynchronous interface
 ----------------------
 
-Here, asynchronous means "using the Python `async/await` keywords, to make I/Os
-run in parallel". Asynchronous work can be tricky in Python because once you start
-having something asynchronous, you soon realize everything needs to be asynchronous
-for it to work.
+Here, asynchronous (or async) means "using the Python `async/await` keywords, to make
+I/Os run in parallel". Asynchronous work can be tricky in Python because once you start
+having something asynchronous, you soon realize everything needs to be asynchronous for
+it to work.
 
 Procrastinate aims at being compatible with both sync and async codebases.
 
@@ -169,7 +169,7 @@ Using procedures
 
 For critical requests, we tend to using PostgreSQL procedures where we could do the same
 thing directly with queries. This is so that the database is solely responsible for
-consistency, and would allow us to have the same behaviour if someone were to write
+consistency, and would allow us to have the same behavior if someone were to write
 a procrastinate compatible client, in Python or in another language altogether.
 
 The ``procrastinate_job_locks`` table
@@ -199,7 +199,7 @@ Wasn't this project named "Cabbage" ?
 Yes, in early development, we planned to call this "cabbage" in reference to
 celery, but even if the name was available on PyPI, by the time we stopped
 procrastinating and wanted to register it, it had been taken. Given this project
-is all about "launching tasks in an undertermined moment in the future", the new
+is all about "launching tasks in an undetermined moment in the future", the new
 name felt quite adapted too. Also, now you know why the project is named this way.
 
 Thanks PeopleDoc

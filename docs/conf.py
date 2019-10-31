@@ -34,6 +34,12 @@ extensions = [
     "sphinx_autodoc_typehints",
     "sphinxcontrib.programoutput",
 ]
+try:
+    import sphinxcontrib.spelling  # noqa
+except ImportError:
+    pass
+else:
+    extensions.append("sphinxcontrib.spelling")
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
@@ -43,6 +49,9 @@ templates_path = ["_templates"]
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
+# -- Spell check -------------------------------------------------------------
+
+spelling_word_list_filename = "spelling_wordlist.txt"
 
 # -- Options for HTML output -------------------------------------------------
 

@@ -23,7 +23,7 @@ Job
 .. _glossary_defer:
 
 Defer
-    The action of instanciating a task and registering it for later execution by a
+    The action of instantiating a task and registering it for later execution by a
     worker.
 
 Using this wording, you could say, for example: "there are 2 tasks: washing the
@@ -45,7 +45,7 @@ Worker
 .. _glossary_app:
 
 App (or Application) (see :py:class:`procrastinate.App`)
-    This is meant to be the main entrypoint of Procrastinate. The app knows
+    This is meant to be the main entry point of Procrastinate. The app knows
     all the tasks of your project, and thanks to the job store, it knows how
     to launch jobs to execute your tasks.
 

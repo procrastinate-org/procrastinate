@@ -35,7 +35,7 @@ class BaseRetryStrategy:
 
         Returns
         -------
-        Optional[float]
+        ``Optional[float]``
             If a job should not be retried, this function should return None.
             Otherwise, it should return the duration after which to schedule the
             new job run, *in seconds*.
