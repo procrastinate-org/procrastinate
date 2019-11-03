@@ -95,11 +95,17 @@ def cli(ctx: click.Context, app: str, **kwargs) -> None:
     """
     if app:
         ctx.obj = procrastinate.App.from_path(dotted_path=app)
-        ctx.obj.job_store = ctx.obj.job_store.get_sync_store()
     else:
         # If we don't provide an app, initialize a default one that will fail if it
         # needs its job store.
         ctx.obj = procrastinate.App(job_store=procrastinate.BaseJobStore())
+
+
+@cli.resultcallback()
+@click.pass_obj
+def close_connection(procrastinate_app: procrastinate.App, *args, **kwargs):
+    # There's an internal click param named app, we can't name our variable "app" too.
+    procrastinate_app.close_connection()  # type: ignore
 
 
 @cli.command()
@@ -113,7 +119,7 @@ def worker(app: procrastinate.App, queue: Iterable[str]):
     queues = list(queue) or None
     queue_names = ", ".join(queues) if queues else "all queues"
     click.echo(f"Launching a worker on {queue_names}")
-    app.run_worker(queues=queues)
+    app.run_worker(queues=queues)  # type: ignore
 
 
 @cli.command()
@@ -176,7 +182,7 @@ def defer(
     click.echo(f"Launching a job: {task}({str_kwargs})")
 
     # And launching the job
-    job_deferrer.defer(**args)
+    job_deferrer.defer(**args)  # type: ignore
 
 
 def filter_none(dictionnary: Dict) -> Dict:
@@ -246,7 +252,7 @@ def migrate(app: procrastinate.App, run: bool):
     migrator = app.migrator
     if run:
         click.echo("Launching migrations")
-        migrator.migrate()
+        migrator.migrate()  # type: ignore
         click.echo("Done")
     else:
         click.echo(migrator.get_migration_queries(), nl=False)

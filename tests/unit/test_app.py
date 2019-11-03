@@ -1,3 +1,5 @@
+import asyncio
+
 import pendulum
 
 from procrastinate import app as app_module
@@ -70,8 +72,8 @@ def test_app_worker(app, mocker):
 
 
 def test_app_run_worker(app, mocker):
-    run = mocker.patch("procrastinate.worker.Worker.run")
-
+    run = mocker.patch("procrastinate.worker.Worker.run", return_value=asyncio.Future())
+    run.return_value.set_result(None)
     app.run_worker(queues=["yay"])
 
     run.assert_called_once_with()

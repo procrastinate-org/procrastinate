@@ -3,12 +3,14 @@ import pytest
 
 from procrastinate import exceptions, jobs, tasks, worker
 
+pytestmark = pytest.mark.asyncio
 
-def test_run(app):
+
+async def test_run(app):
     class TestWorker(worker.Worker):
         i = 0
 
-        def process_next_job(self):
+        async def process_next_job(self):
             self.i += 1
             if self.i == 2:
                 raise exceptions.NoMoreJobs
@@ -17,9 +19,11 @@ def test_run(app):
 
     test_worker = TestWorker(app=app, queues=["marsupilami"])
 
-    test_worker.run()
+    await test_worker.run()
 
-    assert app.job_store.queries == ["listen_for_jobs"]
+    assert app.job_store.queries == [
+        ("listen_for_jobs", "procrastinate_queue#marsupilami")
+    ]
 
 
 @pytest.mark.parametrize(
@@ -30,45 +34,48 @@ def test_run(app):
         (exceptions.TaskNotFound(), "failed"),
     ],
 )
-def test_process_next_job(mocker, app, job_factory, side_effect, status):
+async def test_process_next_job(mocker, app, job_factory, side_effect, status):
     job = job_factory(id=1)
-    app.job_store.defer_job(job)
+    await app.job_store.defer_job(job)
 
     test_worker = worker.Worker(app, queues=["queue"])
 
+    async def coro(*args, **kwargs):
+        pass
+
     run_job = mocker.patch(
-        "procrastinate.worker.Worker.run_job", side_effect=side_effect
+        "procrastinate.worker.Worker.run_job", side_effect=side_effect or coro
     )
-    test_worker.process_next_job()
+    await test_worker.process_next_job()
 
     run_job.assert_called_with(job=job)
 
     assert app.job_store.jobs[1]["status"] == status
 
 
-def test_process_next_job_raise_no_more_jobs(app):
+async def test_process_next_job_raise_no_more_jobs(app):
     test_worker = worker.Worker(app)
 
     with pytest.raises(exceptions.NoMoreJobs):
-        test_worker.process_next_job()
+        await test_worker.process_next_job()
 
 
-def test_process_next_job_raise_stop_requested(app):
+async def test_process_next_job_raise_stop_requested(app):
     test_worker = worker.Worker(app)
 
     @app.task
     def empty():
         test_worker.stop_requested = True
 
-    empty.defer()
+    await empty.defer_async()
 
     with pytest.raises(exceptions.StopRequested):
-        test_worker.process_next_job()
+        await test_worker.process_next_job()
 
 
-def test_process_next_job_retry_failed_job(mocker, app, job_factory):
+async def test_process_next_job_retry_failed_job(mocker, app, job_factory):
     job = job_factory(id=1)
-    app.job_store.defer_job(job)
+    await app.job_store.defer_job(job)
 
     mocker.patch(
         "procrastinate.worker.Worker.run_job",
@@ -78,7 +85,7 @@ def test_process_next_job_retry_failed_job(mocker, app, job_factory):
     )
 
     test_worker = worker.Worker(app, queues=["queue"])
-    test_worker.process_next_job()
+    await test_worker.process_next_job()
 
     new_job = app.job_store.jobs[1]
     assert len(app.job_store.jobs) == 1
@@ -87,15 +94,12 @@ def test_process_next_job_retry_failed_job(mocker, app, job_factory):
     assert new_job["scheduled_at"] == pendulum.datetime(2000, 1, 1, tz="UTC")
 
 
-def test_run_job(app, job_store):
+async def test_run_job(app, job_store):
     result = []
 
-    def task_func(a, b):  # pylint: disable=unused-argument
+    @app.task(queue="yay", name="task_func")
+    def task_func(a, b):
         result.append(a + b)
-
-    task = tasks.Task(task_func, app=app, queue="yay", name="job")
-
-    app.tasks = {"task_func": task}
 
     job = jobs.Job(
         id=16,
@@ -105,12 +109,32 @@ def test_run_job(app, job_store):
         queue="yay",
     )
     test_worker = worker.Worker(app, queues=["yay"])
-    test_worker.run_job(job)
+    await test_worker.run_job(job)
 
     assert result == [12]
 
 
-def test_run_job_log_result(caplog, app, job_store):
+async def test_run_job_async(app, job_store):
+    result = []
+
+    @app.task(queue="yay", name="task_func")
+    async def task_func(a, b):
+        result.append(a + b)
+
+    job = jobs.Job(
+        id=16,
+        task_kwargs={"a": 9, "b": 3},
+        lock="sherlock",
+        task_name="task_func",
+        queue="yay",
+    )
+    test_worker = worker.Worker(app, queues=["yay"])
+    await test_worker.run_job(job)
+
+    assert result == [12]
+
+
+async def test_run_job_log_result(caplog, app, job_store):
     caplog.set_level("INFO")
 
     result = []
@@ -132,7 +156,7 @@ def test_run_job_log_result(caplog, app, job_store):
         queue="yay",
     )
     test_worker = worker.Worker(app, queues=["yay"])
-    test_worker.run_job(job)
+    await test_worker.run_job(job)
 
     assert result == [12]
 
@@ -142,7 +166,7 @@ def test_run_job_log_result(caplog, app, job_store):
     assert record.result == 12
 
 
-def test_run_job_error(app, job_store):
+async def test_run_job_error(app, job_store):
     def job(a, b):  # pylint: disable=unused-argument
         raise ValueError("nope")
 
@@ -160,10 +184,10 @@ def test_run_job_error(app, job_store):
     )
     test_worker = worker.Worker(app, queues=["yay"])
     with pytest.raises(exceptions.JobError):
-        test_worker.run_job(job)
+        await test_worker.run_job(job)
 
 
-def test_run_job_retry(app, job_store):
+async def test_run_job_retry(app, job_store):
     def job(a, b):  # pylint: disable=unused-argument
         raise ValueError("nope")
 
@@ -181,10 +205,10 @@ def test_run_job_retry(app, job_store):
     )
     test_worker = worker.Worker(app, queues=["yay"])
     with pytest.raises(exceptions.JobRetry):
-        test_worker.run_job(job)
+        await test_worker.run_job(job)
 
 
-def test_run_job_not_found(app, job_store):
+async def test_run_job_not_found(app, job_store):
     job = jobs.Job(
         id=16,
         task_kwargs={"a": 9, "b": 3},
@@ -194,60 +218,4 @@ def test_run_job_not_found(app, job_store):
     )
     test_worker = worker.Worker(app, queues=["yay"])
     with pytest.raises(exceptions.TaskNotFound):
-        test_worker.run_job(job)
-
-
-def test_worker_call_import_all(app, mocker):
-
-    import_all = mocker.patch("procrastinate.utils.import_all")
-
-    app.import_paths = ["hohoho"]
-
-    worker.Worker(app=app, queues=["yay"])
-
-    import_all.assert_called_with(import_paths=["hohoho"])
-
-
-def test_worker_load_task_known_missing(app):
-    task_worker = worker.Worker(app=app, queues=["yay"])
-
-    task_worker.known_missing_tasks.add("foobarbaz")
-    with pytest.raises(exceptions.TaskNotFound):
-        task_worker.load_task("foobarbaz")
-
-
-def test_worker_load_task_known_task(app):
-    task_worker = worker.Worker(app=app, queues=["yay"])
-
-    @app.task
-    def task_func():
-        pass
-
-    assert task_worker.load_task("tests.unit.test_worker.task_func") == task_func
-
-
-def test_worker_load_task_new_missing(app):
-    task_worker = worker.Worker(app=app, queues=["yay"])
-
-    with pytest.raises(exceptions.TaskNotFound):
-        task_worker.load_task("foobarbaz")
-
-    assert task_worker.known_missing_tasks == {"foobarbaz"}
-
-
-unknown_task = None
-
-
-def test_worker_load_task_unknown_task(app, caplog):
-    global unknown_task
-    task_worker = worker.Worker(app=app, queues=["yay"])
-
-    @app.task
-    def task_func():
-        pass
-
-    unknown_task = task_func
-
-    assert task_worker.load_task("tests.unit.test_worker.unknown_task") == task_func
-
-    assert [record for record in caplog.records if record.action == "load_dynamic_task"]
+        await test_worker.run_job(job)

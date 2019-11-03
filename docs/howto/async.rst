@@ -6,29 +6,11 @@ Launch a job and/or execute it asynchronously
 First, make sure you understand the implications of using the asynchronous interface
 (see :ref:`discussion-async`).
 
-In order to user the asynchronous interface, you'll need to install extra dependencies
-using:
-
-.. code-block:: console
-
-    $ pip install 'procrastinate[async]'
-
-Then, the :py:class:`procrastinate.App` has to be configured with an
-:py:class:`procrastinate.aiopg_connector.AiopgJobStore` ``job_store``::
-
-    import procrastinate
-    from procrastinate.aiopg_connector import AiopgJobStore
-
-    app = procrastinate.App(
-        job_store=AiopgJobStore(dsn="...")
-    )
-
-
 Defer jobs asynchronously
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-If your job store is asynchronous, then instead of calling ``defer``, you'll need
-to call ``defer_async``::
+In order for the defer query to be executed asynchronously, instead of calling
+``defer``, you'll need to call ``defer_async``::
 
     @app.task
     def my_task(a, b):
@@ -43,4 +25,22 @@ to call ``defer_async``::
 Execute jobs asynchronously
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-This has not been implemented yet.
+If your job is a coroutine, it will be awaited::
+
+    @app.task
+    async def my_task(a, b):
+        await asyncio.sleep(3)
+
+    # Tasks being async or not can be awaited asynchronously or not
+    await my_task.defer_async(a=1, b=2)
+    # or
+    my_task.defer(a=1, b=2)
+
+As of today, jobs are still executed
+sequentially, so if you have 100 asynchronous jobs that each take 1 second doing
+asynchronous I/O, you would expect the complete queue to run in little over 1 second,
+and instead it will take 100 seconds.
+
+In the future, you will be able to process asynchronous jobs in parallel (see ticket__).
+
+__ https://github.com/peopledoc/procrastinate/issues/106

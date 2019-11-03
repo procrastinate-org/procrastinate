@@ -12,6 +12,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+@utils.add_sync_api
 class App:
     """
     The App is the main entry point for procrastinate integration.
@@ -173,7 +174,7 @@ class App:
             extra={"action": "imported_tasks", "tasks": list(self.tasks)},
         )
 
-    def run_worker(
+    async def run_worker_async(
         self, queues: Optional[Iterable[str]] = None, only_once: bool = False
     ) -> None:
         """
@@ -195,12 +196,15 @@ class App:
         worker = self._worker(queues=queues)
         if only_once:
             try:
-                worker.process_jobs_once()
+                await worker.process_jobs_once()
             except (exceptions.NoMoreJobs, exceptions.StopRequested):
                 pass
         else:
-            worker.run()
+            await worker.run()
 
     @property
     def migrator(self) -> migration.Migrator:
         return migration.Migrator(job_store=self.job_store)
+
+    async def close_connection_async(self):
+        await self.job_store.close_connection()

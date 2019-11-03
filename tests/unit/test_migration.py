@@ -9,4 +9,4 @@ def test_migrate(app, job_store):
     job_store.reverse_queries = defaultdict(lambda: "migrate")
     app.migrator.migrate()
 
-    assert app.job_store.queries == ["migrate"]
+    assert app.job_store.queries == [("migrate", {})]

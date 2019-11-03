@@ -22,8 +22,6 @@ Job stores
 
 .. autoclass:: procrastinate.PostgresJobStore
 
-.. autoclass:: procrastinate.aiopg_connector.AiopgJobStore
-
 .. autoclass:: procrastinate.testing.InMemoryJobStore
     :members: reset
 

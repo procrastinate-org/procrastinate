@@ -1,77 +1,86 @@
-import threading
+import asyncio
 import time
 
-from procrastinate import App, jobs, psycopg2_connector
+import pytest
+
+from procrastinate import App, jobs
 
 
-def test_wait_for_jobs(pg_job_store, connection_params):
+@pytest.mark.asyncio
+async def test_wait_for_jobs(pg_job_store, get_all):
     """
     Testing that a new job arriving in the queue interrupts the wait
     """
     pg_job_store.socket_timeout = 2
-    pg_job_store.listen_for_jobs()
+    await pg_job_store.listen_for_jobs()
 
-    def stop():
-        time.sleep(0.5)
-        try:
-            inner_job_store = psycopg2_connector.PostgresJobStore(**connection_params)
-
-            inner_job_store.defer_job(
-                jobs.Job(id=0, queue="yay", task_name="oh", lock="sher", task_kwargs={})
-            )
-        finally:
-            inner_job_store.connection.close()
-
-    thread = threading.Thread(target=stop)
-    thread.start()
+    async def defer_job():
+        await asyncio.sleep(0.5)
+        await pg_job_store.defer_job(
+            jobs.Job(id=0, queue="yay", task_name="oh", lock="sher", task_kwargs={})
+        )
 
     before = time.perf_counter()
-    pg_job_store.wait_for_jobs()
+    await asyncio.gather(pg_job_store.wait_for_jobs(), defer_job())
     after = time.perf_counter()
 
     # If we wait less than 1 sec, it means the wait didn't reach the timeout.
     assert after - before < 1
 
+    # We *did* create a job
+    rows = await get_all("procrastinate_jobs", "id")
+    assert len(rows) == 1
 
-def test_wait_for_jobs_stop_from_signal(pg_job_store, kill_own_pid):
+
+@pytest.mark.asyncio
+async def test_wait_for_jobs_timeout(pg_job_store, get_all):
+    """
+    Testing that we timeout if nothing happens
+    """
+    pg_job_store.socket_timeout = 0.01
+
+    before = time.perf_counter()
+    await pg_job_store.wait_for_jobs()
+    after = time.perf_counter()
+
+    assert after - before < 0.1
+
+
+@pytest.mark.asyncio
+async def test_wait_for_jobs_stop_from_signal(pg_job_store, kill_own_pid):
     """
     Testing than ctrl+c interrupts the wait
     """
     pg_job_store.socket_timeout = 2
     app = App(job_store=pg_job_store)
 
-    def stop():
-        time.sleep(0.5)
+    async def stop():
+        await asyncio.sleep(0.5)
         kill_own_pid()
 
-    thread = threading.Thread(target=stop)
-    thread.start()
-
     before = time.perf_counter()
-    app.run_worker()
+    await asyncio.gather(app.run_worker_async(), stop())
     after = time.perf_counter()
 
     # If we wait less than 1 sec, it means the wait didn't reach the timeout.
     assert after - before < 1
 
 
-def test_wait_for_jobs_stop_from_pipe(pg_job_store):
+@pytest.mark.asyncio
+async def test_wait_for_jobs_stop_from_pipe(pg_job_store):
     """
     Testing than calling job_store.stop() interrupts the wait
     """
     # This is a sub-case from above but we never know.
     pg_job_store.socket_timeout = 2
-    pg_job_store.listen_for_jobs()
+    await pg_job_store.listen_for_jobs()
 
-    def stop():
-        time.sleep(0.5)
+    async def stop():
+        await asyncio.sleep(0.5)
         pg_job_store.stop()
 
-    thread = threading.Thread(target=stop)
-    thread.start()
-
     before = time.perf_counter()
-    pg_job_store.wait_for_jobs()
+    await asyncio.gather(pg_job_store.wait_for_jobs(), stop())
     after = time.perf_counter()
 
     # If we wait less than 1 sec, it means the wait didn't reach the timeout.

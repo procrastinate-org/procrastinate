@@ -1,6 +1,6 @@
 from procrastinate import metadata as _metadata_module
+from procrastinate.aiopg_connector import PostgresJobStore
 from procrastinate.app import App
-from procrastinate.psycopg2_connector import PostgresJobStore
 from procrastinate.retry import BaseRetryStrategy, RetryStrategy
 from procrastinate.store import BaseJobStore
 

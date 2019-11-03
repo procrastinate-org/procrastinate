@@ -183,11 +183,47 @@ guarantee.
 
 .. _`advisory locks`: https://www.postgresql.org/docs/10/explicit-locking.html#ADVISORY-LOCKS
 
-How stable is Procrastinate ?
------------------------------
+So far, Procrastinate implements async job deferring, and async job executing but
+not in parallel, meaning it can run jobs written as a coroutine, but it will
+only execute one job at a time.
 
-Not quite stable. There a lot of things we would like to do before we start
-advertising the project, and so far, it's not used anywhere.
+Why is Procrastinate asynchronous at core?
+------------------------------------------
+
+There are several ways to write a program that can be called from both a synchronous
+and an asynchronous code:
+
+- Duplicate the codebase. It's not a fantastic idea. There's a high probability that
+  this will lead to awkward bugs, you'll have twice the work in maintenance etc.
+  The good thing is that it will force you to extract as much as the logic in a common
+  module, and have the I/Os very decoupled.
+
+- Have the project be synchronous, and provide top level asynchronous wrappers that
+  run the synchronous code in a thread. This can be a possibility, but then you enter
+  a whole new circle of thread safety hell.
+
+- Have the project be asynchronous, and provide top level synchronous wrappers that
+  will synchronously launch coroutines in the event loop and wait for them to be
+  completed. This is virtually the best solution we could find, and thus it's what
+  we decided to do.
+
+We've even cheated a bit: instead of implementing our synchronous wrappers manually,
+we've been using a trick that autogenerates a synchronous API based on our asynchronous
+API. This way, we have less code to unit-test, and we can guarantee that the 2 APIs
+will stay synchronized in the future no matter what. Want to know more about this?
+Here are a few resources:
+
+- How we generate our sync API:
+  https://github.com/peopledoc/procrastinate/blob/master/procrastinate/utils.py
+- An interesting talk on the issues that appear when trying to make codebases compatible
+  with sync **and** async callers: "Just add await" from Andrew Godwin:
+  https://www.youtube.com/watch?v=oMHrDy62kgE
+
+How stable is Procrastinate?
+----------------------------
+
+More and more stable. There are still a few things we would like to do before we start
+advertising the project, and it's about to be used in production at our place.
 
 We'd love if you were to try out Procrastinate in a non-production non-critical
 project of yours and provide us with feedback.
