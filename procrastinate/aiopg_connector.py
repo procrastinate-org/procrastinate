@@ -3,14 +3,15 @@ from typing import Any, Awaitable, Dict, List, Optional
 
 import aiopg
 import psycopg2.sql
-from psycopg2.extras import Json, RealDictCursor
+from psycopg2.extras import RealDictCursor
 
 from procrastinate import store
+from procrastinate.json_adapter import JsonAdapter
 
 
 def wrap_json(arguments: Dict[str, Any]):
     return {
-        key: Json(value) if isinstance(value, dict) else value
+        key: JsonAdapter(value) if isinstance(value, dict) else value
         for key, value in arguments.items()
     }
 
