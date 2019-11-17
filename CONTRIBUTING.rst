@@ -87,7 +87,7 @@ will output the line to write in that file:
 
 .. code-block:: console
 
-    echo 'PATH=$(python3 -c "import site; print(site.USER_BASE)")/bin:$PATH'
+    echo "export PATH=$(python3 -c "import site; print(site.USER_BASE)")/bin:"'$PATH'
 
 If you plan to launch the project locally, install the package itself with development
 dependencies in a virtual environment:
