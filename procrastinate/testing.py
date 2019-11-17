@@ -23,7 +23,7 @@ class InMemoryJobStore(store.BaseJobStore):
         """
         Attributes
         ----------
-        jobs : Dict[int, Dict]
+        jobs : ``Dict[int, Dict]``
             Mapping of ``{<job id>: <Job database row as a dictionary>}``
         """
         self.reset()

@@ -1,0 +1,3 @@
+#!/bin/bash -eu
+
+tox -e check-lint
