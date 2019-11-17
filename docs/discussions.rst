@@ -208,10 +208,10 @@ and an asynchronous code:
   we decided to do.
 
 We've even cheated a bit: instead of implementing our synchronous wrappers manually,
-we've been using a trick that autogenerates a synchronous API based on our asynchronous
-API. This way, we have less code to unit-test, and we can guarantee that the 2 APIs
-will stay synchronized in the future no matter what. Want to know more about this?
-Here are a few resources:
+we've been using a trick that automatically generates a synchronous API based on our
+asynchronous API. This way, we have less code to unit-test, and we can guarantee that
+the 2 APIs will stay synchronized in the future no matter what. Want to know more about
+this? Here are a few resources:
 
 - How we generate our sync API:
   https://github.com/peopledoc/procrastinate/blob/master/procrastinate/utils.py

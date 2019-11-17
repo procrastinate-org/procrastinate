@@ -67,7 +67,7 @@ def interrupt_wait(connection: aiopg.Connection):
 class PostgresJobStore(store.BaseJobStore):
     """
     Uses ``aiopg`` to establish an asynchronous
-    connection to a Postgres database.
+    connection to a PostgreSQL database.
     """
 
     def __init__(self, *, socket_timeout: float = store.SOCKET_TIMEOUT, **kwargs: Any):
