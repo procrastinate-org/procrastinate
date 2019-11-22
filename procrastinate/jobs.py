@@ -59,7 +59,10 @@ class Job:
 
         if context["scheduled_at"]:
             context["scheduled_at"] = context["scheduled_at"].isoformat()
-
+        kwargs_string = ", ".join(
+            f"{key}={value}" for key, value in context["task_kwargs"].items()
+        )
+        context["call_string"] = f"{context['task_name']}({kwargs_string})"
         return context
 
 
@@ -88,13 +91,12 @@ class JobDeferrer:
 
         job = self.make_new_job(**task_kwargs)
 
-        logger.info(
-            "Deferring job",
-            extra={
-                "action": "job_defer",
-                "asynchronous": True,
-                "job": job.get_context(),
-            },
-        )
+        context = job.get_context()
+        logger.debug(f"About to defer job {context['call_string']}")
         id = await self.job_store.defer_job(job=job)
+        context["id"] = id
+        logger.info(
+            f"Deferred job {context['call_string']} with id: {id}",
+            extra={"action": "job_defer", "job": context},
+        )
         return id

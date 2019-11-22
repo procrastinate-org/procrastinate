@@ -31,6 +31,7 @@ def test_job_get_context(job_store, scheduled_at, context_scheduled_at):
         "task_kwargs": {"a": "b"},
         "scheduled_at": context_scheduled_at,
         "attempts": 42,
+        "call_string": "mytask(a=b)",
     }
 
 
