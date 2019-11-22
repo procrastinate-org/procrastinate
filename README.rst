@@ -40,7 +40,7 @@ Here's an example
 
     # mycode.py
 
-    # Make a app in your code
+    # Make an app in your code
     app = procrastinate.App(job_store=procrastinate.PostgresJobStore())
 
     # Then define tasks
