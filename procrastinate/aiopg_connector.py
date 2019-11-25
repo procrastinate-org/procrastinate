@@ -3,18 +3,15 @@ from typing import Any, Awaitable, Dict, List, Optional
 
 import aiopg
 import psycopg2.sql
+from psycopg2._json import Json
+from psycopg2.extensions import register_adapter
 from psycopg2.extras import RealDictCursor
 
 from procrastinate import store
+
 from procrastinate.json_adapter import JsonAdapter
 
-
-def wrap_json(arguments: Dict[str, Any]):
-    return {
-        key: JsonAdapter(value) if isinstance(value, dict) else value
-        for key, value in arguments.items()
-    }
-
+register_adapter(dict, JsonAdapter)
 
 def get_connection(dsn="", **kwargs) -> Awaitable[aiopg.Connection]:
     return aiopg.connect(dsn=dsn, **kwargs)
@@ -25,7 +22,7 @@ async def execute_query(
 ) -> None:
     # aiopg can work with psycopg2's cursor class
     async with connection.cursor(cursor_factory=RealDictCursor) as cursor:
-        await cursor.execute(query, wrap_json(arguments))
+        await cursor.execute(query, arguments)
 
 
 async def execute_query_one(
@@ -33,7 +30,7 @@ async def execute_query_one(
 ) -> Dict[str, Any]:
     # aiopg can work with psycopg2's cursor class
     async with connection.cursor(cursor_factory=RealDictCursor) as cursor:
-        await cursor.execute(query, wrap_json(arguments))
+        await cursor.execute(query, arguments)
 
         return await cursor.fetchone()
 
@@ -43,7 +40,7 @@ async def execute_query_all(
 ) -> List[Dict[str, Any]]:
     # aiopg can work with psycopg2's cursor class
     async with connection.cursor(cursor_factory=RealDictCursor) as cursor:
-        await cursor.execute(query, wrap_json(arguments))
+        await cursor.execute(query, arguments)
 
         return await cursor.fetchall()
 

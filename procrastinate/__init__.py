@@ -1,8 +1,12 @@
+from psycopg2._json import Json
+from psycopg2.extensions import register_adapter
+
 from procrastinate import metadata as _metadata_module
 from procrastinate.aiopg_connector import PostgresJobStore
 from procrastinate.app import App
 from procrastinate.retry import BaseRetryStrategy, RetryStrategy
 from procrastinate.store import BaseJobStore
+
 
 __all__ = [
     "App",
