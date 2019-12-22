@@ -67,6 +67,7 @@ class App:
         queue: str = jobs.DEFAULT_QUEUE,
         name: Optional[str] = None,
         retry: retry_module.RetryValue = False,
+        disable_full_path_warning: bool = False,
     ) -> Any:
         """
         Declare a function as a task. This method is meant to be used as a decorator::
@@ -113,7 +114,8 @@ class App:
         def _wrap(func: Callable[..., "tasks.Task"]):
             from procrastinate import tasks
 
-            task = tasks.Task(func, app=self, queue=queue, name=name, retry=retry)
+            task = tasks.Task(func, app=self, queue=queue, name=name, retry=retry, disable_full_path_warning=
+                disable_full_path_warning)
             self._register(task)
 
             return functools.update_wrapper(task, func)

@@ -62,6 +62,7 @@ class Task:
         queue: str,
         name: Optional[str] = None,
         retry: retry_module.RetryValue = False,
+        disable_full_path_warning: bool = False,
     ):
         self.queue = queue
         self.app = app
@@ -80,7 +81,7 @@ class Task:
                 # Can happen for functools.partial for example
                 full_path = ""
 
-            if full_path and name != full_path:
+            if not disable_full_path_warning and full_path and name != full_path:
                 logger.warning(
                     f"Task {name} at {self.full_path} has a name that doesn't match "
                     "its import path. Please make sure its module path is provided in "
