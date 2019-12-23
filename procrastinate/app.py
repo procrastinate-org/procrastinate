@@ -114,8 +114,9 @@ class App:
         def _wrap(func: Callable[..., "tasks.Task"]):
             from procrastinate import tasks
 
-            task = tasks.Task(func, app=self, queue=queue, name=name, retry=retry, disable_full_path_warning=
-                disable_full_path_warning)
+            task = tasks.Task(
+                func, app=self, queue=queue, name=name, retry=retry,
+                disable_full_path_warning=disable_full_path_warning)
             self._register(task)
 
             return functools.update_wrapper(task, func)
