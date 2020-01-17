@@ -17,18 +17,6 @@ def test_task_init_with_no_name(app):
     assert task.name == "tests.unit.test_tasks.task_func"
 
 
-def test_task_init_explicit_name(app, mocker, caplog):
-    task = tasks.Task(task_func, app=app, queue="queue", name="other")
-
-    assert task.name == "other"
-
-    assert [
-        record
-        for record in caplog.records
-        if record.action == "task_name_differ_from_path"
-    ]
-
-
 def test_task_defer(app):
     task = tasks.Task(task_func, app=app, queue="queue")
 
