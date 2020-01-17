@@ -28,6 +28,7 @@ have the prerequisites (on ``Ubuntu``)::
     $ sudo apt install libpq-dev python-dev
 
 .. note::
+
     On a different OS, if you experiment difficulties, we'll be grateful if you can tell
     us via an issue so that we improve this documentation.
 
@@ -66,6 +67,7 @@ Install the PostgreSQL structure procrastinate needs in your database with:
     (venv) $ procrastinate --app=tutorial.app migrate
 
 .. note::
+
     The ``export PYTHONPATH=.`` above is required here for the ``procrastinate``
     command to be able to find your ``tutorial`` module, and the ``app`` object
     inside it. You wouldn't need to export ``PYTHONPATH`` if the ``tutorial``
