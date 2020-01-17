@@ -67,30 +67,7 @@ class Task:
         self.app = app
         self.func: Callable = func
         self.retry_strategy = retry_module.get_retry_strategy(retry)
-        self.name: str
-        if name:
-            self.name = name
-        else:
-            self.name = self.full_path
-
-        if name:
-            try:
-                full_path = self.full_path
-            except AttributeError:
-                # Can happen for functools.partial for example
-                full_path = ""
-
-            if full_path and name != full_path:
-                logger.warning(
-                    f"Task {name} at {self.full_path} has a name that doesn't match "
-                    "its import path. Please make sure its module path is provided in "
-                    "the worker's import_paths, or it won't run.",
-                    extra={
-                        "action": "task_name_differ_from_path",
-                        "task_name": name,
-                        "task_path": self.full_path,
-                    },
-                )
+        self.name: str = name if name else self.full_path
 
     def __call__(self, **kwargs: types.JSONValue) -> Any:
         return self.func(**kwargs)
