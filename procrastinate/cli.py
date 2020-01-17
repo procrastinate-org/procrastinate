@@ -269,7 +269,7 @@ def healthchecks(app: procrastinate.App):
     check_db = checker.check_connection()
     click.echo(f"DB connection: {check_db}")
 
-    version = checker.get_db_version()
+    version = checker.check_db_version()
     click.echo(f"DB version: {version}")
 
 

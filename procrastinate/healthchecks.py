@@ -1,4 +1,5 @@
 from procrastinate import store, sql, utils
+from procrastinate.migration import Migrator
 
 @utils.add_sync_api
 class HealthCheckRunner:
@@ -11,8 +12,8 @@ class HealthCheckRunner:
         )
         return result['check']
 
-    async def get_db_version_async(self):
+    async def check_db_version_async(self):
         result = await self.job_store.execute_query_one(
             query=sql.queries['get_latest_version'],
         )
-        return result['version']
+        return result['version'] == Migrator.version

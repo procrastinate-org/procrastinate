@@ -5,6 +5,8 @@ from procrastinate import store, utils
 
 @utils.add_sync_api
 class Migrator:
+    version = '0.2.1'
+
     def __init__(self, job_store: store.BaseJobStore):
 
         self.job_store = job_store
