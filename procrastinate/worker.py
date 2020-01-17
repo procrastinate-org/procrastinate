@@ -29,9 +29,7 @@ class Worker:
         await self.job_store.listen_for_jobs(queues=self.queues)
 
         with signals.on_stop(self.stop):
-            while True:
-                if self.stop_requested:
-                    break
+            while not self.stop_requested:
 
                 try:
                     await self.process_jobs_once()
