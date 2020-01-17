@@ -73,13 +73,13 @@ In your file, add the following::
 
     ...
 
-    @app.task
+    @app.task(name="sum")
     def sum(a, b):
         sleep(random.random() * 5)  # Sleep up to 5 seconds
         print(a + b)
 
-We've defined a task that will wait a bit and compute the sum of two things. (We could
-have added type annotations if we wanted).
+We've defined a task named "sum" that will wait a bit and compute the sum of two things.
+(We could have added type annotations if we wanted).
 
 At this point, nothing is running yet. We've just created a task, which is the template
 (or blueprint) for a job.
