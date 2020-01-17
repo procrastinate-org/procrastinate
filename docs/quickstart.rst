@@ -28,6 +28,7 @@ have the prerequisites (on ``Ubuntu``)::
     $ sudo apt install libpq-dev python-dev
 
 .. note::
+
     On a different OS, if you experiment difficulties, we'll be grateful if you can tell
     us via an issue so that we improve this documentation.
 
@@ -62,7 +63,15 @@ Install the PostgreSQL structure procrastinate needs in your database with:
 
 .. code-block:: console
 
+    (venv) $ export PYTHONPATH=.  # required for procrastinate to find "tutorial.app"
     (venv) $ procrastinate --app=tutorial.app migrate
+
+.. note::
+
+    The ``export PYTHONPATH=.`` above is required here for the ``procrastinate``
+    command to be able to find your ``tutorial`` module, and the ``app`` object
+    inside it. You wouldn't need to export ``PYTHONPATH`` if the ``tutorial``
+    module was installed in the (virtual) Python environment.
 
 Declare a task
 --------------
@@ -73,13 +82,13 @@ In your file, add the following::
 
     ...
 
-    @app.task
+    @app.task(name="sum")
     def sum(a, b):
         sleep(random.random() * 5)  # Sleep up to 5 seconds
         print(a + b)
 
-We've defined a task that will wait a bit and compute the sum of two things. (We could
-have added type annotations if we wanted).
+We've defined a task named "sum" that will wait a bit and compute the sum of two things.
+(We could have added type annotations if we wanted).
 
 At this point, nothing is running yet. We've just created a task, which is the template
 (or blueprint) for a job.
@@ -119,6 +128,7 @@ Run a worker
 
 .. code-block:: console
 
+    (venv) $ export PYTHONPATH=.  # if not already done!
     (venv) $ procrastinate --verbose --app=tutorial.app worker
 
 In the logs, you can see the values as they are computed.
