@@ -17,7 +17,7 @@ TL;DR
     $ export PGDATABASE=procrastinate PGHOST=localhost PGUSER=postgres
 
     $ # Launch PostgreSQL within Docker
-    $ compose up -d
+    $ docker-compose up -d
 
     $ # Explore tox entrypoints
     $ tox -l
