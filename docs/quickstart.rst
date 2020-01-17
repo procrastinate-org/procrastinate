@@ -62,7 +62,14 @@ Install the PostgreSQL structure procrastinate needs in your database with:
 
 .. code-block:: console
 
+    (venv) $ export PYTHONPATH=.  # required for procrastinate to find "tutorial.app"
     (venv) $ procrastinate --app=tutorial.app migrate
+
+.. note::
+    The ``export PYTHONPATH=.`` above is required here for the ``procrastinate``
+    command to be able to find your ``tutorial`` module, and the ``app`` object
+    inside it. You wouldn't need to export ``PYTHONPATH`` if the ``tutorial``
+    module was installed in the (virtual) Python environment.
 
 Declare a task
 --------------
@@ -119,6 +126,7 @@ Run a worker
 
 .. code-block:: console
 
+    (venv) $ export PYTHONPATH=.  # if not already done!
     (venv) $ procrastinate --verbose --app=tutorial.app worker
 
 In the logs, you can see the values as they are computed.
