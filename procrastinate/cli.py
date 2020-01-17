@@ -258,6 +258,21 @@ def migrate(app: procrastinate.App, run: bool):
         click.echo(migrator.get_migration_queries(), nl=False)
 
 
+@cli.command()
+@click.pass_obj
+@handle_errors()
+def healthchecks(app: procrastinate.App):
+    """
+    Check the state of procrastinate.
+    """
+    checker = app.health_check_runner
+    check_db = checker.check_connection()
+    click.echo(f"DB connection: {check_db}")
+
+    version = checker.get_db_version()
+    click.echo(f"DB version: {version}")
+
+
 def main():
     # https://click.palletsprojects.com/en/7.x/python3/
     os.environ.setdefault("LC_ALL", "C.UTF-8")
