@@ -2,9 +2,7 @@ import functools
 import logging
 from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, Optional, Set
 
-from procrastinate import (
-    builtin_tasks, exceptions, healthchecks, jobs, migration,
-)
+from procrastinate import builtin_tasks, exceptions, healthchecks, jobs, migration
 from procrastinate import retry as retry_module
 from procrastinate import store, utils
 

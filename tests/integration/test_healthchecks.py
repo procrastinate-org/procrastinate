@@ -1,4 +1,5 @@
 import pytest
+
 from procrastinate import jobs
 from procrastinate.healthchecks import HealthCheckRunner
 
