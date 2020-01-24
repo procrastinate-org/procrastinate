@@ -1,7 +1,7 @@
-from typing import Tuple
+from typing import Dict, Tuple
 
 from psycopg2 import Error
-from procrastinate import store, sql, utils
+from procrastinate import jobs, store, sql, utils
 from procrastinate.migration import Migrator
 
 @utils.add_sync_api
@@ -26,3 +26,13 @@ class HealthCheckRunner:
             return result['version'] == Migrator.version, "OK"
         except Error as e:
             return False, str(e)
+
+    async def get_status_count_async(self) -> Dict[jobs.Status, int]:
+        result = await self.job_store.execute_query_all(
+            query=sql.queries['count_jobs_status'],
+        )
+        result_dict = {r['status']: int(r['count']) for r in result}
+        return {
+            status: result_dict.get(status.value, 0)
+            for status in jobs.Status
+        }

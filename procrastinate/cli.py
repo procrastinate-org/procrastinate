@@ -266,11 +266,16 @@ def healthchecks(app: procrastinate.App):
     Check the state of procrastinate.
     """
     checker = app.health_check_runner
-    check_db = checker.check_connection()
-    click.echo(f"DB connection: {check_db}")
+    db_ok, reason = checker.check_connection()
+    click.echo(f"DB connection: {reason}")
 
-    version = checker.check_db_version()
-    click.echo(f"DB version: {version}")
+    table_ok, reason = checker.check_db_version()
+    click.echo(f"DB schema: {reason}")
+
+    if db_ok and table_ok:
+        status_count = checker.get_status_count()
+        for status, count in status_count.items():
+            click.echo(f"{status.value}: {count}")
 
 
 def main():

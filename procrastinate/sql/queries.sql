@@ -54,3 +54,7 @@ SELECT TRUE as check;
 -- get_latest_version --
 -- Order versioning by last applied and not by semantic versioning
 SELECT version FROM procrastinate_version ORDER BY applied_at DESC LIMIT 1;
+
+-- count_jobs_status --
+-- Count the number of jobs per status
+SELECT count(*) AS count, status FROM procrastinate_jobs GROUP BY status;
