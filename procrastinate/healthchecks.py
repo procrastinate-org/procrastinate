@@ -1,3 +1,4 @@
+from psycopg2 import Error
 from procrastinate import store, sql, utils
 from procrastinate.migration import Migrator
 
@@ -7,13 +8,19 @@ class HealthCheckRunner:
         self.job_store = job_store
 
     async def check_connection_async(self):
-        result = await self.job_store.execute_query_one(
-            query=sql.queries['check_connection'],
-        )
-        return result['check']
+        try:
+            result = await self.job_store.execute_query_one(
+                query=sql.queries['check_connection'],
+            )
+            return result['check']
+        except Error as e:
+            return False
 
     async def check_db_version_async(self):
-        result = await self.job_store.execute_query_one(
-            query=sql.queries['get_latest_version'],
-        )
-        return result['version'] == Migrator.version
+        try:
+            result = await self.job_store.execute_query_one(
+                query=sql.queries['get_latest_version'],
+            )
+            return result['version'] == Migrator.version
+        except Error as e:
+            return False
