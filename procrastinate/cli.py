@@ -265,7 +265,7 @@ def healthchecks(app: procrastinate.App):
     """
     Check the state of procrastinate.
     """
-    checker = app.health_check_runner
+    checker = app.monitor
     db_ok, reason = checker.check_connection()
     click.echo(f"DB connection: {reason}")
 
