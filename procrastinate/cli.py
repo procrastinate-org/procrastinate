@@ -113,14 +113,15 @@ def close_connection(procrastinate_app: procrastinate.App, *args, **kwargs):
 @click.pass_obj
 @handle_errors()
 @click.argument("queue", nargs=-1)
-def worker(app: procrastinate.App, queue: Iterable[str]):
+@click.option("--name", help="Name of the worker")
+def worker(app: procrastinate.App, queue: Iterable[str], name: Optional[str]):
     """
     Launch a worker, listening on the given queues (or all queues).
     """
     queues = list(queue) or None
     queue_names = ", ".join(queues) if queues else "all queues"
     click.echo(f"Launching a worker on {queue_names}")
-    app.run_worker(queues=queues)  # type: ignore
+    app.run_worker(queues=queues, name=name)  # type: ignore
 
 
 @cli.command()

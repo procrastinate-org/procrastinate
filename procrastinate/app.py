@@ -157,10 +157,12 @@ class App:
 
         return tasks.configure_task(name=name, job_store=self.job_store, **kwargs)
 
-    def _worker(self, queues: Optional[Iterable[str]] = None) -> "worker.Worker":
+    def _worker(
+        self, queues: Optional[Iterable[str]] = None, name: Optional[str] = None
+    ) -> "worker.Worker":
         from procrastinate import worker
 
-        return worker.Worker(app=self, queues=queues)
+        return worker.Worker(app=self, queues=queues, name=name)
 
     @functools.lru_cache(maxsize=1)
     def perform_import_paths(self):
@@ -175,7 +177,10 @@ class App:
         )
 
     async def run_worker_async(
-        self, queues: Optional[Iterable[str]] = None, only_once: bool = False
+        self,
+        queues: Optional[Iterable[str]] = None,
+        name: Optional[str] = None,
+        only_once: bool = False,
     ) -> None:
         """
         Run a worker. This worker will run in the foreground
@@ -193,7 +198,7 @@ class App:
             defined tasks. This function will return when the
             listened queues are empty.
         """
-        worker = self._worker(queues=queues)
+        worker = self._worker(queues=queues, name=name)
         if only_once:
             try:
                 await worker.process_jobs_once()
