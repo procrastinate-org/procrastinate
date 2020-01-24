@@ -419,3 +419,19 @@ async def test_close_connection_no_connection(pg_job_store):
 async def test_stop_no_connection(pg_job_store):
     pg_job_store.stop()
     # Well we didn't crash. Great.
+
+
+async def test_get_connection_called_twice(pg_job_store):
+    conn1 = await pg_job_store.get_connection()
+    assert not conn1.closed
+    conn2 = await pg_job_store.get_connection()
+    assert conn2 is conn1
+
+
+async def test_get_connection_after_close(pg_job_store):
+    conn1 = await pg_job_store.get_connection()
+    assert not conn1.closed
+    await pg_job_store.close_connection()
+    conn2 = await pg_job_store.get_connection()
+    assert not conn2.closed
+    assert conn2 is not conn1
