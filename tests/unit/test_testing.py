@@ -254,14 +254,16 @@ def test_finish_job_run_retry_no_schedule(job_store):
     assert len(job_store.events[id]) == 3
 
 
-def test_listen_for_jobs_run(job_store):
+@pytest.mark.asyncio
+async def test_listen_for_jobs_run(job_store):
     # If we don't crash, it's enough
-    job_store.listen_for_jobs(queues=["a", "b"])
+    await job_store.listen_for_jobs(queues=["a", "b"])
 
 
-def test_wait_for_jobs(job_store):
+@pytest.mark.asyncio
+async def test_wait_for_jobs(job_store):
     # If we don't crash, it's enough
-    job_store.wait_for_jobs()
+    await job_store.wait_for_jobs()
 
 
 def test_migrate_run(job_store):
