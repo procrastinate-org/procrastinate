@@ -61,7 +61,7 @@ def make_dynamic_query(query: str, **identifiers: str) -> str:
 async def wait_for_jobs(connection: aiopg.Connection, socket_timeout: float):
     try:
         await asyncio.wait_for(connection.notifies.get(), timeout=socket_timeout)
-    except asyncio.futures.TimeoutError:
+    except asyncio.TimeoutError:
         pass
 
 
