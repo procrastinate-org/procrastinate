@@ -16,11 +16,6 @@ def wrap_json(arguments: Dict[str, Any]):
 
 
 def get_connection(dsn="", **kwargs) -> Awaitable[aiopg.Connection]:
-    # tell aiopg not to register adapters for hstore & json by default, as
-    # those are registered at the module level and could overwrite previously
-    # defined adapters
-    kwargs.setdefault("enable_json", False)
-    kwargs.setdefault("enable_hstore", False)
     return aiopg.connect(dsn=dsn, **kwargs)
 
 
