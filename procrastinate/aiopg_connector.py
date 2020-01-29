@@ -24,6 +24,10 @@ def get_connection(dsn="", **kwargs) -> Awaitable[aiopg.Connection]:
     return aiopg.connect(dsn=dsn, **kwargs)
 
 
+def connection_is_open(connection: aiopg.Connection) -> bool:
+    return not connection.closed
+
+
 async def execute_query(
     connection: aiopg.Connection, query: str, **arguments: Any
 ) -> None:
@@ -97,7 +101,7 @@ class PostgresJobStore(store.BaseJobStore):
         self.socket_timeout = socket_timeout
 
     async def get_connection(self):
-        if not self._connection:
+        if not self._connection or not connection_is_open(self._connection):
             self._connection = await get_connection(**self._connection_parameters)
         return self._connection
 
