@@ -435,3 +435,9 @@ async def test_get_connection_after_close(pg_job_store):
     conn2 = await pg_job_store.get_connection()
     assert not conn2.closed
     assert conn2 is not conn1
+
+
+async def test_get_connection_no_psycopg2_adapter_registration(pg_job_store, mocker):
+    register_adapter = mocker.patch("psycopg2.extensions.register_adapter")
+    await pg_job_store.get_connection()
+    assert not register_adapter.called
