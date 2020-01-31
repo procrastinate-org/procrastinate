@@ -1,6 +1,4 @@
-from typing import Dict, Tuple
-
-from psycopg2 import Error
+from typing import Dict
 
 from procrastinate import jobs, sql, store, utils
 

@@ -14,7 +14,7 @@ def checker(pg_job_store):
 
 
 async def test_check_connection(checker):
-    assert await checker.check_connection_async() == True
+    assert await checker.check_connection_async() is True
 
 
 async def test_get_schema_version(checker):
@@ -30,7 +30,7 @@ async def test_get_status_count(checker):
 
 @pytest.mark.parametrize(
     "method",
-    ["check_connection_async", "get_schema_version_async", "get_status_count_async",],
+    ["check_connection_async", "get_schema_version_async", "get_status_count_async"],
 )
 async def test_db_down(method):
     bad_job_store = aiopg_connector.PostgresJobStore(dsn="", dbname="a_bad_db_name")
