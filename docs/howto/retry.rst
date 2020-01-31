@@ -34,11 +34,20 @@ Simple strategies
 Advanced strategies
 ^^^^^^^^^^^^^^^^^^^
 
-You can get a more precise strategy using a :py:class:`RetryStrategy` instance::
+Advanced strategies let you:
+- define a maximum number of retries
+- define the retry delay, with constant, linear and exponential backoff options
+- define the exception types you want to retry on
+
+Define your precise strategy using a :py:class:`RetryStrategy` instance::
 
     from procrastinate import RetryStrategy
 
-    @app.task(retry=procrastinate.RetryStrategy(max_attempts=10, wait=5))
+    @app.task(retry=procrastinate.RetryStrategy(
+        max_attempts=10,
+        wait=5,
+        retry_exceptions=[ConnectionError, IOError]
+    ))
     def my_other_task():
         print("Hello world")
 
@@ -62,9 +71,12 @@ Implementing your own strategy
         min = 1
         max = 10
 
-        def get_schedule_in(self, attempts: int) -> int:
+        def get_schedule_in(self, exception:Exception, attempts: int, **kwargs) -> int:
             if attempts >= max_attempts:
                 return None
 
             return random.uniform(self.min, self.max)
 
+
+It's interesting to add a catch-all parameter ``**kwargs`` to make your strategy more
+resilient to possible changes of Procrastinate in the future.
