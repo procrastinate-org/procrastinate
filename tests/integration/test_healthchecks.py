@@ -1,7 +1,9 @@
+import psycopg2
 import pytest
 
 from procrastinate import aiopg_connector, jobs
 from procrastinate.healthchecks import HealthCheckRunner
+from procrastinate.migration import Migrator
 
 pytestmark = pytest.mark.asyncio
 
@@ -11,7 +13,7 @@ async def test_healthchecks(pg_job_store):
     checker = HealthCheckRunner(pg_job_store)
 
     assert await checker.check_connection_async() == (True, "OK")
-    assert await checker.check_db_version_async() == (True, "OK")
+    assert await checker.get_schema_version_async() == Migrator.version
 
     status_count = await checker.get_status_count_async()
     assert set(status_count.keys()) == set(jobs.Status)
@@ -24,6 +26,7 @@ async def test_db_down():
     checker = HealthCheckRunner(bad_job_store)
 
     check_conn = await checker.check_connection_async()
-    check_version = await checker.check_db_version_async()
     assert not check_conn[0]
-    assert not check_version[0]
+
+    with pytest.raises(psycopg2.Error):
+        await checker.get_schema_version_async()

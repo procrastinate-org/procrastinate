@@ -3,6 +3,7 @@ from collections import defaultdict
 import pytest
 
 from procrastinate import __version__, cli, jobs
+from procrastinate.migration import Migrator
 
 
 @pytest.fixture
@@ -64,9 +65,9 @@ def test_healthchecks(entrypoint, click_app, mocker):
     )
     check_db.return_value = (True, "OK")
     check_version = mocker.patch(
-        "procrastinate.healthchecks.HealthCheckRunner.check_db_version"
+        "procrastinate.healthchecks.HealthCheckRunner.get_schema_version"
     )
-    check_version.return_value = (True, "OK")
+    check_version.return_value = Migrator.version
     count_jobs = mocker.patch(
         "procrastinate.healthchecks.HealthCheckRunner.get_status_count"
     )
@@ -86,9 +87,9 @@ def test_healthchecks_bad(entrypoint, click_app, mocker):
     )
     check_db.return_value = (False, "Mock said NO")
     check_version = mocker.patch(
-        "procrastinate.healthchecks.HealthCheckRunner.check_db_version"
+        "procrastinate.healthchecks.HealthCheckRunner.get_schema_version"
     )
-    check_version.return_value = (False, "Mock said NO")
+    check_version.return_value = "0.0.0"
     count_jobs = mocker.patch(
         "procrastinate.healthchecks.HealthCheckRunner.get_status_count"
     )

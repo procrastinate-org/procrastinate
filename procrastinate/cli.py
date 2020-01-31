@@ -10,6 +10,7 @@ import pendulum
 
 import procrastinate
 from procrastinate import exceptions, jobs, types
+from procrastinate.migration import Migrator
 
 logger = logging.getLogger(__name__)
 
@@ -269,10 +270,17 @@ def healthchecks(app: procrastinate.App):
     db_ok, reason = checker.check_connection()  # type: ignore
     click.echo(f"DB connection: {reason}")
 
-    table_ok, reason = checker.check_db_version()  # type: ignore
-    click.echo(f"DB schema: {reason}")
+    schema_version = checker.get_schema_version()  # type: ignore
+    migration_version = Migrator.version
+    schema_ok = schema_version == migration_version
+    if schema_ok:
+        click.echo(f"DB schema are up-to-date ({schema_version})")
+    else:
+        click.echo(
+            f"There are migrations to apply! {schema_version} => {migration_version}"
+        )
 
-    if db_ok and table_ok:
+    if db_ok and schema_ok:
         status_count = checker.get_status_count()  # type: ignore
         for status, count in status_count.items():
             click.echo(f"{status.value}: {count}")
