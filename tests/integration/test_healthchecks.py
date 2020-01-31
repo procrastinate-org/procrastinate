@@ -8,13 +8,20 @@ from procrastinate.migration import Migrator
 pytestmark = pytest.mark.asyncio
 
 
-async def test_healthchecks(pg_job_store):
-    """Running healthchecks should be OK on a clean install."""
-    checker = HealthCheckRunner(pg_job_store)
+@pytest.fixture
+def checker(pg_job_store):
+    return HealthCheckRunner(pg_job_store)
 
+
+async def test_check_connection(checker):
     assert await checker.check_connection_async() == True
+
+
+async def test_get_schema_version(checker):
     assert await checker.get_schema_version_async() == Migrator.version
 
+
+async def test_get_status_count(checker):
     status_count = await checker.get_status_count_async()
     assert set(status_count.keys()) == set(jobs.Status)
     for known_status in jobs.Status:
