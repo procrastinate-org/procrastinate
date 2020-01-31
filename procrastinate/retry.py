@@ -27,7 +27,9 @@ class BaseRetryStrategy:
         schedule_at = pendulum.now("UTC").add(seconds=schedule_in)
         return exceptions.JobRetry(schedule_at)
 
-    def get_schedule_in(self, exception: Exception, attempts: int) -> Optional[float]:
+    def get_schedule_in(
+        self, *, exception: Exception, attempts: int
+    ) -> Optional[float]:
         """
         Parameters
         ----------
@@ -78,7 +80,9 @@ class RetryStrategy(BaseRetryStrategy):
     exponential_wait: float = 0.0
     retry_exceptions: Optional[Iterable[Type[Exception]]] = None
 
-    def get_schedule_in(self, exception: Exception, attempts: int) -> Optional[float]:
+    def get_schedule_in(
+        self, *, exception: Exception, attempts: int
+    ) -> Optional[float]:
         if self.max_attempts and attempts >= self.max_attempts:
             return None
         if self.retry_exceptions and not isinstance(

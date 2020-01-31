@@ -75,7 +75,7 @@ Implementing your own strategy
         min = 1
         max = 10
 
-        def get_schedule_in(self, exception:Exception, attempts: int, **kwargs) -> int:
+        def get_schedule_in(self, *, exception:Exception, attempts: int, **kwargs) -> int:
             if attempts >= max_attempts:
                 return None
 
