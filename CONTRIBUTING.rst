@@ -231,8 +231,11 @@ Wait, there are ``async`` and ``await`` keywords everywhere!?
 -------------------------------------------------------------
 
 Yes, in order to provide both a synchronous **and** asynchronous API, Procrastinate
-needs to be asynchronous at core. Find out more in the documentation, in the Discussions
-section. If you need informations on how to work with asynchronous Python, check out:
+needs to be asynchronous at core.
+
+We're using a trick to avoid implementing two almost identical APIs for synchronous
+and asynchronous usage. Find out more in the documentation, in the Discussions
+section. If you need information on how to work with asynchronous Python, check out:
 
 - The official documentation: https://docs.python.org/3/library/asyncio.html
 - A more accessible guide by Brad Solomon: https://realpython.com/async-io-python/
