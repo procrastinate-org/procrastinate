@@ -36,6 +36,10 @@ class Worker:
     async def run(self) -> None:
         await self.job_store.listen_for_jobs(queues=self.queues)
 
+        self.logger.debug(
+            f"Log start one queues {self.queues}",
+            extra={"action": "start_log_on_queue", "queues": str(self.queues)},
+        )
         with signals.on_stop(self.stop):
             while not self.stop_requested:
 
@@ -45,12 +49,19 @@ class Worker:
                     break
                 except exceptions.NoMoreJobs:
                     self.logger.debug(
-                        "Waiting for new jobs", extra={"action": "waiting_for_jobs"}
+                        f"Waiting for new jobs on queues {self.queues}",
+                        extra={
+                            "action": "waiting_for_jobs",
+                            "queues": str(self.queues),
+                        },
                     )
 
                 await self.job_store.wait_for_jobs()
 
-        self.logger.debug("Stopped worker", extra={"action": "stopped_worker"})
+        self.logger.debug(
+            f"Stopped worker on {self.queues}",
+            extra={"action": "stopped_worker", "queues": str(self.queues)},
+        )
 
     async def process_jobs_once(self) -> NoReturn:
         while True:
@@ -64,9 +75,9 @@ class Worker:
         if job is None:
             raise exceptions.NoMoreJobs
 
-        log_context["job"] = job.get_context()
+        job_context = log_context["job"] = {**job.get_context()}
         self.logger.debug(
-            "Loaded job info, about to start job",
+            f"Loaded job info, about to start job {job_context['call_string']}",
             extra={"action": "loaded_job_info", **log_context},
         )
 
@@ -89,8 +100,9 @@ class Worker:
             await self.job_store.finish_job(
                 job=job, status=status, scheduled_at=next_attempt_scheduled_at
             )
+
             self.logger.debug(
-                "Acknowledged job completion",
+                f"Acknowledged job completion {job_context['call_string']}",
                 extra={"action": "finish_task", "status": status, **log_context},
             )
 
@@ -141,8 +153,8 @@ class Worker:
         }
         exc_info: Union[Exception, bool]
 
-        logger.info(
-            f"Starting job {log_context['call_string']}",
+        self.logger.info(
+            f"Starting job {job_context['call_string']}",
             extra={"action": "start_job", **log_context},
         )
 
@@ -171,11 +183,14 @@ class Worker:
             log_level = logging.INFO
             exc_info = False
         finally:
-            end_time = log_context["end_timestamp"] = time.time()
-            log_context["duration_seconds"] = end_time - start_time
+            end_time = job_context["end_timestamp"] = time.time()
+            job_context["duration_seconds"] = end_time - start_time
             extra = {"action": log_action, **log_context, "result": task_result}
-            ftext = f"{log_title} on job {log_context['call_string']} in {log_context['duration_seconds']:.3f}"
-            logger.log(log_level, ftext, extra=extra, exc_info=exc_info)
+            ftext = (
+                f"{log_title} - Job {job_context['call_string']} "
+                f"in {job_context['duration_seconds']:.3f}"
+            )
+            self.logger.log(log_level, ftext, extra=extra, exc_info=exc_info)
 
     def stop(
         self,
@@ -186,8 +201,12 @@ class Worker:
         log_context = self.log_context
         self.job_store.stop()
 
-        logger.info(
-            f"Stop requested, waiting for current job "
-            f"({log_context['call_string']}) to finish",
-            extra={"action": "stopping_worker", **log_context},
-        )
+        if log_context:
+            self.logger.info(
+                f"Stop requested, waiting for current job to finish",
+                extra={"action": "stopping_worker", **log_context},
+            )
+        else:
+            self.logger.info(
+                "Stop requested, no job to finish ", extra={"action": "stopping_worker"}
+            )

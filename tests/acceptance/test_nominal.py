@@ -69,7 +69,11 @@ def test_nominal(defer, worker):
     stdout, stderr = worker()
 
     assert stdout.splitlines() == ["Launching a worker on all queues", "12", "7", "4"]
-    assert stderr.startswith("DEBUG:procrastinate.")
+    assert stderr.startswith(
+        "INFO:procrastinate.cli:Log level set to DEBUG\n"
+        "DEBUG:procrastinate.app:Registering queue builtin\n"
+        "DEBUG:procrastinate."
+    )
 
     defer("product_task", a=5, b=4)
 
@@ -94,9 +98,11 @@ Try 1
 Try 2
 """
     )
+
     assert stderr.count("Traceback (most recent call last)") == 3
     assert stderr.count("Job error, to retry") == 2
-    assert stderr.count("Job error\n") == 1
+    waited_log = "Job error - Job tests.acceptance.app.multiple_exception_failures()"
+    assert stderr.count(waited_log) == 1
 
 
 def _test_lock(defer, running_worker):

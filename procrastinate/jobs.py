@@ -92,7 +92,10 @@ class JobDeferrer:
         job = self.make_new_job(**task_kwargs)
 
         context = job.get_context()
-        logger.debug(f"About to defer job {context['call_string']}")
+        logger.debug(
+            f"About to defer job {context['call_string']}",
+            extra={"action": "about_to_job_defer", "job": context},
+        )
         id = await self.job_store.defer_job(job=job)
         context["id"] = id
         logger.info(
