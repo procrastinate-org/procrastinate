@@ -29,6 +29,7 @@ class Worker:
 
         if name:
             self.logger = logger.getChild(name)
+            self.log_context["worker_name"] = name
         else:
             self.logger = logger
 
@@ -58,11 +59,12 @@ class Worker:
             await self.process_next_job()
 
     async def process_next_job(self) -> None:
+        log_context = self.log_context
         job = await self.job_store.fetch_job(self.queues)
         if job is None:
             raise exceptions.NoMoreJobs
 
-        log_context = {"job": job.get_context()}
+        log_context["job"] = job.get_context()
         self.logger.debug(
             "Loaded job info, about to start job",
             extra={"action": "loaded_job_info", **log_context},
@@ -123,6 +125,7 @@ class Worker:
         return task
 
     async def run_job(self, job: jobs.Job) -> None:
+        log_context = self.log_context
         task_name = job.task_name
 
         task = self.load_task(task_name=task_name)
@@ -131,12 +134,12 @@ class Worker:
         # a stop, we can get details on the currently running task
         # in the logs.
         start_time = time.time()
-        log_context = self.log_context = job.get_context()
-        log_context["start_timestamp"] = time.time()
+        job_context = log_context["job"] = {
+            **job.get_context(),
+            "start_timestamp": time.time(),
+        }
 
-        self.logger.info(
-            "Starting job", extra={"action": "start_job", "job": log_context}
-        )
+        self.logger.info("Starting job", extra={"action": "start_job", **log_context})
         try:
             task_result = task(**job.task_kwargs)
             if asyncio.iscoroutine(task_result):
@@ -160,9 +163,9 @@ class Worker:
             log_level = logging.INFO
             exc_info = False
         finally:
-            end_time = log_context["end_timestamp"] = time.time()
-            log_context["duration_seconds"] = end_time - start_time
-            extra = {"action": log_action, "job": log_context, "result": task_result}
+            end_time = job_context["end_timestamp"] = time.time()
+            job_context["duration_seconds"] = end_time - start_time
+            extra = {"action": log_action, **log_context, "result": task_result}
             self.logger.log(log_level, log_title, extra=extra, exc_info=exc_info)
 
     def stop(
@@ -176,5 +179,5 @@ class Worker:
 
         self.logger.info(
             "Stop requested, waiting for current job to finish",
-            extra={"action": "stopping_worker", "job": log_context},
+            extra={"action": "stopping_worker", **log_context},
         )

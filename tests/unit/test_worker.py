@@ -184,6 +184,7 @@ async def test_run_job_log_name(caplog, app, job_store):
     await test_worker.run_job(job)
     assert len(caplog.records) == 2
     assert all(record.name.endswith("worker") for record in caplog.records)
+    assert all(not hasattr(record, "worker_name") for record in caplog.records)
 
     caplog.clear()
 
@@ -191,6 +192,7 @@ async def test_run_job_log_name(caplog, app, job_store):
     await test_worker.run_job(job)
     assert len(caplog.records) == 2
     assert all(record.name.endswith("worker.w1") for record in caplog.records)
+    assert all(record.worker_name == "w1" for record in caplog.records)
 
 
 async def test_run_job_error(app, job_store):
