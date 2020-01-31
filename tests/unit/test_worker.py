@@ -166,6 +166,35 @@ async def test_run_job_log_result(caplog, app, job_store):
     assert record.result == 12
 
 
+async def test_run_job_log_name(caplog, app, job_store):
+    caplog.set_level("INFO")
+
+    def task_func():
+        pass
+
+    task = tasks.Task(task_func, app=app, queue="yay", name="job")
+
+    app.tasks = {"task_func": task}
+
+    job = jobs.Job(
+        id=16, task_kwargs={}, lock="sherlock", task_name="task_func", queue="yay",
+    )
+
+    test_worker = worker.Worker(app, queues=["yay"])
+    await test_worker.run_job(job)
+    assert len(caplog.records) == 2
+    assert all(record.name.endswith("worker") for record in caplog.records)
+    assert all(not hasattr(record, "worker_name") for record in caplog.records)
+
+    caplog.clear()
+
+    test_worker = worker.Worker(app, queues=["yay"], name="w1")
+    await test_worker.run_job(job)
+    assert len(caplog.records) == 2
+    assert all(record.name.endswith("worker.w1") for record in caplog.records)
+    assert all(record.worker_name == "w1" for record in caplog.records)
+
+
 async def test_run_job_error(app, job_store):
     def job(a, b):  # pylint: disable=unused-argument
         raise ValueError("nope")

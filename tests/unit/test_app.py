@@ -66,9 +66,9 @@ def test_app_register_queue_already_exists(app):
 def test_app_worker(app, mocker):
     Worker = mocker.patch("procrastinate.worker.Worker")
 
-    app._worker(queues=["yay"])
+    app._worker(queues=["yay"], name="w1")
 
-    Worker.assert_called_once_with(queues=["yay"], app=app)
+    Worker.assert_called_once_with(queues=["yay"], app=app, name="w1")
 
 
 def test_app_run_worker(app, mocker):

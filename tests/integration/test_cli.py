@@ -34,11 +34,11 @@ def test_version(entrypoint):
 
 def test_worker(entrypoint, click_app, mocker):
     click_app.run_worker = mocker.MagicMock()
-    result = entrypoint("-a yay worker a b")
+    result = entrypoint("-a yay worker a b --name=w1")
 
     assert result.output.strip() == "Launching a worker on a, b"
     assert result.exit_code == 0
-    click_app.run_worker.assert_called_once_with(queues=["a", "b"])
+    click_app.run_worker.assert_called_once_with(queues=["a", "b"], name="w1")
 
 
 def test_migrate(entrypoint, click_app, mocker, job_store):
