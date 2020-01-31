@@ -6,8 +6,6 @@ CREATE TABLE IF NOT EXISTS procrastinate_version (
     name TEXT,
     applied_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
-INSERT INTO procrastinate_version
-    VALUES (DEFAULT, '0.2.1', 'procrastinate version 0.2.1', DEFAULT);
 
 CREATE TYPE procrastinate_job_status AS ENUM (
     'todo',  -- The job is queued

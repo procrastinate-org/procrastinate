@@ -58,3 +58,8 @@ SELECT version FROM procrastinate_version ORDER BY applied_at DESC LIMIT 1;
 -- count_jobs_status --
 -- Count the number of jobs per status
 SELECT count(*) AS count, status FROM procrastinate_jobs GROUP BY status;
+
+-- set_migration_version --
+-- Set the last migration version applied
+INSERT INTO procrastinate_version
+    VALUES (DEFAULT, %(version)s, CONCAT('procrastinate version ', %(version)s), DEFAULT);
