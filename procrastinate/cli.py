@@ -277,7 +277,7 @@ def healthchecks(app: procrastinate.App):
     migration_version = Migrator.version
     schema_ok = schema_version == migration_version
     if schema_ok:
-        click.echo(f"DB schema are up-to-date ({schema_version})")
+        click.echo(f"DB schema is up-to-date ({schema_version})")
     else:
         click.echo(
             f"There are migrations to apply! {schema_version} => {migration_version}"
