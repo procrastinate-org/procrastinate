@@ -207,7 +207,7 @@ class App:
         return migration.Migrator(job_store=self.job_store)
 
     @property
-    def monitor(self) -> healthchecks.HealthCheckRunner:
+    def health_check_runner(self) -> healthchecks.HealthCheckRunner:
         return healthchecks.HealthCheckRunner(job_store=self.job_store)
 
     async def close_connection_async(self):

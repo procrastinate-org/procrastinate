@@ -266,11 +266,11 @@ def healthchecks(app: procrastinate.App):
     """
     Check the state of procrastinate.
     """
-    checker = app.monitor
-    db_ok, reason = checker.check_connection()  # type: ignore
+    health_check = app.health_check_runner
+    db_ok, reason = health_check.check_connection()  # type: ignore
     click.echo(f"DB connection: {reason}")
 
-    schema_version = checker.get_schema_version()  # type: ignore
+    schema_version = health_check.get_schema_version()  # type: ignore
     migration_version = Migrator.version
     schema_ok = schema_version == migration_version
     if schema_ok:
@@ -281,7 +281,7 @@ def healthchecks(app: procrastinate.App):
         )
 
     if db_ok and schema_ok:
-        status_count = checker.get_status_count()  # type: ignore
+        status_count = health_check.get_status_count()  # type: ignore
         for status, count in status_count.items():
             click.echo(f"{status.value}: {count}")
 
