@@ -1,4 +1,6 @@
 import datetime
+import functools
+import json
 import random
 import string
 
@@ -364,9 +366,56 @@ async def test_enum_synced(pg_job_store):
 
 async def test_get_connection(connection):
     dsn = connection.dsn
-    async with aiopg_connector.get_connection(dsn=dsn) as new_connection:
+    async with await aiopg_connector.get_connection(dsn=dsn) as new_connection:
 
         assert new_connection.dsn == dsn
+
+
+async def test_get_connection_json_loads(connection, mocker):
+    dsn = connection.dsn
+    json_loads = mocker.MagicMock()
+    register_default_jsonb = mocker.patch("psycopg2.extras.register_default_jsonb")
+    async with await aiopg_connector.get_connection(
+        dsn=dsn, json_loads=json_loads
+    ) as new_connection:
+        register_default_jsonb.assert_called_with(new_connection.raw, loads=json_loads)
+
+
+async def test_execute_query_one_json_loads(connection, mocker):
+    class NotJSONSerializableByDefault:
+        pass
+
+    def encode(obj):
+        if isinstance(obj, NotJSONSerializableByDefault):
+            return "foo"
+        raise TypeError()
+
+    query = "SELECT %(arg)s::jsonb as json"
+    arg = {"a": "a", "b": NotJSONSerializableByDefault()}
+    json_dumps = functools.partial(json.dumps, default=encode)
+    result = await aiopg_connector.execute_query_one(
+        connection, query, json_dumps=json_dumps, arg=arg
+    )
+    assert result["json"] == {"a": "a", "b": "foo"}
+
+
+async def test_execute_query_all_json_loads(connection, mocker):
+    class NotJSONSerializableByDefault:
+        pass
+
+    def encode(obj):
+        if isinstance(obj, NotJSONSerializableByDefault):
+            return "foo"
+        raise TypeError()
+
+    query = "SELECT %(arg)s::jsonb as json"
+    arg = {"a": "a", "b": NotJSONSerializableByDefault()}
+    json_dumps = functools.partial(json.dumps, default=encode)
+    result = await aiopg_connector.execute_query_all(
+        connection, query, json_dumps=json_dumps, arg=arg
+    )
+    assert len(result) == 1
+    assert result[0]["json"] == {"a": "a", "b": "foo"}
 
 
 async def test_defer_job(pg_job_store, get_all):

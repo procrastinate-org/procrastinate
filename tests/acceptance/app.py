@@ -1,13 +1,44 @@
+import functools
+import json
 import time
 
 import procrastinate
 
-app = procrastinate.App(job_store=procrastinate.PostgresJobStore())
+from .param import Param
+
+
+def encode(obj):
+    if isinstance(obj, Param):
+        return obj.p
+    raise TypeError()
+
+
+def decode(dct):
+    if "p1" in dct:
+        dct["p1"] = Param(dct["p1"])
+    if "p2" in dct:
+        dct["p2"] = Param(dct["p2"])
+    return dct
+
+
+json_dumps = functools.partial(json.dumps, default=encode)
+json_loads = functools.partial(json.loads, object_hook=decode)
+
+app = procrastinate.App(
+    job_store=procrastinate.PostgresJobStore(
+        json_dumps=json_dumps, json_loads=json_loads
+    )
+)
 
 
 @app.task(queue="default")
 def sum_task(a, b):
     print(a + b)
+
+
+@app.task(queue="default")
+def sum_task_param(p1: Param, p2: Param):
+    print(p1 + p2)
 
 
 @app.task()

@@ -3,7 +3,7 @@ import datetime
 import json
 import logging
 import os
-from typing import Any, Dict, Iterable, Optional
+from typing import Any, Callable, Dict, Iterable, Optional
 
 import click
 import pendulum
@@ -155,7 +155,9 @@ def defer(
     JSON_ARGS should be a json object (a.k.a dictionnary) with the job parameters
     """
     # Loading json args
-    args = load_json_args(json_args=json_args)
+    args = load_json_args(
+        json_args=json_args, json_loads=app.job_store.json_loads or json.loads
+    )
 
     if at is not None and in_ is not None:
         raise click.UsageError("Cannot use both --at and --in")
@@ -189,12 +191,12 @@ def filter_none(dictionnary: Dict) -> Dict:
     return {key: value for key, value in dictionnary.items() if value is not None}
 
 
-def load_json_args(json_args) -> types.JSONDict:
+def load_json_args(json_args: str, json_loads: Callable) -> types.JSONDict:
     if json_args is None:
         return {}
     else:
         try:
-            args = json.loads(json_args)
+            args = json_loads(json_args)
             assert type(args) == dict
         except Exception:
             raise click.BadArgumentUsage(

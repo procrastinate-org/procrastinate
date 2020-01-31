@@ -1,5 +1,5 @@
 import datetime
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any, Callable, Dict, Iterable, List, Optional
 
 from procrastinate import jobs, sql
 
@@ -14,6 +14,9 @@ def get_channel_for_queues(queues: Optional[Iterable[str]] = None) -> Iterable[s
 
 
 class BaseJobStore:
+    json_dumps: Optional[Callable] = None
+    json_loads: Optional[Callable] = None
+
     async def wait_for_jobs(self):
         raise NotImplementedError
 
