@@ -64,6 +64,23 @@ def two_fails():
     print("Print something to stdout")
 
 
+nb_tries_multiple_exception_failures = 0
+
+
+@app.task(
+    queue="retry",
+    retry=procrastinate.RetryStrategy(retry_exceptions=[ValueError, KeyError]),
+)
+def multiple_exception_failures():
+    global nb_tries_multiple_exception_failures
+    print(f"Try {nb_tries_multiple_exception_failures}")
+    exception = [ValueError(), KeyError(), AttributeError(), ValueError()][
+        nb_tries_multiple_exception_failures
+    ]
+    nb_tries_multiple_exception_failures += 1
+    raise exception
+
+
 @app.task(queue="lock_test")
 def sleep_and_write(sleep, write_before, write_after):
     print("->", write_before, time.time())

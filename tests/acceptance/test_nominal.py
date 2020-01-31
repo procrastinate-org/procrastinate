@@ -84,6 +84,17 @@ def test_nominal(defer, worker):
     assert "Print something to stdout" in stdout
     assert stderr.count("Exception: This should fail") == 2
 
+    defer("multiple_exception_failures")
+    stdout, stderr = worker()
+    assert (
+        stdout
+        == """Launching a worker on all queues
+Try 0
+Try 1
+Try 2
+"""
+    )
+
 
 def _test_lock(defer, running_worker):
     """

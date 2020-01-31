@@ -42,19 +42,29 @@ def test_get_retry_strategy(retry, expected_strategy):
         (4, 8.0, 3.0, 2.0, 52.0),
     ],
 )
-def test_get_schedule_in(attempts, schedule_in, wait, linear_wait, exponential_wait):
+def test_get_schedule_in_time(
+    attempts, schedule_in, wait, linear_wait, exponential_wait
+):
     strategy = retry_module.RetryStrategy(
         max_attempts=10,
         wait=wait,
         linear_wait=linear_wait,
         exponential_wait=exponential_wait,
     )
-    assert strategy.get_schedule_in(attempts=attempts) == schedule_in
+    assert strategy.get_schedule_in(exception=None, attempts=attempts) == schedule_in
+
+
+@pytest.mark.parametrize(
+    "exception, expected", [(ValueError(), 0), (KeyError(), None)],
+)
+def test_get_schedule_in_exception(exception, expected):
+    strategy = retry_module.RetryStrategy(retry_exceptions=[ValueError])
+    assert strategy.get_schedule_in(exception=exception, attempts=0) == expected
 
 
 def test_get_retry_exception_returns_none():
     strategy = retry_module.RetryStrategy(max_attempts=10, wait=5.0)
-    assert strategy.get_retry_exception(attempts=100) is None
+    assert strategy.get_retry_exception(exception=None, attempts=100) is None
 
 
 def test_get_retry_exception_returns():
@@ -63,6 +73,6 @@ def test_get_retry_exception_returns():
     now = pendulum.datetime(2000, 1, 1, tz="UTC")
     expected = pendulum.datetime(2000, 1, 1, 0, 0, 5, tz="UTC")
     with pendulum.test(now):
-        exc = strategy.get_retry_exception(attempts=1)
+        exc = strategy.get_retry_exception(exception=None, attempts=1)
         assert isinstance(exc, exceptions.JobRetry)
         assert exc.scheduled_at == expected
