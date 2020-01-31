@@ -128,12 +128,27 @@ Run a worker
 
 .. code-block:: console
 
-    (venv) $ export PYTHONPATH=.  # if not already done!
     (venv) $ procrastinate --verbose --app=tutorial.app worker
 
 In the logs, you can see the values as they are computed.
 
 Congratulations, you've successfully procrastinated the execution of your first task :)
+
+Checking your jobs
+------------------
+
+.. code-block:: console
+
+    (venv) $ procrastinate --app=tutorial.app healthchecks
+    DB connection: OK
+    DB schema are up-to-date (0.2.1)
+    todo: 0
+    doing: 0
+    succeeded: 1
+    failed: 0
+
+You can check that your application can access your up-to-date database,
+and that your procrastination was a success.
 
 Your final file
 ---------------

@@ -2,7 +2,7 @@ import functools
 import logging
 from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, Optional, Set
 
-from procrastinate import builtin_tasks, exceptions, jobs, migration
+from procrastinate import builtin_tasks, exceptions, healthchecks, jobs, migration
 from procrastinate import retry as retry_module
 from procrastinate import store, utils
 
@@ -205,6 +205,10 @@ class App:
     @property
     def migrator(self) -> migration.Migrator:
         return migration.Migrator(job_store=self.job_store)
+
+    @property
+    def health_check_runner(self) -> healthchecks.HealthCheckRunner:
+        return healthchecks.HealthCheckRunner(job_store=self.job_store)
 
     async def close_connection_async(self):
         await self.job_store.close_connection()
