@@ -1,10 +1,12 @@
-import json
 import os
 import signal
 import subprocess
 import time
 
 import pytest
+
+from .app import json_dumps
+from .param import Param
 
 
 @pytest.fixture
@@ -26,7 +28,7 @@ def defer(process_env):
         lock_args = ["--lock", lock] if lock else []
         full_task_name = f"tests.acceptance.app.{task_name}"
         subprocess.check_output(
-            ["procrastinate", "defer", full_task_name, *lock_args, json.dumps(kwargs)],
+            ["procrastinate", "defer", full_task_name, *lock_args, json_dumps(kwargs)],
             env=process_env,
         )
 
@@ -61,7 +63,7 @@ def running_worker(process_env):
 def test_nominal(defer, worker):
 
     defer("sum_task", a=5, b=7)
-    defer("sum_task", a=3, b=4)
+    defer("sum_task_param", p1=Param(3), p2=Param(4))
     defer("increment_task", a=3)
 
     stdout, stderr = worker()
@@ -83,7 +85,7 @@ def test_nominal(defer, worker):
     assert stderr.count("Exception: This should fail") == 2
 
 
-def test_lock(defer, running_worker):
+def _test_lock(defer, running_worker):
     """
     In this test, we launch 2 workers in two parallel threads, and ask them
     both to process tasks with the same lock. We check that the second task is

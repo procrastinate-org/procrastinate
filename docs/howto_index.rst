@@ -24,3 +24,4 @@ How-to...
     howto/deployment
     howto/monitoring
     howto/remove_old_jobs
+    howto/custom_json_encoder_decoder

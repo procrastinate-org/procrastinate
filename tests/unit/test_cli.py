@@ -1,4 +1,5 @@
 import datetime
+import json
 import logging
 
 import click
@@ -66,13 +67,13 @@ def test_main(mocker):
     "input, output", [(None, {}), ("{}", {}), ("""{"a": "b"}""", {"a": "b"})]
 )
 def test_load_json_args(input, output):
-    assert cli.load_json_args(input) == output
+    assert cli.load_json_args(input, json.loads) == output
 
 
 @pytest.mark.parametrize("input", ["", "{", "[1, 2, 3]", '"yay"'])
 def test_load_json_args_error(input):
     with pytest.raises(click.BadArgumentUsage):
-        assert cli.load_json_args(input)
+        assert cli.load_json_args(input, json.loads)
 
 
 @pytest.mark.parametrize(
