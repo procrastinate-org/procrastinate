@@ -128,7 +128,6 @@ Run a worker
 
 .. code-block:: console
 
-    (venv) $ export PYTHONPATH=.  # if not already done!
     (venv) $ procrastinate --verbose --app=tutorial.app worker
 
 In the logs, you can see the values as they are computed.
@@ -140,7 +139,6 @@ Checking your jobs
 
 .. code-block:: console
 
-    (venv) $ export PYTHONPATH=.  # if not already done!
     (venv) $ procrastinate --app=tutorial.app healthchecks
     DB connection: OK
     DB schema are up-to-date (0.2.1)
