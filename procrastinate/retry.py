@@ -3,7 +3,7 @@ A retry strategy class lets procrastinate know what to do when a job fails: shou
 try again? And when?
 """
 
-from typing import Optional, Union
+from typing import Iterable, Optional, Type, Union
 
 import attr
 import pendulum
@@ -17,15 +17,17 @@ class BaseRetryStrategy:
     Children classes only need to implement `get_schedule_in`.
     """
 
-    def get_retry_exception(self, attempts: int) -> Optional[exceptions.JobRetry]:
-        schedule_in = self.get_schedule_in(attempts=attempts)
+    def get_retry_exception(
+        self, exception: Exception, attempts: int
+    ) -> Optional[exceptions.JobRetry]:
+        schedule_in = self.get_schedule_in(exception=exception, attempts=attempts)
         if schedule_in is None:
             return None
 
         schedule_at = pendulum.now("UTC").add(seconds=schedule_in)
         return exceptions.JobRetry(schedule_at)
 
-    def get_schedule_in(self, attempts: int) -> Optional[float]:
+    def get_schedule_in(self, exception: Exception, attempts: int) -> Optional[float]:
         """
         Parameters
         ----------
@@ -74,9 +76,14 @@ class RetryStrategy(BaseRetryStrategy):
     wait: float = 0.0
     linear_wait: float = 0.0
     exponential_wait: float = 0.0
+    retry_exceptions: Optional[Iterable[Type[Exception]]] = None
 
-    def get_schedule_in(self, attempts: int) -> Optional[float]:
+    def get_schedule_in(self, exception: Exception, attempts: int) -> Optional[float]:
         if self.max_attempts and attempts >= self.max_attempts:
+            return None
+        if self.retry_exceptions and not isinstance(
+            exception, tuple(self.retry_exceptions)
+        ):
             return None
         wait: float = self.wait
         wait += self.linear_wait * attempts

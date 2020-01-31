@@ -152,7 +152,7 @@ class Worker:
             log_level = logging.ERROR
             exc_info = True
 
-            retry_exception = task.get_retry_exception(job)
+            retry_exception = task.get_retry_exception(exception=e, job=job)
             if retry_exception:
                 raise retry_exception from e
             raise exceptions.JobError() from e
