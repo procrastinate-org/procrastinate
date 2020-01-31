@@ -63,7 +63,7 @@ def test_healthchecks(entrypoint, click_app, mocker):
     check_db = mocker.patch(
         "procrastinate.healthchecks.HealthCheckRunner.check_connection"
     )
-    check_db.return_value = (True, "OK")
+    check_db.return_value = True
     check_version = mocker.patch(
         "procrastinate.healthchecks.HealthCheckRunner.get_schema_version"
     )
@@ -81,11 +81,31 @@ def test_healthchecks(entrypoint, click_app, mocker):
     count_jobs.assert_called_once_with()
 
 
-def test_healthchecks_bad(entrypoint, click_app, mocker):
+def test_healthchecks_bad_connection(entrypoint, click_app, mocker):
     check_db = mocker.patch(
         "procrastinate.healthchecks.HealthCheckRunner.check_connection"
     )
-    check_db.return_value = (False, "Mock said NO")
+    check_db.return_value = False
+    check_version = mocker.patch(
+        "procrastinate.healthchecks.HealthCheckRunner.get_schema_version"
+    )
+    count_jobs = mocker.patch(
+        "procrastinate.healthchecks.HealthCheckRunner.get_status_count"
+    )
+
+    result = entrypoint("-a yay healthchecks")
+
+    assert result.output == "Cannot connect to DB\n"
+    check_db.assert_called_once_with()
+    check_version.assert_not_called()
+    count_jobs.assert_not_called()
+
+
+def test_healthchecks_bad_schema_version(entrypoint, click_app, mocker):
+    check_db = mocker.patch(
+        "procrastinate.healthchecks.HealthCheckRunner.check_connection"
+    )
+    check_db.return_value = True
     check_version = mocker.patch(
         "procrastinate.healthchecks.HealthCheckRunner.get_schema_version"
     )
@@ -96,9 +116,9 @@ def test_healthchecks_bad(entrypoint, click_app, mocker):
 
     result = entrypoint("-a yay healthchecks")
 
-    assert result.output.startswith("DB connection: Mock said NO")
+    assert "There are migrations to apply" in result.output
     check_db.assert_called_once_with()
-    check_version.assert_called_once_with()
+    check_version.called_once_with()
     count_jobs.assert_not_called()
 
 
