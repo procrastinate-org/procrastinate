@@ -10,3 +10,4 @@
    reference
    glossary
    contributing
+   changelog
