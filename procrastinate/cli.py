@@ -9,7 +9,7 @@ import click
 import pendulum
 
 import procrastinate
-from procrastinate import exceptions, jobs, types
+from procrastinate import connector, exceptions, jobs, types
 from procrastinate.migration import Migrator
 
 logger = logging.getLogger(__name__)
@@ -99,7 +99,7 @@ def cli(ctx: click.Context, app: str, **kwargs) -> None:
     else:
         # If we don't provide an app, initialize a default one that will fail if it
         # needs its job store.
-        ctx.obj = procrastinate.App(job_store=procrastinate.BaseJobStore())
+        ctx.obj = procrastinate.App(connector=connector.BaseConnector())
 
 
 @cli.resultcallback()
