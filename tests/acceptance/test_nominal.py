@@ -94,6 +94,9 @@ Try 1
 Try 2
 """
     )
+    assert stderr.count("Traceback (most recent call last)") == 3
+    assert stderr.count("Job error, to retry") == 2
+    assert stderr.count("Job error\n") == 1
 
 
 def _test_lock(defer, running_worker):
