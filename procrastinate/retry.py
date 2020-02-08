@@ -14,7 +14,7 @@ from procrastinate import exceptions
 class BaseRetryStrategy:
     """
     If you want to implement your own retry strategy, you can inherit from this class.
-    Children classes only need to implement `get_schedule_in`.
+    Child classes only need to implement `get_schedule_in`.
     """
 
     def get_retry_exception(

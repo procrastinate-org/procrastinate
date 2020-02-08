@@ -36,12 +36,12 @@ Advanced strategies
 
 Advanced strategies let you:
 
-- define a maximum number of retries (if you don't, the job will be retried
-  indefinitely until it passes)
+- define a maximum number of retries (if you don't, jobs will be retried indefinitely
+  until they pass)
 - define the retry delay, with constant, linear and exponential backoff options (if
-  you don't, jobs will retry immediately)
-- define the exception types you want to retry on (if you don't, retry will occur on
-  any type of exceptions)
+  you don't, jobs will be retried immediately)
+- define the exception types you want to retry on (if you don't, jobs will be retried
+  on any type of exceptions)
 
 Define your precise strategy using a :py:class:`RetryStrategy` instance::
 
