@@ -1,7 +1,7 @@
 import procrastinate
 
 app = procrastinate.App(
-    job_store=procrastinate.PostgresJobStore(
+    connector=procrastinate.PostgresConnector(
         dsn="postgresql://postgres@localhost/procrastinate"
     ),
     import_paths=["procrastinate_demo.tasks"],
