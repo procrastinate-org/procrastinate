@@ -71,7 +71,7 @@ class JobDeferrer:
     doesn't need a job_store property.
     """
 
-    def __init__(self, job_store: "store.BaseJobStore", job: Job):
+    def __init__(self, job_store: "store.JobStore", job: Job):
         self.job = job
         self.job_store = job_store
 
