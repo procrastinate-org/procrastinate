@@ -4,18 +4,18 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 import pendulum
 
-from procrastinate import sql, store
+from procrastinate import connector, sql
 
 JobRow = Dict[str, Any]
 EventRow = Dict[str, Any]
 
 
-class InMemoryJobStore(store.BaseJobStore):
+class InMemoryConnector(connector.BaseConnector):
     """
-    An InMemoryJobStore may be used for testing only. Tasks are not
+    An InMemoryConnector may be used for testing only. Tasks are not
     persisted and will be lost when the process ends.
 
-    While implementing the JobStore interface, it also adds a few
+    While implementing the Connector interface, it also adds a few
     methods and attributes to ease testing.
     """
 
@@ -67,10 +67,13 @@ class InMemoryJobStore(store.BaseJobStore):
     ) -> List[Dict[str, Any]]:
         return self.generic_execute(query, "all", **arguments)
 
-    async def wait_for_jobs(self):
+    async def wait_for_activity(self) -> None:
         pass
 
-    # End of BaseJobStore methods
+    def stop(self) -> None:
+        pass
+
+    # End of BaseConnector methods
 
     def defer_job_one(self, task_name, lock, args, scheduled_at, queue) -> JobRow:
         id = next(self.job_counter)
@@ -168,7 +171,4 @@ class InMemoryJobStore(store.BaseJobStore):
         pass
 
     def migrate_run(self) -> None:
-        pass
-
-    def stop(self) -> None:
         pass
