@@ -85,6 +85,7 @@ class RetryStrategy(BaseRetryStrategy):
     ) -> Optional[float]:
         if self.max_attempts and attempts >= self.max_attempts:
             return None
+        # isinstance's 2nd param must be a tuple, not an arbitrary iterable
         if self.retry_exceptions and not isinstance(
             exception, tuple(self.retry_exceptions)
         ):

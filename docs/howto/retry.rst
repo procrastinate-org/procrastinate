@@ -50,7 +50,7 @@ Define your precise strategy using a :py:class:`RetryStrategy` instance::
     @app.task(retry=procrastinate.RetryStrategy(
         max_attempts=10,
         wait=5,
-        retry_exceptions=[ConnectionError, IOError]
+        retry_exceptions={ConnectionError, IOError}
     ))
     def my_other_task():
         print("Hello world")
