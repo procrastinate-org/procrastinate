@@ -2,59 +2,59 @@ import pendulum
 import pytest
 
 
-def test_reset(job_store):
-    job_store.jobs = {1: {}}
-    job_store.reset()
-    assert job_store.jobs == {}
+def test_reset(connector):
+    connector.jobs = {1: {}}
+    connector.reset()
+    assert connector.jobs == {}
 
 
-def test_generic_execute(job_store):
+def test_generic_execute(connector):
     result = {}
-    job_store.reverse_queries = {"a": "b"}
+    connector.reverse_queries = {"a": "b"}
 
     def b(**kwargs):
         result.update(kwargs)
 
-    job_store.b_youpi = b
+    connector.b_youpi = b
 
-    job_store.generic_execute("a", "youpi", i="j")
+    connector.generic_execute("a", "youpi", i="j")
 
     assert result == {"i": "j"}
 
 
 @pytest.mark.asyncio
-async def test_execute_query(job_store, mocker):
-    job_store.generic_execute = mocker.Mock()
-    await job_store.execute_query("a", b="c")
-    job_store.generic_execute.assert_called_with("a", "run", b="c")
+async def test_execute_query(connector, mocker):
+    connector.generic_execute = mocker.Mock()
+    await connector.execute_query("a", b="c")
+    connector.generic_execute.assert_called_with("a", "run", b="c")
 
 
 @pytest.mark.asyncio
-async def test_execute_query_one(job_store, mocker):
-    job_store.generic_execute = mocker.Mock()
+async def test_execute_query_one(connector, mocker):
+    connector.generic_execute = mocker.Mock()
     assert (
-        await job_store.execute_query_one("a", b="c")
-        == job_store.generic_execute.return_value
+        await connector.execute_query_one("a", b="c")
+        == connector.generic_execute.return_value
     )
-    job_store.generic_execute.assert_called_with("a", "one", b="c")
+    connector.generic_execute.assert_called_with("a", "one", b="c")
 
 
 @pytest.mark.asyncio
-async def test_execute_query_all(job_store, mocker):
-    job_store.generic_execute = mocker.Mock()
+async def test_execute_query_all(connector, mocker):
+    connector.generic_execute = mocker.Mock()
     assert (
-        await job_store.execute_query_all("a", b="c")
-        == job_store.generic_execute.return_value
+        await connector.execute_query_all("a", b="c")
+        == connector.generic_execute.return_value
     )
-    job_store.generic_execute.assert_called_with("a", "all", b="c")
+    connector.generic_execute.assert_called_with("a", "all", b="c")
 
 
-def test_make_dynamic_query(job_store):
-    assert job_store.make_dynamic_query("foo {bar}", bar="baz") == "foo baz"
+def test_make_dynamic_query(connector):
+    assert connector.make_dynamic_query("foo {bar}", bar="baz") == "foo baz"
 
 
-def test_defer_job_one(job_store):
-    job = job_store.defer_job_one(
+def test_defer_job_one(connector):
+    job = connector.defer_job_one(
         task_name="mytask",
         lock="sher",
         args={"a": "b"},
@@ -62,7 +62,7 @@ def test_defer_job_one(job_store):
         queue="marsupilami",
     )
 
-    assert job_store.jobs == {
+    assert connector.jobs == {
         1: {
             "id": 1,
             "queue_name": "marsupilami",
@@ -75,29 +75,29 @@ def test_defer_job_one(job_store):
             "attempts": 0,
         }
     }
-    assert job_store.jobs[1] == job
+    assert connector.jobs[1] == job
 
 
-def test_current_locks(job_store):
-    job_store.jobs = {
+def test_current_locks(connector):
+    connector.jobs = {
         1: {"status": "todo", "lock": "foo"},
         2: {"status": "doing", "lock": "yay"},
     }
-    assert job_store.current_locks == {"yay"}
+    assert connector.current_locks == {"yay"}
 
 
-def test_finished_jobs(job_store):
-    job_store.jobs = {
+def test_finished_jobs(connector):
+    connector.jobs = {
         1: {"status": "todo"},
         2: {"status": "doing"},
         3: {"status": "succeeded"},
         4: {"status": "failed"},
     }
-    assert job_store.finished_jobs == [{"status": "succeeded"}, {"status": "failed"}]
+    assert connector.finished_jobs == [{"status": "succeeded"}, {"status": "failed"}]
 
 
-def test_select_stalled_jobs_all(job_store):
-    job_store.jobs = {
+def test_select_stalled_jobs_all(connector):
+    connector.jobs = {
         # We're not selecting this job because it's "succeeded"
         1: {
             "id": 1,
@@ -148,14 +148,14 @@ def test_select_stalled_jobs_all(job_store):
         },
     }
 
-    results = job_store.select_stalled_jobs_all(
+    results = connector.select_stalled_jobs_all(
         queue="marsupilami", task_name="mytask", nb_seconds=0
     )
     assert [job["id"] for job in results] == [5, 6]
 
 
-def test_delete_old_jobs_run(job_store):
-    job_store.jobs = {
+def test_delete_old_jobs_run(connector):
+    connector.jobs = {
         # We're not deleting this job because it's "doing"
         1: {"id": 1, "status": "doing", "queue_name": "marsupilami"},
         # This one because it's the wrong queue
@@ -165,31 +165,31 @@ def test_delete_old_jobs_run(job_store):
         # This one we delete
         4: {"id": 4, "status": "succeeded", "queue_name": "marsupilami"},
     }
-    job_store.events = {
+    connector.events = {
         1: [{"type": "succeeded", "at": pendulum.datetime(2000, 1, 1)}],
         2: [{"type": "succeeded", "at": pendulum.datetime(2000, 1, 1)}],
         3: [{"type": "succeeded", "at": pendulum.now()}],
         4: [{"type": "succeeded", "at": pendulum.datetime(2000, 1, 1)}],
     }
 
-    job_store.delete_old_jobs_run(
+    connector.delete_old_jobs_run(
         queue="marsupilami", statuses=("succeeded"), nb_hours=0
     )
-    assert 4 not in job_store.jobs
+    assert 4 not in connector.jobs
 
 
-def test_fetch_job_one(job_store):
+def test_fetch_job_one(connector):
     # This one will be selected, then skipped the second time because it's processing
-    job_store.defer_job_one(
+    connector.defer_job_one(
         task_name="mytask", args={}, queue="marsupilami", scheduled_at=None, lock="a"
     )
 
     # This one because it's the wrong queue
-    job_store.defer_job_one(
+    connector.defer_job_one(
         task_name="mytask", args={}, queue="other_queue", scheduled_at=None, lock="b"
     )
     # This one because of the scheduled_at
-    job_store.defer_job_one(
+    connector.defer_job_one(
         task_name="mytask",
         args={},
         queue="marsupilami",
@@ -197,80 +197,79 @@ def test_fetch_job_one(job_store):
         lock="c",
     )
     # This one because of the lock
-    job_store.defer_job_one(
+    connector.defer_job_one(
         task_name="mytask", args={}, queue="marsupilami", scheduled_at=None, lock="a"
     )
     # We're taking this one.
-    job_store.defer_job_one(
+    connector.defer_job_one(
         task_name="mytask", args={}, queue="marsupilami", scheduled_at=None, lock="e"
     )
 
-    assert job_store.fetch_job_one(queues=["marsupilami"])["id"] == 1
-    assert job_store.fetch_job_one(queues=["marsupilami"])["id"] == 5
+    assert connector.fetch_job_one(queues=["marsupilami"])["id"] == 1
+    assert connector.fetch_job_one(queues=["marsupilami"])["id"] == 5
 
 
-def test_finish_job_run(job_store):
-    job_store.defer_job_one(
+def test_finish_job_run(connector):
+    connector.defer_job_one(
         task_name="mytask", args={}, queue="marsupilami", scheduled_at=None, lock="sher"
     )
-    job_row = job_store.fetch_job_one(queues=None)
+    job_row = connector.fetch_job_one(queues=None)
     id = job_row["id"]
 
-    job_store.finish_job_run(job_id=id, status="finished")
+    connector.finish_job_run(job_id=id, status="finished")
 
-    assert job_store.jobs[id]["attempts"] == 0
-    assert job_store.jobs[id]["status"] == "finished"
-    assert job_store.jobs[id]["scheduled_at"] is None
+    assert connector.jobs[id]["attempts"] == 0
+    assert connector.jobs[id]["status"] == "finished"
+    assert connector.jobs[id]["scheduled_at"] is None
 
 
-def test_finish_job_run_retry(job_store):
-    job_store.defer_job_one(
+def test_finish_job_run_retry(connector):
+    connector.defer_job_one(
         task_name="mytask", args={}, queue="marsupilami", scheduled_at=None, lock="sher"
     )
-    job_row = job_store.fetch_job_one(queues=None)
+    job_row = connector.fetch_job_one(queues=None)
     id = job_row["id"]
 
     retry_at = pendulum.datetime(2000, 1, 1)
-    job_store.finish_job_run(job_id=id, status="todo", scheduled_at=retry_at)
+    connector.finish_job_run(job_id=id, status="todo", scheduled_at=retry_at)
 
-    assert job_store.jobs[id]["attempts"] == 1
-    assert job_store.jobs[id]["status"] == "todo"
-    assert job_store.jobs[id]["scheduled_at"] == retry_at
-    assert len(job_store.events[id]) == 4
+    assert connector.jobs[id]["attempts"] == 1
+    assert connector.jobs[id]["status"] == "todo"
+    assert connector.jobs[id]["scheduled_at"] == retry_at
+    assert len(connector.events[id]) == 4
 
 
-def test_finish_job_run_retry_no_schedule(job_store):
-    job_store.defer_job_one(
+def test_finish_job_run_retry_no_schedule(connector):
+    connector.defer_job_one(
         task_name="mytask", args={}, queue="marsupilami", scheduled_at=None, lock="sher"
     )
-    job_row = job_store.fetch_job_one(queues=None)
+    job_row = connector.fetch_job_one(queues=None)
     id = job_row["id"]
 
-    job_store.finish_job_run(job_id=id, status="todo", scheduled_at=None)
+    connector.finish_job_run(job_id=id, status="todo", scheduled_at=None)
 
-    assert job_store.jobs[id]["attempts"] == 1
-    assert job_store.jobs[id]["status"] == "todo"
-    assert job_store.jobs[id]["scheduled_at"] is None
-    assert len(job_store.events[id]) == 3
-
-
-@pytest.mark.asyncio
-async def test_listen_for_jobs_run(job_store):
-    # If we don't crash, it's enough
-    await job_store.listen_for_jobs(queues=["a", "b"])
+    assert connector.jobs[id]["attempts"] == 1
+    assert connector.jobs[id]["status"] == "todo"
+    assert connector.jobs[id]["scheduled_at"] is None
+    assert len(connector.events[id]) == 3
 
 
 @pytest.mark.asyncio
-async def test_wait_for_jobs(job_store):
+async def test_wait_for_activity(connector):
     # If we don't crash, it's enough
-    await job_store.wait_for_jobs()
+    await connector.wait_for_activity()
 
 
-def test_migrate_run(job_store):
+def test_migrate_run(connector):
     # If we don't crash, it's enough
-    job_store.migrate_run()
+    connector.migrate_run()
 
 
-def test_stop(job_store):
+def test_stop(connector):
     # If we don't crash, it's enough
-    job_store.stop()
+    connector.stop()
+
+
+def test_listen_for_jobs_run(connector):
+    # If we don't crash, it's enough
+    connector.listen_for_jobs_run()
