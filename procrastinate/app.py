@@ -35,6 +35,8 @@ class App:
         *,
         connector: Optional[connector_module.BaseConnector] = None,
         import_paths: Optional[Iterable[str]] = None,
+        # Just for backwards compatibility
+        job_store: Optional[connector_module.BaseConnector] = None,
     ):
         """
         Parameters
@@ -55,7 +57,20 @@ class App:
             A :py:func:`App.task` that has a custom "name" parameter, that is not
             imported and whose module path is not in this list will
             fail to run.
+        job_store:
+            **Deprecated**: Old name of ``connector``
         """
+        # Compatibility
+        if job_store:
+            message = (
+                "Use App(connector=procrastinate.PostgresConnector(...)) "
+                "instead of App(job_store=procrastinate.PostgresJobStore())"
+            )
+            logger.warn(f"Deprecation Warning: {message}")
+            warnings.warn(DeprecationWarning(message))
+            connector = job_store
+        if not connector:
+            raise TypeError("App() missing 1 required argument: 'connector'")
 
         self.connector = connector
         self.tasks: Dict[str, "tasks.Task"] = {}
