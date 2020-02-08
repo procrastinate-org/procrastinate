@@ -131,3 +131,12 @@ class PostgresConnector(connector.BaseConnector):
             self._connection.notifies.put_nowait, "s"
         )
 
+
+class PostgresJobStore(PostgresConnector):
+    def __init__(self, *args, **kwargs):
+        message = (
+            "Use procrastinate.PostgresConnector(...) "
+            "instead of procrastinate.PostgresJobStore(...), with the same arguments"
+        )
+        logger.warn(f"Deprecation Warning: {message}")
+        warnings.warn(DeprecationWarning(message))
