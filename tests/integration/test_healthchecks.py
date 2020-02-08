@@ -9,8 +9,8 @@ pytestmark = pytest.mark.asyncio
 
 
 @pytest.fixture
-def checker(pg_job_store):
-    return HealthCheckRunner(pg_job_store)
+def checker(pg_connector):
+    return HealthCheckRunner(connector=pg_connector)
 
 
 async def test_check_connection(checker):
@@ -33,7 +33,7 @@ async def test_get_status_count(checker):
     ["check_connection_async", "get_schema_version_async", "get_status_count_async"],
 )
 async def test_db_down(method):
-    bad_job_store = aiopg_connector.PostgresJobStore(dsn="", dbname="a_bad_db_name")
+    bad_job_store = aiopg_connector.PostgresConnector(dsn="", dbname="a_bad_db_name")
     checker = HealthCheckRunner(bad_job_store)
 
     with pytest.raises(psycopg2.Error):
