@@ -13,14 +13,14 @@ There are three ways you can specify the connection parameters:
   and then just define::
 
     import procrastinate
-    procrastinate.PostgresJobStore()
+    procrastinate.PostgresConnector()
 
 .. _`libpq environment variables`: https://www.postgresql.org/docs/current/libpq-envars.html
 
 - You can use `aiopg dsn`_::
 
     import procrastinate
-    procrastinate.PostgresJobStore(dsn="postgres://user:password@host:port/dbname")
+    procrastinate.PostgresConnector(dsn="postgres://user:password@host:port/dbname")
 
 .. _`aiopg dsn`: https://aiopg.readthedocs.io/en/stable/core.html#aiopg.connect
 
@@ -28,7 +28,7 @@ There are three ways you can specify the connection parameters:
   `psycopg2 connection arguments`_)::
 
     import procrastinate
-    procrastinate.PostgresJobStore(user="user", password="password", host="host")
+    procrastinate.PostgresConnector(user="user", password="password", host="host")
 
 .. _`aiopg connection arguments`: https://aiopg.readthedocs.io/en/stable/core.html#aiopg.connect
 .. _`psycopg2 connection arguments`: http://initd.org/psycopg/docs/module.html#psycopg2.connect
