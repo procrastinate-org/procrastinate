@@ -2,6 +2,7 @@ import asyncio
 
 import pendulum
 
+from procrastinate import aiopg_connector
 from procrastinate import app as app_module
 from procrastinate import tasks
 
@@ -86,9 +87,9 @@ def test_app_run_worker_only_once(app):
 
     yay.defer()
 
-    assert len(app.job_store.finished_jobs) == 0
+    assert len(app.connector.finished_jobs) == 0
     app.run_worker(only_once=True)
-    assert len(app.job_store.finished_jobs) == 1
+    assert len(app.connector.finished_jobs) == 1
 
 
 def test_from_path(mocker):

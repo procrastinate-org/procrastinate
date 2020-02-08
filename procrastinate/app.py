@@ -1,8 +1,11 @@
 import functools
 import logging
+import warnings
 from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, Optional, Set
 
-from procrastinate import builtin_tasks, exceptions, healthchecks, jobs, migration
+from procrastinate import builtin_tasks
+from procrastinate import connector as connector_module
+from procrastinate import exceptions, healthchecks, jobs, migration
 from procrastinate import retry as retry_module
 from procrastinate import store, utils
 
@@ -30,16 +33,17 @@ class App:
     def __init__(
         self,
         *,
-        job_store: store.BaseJobStore,
+        connector: Optional[connector_module.BaseConnector] = None,
         import_paths: Optional[Iterable[str]] = None,
     ):
         """
         Parameters
         ----------
-        job_store:
-            Instance of a subclass of :py:class:`BaseJobStore`, typically
-            :py:class:`PostgresJobStore`. It will be responsible for all
+        connector:
+            Instance of a subclass of :py:class:`BaseConnector`, typically
+            :py:class:`PostgresConnector`. It will be responsible for all
             communications with the database.
+            Mandatory if job_store is not passed.
         import_paths:
             List of python dotted paths of modules to import, to make sure
             that the workers know about all possible tasks.
@@ -52,11 +56,14 @@ class App:
             imported and whose module path is not in this list will
             fail to run.
         """
-        self.job_store = job_store
+
+        self.connector = connector
         self.tasks: Dict[str, "tasks.Task"] = {}
         self.builtin_tasks: Dict[str, "tasks.Task"] = {}
         self.queues: Set[str] = set()
         self.import_paths = import_paths or []
+
+        self.job_store = store.JobStore(connector=self.connector)
 
         self._register_builtin_tasks()
 
@@ -209,11 +216,11 @@ class App:
 
     @property
     def migrator(self) -> migration.Migrator:
-        return migration.Migrator(job_store=self.job_store)
+        return migration.Migrator(connector=self.connector)
 
     @property
     def health_check_runner(self) -> healthchecks.HealthCheckRunner:
-        return healthchecks.HealthCheckRunner(job_store=self.job_store)
+        return healthchecks.HealthCheckRunner(connector=self.connector)
 
     async def close_connection_async(self):
-        await self.job_store.close_connection()
+        await self.connector.close_connection()
