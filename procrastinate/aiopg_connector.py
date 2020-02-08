@@ -1,106 +1,25 @@
 import asyncio
+import logging
+import warnings
 from typing import Any, Callable, Dict, List, Optional
 
 import aiopg
 import psycopg2.sql
 from psycopg2.extras import Json, RealDictCursor
 
-from procrastinate import store
+from procrastinate import connector
+
+logger = logging.getLogger(__name__)
 
 
-def wrap_json(arguments: Dict[str, Any], json_dumps: Optional[Callable]):
-    return {
-        key: Json(value, dumps=json_dumps) if isinstance(value, dict) else value
-        for key, value in arguments.items()
-    }
-
-
-async def get_connection(
-    dsn="", json_loads: Optional[Callable] = None, **kwargs
-) -> aiopg.Connection:
-    # tell aiopg not to register adapters for hstore & json by default, as
-    # those are registered at the module level and could overwrite previously
-    # defined adapters
-    kwargs.setdefault("enable_json", False)
-    kwargs.setdefault("enable_hstore", False)
-    kwargs.setdefault("enable_uuid", False)
-    conn = await aiopg.connect(dsn=dsn, **kwargs)
-    if json_loads:
-        psycopg2.extras.register_default_jsonb(conn.raw, loads=json_loads)
-    return conn
-
-
-def connection_is_open(connection: aiopg.Connection) -> bool:
-    return not connection.closed
-
-
-async def execute_query(
-    connection: aiopg.Connection,
-    query: str,
-    json_dumps: Optional[Callable],
-    **arguments: Any
-) -> None:
-    # aiopg can work with psycopg2's cursor class
-    async with connection.cursor(cursor_factory=RealDictCursor) as cursor:
-        await cursor.execute(query, wrap_json(arguments, json_dumps))
-
-
-async def execute_query_one(
-    connection: aiopg.Connection,
-    query: str,
-    json_dumps: Optional[Callable],
-    **arguments: Any
-) -> Dict[str, Any]:
-    # aiopg can work with psycopg2's cursor class
-    async with connection.cursor(cursor_factory=RealDictCursor) as cursor:
-        await cursor.execute(query, wrap_json(arguments, json_dumps))
-
-        return await cursor.fetchone()
-
-
-async def execute_query_all(
-    connection: aiopg.Connection,
-    query: str,
-    json_dumps: Optional[Callable],
-    **arguments: Any
-) -> List[Dict[str, Any]]:
-    # aiopg can work with psycopg2's cursor class
-    async with connection.cursor(cursor_factory=RealDictCursor) as cursor:
-        await cursor.execute(query, wrap_json(arguments, json_dumps))
-
-        return await cursor.fetchall()
-
-
-def make_dynamic_query(query: str, **identifiers: str) -> str:
-    return psycopg2.sql.SQL(query).format(
-        **{key: psycopg2.sql.Identifier(value) for key, value in identifiers.items()}
-    )
-
-
-async def wait_for_jobs(connection: aiopg.Connection, socket_timeout: float):
-    try:
-        await asyncio.wait_for(connection.notifies.get(), timeout=socket_timeout)
-    except asyncio.TimeoutError:
-        pass
-
-
-def interrupt_wait(connection: aiopg.Connection):
-    asyncio.get_event_loop().call_soon_threadsafe(connection.notifies.put_nowait, "s")
-
-
-class PostgresJobStore(store.BaseJobStore):
-    """
-    Uses ``aiopg`` to establish an asynchronous
-    connection to a PostgreSQL database.
-    """
-
+class PostgresConnector(connector.BaseConnector):
     def __init__(
         self,
-        *,
-        socket_timeout: float = store.SOCKET_TIMEOUT,
+        dsn="",
+        socket_timeout: float = connector.SOCKET_TIMEOUT,
         json_dumps: Optional[Callable] = None,
         json_loads: Optional[Callable] = None,
-        **kwargs: Any
+        **kwargs: Any,
     ):
         """
         All parameters except ``socket_timeout``, ``json_dumps`` and ``json_loads``
@@ -125,19 +44,12 @@ class PostgresJobStore(store.BaseJobStore):
             to the function used by psycopg2. See the `psycopg2 doc`_.
 
         """
-
+        kwargs["dsn"] = dsn
         self._connection_parameters = kwargs
         self._connection: Optional[aiopg.Connection] = None
         self.socket_timeout = socket_timeout
         self.json_dumps = json_dumps
         self.json_loads = json_loads
-
-    async def get_connection(self):
-        if not self._connection or not connection_is_open(self._connection):
-            self._connection = await get_connection(
-                json_loads=self.json_loads, **self._connection_parameters
-            )
-        return self._connection
 
     async def close_connection(self) -> None:
         if not self._connection:
@@ -145,40 +57,77 @@ class PostgresJobStore(store.BaseJobStore):
 
         await self._connection.close()
 
+    def _wrap_json(self, arguments: Dict[str, Any]):
+        return {
+            key: Json(value, dumps=self.json_dumps)
+            if isinstance(value, dict)
+            else value
+            for key, value in arguments.items()
+        }
+
+    async def _get_connection(self) -> aiopg.Connection:
+        if self._connection and not self._connection.closed:
+            return self._connection
+
+        # tell aiopg not to register adapters for hstore & json by default, as
+        # those are registered at the module level and could overwrite previously
+        # defined adapters
+        kwargs = self._connection_parameters
+        kwargs.setdefault("enable_json", False)
+        kwargs.setdefault("enable_hstore", False)
+        kwargs.setdefault("enable_uuid", False)
+        conn = await aiopg.connect(**kwargs)
+        if self.json_loads:
+            psycopg2.extras.register_default_jsonb(conn.raw, loads=self.json_loads)
+        self._connection = conn
+        return conn
+
     async def execute_query(self, query: str, **arguments: Any) -> None:
-        await execute_query(
-            await self.get_connection(),
-            query=query,
-            json_dumps=self.json_dumps,
-            **arguments
-        )
+        connection = await self._get_connection()
+        # aiopg can work with psycopg2's cursor class
+        async with connection.cursor(cursor_factory=RealDictCursor) as cursor:
+            await cursor.execute(query, self._wrap_json(arguments))
 
     async def execute_query_one(self, query: str, **arguments: Any) -> Dict[str, Any]:
-        return await execute_query_one(
-            await self.get_connection(),
-            query=query,
-            json_dumps=self.json_dumps,
-            **arguments
-        )
+        connection = await self._get_connection()
+        # aiopg can work with psycopg2's cursor class
+        async with connection.cursor(cursor_factory=RealDictCursor) as cursor:
+            await cursor.execute(query, self._wrap_json(arguments))
+
+            return await cursor.fetchone()
 
     async def execute_query_all(
         self, query: str, **arguments: Any
     ) -> List[Dict[str, Any]]:
-        return await execute_query_all(
-            await self.get_connection(),
-            query=query,
-            json_dumps=self.json_dumps,
-            **arguments
-        )
+        connection = await self._get_connection()
+        # aiopg can work with psycopg2's cursor class
+        async with connection.cursor(cursor_factory=RealDictCursor) as cursor:
+            await cursor.execute(query, self._wrap_json(arguments))
+
+            return await cursor.fetchall()
 
     def make_dynamic_query(self, query: str, **identifiers: str) -> str:
-        return make_dynamic_query(query=query, **identifiers)
-
-    async def wait_for_jobs(self):
-        return await wait_for_jobs(
-            connection=await self.get_connection(), socket_timeout=self.socket_timeout
+        return psycopg2.sql.SQL(query).format(
+            **{
+                key: psycopg2.sql.Identifier(value)
+                for key, value in identifiers.items()
+            }
         )
 
-    def stop(self):
-        if self._connection:
-            interrupt_wait(connection=self._connection)
+    async def wait_for_activity(self):
+        connection = await self._get_connection()
+        try:
+            await asyncio.wait_for(
+                connection.notifies.get(), timeout=self.socket_timeout
+            )
+        except asyncio.TimeoutError:
+            pass
+
+    # This can be called from a signal handler, better not do async stuff
+    def interrupt_wait(self):
+        if not self._connection:
+            return
+        asyncio.get_event_loop().call_soon_threadsafe(
+            self._connection.notifies.put_nowait, "s"
+        )
+
