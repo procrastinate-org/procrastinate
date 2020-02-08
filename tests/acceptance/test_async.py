@@ -1,6 +1,13 @@
 import pytest
 
+import procrastinate
+
 pytestmark = pytest.mark.asyncio
+
+
+@pytest.fixture
+def pg_app(pg_connector):
+    return procrastinate.App(connector=pg_connector)
 
 
 async def test_defer(pg_app):
