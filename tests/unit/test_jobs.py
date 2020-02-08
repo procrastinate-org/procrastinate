@@ -11,7 +11,7 @@ from procrastinate import jobs
         (None, None),
     ],
 )
-def test_job_get_context(job_store, scheduled_at, context_scheduled_at):
+def test_job_get_context(scheduled_at, context_scheduled_at):
 
     job = jobs.Job(
         id=12,
@@ -34,7 +34,7 @@ def test_job_get_context(job_store, scheduled_at, context_scheduled_at):
     }
 
 
-def test_job_deferrer_defer(job_store):
+def test_job_deferrer_defer(job_store, connector):
 
     job = jobs.Job(
         queue="marsupilami", lock="sher", task_name="mytask", task_kwargs={"a": "b"}
@@ -44,7 +44,7 @@ def test_job_deferrer_defer(job_store):
 
     assert id == 1
 
-    assert job_store.jobs == {
+    assert connector.jobs == {
         1: {
             "args": {"a": "b", "c": 3},
             "attempts": 0,
@@ -60,7 +60,7 @@ def test_job_deferrer_defer(job_store):
 
 
 @pytest.mark.asyncio
-async def test_job_deferrer_defer_async(job_store):
+async def test_job_deferrer_defer_async(job_store, connector):
 
     job = jobs.Job(
         queue="marsupilami", lock="sher", task_name="mytask", task_kwargs={"a": "b"}
@@ -71,7 +71,7 @@ async def test_job_deferrer_defer_async(job_store):
 
     assert id == 1
 
-    assert job_store.jobs == {
+    assert connector.jobs == {
         1: {
             "args": {"a": "b", "c": 3},
             "attempts": 0,
@@ -86,7 +86,7 @@ async def test_job_deferrer_defer_async(job_store):
     }
 
 
-def test_job_scheduled_at_naive(job_store):
+def test_job_scheduled_at_naive():
     with pytest.raises(ValueError):
         jobs.Job(
             id=12,
