@@ -20,9 +20,9 @@ are accessible through :py:attr:`App.builtin_tasks`:
 Job stores
 ----------
 
-.. autoclass:: procrastinate.PostgresJobStore
+.. autoclass:: procrastinate.PostgresConnector
 
-.. autoclass:: procrastinate.testing.InMemoryJobStore
+.. autoclass:: procrastinate.testing.InMemoryConnector
     :members: reset
 
 Tasks

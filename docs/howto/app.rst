@@ -13,6 +13,6 @@ In the first two cases, it's important to specify the location to your tasks usi
     import procrastinate
 
     app = procrastinate.App(
-        job_store=job_store,
+        connector=connector,
         import_paths=["dotted.path.to", "all.the.modules", "that.define.tasks"]
     )

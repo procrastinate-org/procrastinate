@@ -16,7 +16,7 @@ Here is an example involving serializing/deserializing ``datetime`` objects::
     import functools
     import json
 
-    from procrastinate import App, PostgresJobStore
+    from procrastinate import App, PostgresConnector
 
     # Function used for encoding datetime objects
     def encode(obj):
@@ -34,7 +34,7 @@ Here is an example involving serializing/deserializing ``datetime`` objects::
     json_dumps = functools.partial(json.dumps, default=encode)
     json_loads = functools.partial(json.loads, object_hook=decode)
 
-    app = App(job_store=PostgresJobStore(json_dumps=json_dumps, json_loads=json_loads))
+    app = App(connector=PostgresConnector(json_dumps=json_dumps, json_loads=json_loads))
 
 In this example the custom JSON dumps and loads functions are based on the standard
 ``json`` module's ``dumps`` and ``loads`` functions, with specific ``default`` and
