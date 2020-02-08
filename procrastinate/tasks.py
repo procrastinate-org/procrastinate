@@ -24,7 +24,7 @@ def load_task(path: str) -> "Task":
 def configure_task(
     *,
     name: str,
-    job_store: store.BaseJobStore,
+    job_store: store.JobStore,
     lock: Optional[str] = None,
     task_kwargs: Optional[types.JSONDict] = None,
     schedule_at: Optional[datetime.datetime] = None,
