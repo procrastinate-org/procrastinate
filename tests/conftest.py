@@ -37,11 +37,11 @@ def setup_db():
             )
             _execute(cursor, "CREATE DATABASE {}", "procrastinate_test_template")
 
-    job_store = aiopg_connector.PostgresJobStore(dbname="procrastinate_test_template")
-    migrator = migration.Migrator(job_store=job_store)
+    connector = aiopg_connector.PostgresConnector(dbname="procrastinate_test_template")
+    migrator = migration.Migrator(connector=connector)
     migrator.migrate()
     # We need to close the psycopg2 underlying connection synchronously
-    job_store._connection._conn.close()
+    connector._connection._conn.close()
 
     with closing(
         psycopg2.connect("", dbname="procrastinate_test_template")
@@ -81,10 +81,10 @@ async def connection(connection_params):
 
 
 @pytest.fixture
-async def pg_job_store(connection_params):
-    job_store = aiopg_connector.PostgresJobStore(**connection_params)
-    yield job_store
-    connection = await job_store.get_connection()
+async def pg_connector(connection_params):
+    connector = aiopg_connector.PostgresConnector(**connection_params)
+    yield connector
+    connection = await connector._get_connection()
     await connection.close()
 
 
@@ -97,30 +97,18 @@ def kill_own_pid():
 
 
 @pytest.fixture
-def job_store():
-    return testing.InMemoryJobStore()
+def connector():
+    return testing.InMemoryConnector()
 
 
 @pytest.fixture
-def get_all(connection):
-    async def f(table, *fields):
-        async with connection.cursor(
-            cursor_factory=aiopg_connector.RealDictCursor
-        ) as cursor:
-            await cursor.execute(f"SELECT {', '.join(fields)} FROM {table}")
-            return await cursor.fetchall()
-
-    return f
+def app(connector):
+    return app_module.App(connector=connector)
 
 
 @pytest.fixture
-def app(job_store):
-    return app_module.App(job_store=job_store)
-
-
-@pytest.fixture
-def pg_app(pg_job_store):
-    return app_module.App(job_store=pg_job_store)
+def job_store(app):
+    return app.job_store
 
 
 @pytest.fixture
