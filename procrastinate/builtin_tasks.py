@@ -5,7 +5,7 @@ from procrastinate import store
 
 
 async def remove_old_jobs(
-    job_store: store.BaseJobStore,
+    job_store: store.JobStore,
     max_hours: int,
     queue: Optional[str] = None,
     remove_error: Optional[bool] = False,
