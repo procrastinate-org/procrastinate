@@ -25,16 +25,17 @@ async def pg_connector_factory(connection_params):
 
 async def test_get_connection(pg_connector, connection_params):
     async with await pg_connector._get_connection() as connection:
-
-        assert connection.dsn == "dbname=" + connection_params["dbname"]
+        async with connection.acquire() as conn:
+            assert conn.dsn == "dbname=" + connection_params["dbname"]
 
 
 async def test_get_connection_json_loads(pg_connector_factory, mocker):
     json_loads = mocker.MagicMock()
     register_default_jsonb = mocker.patch("psycopg2.extras.register_default_jsonb")
     connector = pg_connector_factory(json_loads=json_loads)
-    async with await connector._get_connection() as connection:
-        register_default_jsonb.assert_called_with(connection.raw, loads=json_loads)
+    async with await connector._get_connection() as pool:
+        async with pool.acquire() as conn:
+            register_default_jsonb.assert_called_with(conn.raw, loads=json_loads)
 
 
 @pytest.mark.parametrize(

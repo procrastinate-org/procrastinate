@@ -1,3 +1,4 @@
+import asyncio
 import os
 import signal as stdlib_signal
 from contextlib import closing
@@ -41,7 +42,7 @@ def setup_db():
     migrator = migration.Migrator(connector=connector)
     migrator.migrate()
     # We need to close the psycopg2 underlying connection synchronously
-    connector._connection._conn.close()
+    asyncio.run(connector.close_connection())
 
     with closing(
         psycopg2.connect("", dbname="procrastinate_test_template")
@@ -84,8 +85,7 @@ async def connection(connection_params):
 async def pg_connector(connection_params):
     connector = aiopg_connector.PostgresConnector(**connection_params)
     yield connector
-    connection = await connector._get_connection()
-    await connection.close()
+    await connector.close_connection()
 
 
 @pytest.fixture

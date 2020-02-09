@@ -23,9 +23,9 @@ class PostgresConnector(connector.BaseConnector):
     ):
         """
         All parameters except ``socket_timeout``, ``json_dumps`` and ``json_loads``
-        are passed to :py:func:`aiopg.connect` (see the documentation__)
+        are passed to :py:func:`aiopg.create_pool` (see the documentation__)
 
-        .. __: https://aiopg.readthedocs.io/en/stable/core.html#connection
+        .. __: https://aiopg.readthedocs.io/en/stable/core.html#aiopg.create_pool
         .. _psycopg2 doc: https://www.psycopg.org/docs/extras.html#json-adaptation
 
         Parameters
@@ -55,7 +55,8 @@ class PostgresConnector(connector.BaseConnector):
         if not self._connection:
             return
 
-        await self._connection.close()
+        self._connection.close()
+        await self._connection.wait_closed()
 
     def _wrap_json(self, arguments: Dict[str, Any]):
         return {
@@ -65,7 +66,7 @@ class PostgresConnector(connector.BaseConnector):
             for key, value in arguments.items()
         }
 
-    async def _get_connection(self) -> aiopg.Connection:
+    async def _get_connection(self) -> aiopg.Pool:
         if self._connection and not self._connection.closed:
             return self._connection
 
@@ -76,22 +77,29 @@ class PostgresConnector(connector.BaseConnector):
         kwargs.setdefault("enable_json", False)
         kwargs.setdefault("enable_hstore", False)
         kwargs.setdefault("enable_uuid", False)
-        conn = await aiopg.connect(**kwargs)
         if self.json_loads:
-            psycopg2.extras.register_default_jsonb(conn.raw, loads=self.json_loads)
+
+            async def on_connect(connection):
+                psycopg2.extras.register_default_jsonb(
+                    connection.raw, loads=self.json_loads
+                )
+
+            kwargs["on_connect"] = on_connect
+
+        conn = await aiopg.create_pool(**kwargs)
         self._connection = conn
         return conn
 
     async def execute_query(self, query: str, **arguments: Any) -> None:
         connection = await self._get_connection()
         # aiopg can work with psycopg2's cursor class
-        async with connection.cursor(cursor_factory=RealDictCursor) as cursor:
+        with await connection.cursor(cursor_factory=RealDictCursor) as cursor:
             await cursor.execute(query, self._wrap_json(arguments))
 
     async def execute_query_one(self, query: str, **arguments: Any) -> Dict[str, Any]:
         connection = await self._get_connection()
         # aiopg can work with psycopg2's cursor class
-        async with connection.cursor(cursor_factory=RealDictCursor) as cursor:
+        with await connection.cursor(cursor_factory=RealDictCursor) as cursor:
             await cursor.execute(query, self._wrap_json(arguments))
 
             return await cursor.fetchone()
@@ -101,7 +109,7 @@ class PostgresConnector(connector.BaseConnector):
     ) -> List[Dict[str, Any]]:
         connection = await self._get_connection()
         # aiopg can work with psycopg2's cursor class
-        async with connection.cursor(cursor_factory=RealDictCursor) as cursor:
+        with await connection.cursor(cursor_factory=RealDictCursor) as cursor:
             await cursor.execute(query, self._wrap_json(arguments))
 
             return await cursor.fetchall()
