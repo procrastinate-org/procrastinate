@@ -239,5 +239,5 @@ class App:
     def health_check_runner(self) -> healthchecks.HealthCheckRunner:
         return healthchecks.HealthCheckRunner(connector=self.connector)
 
-    async def close_connection_async(self):
-        await self.connector.close_connection()
+    async def close_pool_async(self):
+        await self.connector.close_pool()

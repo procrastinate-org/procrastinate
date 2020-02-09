@@ -20,20 +20,20 @@ async def pg_connector_factory(connection_params):
 
     yield _
     for connector in connectors:
-        await connector.close_connection()
+        await connector.close_pool()
 
 
-async def test_get_connection(pg_connector, connection_params):
-    async with await pg_connector._get_connection() as connection:
-        async with connection.acquire() as conn:
+async def test_get_pool(pg_connector, connection_params):
+    async with await pg_connector._get_pool() as pool:
+        async with pool.acquire() as conn:
             assert conn.dsn == "dbname=" + connection_params["dbname"]
 
 
-async def test_get_connection_json_loads(pg_connector_factory, mocker):
+async def test_get_pool_json_loads(pg_connector_factory, mocker):
     json_loads = mocker.MagicMock()
     register_default_jsonb = mocker.patch("psycopg2.extras.register_default_jsonb")
     connector = pg_connector_factory(json_loads=json_loads)
-    async with await connector._get_connection() as pool:
+    async with await connector._get_pool() as pool:
         async with pool.acquire() as conn:
             register_default_jsonb.assert_called_with(conn.raw, loads=json_loads)
 
@@ -84,39 +84,39 @@ async def test_execute_query(pg_connector):
     assert result == [{"obj_description": "foo"}]
 
 
-async def test_close_connection(pg_connector):
-    await pg_connector._get_connection()
-    await pg_connector.close_connection()
-    assert pg_connector._connection.closed == 1
+async def test_close_pool(pg_connector):
+    await pg_connector._get_pool()
+    await pg_connector.close_pool()
+    assert pg_connector._pool.closed == 1
 
 
-async def test_close_connection_no_connection(pg_connector):
-    await pg_connector.close_connection()
+async def test_close_pool_no_pool(pg_connector):
+    await pg_connector.close_pool()
     # Well we didn't crash. Great.
 
 
-async def test_stop_no_connection(pg_connector):
+async def test_stop_no_pool(pg_connector):
     pg_connector.interrupt_wait()
     # Well we didn't crash. Great.
 
 
-async def test_get_connection_called_twice(pg_connector):
-    conn1 = await pg_connector._get_connection()
-    assert not conn1.closed
-    conn2 = await pg_connector._get_connection()
-    assert conn2 is conn1
+async def test_get_pool_called_twice(pg_connector):
+    pool1 = await pg_connector._get_pool()
+    assert not pool1.closed
+    pool2 = await pg_connector._get_pool()
+    assert pool2 is pool1
 
 
-async def test_get_connection_after_close(pg_connector):
-    conn1 = await pg_connector._get_connection()
-    assert not conn1.closed
-    await pg_connector.close_connection()
-    conn2 = await pg_connector._get_connection()
-    assert not conn2.closed
-    assert conn2 is not conn1
+async def test_get_pool_after_close(pg_connector):
+    pool1 = await pg_connector._get_pool()
+    assert not pool1.closed
+    await pg_connector.close_pool()
+    pool2 = await pg_connector._get_pool()
+    assert not pool2.closed
+    assert pool2 is not pool1
 
 
-async def test_get_connection_no_psycopg2_adapter_registration(pg_connector, mocker):
+async def test_get_pool_no_psycopg2_adapter_registration(pg_connector, mocker):
     register_adapter = mocker.patch("psycopg2.extensions.register_adapter")
-    await pg_connector._get_connection()
+    await pg_connector._get_pool()
     assert not register_adapter.called

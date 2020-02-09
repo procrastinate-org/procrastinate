@@ -104,9 +104,9 @@ def cli(ctx: click.Context, app: str, **kwargs) -> None:
 
 @cli.resultcallback()
 @click.pass_obj
-def close_connection(procrastinate_app: procrastinate.App, *args, **kwargs):
+def close_pool(procrastinate_app: procrastinate.App, *args, **kwargs):
     # There's an internal click param named app, we can't name our variable "app" too.
-    procrastinate_app.close_connection()  # type: ignore
+    procrastinate_app.close_pool()  # type: ignore
 
 
 @cli.command()

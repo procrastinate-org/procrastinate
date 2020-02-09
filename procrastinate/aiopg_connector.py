@@ -45,18 +45,18 @@ class PostgresConnector(connector.BaseConnector):
 
         """
         kwargs["dsn"] = dsn
-        self._connection_parameters = kwargs
-        self._connection: Optional[aiopg.Connection] = None
+        self._pool_parameters = kwargs
+        self._pool: Optional[aiopg.pool] = None
         self.socket_timeout = socket_timeout
         self.json_dumps = json_dumps
         self.json_loads = json_loads
 
-    async def close_connection(self) -> None:
-        if not self._connection:
+    async def close_pool(self) -> None:
+        if not self._pool:
             return
 
-        self._connection.close()
-        await self._connection.wait_closed()
+        self._pool.close()
+        await self._pool.wait_closed()
 
     def _wrap_json(self, arguments: Dict[str, Any]):
         return {
@@ -66,14 +66,14 @@ class PostgresConnector(connector.BaseConnector):
             for key, value in arguments.items()
         }
 
-    async def _get_connection(self) -> aiopg.Pool:
-        if self._connection and not self._connection.closed:
-            return self._connection
+    async def _get_pool(self) -> aiopg.Pool:
+        if self._pool and not self._pool.closed:
+            return self._pool
 
         # tell aiopg not to register adapters for hstore & json by default, as
         # those are registered at the module level and could overwrite previously
         # defined adapters
-        kwargs = self._connection_parameters
+        kwargs = self._pool_parameters
         kwargs.setdefault("enable_json", False)
         kwargs.setdefault("enable_hstore", False)
         kwargs.setdefault("enable_uuid", False)
@@ -86,20 +86,20 @@ class PostgresConnector(connector.BaseConnector):
 
             kwargs["on_connect"] = on_connect
 
-        conn = await aiopg.create_pool(**kwargs)
-        self._connection = conn
-        return conn
+        pool = await aiopg.create_pool(**kwargs)
+        self._pool = pool
+        return pool
 
     async def execute_query(self, query: str, **arguments: Any) -> None:
-        connection = await self._get_connection()
+        pool = await self._get_pool()
         # aiopg can work with psycopg2's cursor class
-        with await connection.cursor(cursor_factory=RealDictCursor) as cursor:
+        with await pool.cursor(cursor_factory=RealDictCursor) as cursor:
             await cursor.execute(query, self._wrap_json(arguments))
 
     async def execute_query_one(self, query: str, **arguments: Any) -> Dict[str, Any]:
-        connection = await self._get_connection()
+        pool = await self._get_pool()
         # aiopg can work with psycopg2's cursor class
-        with await connection.cursor(cursor_factory=RealDictCursor) as cursor:
+        with await pool.cursor(cursor_factory=RealDictCursor) as cursor:
             await cursor.execute(query, self._wrap_json(arguments))
 
             return await cursor.fetchone()
@@ -107,9 +107,9 @@ class PostgresConnector(connector.BaseConnector):
     async def execute_query_all(
         self, query: str, **arguments: Any
     ) -> List[Dict[str, Any]]:
-        connection = await self._get_connection()
+        pool = await self._get_pool()
         # aiopg can work with psycopg2's cursor class
-        with await connection.cursor(cursor_factory=RealDictCursor) as cursor:
+        with await pool.cursor(cursor_factory=RealDictCursor) as cursor:
             await cursor.execute(query, self._wrap_json(arguments))
 
             return await cursor.fetchall()
@@ -123,20 +123,18 @@ class PostgresConnector(connector.BaseConnector):
         )
 
     async def wait_for_activity(self):
-        connection = await self._get_connection()
+        pool = await self._get_pool()
         try:
-            await asyncio.wait_for(
-                connection.notifies.get(), timeout=self.socket_timeout
-            )
+            await asyncio.wait_for(pool.notifies.get(), timeout=self.socket_timeout)
         except asyncio.TimeoutError:
             pass
 
     # This can be called from a signal handler, better not do async stuff
     def interrupt_wait(self):
-        if not self._connection:
+        if not self._pool:
             return
         asyncio.get_event_loop().call_soon_threadsafe(
-            self._connection.notifies.put_nowait, "s"
+            self._pool.notifies.put_nowait, "s"
         )
 
 
