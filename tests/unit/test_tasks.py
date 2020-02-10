@@ -130,7 +130,7 @@ def test_task_get_retry_exception_none(app):
     task = tasks.Task(task_func, app=app, queue="queue")
     job = task.configure().job
 
-    assert task.get_retry_exception(job) is None
+    assert task.get_retry_exception(exception=None, job=job) is None
 
 
 def test_task_get_retry_exception(app, mocker):
@@ -139,8 +139,9 @@ def test_task_get_retry_exception(app, mocker):
     task = tasks.Task(task_func, app=app, queue="queue", retry=10)
     job = task.configure().job
 
-    assert task.get_retry_exception(job) is mock.return_value
-    mock.assert_called_with(0)
+    exception = ValueError()
+    assert task.get_retry_exception(exception=exception, job=job) is mock.return_value
+    mock.assert_called_with(exception=exception, attempts=0)
 
 
 def test_load_task_not_found():

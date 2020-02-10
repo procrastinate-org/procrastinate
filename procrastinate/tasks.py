@@ -141,8 +141,12 @@ class Task:
             queue=queue if queue is not None else self.queue,
         )
 
-    def get_retry_exception(self, job: jobs.Job) -> Optional[exceptions.JobRetry]:
+    def get_retry_exception(
+        self, exception: Exception, job: jobs.Job
+    ) -> Optional[exceptions.JobRetry]:
         if not self.retry_strategy:
             return None
 
-        return self.retry_strategy.get_retry_exception(job.attempts)
+        return self.retry_strategy.get_retry_exception(
+            exception=exception, attempts=job.attempts
+        )

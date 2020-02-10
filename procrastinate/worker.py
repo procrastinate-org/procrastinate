@@ -1,7 +1,7 @@
 import asyncio
 import logging
 import time
-from typing import Iterable, NoReturn, Optional, Set
+from typing import Iterable, NoReturn, Optional, Set, Union
 
 from procrastinate import app, exceptions, jobs, signals, tasks, types
 
@@ -138,6 +138,7 @@ class Worker:
             **job.get_context(),
             "start_timestamp": time.time(),
         }
+        exc_info: Union[Exception, bool]
 
         self.logger.info("Starting job", extra={"action": "start_job", **log_context})
         try:
@@ -150,10 +151,12 @@ class Worker:
             log_title = "Job error"
             log_action = "job_error"
             log_level = logging.ERROR
-            exc_info = True
+            exc_info = e
 
-            retry_exception = task.get_retry_exception(job)
+            retry_exception = task.get_retry_exception(exception=e, job=job)
             if retry_exception:
+                log_title = "Job error, to retry"
+                log_action = "job_error_retry"
                 raise retry_exception from e
             raise exceptions.JobError() from e
 
