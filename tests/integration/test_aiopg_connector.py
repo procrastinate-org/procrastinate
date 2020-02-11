@@ -30,8 +30,11 @@ async def test_create_with_pool(connection_params):
     connector = await aiopg_connector.PostgresConnector.create_with_pool_async(
         **connection_params
     )
-    async with connector._pool.acquire() as connection:
-        assert connection.dsn == "dbname=" + connection_params["dbname"]
+    try:
+        async with connector._pool.acquire() as connection:
+            assert connection.dsn == "dbname=" + connection_params["dbname"]
+    finally:
+        await connector.close_async()
 
 
 @pytest.mark.parametrize(
@@ -107,3 +110,21 @@ async def test_get_connection_no_psycopg2_adapter_registration(
     register_adapter = mocker.patch("psycopg2.extensions.register_adapter")
     await aiopg_connector.PostgresConnector.create_with_pool_async(**connection_params)
     assert not register_adapter.called
+
+
+async def test_listen_notify(pg_connector):
+    channel = "somechannel"
+    event = asyncio.Event()
+
+    task = asyncio.create_task(
+        pg_connector.listen_notify(channels=[channel], event=event)
+    )
+    try:
+        await event.wait()
+        event.clear()
+        await pg_connector.execute_query(f"""NOTIFY "{channel}" """)
+        await asyncio.wait_for(event.wait(), timeout=1)
+    except asyncio.TimeoutError:
+        pytest.fail("Notify not received within 1 sec")
+    finally:
+        task.cancel()

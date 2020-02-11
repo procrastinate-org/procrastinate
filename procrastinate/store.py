@@ -15,9 +15,6 @@ class JobStore:
     def __init__(self, connector: connector.BaseConnector):
         self.connector = connector
 
-    async def wait_for_jobs(self):
-        return await self.connector.wait_for_activity()
-
     # stop, being called in a signal handler, may NOT be an awaitable
     def stop(self):
         self.connector.interrupt_wait()

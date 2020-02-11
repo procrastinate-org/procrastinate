@@ -1,3 +1,4 @@
+import asyncio
 import datetime
 from itertools import count
 from typing import Any, Dict, Iterable, List, Optional, Tuple
@@ -38,6 +39,8 @@ class InMemoryConnector(connector.BaseConnector):
         self.events: Dict[int, List[EventRow]] = {}
         self.job_counter = count(1)
         self.queries: List[Tuple[str, Dict[str, Any]]] = []
+        self.notify_event = None
+        self.notify_channels = []
 
     def generic_execute(self, query, suffix, **arguments) -> Any:
         """
@@ -68,11 +71,11 @@ class InMemoryConnector(connector.BaseConnector):
     ) -> List[Dict[str, Any]]:
         return self.generic_execute(query, "all", **arguments)
 
-    async def wait_for_activity(self) -> None:
-        pass
-
-    def stop(self) -> None:
-        pass
+    async def listen_notify(
+        self, event: asyncio.Event, channels: Iterable[str]
+    ) -> None:
+        self.notify_event = event
+        self.notify_channels = channels
 
     # End of BaseConnector methods
 
@@ -93,6 +96,11 @@ class InMemoryConnector(connector.BaseConnector):
         if scheduled_at:
             self.events[id].append({"type": "scheduled", "at": scheduled_at})
         self.events[id].append({"type": "deferred", "at": pendulum.now()})
+        if self.notify_event:
+            if "procrastinate_any_queue" in self.notify_channels or (
+                f"procrastinate_queue#{queue}" in self.notify_channels
+            ):
+                self.notify_event.set()
         return job_row
 
     @property
