@@ -57,6 +57,12 @@ class App:
             A :py:func:`App.task` that has a custom "name" parameter, that is not
             imported and whose module path is not in this list will
             fail to run.
+        worker_timeout:
+            This parameter should generally not be changed.
+            It indicates the maximum duration (in seconds) procrastinate workers wait
+            between each database job pull. Job activity will be pushed from the db to
+            the worker, but in case the push mechanism fails somehow, workers will not
+            stay idle longer than the number of seconds indicated by this parameters.
         job_store:
             **Deprecated**: Old name of ``connector``
         """
