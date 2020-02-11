@@ -1,12 +1,13 @@
+import asyncio
 import logging
 import warnings
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, Iterable, List, NoReturn, Optional
 
 import aiopg
 import psycopg2.sql
 from psycopg2.extras import Json, RealDictCursor
 
-from procrastinate import connector, utils
+from procrastinate import connector, sql, utils
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +17,6 @@ class PostgresConnector(connector.BaseConnector):
     def __init__(
         self,
         pool: aiopg.Pool,
-        socket_timeout: float = connector.SOCKET_TIMEOUT,
         json_dumps: Optional[Callable] = None,
         json_loads: Optional[Callable] = None,
     ):
@@ -33,7 +33,6 @@ class PostgresConnector(connector.BaseConnector):
 
         """
         self._pool = pool
-        self.socket_timeout = socket_timeout
         self.json_dumps = json_dumps
         self.json_loads = json_loads
 
@@ -55,7 +54,6 @@ class PostgresConnector(connector.BaseConnector):
     @classmethod
     async def create_with_pool_async(
         cls,
-        socket_timeout: float = connector.SOCKET_TIMEOUT,
         json_dumps: Optional[Callable] = None,
         json_loads: Optional[Callable] = None,
         **kwargs,
@@ -75,12 +73,6 @@ class PostgresConnector(connector.BaseConnector):
         .. __: https://aiopg.readthedocs.io/en/stable/core.html#aiopg.create_pool
         .. _psycopg2 doc: https://www.psycopg.org/docs/extras.html#json-adaptation
 
-        socket_timeout:
-            This parameter should generally not be changed.
-            It indicates the maximum duration (in seconds) procrastinate workers wait
-            between each database job pull. Job activity will be pushed from the db to
-            the worker, but in case the push mechanism fails somehow, workers will not
-            stay idle longer than the number of seconds indicated by this parameters.
         json_dumps:
             The JSON dumps function to use for serializing job arguments. Defaults to
             the function used by psycopg2. See the `psycopg2 doc`_.
@@ -133,15 +125,19 @@ class PostgresConnector(connector.BaseConnector):
 
         pool = await aiopg.create_pool(**defaults)
 
-        return cls(
-            pool=pool,
-            socket_timeout=socket_timeout,
-            json_dumps=json_dumps,
-            json_loads=json_loads,
-        )
+        return cls(pool=pool, json_dumps=json_dumps, json_loads=json_loads)
 
-    async def execute_query(self, query: str, **arguments: Any) -> None:
-        with await self._pool.cursor() as cursor:
+    async def execute_query(self, query: str, **arguments: Any,) -> None:
+        await self._execute_query(query=query, connection=None, **arguments)
+
+    async def _execute_query(
+        self,
+        query: str,
+        connection: Optional[aiopg.Connection] = None,
+        **arguments: Any,
+    ) -> None:
+        # The private version of the method accepts an arbitrary connection
+        with connection or self._pool.cursor() as cursor:
             await cursor.execute(query, self._wrap_json(arguments))
 
     async def execute_query_one(self, query: str, **arguments: Any) -> Dict[str, Any]:
@@ -166,6 +162,24 @@ class PostgresConnector(connector.BaseConnector):
                 for key, value in identifiers.items()
             }
         )
+
+    async def listen_notify(
+        self, event: asyncio.Event, channels: Iterable[str]
+    ) -> NoReturn:
+
+        async with self._pool.acquire() as connection:
+            for channel_name in channels:
+                await self._execute_query(
+                    connection=connection,
+                    query=self.make_dynamic_query(
+                        query=sql.queries["listen_queue"], channel_name=channel_name
+                    ),
+                )
+
+            while True:
+                # We'll leave this loop with a CancelError, when we get cancelled
+                await connection.notifies.get()
+                event.set()
 
 
 def PostgresJobStore(*args, **kwargs):
