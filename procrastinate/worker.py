@@ -1,11 +1,13 @@
 import asyncio
 import logging
 import time
-from typing import Iterable, NoReturn, Optional, Set, Union
+from typing import Any, Dict, Iterable, Optional, Set, Union
 
 from procrastinate import app, exceptions, jobs, signals, tasks, types
 
 logger = logging.getLogger(__name__)
+
+WORKER_TIMEOUT = 5.0  # seconds
 
 
 class Worker:
@@ -15,70 +17,112 @@ class Worker:
         queues: Optional[Iterable[str]] = None,
         import_paths: Optional[Iterable[str]] = None,
         name: Optional[str] = None,
+        worker_count: int = 1,
+        timeout: float = WORKER_TIMEOUT,
     ):
         self.app = app
         self.queues = queues
         self.name = name
-        self.stop_requested = False
+        self.timeout = timeout
+
         # Handling the info about the currently running task.
-        self.log_context: types.JSONDict = {}
         self.known_missing_tasks: Set[str] = set()
 
         self.app.perform_import_paths()
         self.job_store = self.app.job_store
 
+        self.stop_requested = False
+
+        self.worker_name: Optional[str]
         if name:
             self.logger = logger.getChild(name)
-            self.log_context["worker_name"] = name
+            self.worker_name = name
         else:
             self.logger = logger
+            self.worker_name = None
+
+        self.current_job_context: Optional[Dict] = None
 
     async def run(self) -> None:
-        queues = self.queues
-        await self.job_store.listen_for_jobs(queues=queues)
+        notify_event = asyncio.Event()
+        notifier = asyncio.create_task(
+            self.job_store.listen_for_jobs(event=notify_event, queues=self.queues)
+        )
 
+        def stop(
+            signum: Optional[signals.Signals] = None,
+            frame: Optional[signals.FrameType] = None,
+        ) -> None:
+            # Ensure worker will stop after finishing their task
+            self.stop_requested = True
+            # Ensure workers currently waiting are awakened
+            notify_event.set()
+            # Stop the listen/notify task
+            notifier.cancel()
+
+            extra: Dict[str, Any] = {
+                "action": "stopping_worker",
+                "worker_name": self.worker_name,
+            }
+            if self.current_job_context:
+                message = (
+                    f"Stop requested, waiting for job to finish: "
+                    f"{self.current_job_context['call_string']}"
+                )
+                extra["job"] = self.current_job_context
+
+            else:
+                message = "Stop requested, no job to finish"
+
+            self.logger.info(message, extra=extra)
+
+        queues = self.queues
         if queues:
-            queue_names = f"queues {', '.join(queues)}"
+            queues_display = f"queues {', '.join(queues)}"
         else:
-            queue_names = "all queues"
+            queues_display = "all queues"
 
         self.logger.info(
-            f"Starting worker on queues {queue_names}",
+            f"Starting worker on queues {queues_display}",
             extra={"action": "start_worker", "queues": queues},
         )
-        with signals.on_stop(self.stop):
-            while not self.stop_requested:
 
-                try:
-                    await self.process_jobs_once()
-                except exceptions.StopRequested:
-                    break
-                except exceptions.NoMoreJobs:
-                    self.logger.debug(
-                        f"Waiting for new jobs on queues {queue_names}",
-                        extra={"action": "waiting_for_jobs", "queues": queues},
-                    )
-
-                await self.job_store.wait_for_jobs()
+        with signals.on_stop(stop):
+            await self.single_worker(notify_event=notify_event)
 
         self.logger.info(
-            f"Stopped worker on {queue_names}",
+            f"Stopped worker on {queues_display}",
             extra={"action": "stop_worker", "queues": queues},
         )
 
-    async def process_jobs_once(self) -> NoReturn:
-        while True:
-            # We only leave this loop with an exception:
-            # either NoMoreJobs or StopRequested
-            await self.process_next_job()
+    async def single_worker(self, notify_event: asyncio.Event):
+        queues = self.queues
+        if queues:
+            queues_display = f"queues {', '.join(queues)}"
+        else:
+            queues_display = "all queues"
 
-    async def process_next_job(self) -> None:
-        log_context = self.log_context
-        job = await self.job_store.fetch_job(self.queues)
-        if job is None:
-            raise exceptions.NoMoreJobs
+        while not self.stop_requested:
+            job = await self.job_store.fetch_job(self.queues)
+            if not job:
+                self.logger.debug(
+                    f"Waiting for new jobs on queues {queues_display}",
+                    extra={"action": "waiting_for_jobs", "queues": queues},
+                )
+                notify_event.clear()
+                await asyncio.wait([notify_event.wait()], timeout=self.timeout)
+                notify_event.clear()
+                continue
+            await self.process_job(job=job)
 
-        job_context = log_context["job"] = {**job.get_context()}
+    async def process_job(self, job: jobs.Job) -> None:
+        job_context = job.get_context()
+        self.current_job_context = job_context
+        log_context: types.JSONDict = {
+            "worker_name": self.worker_name,
+            "job": job_context,
+        }
+
         self.logger.debug(
             f"Loaded job info, about to start job {job_context['call_string']}",
             extra={"action": "loaded_job_info", **log_context},
@@ -87,7 +131,7 @@ class Worker:
         status = jobs.Status.FAILED
         next_attempt_scheduled_at = None
         try:
-            await self.run_job(job=job)
+            await self.run_job(job=job, log_context=log_context)
             status = jobs.Status.SUCCEEDED
         except exceptions.JobRetry as e:
             status = jobs.Status.TODO
@@ -97,7 +141,11 @@ class Worker:
         except exceptions.TaskNotFound as exc:
             self.logger.exception(
                 f"Task was not found: {exc}",
-                extra={"action": "task_not_found", "exception": str(exc)},
+                extra={
+                    "action": "task_not_found",
+                    "exception": str(exc),
+                    **log_context,
+                },
             )
         finally:
             await self.job_store.finish_job(
@@ -108,11 +156,9 @@ class Worker:
                 f"Acknowledged job completion {job_context['call_string']}",
                 extra={"action": "finish_task", "status": status, **log_context},
             )
+            self.current_job_context = None
 
-        if self.stop_requested:
-            raise exceptions.StopRequested
-
-    def load_task(self, task_name) -> tasks.Task:
+    def load_task(self, task_name: str, log_context: types.JSONDict) -> tasks.Task:
         if task_name in self.known_missing_tasks:
             raise exceptions.TaskNotFound(f"Cancelling job for {task_name} (not found)")
 
@@ -137,28 +183,22 @@ class Worker:
         self.app.tasks[task_name] = task
         return task
 
-    async def run_job(self, job: jobs.Job) -> None:
-        log_context = self.log_context
+    async def run_job(self, job: jobs.Job, log_context: types.JSONDict) -> None:
         task_name = job.task_name
 
-        task = self.load_task(task_name=task_name)
+        assert isinstance(log_context["job"], dict)
+        job_context = log_context["job"]
 
-        # We store the log context in self. This way, when requesting
-        # a stop, we can get details on the currently running task
-        # in the logs.
+        task = self.load_task(task_name=task_name, log_context=log_context)
+
         start_time = time.time()
-
-        job_context = log_context["job"] = {
-            **job.get_context(),
-            "start_timestamp": time.time(),
-        }
-        exc_info: Union[Exception, bool]
+        job_context["start_timestamp"] = time.time()
 
         self.logger.info(
             f"Starting job {job_context['call_string']}",
             extra={"action": "start_job", **log_context},
         )
-
+        exc_info: Union[bool, Exception]
         try:
             task_result = task(**job.task_kwargs)
             if asyncio.iscoroutine(task_result):
@@ -187,27 +227,9 @@ class Worker:
             end_time = job_context["end_timestamp"] = time.time()
             job_context["duration_seconds"] = end_time - start_time
             extra = {"action": log_action, **log_context, "result": task_result}
-            ftext = (
+
+            text = (
                 f"{log_title} - Job {job_context['call_string']} "
                 f"in {job_context['duration_seconds']:.3f} s"
             )
-            self.logger.log(log_level, ftext, extra=extra, exc_info=exc_info)
-
-    def stop(
-        self,
-        signum: Optional[signals.Signals] = None,
-        frame: Optional[signals.FrameType] = None,
-    ) -> None:
-        self.stop_requested = True
-        log_context = self.log_context
-        self.job_store.stop()
-
-        if log_context:
-            self.logger.info(
-                f"Stop requested, waiting for current job to finish",
-                extra={"action": "stopping_worker", **log_context},
-            )
-        else:
-            self.logger.info(
-                "Stop requested, no job to finish ", extra={"action": "stopping_worker"}
-            )
+            self.logger.log(log_level, text, extra=extra, exc_info=exc_info)
