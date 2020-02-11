@@ -1,3 +1,4 @@
+import asyncio
 import datetime
 from typing import Iterable, Optional
 
@@ -91,11 +92,9 @@ class JobStore:
             scheduled_at=scheduled_at,
         )
 
-    async def listen_for_jobs(self, queues: Optional[Iterable[str]] = None) -> None:
-        for channel_name in get_channel_for_queues(queues=queues):
-
-            await self.connector.execute_query(
-                query=self.connector.make_dynamic_query(
-                    query=sql.queries["listen_queue"], channel_name=channel_name
-                )
-            )
+    async def listen_for_jobs(
+        self, *, event: asyncio.Event, queues: Optional[Iterable[str]] = None,
+    ) -> None:
+        await self.connector.listen_notify(
+            event=event, channels=get_channel_for_queues(queues=queues)
+        )

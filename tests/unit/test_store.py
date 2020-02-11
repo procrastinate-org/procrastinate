@@ -88,5 +88,8 @@ async def test_finish_job(job_store, job_factory, connector):
     ],
 )
 async def test_listen_for_jobs(job_store, connector, mocker, queues, channels):
-    await job_store.listen_for_jobs(queues)
-    assert connector.queries == [("listen_for_jobs", channel) for channel in channels]
+    event = mocker.Mock()
+
+    await job_store.listen_for_jobs(queues=queues, event=event)
+    assert connector.notify_event is event
+    assert connector.notify_channels == channels
