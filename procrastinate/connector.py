@@ -1,6 +1,5 @@
-from typing import Any, Callable, Dict, List, Optional
-
-SOCKET_TIMEOUT = 5.0  # seconds
+import asyncio
+from typing import Any, Callable, Dict, Iterable, List, Optional
 
 
 class BaseConnector:
@@ -24,8 +23,7 @@ class BaseConnector:
     def make_dynamic_query(self, query: str, **identifiers: str) -> str:
         raise NotImplementedError
 
-    async def wait_for_activity(self) -> None:
-        raise NotImplementedError
-
-    def interrupt_wait(self):
+    async def listen_notify(
+        self, event: asyncio.Event, channels: Iterable[str]
+    ) -> None:
         raise NotImplementedError
