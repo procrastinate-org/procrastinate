@@ -10,6 +10,7 @@ import pendulum
 
 import procrastinate
 from procrastinate import connector, exceptions, jobs, types
+from procrastinate.shell import ProcrastinateShell
 
 logger = logging.getLogger(__name__)
 
@@ -297,6 +298,16 @@ def healthchecks(app: procrastinate.App):
     status_count = health_check.get_status_count()  # type: ignore
     for status, count in status_count.items():
         click.echo(f"{status.value}: {count}")
+
+
+@cli.command()
+@click.pass_obj
+@handle_errors()
+def shell(app: procrastinate.App):
+    """
+    Administration shell for procrastinate.
+    """
+    ProcrastinateShell(app).cmdloop()
 
 
 def main():
