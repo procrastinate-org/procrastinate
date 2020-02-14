@@ -2,7 +2,7 @@ Test your code that uses Procrastinate
 --------------------------------------
 
 Procrastinate defines an `InMemoryConnector` that will speed up your tests,
-remove dependency to PostgreSQL and allows you to have tasks run in a
+remove dependency to PostgreSQL and allow you to have tasks run in a
 controlled way.
 
 To use it, you can do::

@@ -125,7 +125,7 @@ class PostgresConnector(connector.BaseConnector):
 
     # This can be called from a signal handler, better not do async stuff
     def interrupt_wait(self):
-        if not self._connection:
+        if not self._connection or self._connection.closed:
             return
         asyncio.get_event_loop().call_soon_threadsafe(
             self._connection.notifies.put_nowait, "s"

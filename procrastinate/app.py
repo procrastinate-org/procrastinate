@@ -58,7 +58,7 @@ class App:
             imported and whose module path is not in this list will
             fail to run.
         job_store:
-            **Deprecated**: Old name of ``connector``
+            **Deprecated**: Old name of ``connector``.
         """
         # Compatibility
         if job_store:
