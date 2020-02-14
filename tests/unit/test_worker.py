@@ -6,7 +6,7 @@ from procrastinate import exceptions, jobs, tasks, worker
 pytestmark = pytest.mark.asyncio
 
 
-async def test_run(app):
+async def test_run(app, connector):
     class TestWorker(worker.Worker):
         i = 0
 
@@ -21,7 +21,7 @@ async def test_run(app):
 
     await test_worker.run()
 
-    assert app.job_store.queries == [
+    assert app.connector.queries == [
         ("listen_for_jobs", "procrastinate_queue#marsupilami")
     ]
 
@@ -34,7 +34,9 @@ async def test_run(app):
         (exceptions.TaskNotFound(), "failed"),
     ],
 )
-async def test_process_next_job(mocker, app, job_factory, side_effect, status):
+async def test_process_next_job(
+    mocker, app, job_factory, connector, side_effect, status
+):
     job = job_factory(id=1)
     await app.job_store.defer_job(job)
 
@@ -50,7 +52,7 @@ async def test_process_next_job(mocker, app, job_factory, side_effect, status):
 
     run_job.assert_called_with(job=job)
 
-    assert app.job_store.jobs[1]["status"] == status
+    assert connector.jobs[1]["status"] == status
 
 
 async def test_process_next_job_raise_no_more_jobs(app):
@@ -73,7 +75,7 @@ async def test_process_next_job_raise_stop_requested(app):
         await test_worker.process_next_job()
 
 
-async def test_process_next_job_retry_failed_job(mocker, app, job_factory):
+async def test_process_next_job_retry_failed_job(connector, mocker, app, job_factory):
     job = job_factory(id=1)
     await app.job_store.defer_job(job)
 
@@ -87,14 +89,14 @@ async def test_process_next_job_retry_failed_job(mocker, app, job_factory):
     test_worker = worker.Worker(app, queues=["queue"])
     await test_worker.process_next_job()
 
-    new_job = app.job_store.jobs[1]
-    assert len(app.job_store.jobs) == 1
+    assert len(connector.jobs) == 1
+    new_job = connector.jobs[1]
     assert new_job["status"] == "todo"
     assert new_job["id"] == 1
     assert new_job["scheduled_at"] == pendulum.datetime(2000, 1, 1, tz="UTC")
 
 
-async def test_run_job(app, job_store):
+async def test_run_job(app):
     result = []
 
     @app.task(queue="yay", name="task_func")
@@ -114,7 +116,7 @@ async def test_run_job(app, job_store):
     assert result == [12]
 
 
-async def test_run_job_async(app, job_store):
+async def test_run_job_async(app):
     result = []
 
     @app.task(queue="yay", name="task_func")
@@ -134,7 +136,7 @@ async def test_run_job_async(app, job_store):
     assert result == [12]
 
 
-async def test_run_job_log_result(caplog, app, job_store):
+async def test_run_job_log_result(caplog, app):
     caplog.set_level("INFO")
 
     result = []
@@ -166,7 +168,7 @@ async def test_run_job_log_result(caplog, app, job_store):
     assert record.result == 12
 
 
-async def test_run_job_log_name(caplog, app, job_store):
+async def test_run_job_log_name(caplog, app):
     caplog.set_level("INFO")
 
     def task_func():
@@ -195,7 +197,7 @@ async def test_run_job_log_name(caplog, app, job_store):
     assert all(record.worker_name == "w1" for record in caplog.records)
 
 
-async def test_run_job_error(app, job_store):
+async def test_run_job_error(app):
     def job(a, b):  # pylint: disable=unused-argument
         raise ValueError("nope")
 
@@ -216,7 +218,7 @@ async def test_run_job_error(app, job_store):
         await test_worker.run_job(job)
 
 
-async def test_run_job_retry(app, job_store):
+async def test_run_job_retry(app):
     def job(a, b):  # pylint: disable=unused-argument
         raise ValueError("nope")
 
@@ -237,7 +239,7 @@ async def test_run_job_retry(app, job_store):
         await test_worker.run_job(job)
 
 
-async def test_run_job_not_found(app, job_store):
+async def test_run_job_not_found(app):
     job = jobs.Job(
         id=16,
         task_kwargs={"a": 9, "b": 3},

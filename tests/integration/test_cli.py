@@ -128,7 +128,7 @@ def test_no_app(entrypoint, mocker):
     assert "Missing app" in result.output
 
 
-def test_defer(entrypoint, click_app):
+def test_defer(entrypoint, click_app, connector):
     @click_app.task(name="hello")
     def mytask(a):
         pass
@@ -138,7 +138,7 @@ def test_defer(entrypoint, click_app):
 
     assert result.output == "Launching a job: hello(a=1)\n"
     assert result.exit_code == 0
-    assert click_app.job_store.jobs == {
+    assert connector.jobs == {
         1: {
             "args": {"a": 1},
             "attempts": 0,
@@ -153,13 +153,13 @@ def test_defer(entrypoint, click_app):
     }
 
 
-def test_defer_unknown(entrypoint, click_app):
+def test_defer_unknown(entrypoint, click_app, connector):
     # No space in the json helps entrypoint() to simply split args
     result = entrypoint("""-a yay defer --unknown --lock=sherlock hello {"a":1}""")
 
     assert result.output == "Launching a job: hello(a=1)\n"
     assert result.exit_code == 0
-    assert click_app.job_store.jobs == {
+    assert connector.jobs == {
         1: {
             "args": {"a": 1},
             "attempts": 0,

@@ -17,37 +17,15 @@ def test_task_init_with_no_name(app):
     assert task.name == "tests.unit.test_tasks.task_func"
 
 
-def test_task_defer(app):
-    task = tasks.Task(task_func, app=app, queue="queue")
-
-    task.defer(c=3)
-
-    # The lock is the only thing we can't predict
-    lock = app.job_store.jobs[1]["lock"]
-    assert app.job_store.jobs == {
-        1: {
-            "id": 1,
-            "queue_name": "queue",
-            "task_name": "tests.unit.test_tasks.task_func",
-            "lock": lock,
-            "args": {"c": 3},
-            "status": "todo",
-            "scheduled_at": None,
-            "started_at": None,
-            "attempts": 0,
-        }
-    }
-
-
 @pytest.mark.asyncio
-async def test_task_defer_async(app):
+async def test_task_defer_async(app, connector):
     task = tasks.Task(task_func, app=app, queue="queue")
 
     await task.defer_async(c=3)
 
     # The lock is the only thing we can't predict
-    lock = app.job_store.jobs[1]["lock"]
-    assert app.job_store.jobs == {
+    lock = connector.jobs[1]["lock"]
+    assert connector.jobs == {
         1: {
             "id": 1,
             "queue_name": "queue",

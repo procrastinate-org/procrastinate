@@ -1,9 +1,7 @@
 import datetime
-from typing import Any, Callable, Dict, Iterable, List, Optional
+from typing import Iterable, Optional
 
-from procrastinate import jobs, sql
-
-SOCKET_TIMEOUT = 5.0  # seconds
+from procrastinate import connector, jobs, sql
 
 
 def get_channel_for_queues(queues: Optional[Iterable[str]] = None) -> Iterable[str]:
@@ -13,37 +11,19 @@ def get_channel_for_queues(queues: Optional[Iterable[str]] = None) -> Iterable[s
         return ["procrastinate_queue#" + queue for queue in queues]
 
 
-class BaseJobStore:
-    json_dumps: Optional[Callable] = None
-    json_loads: Optional[Callable] = None
+class JobStore:
+    def __init__(self, connector: connector.BaseConnector):
+        self.connector = connector
 
     async def wait_for_jobs(self):
-        raise NotImplementedError
+        return await self.connector.wait_for_activity()
 
     # stop, being called in a signal handler, may NOT be an awaitable
     def stop(self):
-        raise NotImplementedError
-
-    async def execute_query(self, query: str, **arguments: Any) -> None:
-        raise NotImplementedError
-
-    async def execute_query_one(self, query: str, **arguments: Any) -> Dict[str, Any]:
-        raise NotImplementedError
-
-    async def execute_query_all(
-        self, query: str, **arguments: Any
-    ) -> List[Dict[str, Any]]:
-        raise NotImplementedError
-
-    async def close_connection(self) -> None:
-        # Implement this in your child class if you need to close the connection
-        pass
-
-    def make_dynamic_query(self, query: str, **identifiers: str) -> str:
-        raise NotImplementedError
+        self.connector.interrupt_wait()
 
     async def defer_job(self, job: jobs.Job) -> int:
-        result = await self.execute_query_one(
+        result = await self.connector.execute_query_one(
             query=sql.queries["defer_job"],
             task_name=job.task_name,
             lock=job.lock,
@@ -55,7 +35,7 @@ class BaseJobStore:
 
     async def fetch_job(self, queues: Optional[Iterable[str]]) -> Optional[jobs.Job]:
 
-        row = await self.execute_query_one(
+        row = await self.connector.execute_query_one(
             query=sql.queries["fetch_job"], queues=queues
         )
 
@@ -73,7 +53,7 @@ class BaseJobStore:
         task_name: Optional[str] = None,
     ) -> Iterable[jobs.Job]:
 
-        rows = await self.execute_query_all(
+        rows = await self.connector.execute_query_all(
             query=sql.queries["select_stalled_jobs"],
             nb_seconds=nb_seconds,
             queue=queue,
@@ -93,7 +73,7 @@ class BaseJobStore:
         else:
             statuses = [jobs.Status.SUCCEEDED.value, jobs.Status.FAILED.value]
 
-        await self.execute_query(
+        await self.connector.execute_query(
             query=sql.queries["delete_old_jobs"],
             nb_hours=nb_hours,
             queue=queue,
@@ -107,7 +87,7 @@ class BaseJobStore:
         scheduled_at: Optional[datetime.datetime] = None,
     ) -> None:
         assert job.id  # TODO remove this
-        await self.execute_query(
+        await self.connector.execute_query(
             query=sql.queries["finish_job"],
             job_id=job.id,
             status=status.value,
@@ -117,8 +97,8 @@ class BaseJobStore:
     async def listen_for_jobs(self, queues: Optional[Iterable[str]] = None) -> None:
         for channel_name in get_channel_for_queues(queues=queues):
 
-            await self.execute_query(
-                query=self.make_dynamic_query(
+            await self.connector.execute_query(
+                query=self.connector.make_dynamic_query(
                     query=sql.queries["listen_queue"], channel_name=channel_name
                 )
             )
