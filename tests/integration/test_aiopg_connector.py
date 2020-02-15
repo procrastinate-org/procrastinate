@@ -1,3 +1,4 @@
+import asyncio
 import functools
 import json
 
@@ -35,6 +36,19 @@ async def test_get_connection_json_loads(pg_connector_factory, mocker):
     connector = pg_connector_factory(json_loads=json_loads)
     async with await connector._get_connection() as connection:
         register_default_jsonb.assert_called_with(connection.raw, loads=json_loads)
+
+
+async def test_get_connection_simultaneous(pg_connector):
+    # two coroutines doing _get_connection simultaneously
+    #
+    # the test fails because two separate connections are created if no lock is
+    # used in _get_connection
+
+    async def get_connection():
+        return await pg_connector._get_connection()
+
+    connections = await asyncio.gather(get_connection(), get_connection())
+    assert connections[0] is connections[1]
 
 
 @pytest.mark.parametrize(
@@ -81,6 +95,22 @@ async def test_execute_query(pg_connector):
         "SELECT obj_description('public.procrastinate_jobs'::regclass)"
     )
     assert result == [{"obj_description": "foo"}]
+
+
+@pytest.mark.filterwarnings("error::ResourceWarning")
+async def test_execute_query_simultaneous(pg_connector):
+    # two coroutines doing execute_query simulteneously
+    #
+    # the test fails because of a ResourceWarning error if the lock is not hold
+    # while creating the cursor on the connection
+
+    async def query():
+        await pg_connector.execute_query("SELECT 1")
+
+    try:
+        await asyncio.gather(query(), query())
+    except ResourceWarning:
+        pytest.fail("ResourceWarning")
 
 
 async def test_close_connection(pg_connector):
