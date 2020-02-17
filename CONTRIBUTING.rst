@@ -239,3 +239,16 @@ section. If you need information on how to work with asynchronous Python, check 
 
 - The official documentation: https://docs.python.org/3/library/asyncio.html
 - A more accessible guide by Brad Solomon: https://realpython.com/async-io-python/
+
+
+Release a new version
+---------------------
+
+Prepare a changelog in a drafted GitHub release, and then release it, with a tag.
+That's it.
+
+The tag will be seen by travis, that will then create a release (using the tag as
+version number, thanks to our setup.py), and push it to PyPI (using the new API
+tokens and an environment variable). That build should also trigger a ReadTheDocs
+build, which will read GitHub releases (thanks to our ``changelog`` extension) and
+write a proper changelog in the published documentation.

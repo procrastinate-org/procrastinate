@@ -46,3 +46,11 @@ script:
 
 after_success:
 - codecov
+
+deploy:
+  provider: pypi
+  user: __token__
+  password: $PYPI_TOKEN
+  on:
+    branch: master
+    tags: true
