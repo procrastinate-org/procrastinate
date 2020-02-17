@@ -47,6 +47,7 @@ class PostgresConnector(connector.BaseConnector):
         kwargs["dsn"] = dsn
         self._connection_parameters = kwargs
         self._connection: Optional[aiopg.Connection] = None
+        self._lock = asyncio.Lock()
         self.socket_timeout = socket_timeout
         self.json_dumps = json_dumps
         self.json_loads = json_loads
@@ -66,45 +67,51 @@ class PostgresConnector(connector.BaseConnector):
         }
 
     async def _get_connection(self) -> aiopg.Connection:
+        # fast path
         if self._connection and not self._connection.closed:
             return self._connection
-
-        # tell aiopg not to register adapters for hstore & json by default, as
-        # those are registered at the module level and could overwrite previously
-        # defined adapters
-        kwargs = self._connection_parameters
-        kwargs.setdefault("enable_json", False)
-        kwargs.setdefault("enable_hstore", False)
-        kwargs.setdefault("enable_uuid", False)
-        conn = await aiopg.connect(**kwargs)
-        if self.json_loads:
-            psycopg2.extras.register_default_jsonb(conn.raw, loads=self.json_loads)
-        self._connection = conn
-        return conn
+        async with self._lock:
+            if self._connection and not self._connection.closed:
+                return self._connection
+            # tell aiopg not to register adapters for hstore & json by default, as
+            # those are registered at the module level and could overwrite previously
+            # defined adapters
+            kwargs = self._connection_parameters
+            kwargs.setdefault("enable_json", False)
+            kwargs.setdefault("enable_hstore", False)
+            kwargs.setdefault("enable_uuid", False)
+            conn = await aiopg.connect(**kwargs)
+            if self.json_loads:
+                psycopg2.extras.register_default_jsonb(conn.raw, loads=self.json_loads)
+            self._connection = conn
+            return conn
 
     async def execute_query(self, query: str, **arguments: Any) -> None:
         connection = await self._get_connection()
-        # aiopg can work with psycopg2's cursor class
-        async with connection.cursor(cursor_factory=RealDictCursor) as cursor:
-            await cursor.execute(query, self._wrap_json(arguments))
+        async with self._lock:
+            # aiopg can work with psycopg2's cursor class
+            async with connection.cursor(cursor_factory=RealDictCursor) as cursor:
+                await cursor.execute(query, self._wrap_json(arguments))
 
     async def execute_query_one(self, query: str, **arguments: Any) -> Dict[str, Any]:
         connection = await self._get_connection()
-        # aiopg can work with psycopg2's cursor class
-        async with connection.cursor(cursor_factory=RealDictCursor) as cursor:
-            await cursor.execute(query, self._wrap_json(arguments))
+        async with self._lock:
+            # aiopg can work with psycopg2's cursor class
+            async with connection.cursor(cursor_factory=RealDictCursor) as cursor:
+                await cursor.execute(query, self._wrap_json(arguments))
 
-            return await cursor.fetchone()
+                return await cursor.fetchone()
 
     async def execute_query_all(
         self, query: str, **arguments: Any
     ) -> List[Dict[str, Any]]:
         connection = await self._get_connection()
-        # aiopg can work with psycopg2's cursor class
-        async with connection.cursor(cursor_factory=RealDictCursor) as cursor:
-            await cursor.execute(query, self._wrap_json(arguments))
+        async with self._lock:
+            # aiopg can work with psycopg2's cursor class
+            async with connection.cursor(cursor_factory=RealDictCursor) as cursor:
+                await cursor.execute(query, self._wrap_json(arguments))
 
-            return await cursor.fetchall()
+                return await cursor.fetchall()
 
     def make_dynamic_query(self, query: str, **identifiers: str) -> str:
         return psycopg2.sql.SQL(query).format(
