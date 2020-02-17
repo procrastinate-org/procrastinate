@@ -17,16 +17,6 @@ class ChangelogDirective(Directive):
     add_index = False
 
     def run(self) -> Iterable[nodes.Node]:
-        # sett = self.state.document.settings
-        # env = self.state.document.settings.env
-
-        # gives you access to the parameter stored
-        # in the main configuration file (conf.py)
-        # config = env.config
-
-        # # we create a title and we add it to section
-        # section += nodes.title("bla")
-
         config = self.state.document.settings.env.config
         token = config.changelog_github_token
         if not token:
@@ -67,7 +57,7 @@ class ChangelogDirective(Directive):
                 f"(https://github.com/:owner/:repo/releases). Received {url}"
             )
 
-        return stripped_url[len(prefix) : -len(postfix)]  # noqa
+        return stripped_url[len(prefix) : -len(postfix)]
 
     def extract_pypi_package_name(self, url: str) -> str:
         stripped_url = url.rstrip("/")
