@@ -53,9 +53,8 @@ class PostgresConnector(connector.BaseConnector):
         self.json_loads = json_loads
 
     async def close_connection(self) -> None:
-        if not self._connection:
+        if not self._connection or self._connection.closed:
             return
-
         await self._connection.close()
 
     def _wrap_json(self, arguments: Dict[str, Any]):
