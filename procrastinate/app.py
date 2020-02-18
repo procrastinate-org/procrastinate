@@ -149,7 +149,7 @@ class App:
         self.tasks[task.name] = task
         if task.queue not in self.queues:
             logger.debug(
-                "Registering queue",
+                f"Registering queue {task.queue}",
                 extra={"action": "register_queue", "queue": task.queue},
             )
             self.queues.add(task.queue)
