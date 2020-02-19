@@ -39,9 +39,10 @@ def click_set_verbosity(ctx: click.Context, param: click.Parameter, value: int) 
 def set_verbosity(verbosity: int) -> None:
     level = get_log_level(verbosity=verbosity)
     logging.basicConfig(level=level)
+    level_name = logging.getLevelName(level)
     logger.info(
-        f"Log level set to {logging.getLevelName(level)}",
-        extra={"action": "set_log_level", "value": logging.getLevelName(level)},
+        f"Log level set to {level_name}",
+        extra={"action": "set_log_level", "value": level_name},
     )
 
 

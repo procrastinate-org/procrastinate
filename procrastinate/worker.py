@@ -34,11 +34,17 @@ class Worker:
             self.logger = logger
 
     async def run(self) -> None:
-        await self.job_store.listen_for_jobs(queues=self.queues)
+        queues = self.queues
+        await self.job_store.listen_for_jobs(queues=queues)
 
-        self.logger.debug(
-            f"Log start one queues {self.queues}",
-            extra={"action": "start_log_on_queue", "queues": str(self.queues)},
+        if queues:
+            queue_names = f"queues {', '.join(queues)}"
+        else:
+            queue_names = "all queues"
+
+        self.logger.info(
+            f"Starting worker on queues {queue_names}",
+            extra={"action": "start_worker", "queues": queues},
         )
         with signals.on_stop(self.stop):
             while not self.stop_requested:
@@ -49,18 +55,15 @@ class Worker:
                     break
                 except exceptions.NoMoreJobs:
                     self.logger.debug(
-                        f"Waiting for new jobs on queues {self.queues}",
-                        extra={
-                            "action": "waiting_for_jobs",
-                            "queues": str(self.queues),
-                        },
+                        f"Waiting for new jobs on queues {queue_names}",
+                        extra={"action": "waiting_for_jobs", "queues": queues},
                     )
 
                 await self.job_store.wait_for_jobs()
 
-        self.logger.debug(
-            f"Stopped worker on {self.queues}",
-            extra={"action": "stopped_worker", "queues": str(self.queues)},
+        self.logger.info(
+            f"Stopped worker on {queue_names}",
+            extra={"action": "stop_worker", "queues": queues},
         )
 
     async def process_jobs_once(self) -> NoReturn:
@@ -111,9 +114,7 @@ class Worker:
 
     def load_task(self, task_name) -> tasks.Task:
         if task_name in self.known_missing_tasks:
-            raise exceptions.TaskNotFound(
-                f"Cannot run job for task {task_name} previsouly not found"
-            )
+            raise exceptions.TaskNotFound(f"Cancelling job for {task_name} (not found)")
 
         try:
             # Simple case: the task is already known
@@ -188,7 +189,7 @@ class Worker:
             extra = {"action": log_action, **log_context, "result": task_result}
             ftext = (
                 f"{log_title} - Job {job_context['call_string']} "
-                f"in {job_context['duration_seconds']:.3f}"
+                f"in {job_context['duration_seconds']:.3f} s"
             )
             self.logger.log(log_level, ftext, extra=extra, exc_info=exc_info)
 
