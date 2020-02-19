@@ -147,12 +147,13 @@ class App:
 
     def _register(self, task: "tasks.Task") -> None:
         self.tasks[task.name] = task
-        if task.queue not in self.queues:
+        queue = task.queue
+        if queue not in self.queues:
             logger.debug(
-                f"Registering queue {task.queue}",
-                extra={"action": "register_queue", "queue": task.queue},
+                f"Registering queue {queue}",
+                extra={"action": "register_queue", "queue": queue},
             )
-            self.queues.add(task.queue)
+            self.queues.add(queue)
 
     def _register_builtin_tasks(self) -> None:
         builtin_tasks.register_builtin_tasks(self)
