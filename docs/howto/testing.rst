@@ -9,9 +9,8 @@ To use it, you can do::
 
     app = procrastinate.App(connector=procrastinate.testing.InMemoryConnector())
 
-    # Run the jobs your tests created, then stop
-    # the worker:
-    app.run_worker(only_once=True)
+    # Run the jobs your tests created, then stop the worker
+    app.run_worker(wait=False)
 
     # See the jobs created:
     print(app.connector.jobs)

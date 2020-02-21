@@ -28,7 +28,7 @@ async def test_defer(pg_app):
     await pg_app.configure_task(name="sum_task").defer_async(a=5, b=6)
     await product_task.defer_async(a=3, b=4)
 
-    await pg_app.run_worker_async(queues=["default"], only_once=True)
+    await pg_app.run_worker_async(queues=["default"], wait=False)
 
     assert sum_results == [3, 7, 11]
     assert product_results == [12]
