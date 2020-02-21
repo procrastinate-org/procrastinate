@@ -5,9 +5,9 @@ from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, Optional, Set
 
 from procrastinate import builtin_tasks
 from procrastinate import connector as connector_module
-from procrastinate import exceptions, healthchecks, jobs, migration
+from procrastinate import exceptions, healthchecks, jobs
 from procrastinate import retry as retry_module
-from procrastinate import store, utils
+from procrastinate import schema, store, utils
 
 if TYPE_CHECKING:
     from procrastinate import tasks, worker
@@ -231,8 +231,8 @@ class App:
             await worker.run()
 
     @property
-    def migrator(self) -> migration.Migrator:
-        return migration.Migrator(connector=self.connector)
+    def schema_manager(self) -> schema.SchemaManager:
+        return schema.SchemaManager(connector=self.connector)
 
     @property
     def health_check_runner(self) -> healthchecks.HealthCheckRunner:

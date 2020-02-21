@@ -10,7 +10,7 @@ from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 
 from procrastinate import aiopg_connector
 from procrastinate import app as app_module
-from procrastinate import jobs, migration, testing
+from procrastinate import jobs, schema, testing
 
 # Just ensuring the tests are not polluted by environment
 for key in os.environ:
@@ -38,8 +38,8 @@ def setup_db():
             _execute(cursor, "CREATE DATABASE {}", "procrastinate_test_template")
 
     connector = aiopg_connector.PostgresConnector(dbname="procrastinate_test_template")
-    migrator = migration.Migrator(connector=connector)
-    migrator.migrate()
+    schema_manager = schema.SchemaManager(connector=connector)
+    schema_manager.apply_schema()
     # We need to close the psycopg2 underlying connection synchronously
     connector._connection._conn.close()
 

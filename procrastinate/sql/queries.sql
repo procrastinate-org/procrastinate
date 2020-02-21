@@ -56,14 +56,14 @@ LISTEN {channel_name};
 SELECT TRUE as check;
 
 -- get_latest_version --
--- Order versioning by last applied and not by semantic versioning
+-- deprecated
 SELECT version FROM procrastinate_version ORDER BY applied_at DESC LIMIT 1;
 
 -- count_jobs_status --
 -- Count the number of jobs per status
 SELECT count(*) AS count, status FROM procrastinate_jobs GROUP BY status;
 
--- set_migration_version --
--- Set the last migration version applied
+-- set_schema_version --
+-- deprecated
 INSERT INTO procrastinate_version
     VALUES (DEFAULT, %(version)s, CONCAT('procrastinate version ', %(version)s), DEFAULT);

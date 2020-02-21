@@ -54,3 +54,11 @@ App (or Application) (see :py:class:`procrastinate.App`)
 Job Store
     The job store responsibility is to store and retrieve jobs. In Procrastinate, the
     job store will store your jobs in your PostgreSQL database.
+
+.. _glossary_schema:
+
+Schema
+    The schema designates all the tables, relations, indexes, procedures, etc. in the
+    database. Applying the schema means installing all those objects in the database.
+    A evolution in the schema (modifying the table structure, or the procedures) is
+    called a migration.

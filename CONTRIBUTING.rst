@@ -214,13 +214,13 @@ Migrations
 Create database migration scripts
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-If you make changes to the database structure (``procrastinate/sql/structure.sql``) you
+If you make changes to the database structure (``procrastinate/sql/schema.sql``) you
 also need to create a corresponding migration script in the
 ``procrastinate/sql/migrations`` directory.
 
 For example, let's say you want to add column named ``extra`` to the
 ``procrastinate_jobs`` table. You would obviously edit
-``procrastinate/sql/structure.sql`` and change the definition of the table to add that
+``procrastinate/sql/schema.sql`` and change the definition of the table to add that
 column. But you'd also need to create a migration script, whose content would look like
 this:
 
@@ -253,8 +253,8 @@ For example, let's say the ``migrations`` directory includes migration scripts n
 ``1.0.0`` and ``1.0.1``, and you're fixing a bug in an SQL function. You will then use
 number ``1.0.2`` for your migration script.
 
-Finally, don't forget to update the version number in ``migration.py`` and at the top
-of ``structure.sql``.
+Finally, don't forget to update the version number in ``schema.py`` and at the top
+of ``schema.sql``.
 
 Find a given schema version
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -268,9 +268,9 @@ To extract the full SQL schema at a given schema version, do:
         git log \
             --pretty=format:"%h" \
             -S "Schema version $VERSION" \
-            -- procrastinate/sql/structure.sql \
+            -- procrastinate/sql/schema.sql \
         | tail -1 \
-    ):procrastinate/sql/structure.sql
+    ):procrastinate/sql/schema.sql
 
 
 Try our demo
@@ -283,7 +283,7 @@ Launch a worker with:
 .. code-block:: console
 
     (venv) $ export PROCRASTINATE_APP=procrastinate_demo.app.app
-    (venv) $ procrastinate migrate
+    (venv) $ procrastinate schema --apply
     (venv) $ procrastinate worker
 
 Schedule some tasks with:
