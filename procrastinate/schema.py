@@ -23,14 +23,12 @@ class SchemaManager:
 
     @staticmethod
     def get_version():
-        version_ = pkg_resources.parse_version("1.0.0")
-        for script in migrations_dir.glob("*.sql"):
-            m = migration_script_pattern.match(script.name)
-            if m:
-                v = pkg_resources.parse_version(m.group(1))
-                if v > version_:
-                    version_ = v
-        return str(version_)
+        matches = (
+            migration_script_pattern.match(script.name)
+            for script in migrations_dir.glob("*.sql")
+        )
+        versions = (match.group(1) for match in matches if match)
+        return str(max(versions, key=pkg_resources.parse_version))
 
     async def apply_schema_async(self) -> None:
         queries = self.get_schema()
