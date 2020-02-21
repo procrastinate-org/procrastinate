@@ -25,7 +25,7 @@ json_dumps = functools.partial(json.dumps, default=encode)
 json_loads = functools.partial(json.loads, object_hook=decode)
 
 app = procrastinate.App(
-    connector=procrastinate.PostgresConnector(
+    connector=procrastinate.PostgresConnector.create_with_pool(  # type: ignore
         json_dumps=json_dumps, json_loads=json_loads
     )
 )
