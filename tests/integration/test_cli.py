@@ -55,7 +55,7 @@ def test_migrate(entrypoint, click_app, mocker, job_store):
 def test_migrate_text(entrypoint):
     result = entrypoint("migrate --text")
 
-    assert result.output.startswith("CREATE")
+    assert result.output.startswith("-- Schema version ")
     assert result.exit_code == 0
 
 

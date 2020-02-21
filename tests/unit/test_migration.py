@@ -4,7 +4,7 @@ from procrastinate import sql
 
 
 def test_get_migration_queries(app):
-    assert app.migrator.get_migration_queries().startswith("CREATE")
+    assert app.migrator.get_migration_queries().startswith("-- Schema version ")
 
 
 def test_migrate(app, connector):
