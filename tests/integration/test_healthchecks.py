@@ -18,7 +18,8 @@ async def test_check_connection(checker):
 
 
 async def test_get_schema_version(checker):
-    assert await checker.get_schema_version_async() == SchemaManager.version
+    schema_manager = SchemaManager(checker.connector)
+    assert await checker.get_schema_version_async() == schema_manager.version
 
 
 async def test_get_status_count(checker):
