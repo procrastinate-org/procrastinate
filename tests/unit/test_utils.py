@@ -94,3 +94,61 @@ async def test_add_sync_api_does_not_break_original_coroutine():
     await Test().a_async()
 
     assert result == ["a"]
+
+
+@pytest.mark.asyncio
+async def test_add_sync_api_classmethods_async():
+    result = []
+
+    @utils.add_sync_api
+    class Test:
+        @classmethod
+        async def a_async(cls, value):
+            result.extend([cls, value])
+
+    await Test.a_async("async")
+
+    assert result == [Test, "async"]
+
+
+def test_add_sync_api_classmethods_sync():
+    result = []
+
+    @utils.add_sync_api
+    class Test:
+        @classmethod
+        async def a_async(cls, value):
+            result.extend([cls, value])
+
+    Test.a("sync")
+
+    assert result == [Test, "sync"]
+
+
+@pytest.mark.asyncio
+async def test_add_sync_api_staticmethods_async():
+    result = []
+
+    @utils.add_sync_api
+    class Test:
+        @staticmethod
+        async def a_async(value):
+            result.append(value)
+
+    await Test.a_async("async")
+
+    assert result == ["async"]
+
+
+def test_add_sync_api_staticmethods_sync():
+    result = []
+
+    @utils.add_sync_api
+    class Test:
+        @staticmethod
+        async def a_async(value):
+            result.append(value)
+
+    Test.a("sync")
+
+    assert result == ["sync"]
