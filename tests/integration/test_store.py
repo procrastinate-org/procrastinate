@@ -128,11 +128,12 @@ async def test_get_stalled_jobs(get_all, pg_job_store, pg_connector):
     # No started job
     assert await pg_job_store.get_stalled_jobs(nb_seconds=3600) == []
 
-    # We start a job and fake its `started_at`
+    # We start a job and fake its `started` state in the database
     job = await pg_job_store.fetch_job(queues=["queue_a"])
     await pg_connector.execute_query(
-        f"UPDATE procrastinate_jobs SET started_at=NOW() - INTERVAL '30 minutes' "
-        f"WHERE id={job_id}"
+        "INSERT INTO procrastinate_events(job_id, type, at) VALUES "
+        "(%(job_id)s, 'started', NOW() - INTERVAL '30 minutes')",
+        job_id=job_id,
     )
 
     # Nb_seconds parameter
@@ -282,7 +283,7 @@ async def test_delete_old_jobs_parameters(
         )
     )
 
-    # We start a job and fake its `started_at`
+    # We start a job
     job = await pg_job_store.fetch_job(queues=["queue_a"])
     # We finish the job
     await pg_job_store.finish_job(job, status=status)
@@ -315,17 +316,16 @@ async def test_finish_job(get_all, pg_job_store):
     job = await pg_job_store.fetch_job(queues=["queue_a"])
 
     assert await get_all("procrastinate_jobs", "status") == [{"status": "doing"}]
-    started_at = (await get_all("procrastinate_jobs", "started_at"))[0]["started_at"]
+    events = await get_all("procrastinate_events", "type", "at")
+    events_started = list(filter(lambda e: e["type"] == "started", events))
+    assert len(events_started) == 1
+    started_at = events_started[0]["at"]
     assert started_at.date() == datetime.datetime.utcnow().date()
     assert await get_all("procrastinate_jobs", "attempts") == [{"attempts": 0}]
 
     await pg_job_store.finish_job(job=job, status=jobs.Status.SUCCEEDED)
-
-    expected = [{"status": "succeeded", "started_at": started_at, "attempts": 1}]
-    assert (
-        await get_all("procrastinate_jobs", "status", "started_at", "attempts")
-        == expected
-    )
+    expected = [{"status": "succeeded", "attempts": 1}]
+    assert await get_all("procrastinate_jobs", "status", "attempts") == expected
 
 
 async def test_finish_job_retry(get_all, pg_job_store):

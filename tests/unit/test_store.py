@@ -19,7 +19,6 @@ async def test_store_defer(job_store, job_factory, connector):
             "lock": None,
             "queue_name": "queue",
             "scheduled_at": None,
-            "started_at": None,
             "status": "todo",
             "task_name": "bla",
         }
@@ -46,7 +45,7 @@ async def test_get_stalled_jobs_stalled(job_store, job_factory, connector):
     job = job_factory(id=1)
     await job_store.defer_job(job=job)
     await job_store.fetch_job(queues=None)
-    connector.jobs[1]["started_at"] = pendulum.datetime(2000, 1, 1)
+    connector.events[1][-1]["at"] = pendulum.datetime(2000, 1, 1)
     assert await job_store.get_stalled_jobs(nb_seconds=1000) == [job]
 
 

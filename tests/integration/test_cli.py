@@ -146,7 +146,6 @@ def test_defer(entrypoint, click_app, connector):
             "lock": "sherlock",
             "queue_name": "default",
             "scheduled_at": None,
-            "started_at": None,
             "status": "todo",
             "task_name": "hello",
         }
@@ -167,7 +166,6 @@ def test_defer_unknown(entrypoint, click_app, connector):
             "lock": "sherlock",
             "queue_name": "default",
             "scheduled_at": None,
-            "started_at": None,
             "status": "todo",
             "task_name": "hello",
         }

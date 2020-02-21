@@ -16,12 +16,16 @@ SELECT id, task_name, lock, args, scheduled_at, queue_name, attempts
 
 -- select_stalled_jobs --
 -- Get running jobs that started more than a given time ago
-SELECT job.id, task_name, lock, args, scheduled_at, queue_name, attempts
+SELECT job.id, task_name, lock, args, scheduled_at, queue_name, attempts, max(event.at) started_at
     FROM procrastinate_jobs job
-WHERE status = 'doing'
-  AND started_at < NOW() - (%(nb_seconds)s || 'SECOND')::INTERVAL
-  AND (%(queue)s IS NULL OR queue_name = %(queue)s)
-  AND (%(task_name)s IS NULL OR task_name = %(task_name)s)
+    JOIN procrastinate_events event
+      ON event.job_id = job.id
+WHERE event.type = 'started'
+  AND job.status = 'doing'
+  AND event.at < NOW() - (%(nb_seconds)s || 'SECOND')::INTERVAL
+  AND (%(queue)s IS NULL OR job.queue_name = %(queue)s)
+  AND (%(task_name)s IS NULL OR job.task_name = %(task_name)s)
+GROUP BY job.id
 
 -- delete_old_jobs --
 -- Delete jobs that have been in a final state for longer than nb_hours

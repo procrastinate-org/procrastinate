@@ -34,7 +34,6 @@ async def test_task_defer_async(app, connector):
             "args": {"c": 3},
             "status": "todo",
             "scheduled_at": None,
-            "started_at": None,
             "attempts": 0,
         }
     }

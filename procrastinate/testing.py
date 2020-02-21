@@ -86,7 +86,6 @@ class InMemoryConnector(connector.BaseConnector):
             "args": args,
             "status": "todo",
             "scheduled_at": scheduled_at,
-            "started_at": None,
             "attempts": 0,
         }
         self.events[id] = []
@@ -121,7 +120,6 @@ class InMemoryConnector(connector.BaseConnector):
                 and job["lock"] not in self.current_locks
             ):
                 job["status"] = "doing"
-                job["started_at"] = pendulum.now()
                 self.events[job["id"]].append({"type": "started", "at": pendulum.now()})
 
                 return job
@@ -149,7 +147,8 @@ class InMemoryConnector(connector.BaseConnector):
             job
             for job in self.jobs.values()
             if job["status"] == "doing"
-            and job["started_at"] < pendulum.now().subtract(seconds=nb_seconds)
+            and self.events[job["id"]][-1]["at"]
+            < pendulum.now().subtract(seconds=nb_seconds)
             and queue in (job["queue_name"], None)
             and task_name in (job["task_name"], None)
         )
