@@ -15,12 +15,6 @@ class HealthCheckRunner:
         )
         return result["check"]
 
-    async def get_schema_version_async(self) -> str:
-        result = await self.connector.execute_query_one(
-            query=sql.queries["get_latest_version"],
-        )
-        return result["version"]
-
     async def get_status_count_async(self) -> Dict[jobs.Status, int]:
         result = await self.connector.execute_query_all(
             query=sql.queries["count_jobs_status"],

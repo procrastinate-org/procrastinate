@@ -5,7 +5,7 @@ import pkg_resources
 from importlib_resources import read_text
 
 from procrastinate import connector as connector_module
-from procrastinate import sql, utils
+from procrastinate import utils
 
 migrations_dir = pathlib.Path(__file__).parent / "sql" / "migrations"
 migration_script_pattern = re.compile(r"^delta_(\d+\.\d+\.\d+)_*\w*\.sql")
@@ -33,6 +33,3 @@ class SchemaManager:
     async def apply_schema_async(self) -> None:
         queries = self.get_schema()
         await self.connector.execute_query(query=queries)
-        await self.connector.execute_query(
-            query=sql.queries["set_schema_version"], version=self.get_version(),
-        )
