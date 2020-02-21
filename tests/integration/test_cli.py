@@ -1,9 +1,7 @@
-from collections import defaultdict
-
 import pytest
 
 from procrastinate import __version__, cli, jobs
-from procrastinate.migration import Migrator
+from procrastinate.schema import SchemaManager
 
 
 @pytest.fixture
@@ -41,19 +39,17 @@ def test_worker(entrypoint, click_app, mocker):
     click_app.run_worker.assert_called_once_with(queues=["a", "b"], name="w1")
 
 
-def test_migrate(entrypoint, click_app, mocker, job_store):
-    job_store.reverse_queries = defaultdict(lambda: "migrate")
+def test_schema_apply(entrypoint, click_app, mocker, job_store):
+    apply_schema = mocker.patch("procrastinate.schema.SchemaManager.apply_schema")
+    result = entrypoint("-a yay schema --apply")
 
-    migrate = mocker.patch("procrastinate.migration.Migrator.migrate")
-    result = entrypoint("-a yay migrate")
-
-    assert result.output.strip() == "Launching migrations\nDone"
+    assert result.output.strip() == "Applying schema\nDone"
     assert result.exit_code == 0
-    migrate.assert_called_once_with()
+    apply_schema.assert_called_once_with()
 
 
-def test_migrate_text(entrypoint):
-    result = entrypoint("migrate --text")
+def test_schema_read(entrypoint):
+    result = entrypoint("schema --read")
 
     assert result.output.startswith("-- Schema version ")
     assert result.exit_code == 0
@@ -67,7 +63,7 @@ def test_healthchecks(entrypoint, click_app, mocker):
     check_version = mocker.patch(
         "procrastinate.healthchecks.HealthCheckRunner.get_schema_version"
     )
-    check_version.return_value = Migrator.version
+    check_version.return_value = SchemaManager.version
     count_jobs = mocker.patch(
         "procrastinate.healthchecks.HealthCheckRunner.get_status_count"
     )
@@ -116,14 +112,14 @@ def test_healthchecks_bad_schema_version(entrypoint, click_app, mocker):
 
     result = entrypoint("-a yay healthchecks")
 
-    assert "There are migrations to apply" in result.output
+    assert "There are schema migrations to apply" in result.output
     check_db.assert_called_once_with()
     check_version.called_once_with()
     count_jobs.assert_not_called()
 
 
 def test_no_app(entrypoint, mocker):
-    result = entrypoint("migrate")
+    result = entrypoint("schema --apply")
     assert result.exit_code != 0
     assert "Missing app" in result.output
 

@@ -261,9 +261,9 @@ async def test_wait_for_activity(connector):
     await connector.wait_for_activity()
 
 
-def test_migrate_run(connector):
+def test_apply_schema_run(connector):
     # If we don't crash, it's enough
-    connector.migrate_run()
+    connector.apply_schema_run()
 
 
 def test_stop(connector):

@@ -3,7 +3,7 @@ import pytest
 
 from procrastinate import aiopg_connector, jobs
 from procrastinate.healthchecks import HealthCheckRunner
-from procrastinate.migration import Migrator
+from procrastinate.schema import SchemaManager
 
 pytestmark = pytest.mark.asyncio
 
@@ -18,7 +18,7 @@ async def test_check_connection(checker):
 
 
 async def test_get_schema_version(checker):
-    assert await checker.get_schema_version_async() == Migrator.version
+    assert await checker.get_schema_version_async() == SchemaManager.version
 
 
 async def test_get_status_count(checker):

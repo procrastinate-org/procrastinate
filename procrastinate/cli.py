@@ -10,7 +10,7 @@ import pendulum
 
 import procrastinate
 from procrastinate import connector, exceptions, jobs, types
-from procrastinate.migration import Migrator
+from procrastinate.schema import SchemaManager
 
 logger = logging.getLogger(__name__)
 
@@ -246,21 +246,23 @@ def configure_job(
 @click.pass_obj
 @handle_errors()
 @click.option(
-    "--run/--text",
+    "--apply/--read",
     default=True,  # a.k.a run
-    help="Output the migration SQL as *text*, or *run* it on the DB directly (default)",
+    help="*Read* the schema SQL and output it, or *apply* it to the DB directly"
+    " (default)",
 )
-def migrate(app: procrastinate.App, run: bool):
+def schema(app: procrastinate.App, apply: bool):
     """
-    Run database migrations and prepare the database.
+    Apply SQL schema to the empty database. This won't work if the schema has already
+    been applied.
     """
-    migrator = app.migrator
-    if run:
-        click.echo("Launching migrations")
-        migrator.migrate()  # type: ignore
+    schema_manager = app.schema_manager
+    if apply:
+        click.echo("Applying schema")
+        schema_manager.apply_schema()  # type: ignore
         click.echo("Done")
     else:
-        click.echo(migrator.get_migration_queries(), nl=False)
+        click.echo(schema_manager.get_schema(), nl=False)
 
 
 @cli.command()
@@ -277,14 +279,15 @@ def healthchecks(app: procrastinate.App):
         return  # No need to go further
     click.echo("DB connection: OK")
 
-    schema_version = health_check.get_schema_version()  # type: ignore
-    migration_version = Migrator.version
-    schema_ok = schema_version == migration_version
+    db_schema_version = health_check.get_schema_version()  # type: ignore
+    file_schema_version = SchemaManager.version
+    schema_ok = db_schema_version == file_schema_version
     if schema_ok:
-        click.echo(f"DB schema is up-to-date ({schema_version})")
+        click.echo(f"DB schema is up-to-date ({db_schema_version})")
     else:
         click.echo(
-            f"There are migrations to apply! {schema_version} => {migration_version}"
+            "There are schema migrations to apply! "
+            f"{db_schema_version} => {file_schema_version}"
         )
         return  # No need to go further
 

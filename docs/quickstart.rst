@@ -54,7 +54,7 @@ The application will be the entry point for both:
 
 - Declaring tasks (a.k.a job templates) to be launched by Procrastinate,
 - Launching the worker that will consume the jobs created from those tasks.
-- DB migrations
+- Applying Database schema
 
 Prepare the database
 --------------------
@@ -64,7 +64,7 @@ Install the PostgreSQL structure procrastinate needs in your database with:
 .. code-block:: console
 
     (venv) $ export PYTHONPATH=.  # required for procrastinate to find "tutorial.app"
-    (venv) $ procrastinate --app=tutorial.app migrate
+    (venv) $ procrastinate --app=tutorial.app schema --apply
 
 .. note::
 

@@ -4,7 +4,7 @@ Use the command line
 Procrastinate installs a command-line tool, which allows to do
 some operations:
 
-- Prepare your database for procrastinate (run the database migrations)
+- Prepare your database for procrastinate (apply the database schema)
 - Launch a worker
 - Defer a task
 - ...

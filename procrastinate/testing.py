@@ -4,7 +4,7 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 import pendulum
 
-from procrastinate import connector, sql
+from procrastinate import connector, schema, sql
 
 JobRow = Dict[str, Any]
 EventRow = Dict[str, Any]
@@ -28,6 +28,7 @@ class InMemoryConnector(connector.BaseConnector):
         """
         self.reset()
         self.reverse_queries = {value: key for key, value in sql.queries.items()}
+        self.reverse_queries[schema.SchemaManager.get_schema()] = "apply_schema"
 
     def reset(self):
         """
@@ -169,5 +170,5 @@ class InMemoryConnector(connector.BaseConnector):
     def listen_for_jobs_run(self) -> None:
         pass
 
-    def migrate_run(self) -> None:
+    def apply_schema_run(self) -> None:
         pass
