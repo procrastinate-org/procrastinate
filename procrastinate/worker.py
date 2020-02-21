@@ -17,7 +17,6 @@ class Worker:
         queues: Optional[Iterable[str]] = None,
         import_paths: Optional[Iterable[str]] = None,
         name: Optional[str] = None,
-        worker_count: int = 1,
         timeout: float = WORKER_TIMEOUT,
     ):
         self.app = app
@@ -28,6 +27,7 @@ class Worker:
         # Handling the info about the currently running task.
         self.known_missing_tasks: Set[str] = set()
 
+        # TODO: should be moved to the app
         self.app.perform_import_paths()
         self.job_store = self.app.job_store
 
