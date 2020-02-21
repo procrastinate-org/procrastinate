@@ -1,4 +1,3 @@
-import asyncio
 import logging
 import warnings
 from typing import Any, Callable, Dict, List, Optional
@@ -7,29 +6,75 @@ import aiopg
 import psycopg2.sql
 from psycopg2.extras import Json, RealDictCursor
 
-from procrastinate import connector
+from procrastinate import connector, utils
 
 logger = logging.getLogger(__name__)
 
 
+@utils.add_sync_api
 class PostgresConnector(connector.BaseConnector):
     def __init__(
         self,
-        dsn="",
+        pool: aiopg.Pool,
         socket_timeout: float = connector.SOCKET_TIMEOUT,
         json_dumps: Optional[Callable] = None,
         json_loads: Optional[Callable] = None,
-        **kwargs: Any,
     ):
         """
-        All parameters except ``socket_timeout``, ``json_dumps`` and ``json_loads``
-        are passed to :py:func:`aiopg.connect` (see the documentation__)
+        The pool connections are expected to have jsonb adapters.
 
-        .. __: https://aiopg.readthedocs.io/en/stable/core.html#connection
-        .. _psycopg2 doc: https://www.psycopg.org/docs/extras.html#json-adaptation
+        See parameter details in :py:func:`PostgresConnector.create_with_pool`.
 
         Parameters
         ----------
+        pool:
+            An aiopg pool, either externally configured or passed by
+            :py:func:`PostgresConnector.create_with_pool`.
+
+        """
+        self._pool = pool
+        self.socket_timeout = socket_timeout
+        self.json_dumps = json_dumps
+        self.json_loads = json_loads
+
+    async def close_async(self) -> None:
+        """
+        Closes the pool and awaits all connections to be released.
+        """
+        self._pool.close()
+        await self._pool.wait_closed()
+
+    def _wrap_json(self, arguments: Dict[str, Any]):
+        return {
+            key: Json(value, dumps=self.json_dumps)
+            if isinstance(value, dict)
+            else value
+            for key, value in arguments.items()
+        }
+
+    @classmethod
+    async def create_with_pool_async(
+        cls,
+        socket_timeout: float = connector.SOCKET_TIMEOUT,
+        json_dumps: Optional[Callable] = None,
+        json_loads: Optional[Callable] = None,
+        **kwargs,
+    ) -> aiopg.Pool:
+        """
+        Creates a connector, and its connection pool, using the provided parameters.
+        All additional parameters will be used to create a
+        :py:func:`aiopg.Pool` (see the documentation__), sometimes with a different
+        default value.
+
+        When using this method, you explicitely take the responsibility for opening the
+        pool. It's your responsibility to call
+        :py:func:`procrastinate.PostgresConnector.close` or
+        :py:func:`procrastinate.PostgresConnector.close_async` to close connections
+        when your process ends.
+
+        .. __: https://aiopg.readthedocs.io/en/stable/core.html#aiopg.create_pool
+        .. _psycopg2 doc: https://www.psycopg.org/docs/extras.html#json-adaptation
+
         socket_timeout:
             This parameter should generally not be changed.
             It indicates the maximum duration (in seconds) procrastinate workers wait
@@ -41,76 +86,71 @@ class PostgresConnector(connector.BaseConnector):
             the function used by psycopg2. See the `psycopg2 doc`_.
         json_loads:
             The JSON loads function to use for deserializing job arguments. Defaults
-            to the function used by psycopg2. See the `psycopg2 doc`_.
-
+            to the function used by psycopg2. See the `psycopg2 doc`_. Unused if pool
+            is passed.
+        dsn (Optional[str]):
+            Passed to aiopg. Default is "" instead of None, which means if no argument
+            is passed, it will connect to localhost:5432 instead of a Unix-domain
+            local socket file.
+        enable_json (bool):
+            Passed to aiopg. Default is False instead of True to avoid messing with
+            the global state.
+        enable_hstore (bool):
+            Passed to aiopg. Default is False instead of True to avoid messing with
+            the global state.
+        enable_uuid (bool):
+            Passed to aiopg. Default is False instead of True to avoid messing with
+            the global state.
+        cursor_factory (psycopg2.extensions.cursor):
+            Passed to aiopg. Default is :py:class:`psycopg2.extras.RealDictCursor`
+            instead of standard cursor. There is no identified use case for changing
+            this.
         """
-        kwargs["dsn"] = dsn
-        self._connection_parameters = kwargs
-        self._connection: Optional[aiopg.Connection] = None
-        self._lock = asyncio.Lock()
-        self.socket_timeout = socket_timeout
-        self.json_dumps = json_dumps
-        self.json_loads = json_loads
+        base_on_connect = kwargs.pop("on_connect", None)
 
-    async def close_connection(self) -> None:
-        if not self._connection or self._connection.closed:
-            return
-        await self._connection.close()
+        def on_connect(connection):
+            if base_on_connect:
+                base_on_connect(connection)
+            if json_loads:
+                psycopg2.extras.register_default_jsonb(connection.raw, loads=json_loads)
 
-    def _wrap_json(self, arguments: Dict[str, Any]):
-        return {
-            key: Json(value, dumps=self.json_dumps)
-            if isinstance(value, dict)
-            else value
-            for key, value in arguments.items()
+        defaults = {
+            "dsn": "",
+            "enable_json": False,
+            "enable_hstore": False,
+            "enable_uuid": False,
+            "on_connect": on_connect,
+            "cursor_factory": RealDictCursor,
         }
+        defaults.update(kwargs)
 
-    async def _get_connection(self) -> aiopg.Connection:
-        # fast path
-        if self._connection and not self._connection.closed:
-            return self._connection
-        async with self._lock:
-            if self._connection and not self._connection.closed:
-                return self._connection
-            # tell aiopg not to register adapters for hstore & json by default, as
-            # those are registered at the module level and could overwrite previously
-            # defined adapters
-            kwargs = self._connection_parameters
-            kwargs.setdefault("enable_json", False)
-            kwargs.setdefault("enable_hstore", False)
-            kwargs.setdefault("enable_uuid", False)
-            conn = await aiopg.connect(**kwargs)
-            if self.json_loads:
-                psycopg2.extras.register_default_jsonb(conn.raw, loads=self.json_loads)
-            self._connection = conn
-            return conn
+        pool = await aiopg.create_pool(**defaults)
+
+        return cls(
+            pool=pool,
+            socket_timeout=socket_timeout,
+            json_dumps=json_dumps,
+            json_loads=json_loads,
+        )
 
     async def execute_query(self, query: str, **arguments: Any) -> None:
-        connection = await self._get_connection()
-        async with self._lock:
-            # aiopg can work with psycopg2's cursor class
-            async with connection.cursor(cursor_factory=RealDictCursor) as cursor:
-                await cursor.execute(query, self._wrap_json(arguments))
+        with await self._pool.cursor() as cursor:
+            await cursor.execute(query, self._wrap_json(arguments))
 
     async def execute_query_one(self, query: str, **arguments: Any) -> Dict[str, Any]:
-        connection = await self._get_connection()
-        async with self._lock:
-            # aiopg can work with psycopg2's cursor class
-            async with connection.cursor(cursor_factory=RealDictCursor) as cursor:
-                await cursor.execute(query, self._wrap_json(arguments))
+        with await self._pool.cursor() as cursor:
+            await cursor.execute(query, self._wrap_json(arguments))
 
-                return await cursor.fetchone()
+            return await cursor.fetchone()
 
     async def execute_query_all(
         self, query: str, **arguments: Any
     ) -> List[Dict[str, Any]]:
-        connection = await self._get_connection()
-        async with self._lock:
-            # aiopg can work with psycopg2's cursor class
-            async with connection.cursor(cursor_factory=RealDictCursor) as cursor:
-                await cursor.execute(query, self._wrap_json(arguments))
 
-                return await cursor.fetchall()
+        with await self._pool.cursor() as cursor:
+            await cursor.execute(query, self._wrap_json(arguments))
+
+            return await cursor.fetchall()
 
     def make_dynamic_query(self, query: str, **identifiers: str) -> str:
         return psycopg2.sql.SQL(query).format(
@@ -118,23 +158,6 @@ class PostgresConnector(connector.BaseConnector):
                 key: psycopg2.sql.Identifier(value)
                 for key, value in identifiers.items()
             }
-        )
-
-    async def wait_for_activity(self):
-        connection = await self._get_connection()
-        try:
-            await asyncio.wait_for(
-                connection.notifies.get(), timeout=self.socket_timeout
-            )
-        except asyncio.TimeoutError:
-            pass
-
-    # This can be called from a signal handler, better not do async stuff
-    def interrupt_wait(self):
-        if not self._connection or self._connection.closed:
-            return
-        asyncio.get_event_loop().call_soon_threadsafe(
-            self._connection.notifies.put_nowait, "s"
         )
 
 

@@ -7,7 +7,7 @@ class BaseConnector:
     json_dumps: Optional[Callable] = None
     json_loads: Optional[Callable] = None
 
-    async def close_connection(self) -> None:
+    async def close(self) -> None:
         pass
 
     async def execute_query(self, query: str, **arguments: Any) -> None:
@@ -22,10 +22,4 @@ class BaseConnector:
         raise NotImplementedError
 
     def make_dynamic_query(self, query: str, **identifiers: str) -> str:
-        raise NotImplementedError
-
-    async def wait_for_activity(self) -> None:
-        raise NotImplementedError
-
-    def interrupt_wait(self):
         raise NotImplementedError
