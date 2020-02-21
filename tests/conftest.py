@@ -37,11 +37,13 @@ def setup_db():
             )
             _execute(cursor, "CREATE DATABASE {}", "procrastinate_test_template")
 
-    connector = aiopg_connector.PostgresConnector(dbname="procrastinate_test_template")
+    connector = aiopg_connector.PostgresConnector.create_with_pool(
+        dbname="procrastinate_test_template"
+    )
     schema_manager = schema.SchemaManager(connector=connector)
     schema_manager.apply_schema()
     # We need to close the psycopg2 underlying connection synchronously
-    connector._connection._conn.close()
+    connector.close()
 
     with closing(
         psycopg2.connect("", dbname="procrastinate_test_template")
@@ -82,10 +84,11 @@ async def connection(connection_params):
 
 @pytest.fixture
 async def pg_connector(connection_params):
-    connector = aiopg_connector.PostgresConnector(**connection_params)
+    connector = await aiopg_connector.PostgresConnector.create_with_pool_async(
+        **connection_params
+    )
     yield connector
-    connection = await connector._get_connection()
-    await connection.close()
+    await connector.close_async()
 
 
 @pytest.fixture

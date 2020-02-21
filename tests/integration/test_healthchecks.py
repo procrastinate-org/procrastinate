@@ -1,7 +1,6 @@
-import psycopg2
 import pytest
 
-from procrastinate import aiopg_connector, jobs
+from procrastinate import jobs
 from procrastinate.healthchecks import HealthCheckRunner
 
 pytestmark = pytest.mark.asyncio
@@ -21,14 +20,3 @@ async def test_get_status_count(checker):
     assert set(status_count.keys()) == set(jobs.Status)
     for known_status in jobs.Status:
         assert status_count[known_status] == 0
-
-
-@pytest.mark.parametrize(
-    "method", ["check_connection_async", "get_status_count_async"],
-)
-async def test_db_down(method):
-    bad_job_store = aiopg_connector.PostgresConnector(dsn="", dbname="a_bad_db_name")
-    checker = HealthCheckRunner(bad_job_store)
-
-    with pytest.raises(psycopg2.Error):
-        await getattr(checker, method)()
