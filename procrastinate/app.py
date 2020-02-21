@@ -237,6 +237,3 @@ class App:
     @property
     def health_check_runner(self) -> healthchecks.HealthCheckRunner:
         return healthchecks.HealthCheckRunner(connector=self.connector)
-
-    async def close_connection_async(self):
-        await self.connector.close_connection()
