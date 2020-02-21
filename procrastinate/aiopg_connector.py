@@ -108,7 +108,7 @@ class PostgresConnector(connector.BaseConnector):
         """
         base_on_connect = kwargs.pop("on_connect", None)
 
-        def on_connect(connection):
+        async def on_connect(connection):
             if base_on_connect:
                 base_on_connect(connection)
             if json_loads:
