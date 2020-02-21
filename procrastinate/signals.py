@@ -1,17 +1,17 @@
 import logging
+
 import signal
 import threading
 from contextlib import contextmanager
-from types import FrameType
+import types
 from typing import Callable
 
 logger = logging.getLogger(__name__)
 
-Signals = signal.Signals
-
 
 @contextmanager
-def on_stop(callback: Callable[[signal.Signals, FrameType], None]):
+def on_stop(callback: Callable[[], None]):
+    print("yay")
     if threading.current_thread() is not threading.main_thread():
         logger.debug(
             "Skipping signal handling, because this is not the main thread",
@@ -23,12 +23,17 @@ def on_stop(callback: Callable[[signal.Signals, FrameType], None]):
     sigint_handler = signal.getsignal(signal.SIGINT)
     sigterm_handler = signal.getsignal(signal.SIGTERM)
 
+    def uninstall_and_callback(signum: signal.Signals, frame: types.FrameType) -> None:
+        signal.signal(signal.SIGINT, sigint_handler)
+        signal.signal(signal.SIGTERM, sigterm_handler)
+        callback()
+
     try:
         logger.debug(
             "Installing signal handler", extra={"action": "install_signal_handlers"}
         )
-        signal.signal(signal.SIGINT, callback)
-        signal.signal(signal.SIGTERM, callback)
+        signal.signal(signal.SIGINT, uninstall_and_callback)
+        signal.signal(signal.SIGTERM, uninstall_and_callback)
 
         yield
     finally:

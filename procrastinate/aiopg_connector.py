@@ -127,17 +127,20 @@ class PostgresConnector(connector.BaseConnector):
 
         return cls(pool=pool, json_dumps=json_dumps, json_loads=json_loads)
 
-    async def execute_query(self, query: str, **arguments: Any,) -> None:
-        await self._execute_query(query=query, connection=None, **arguments)
+    # Pools and single connections do not exactly share their cursor API:
+    # - connection.cursor() is an async context manager (async with)
+    # - pool.cursor() is a coroutine returning a sync context manage (with await)
+    # Because of this, it's easier to have 2 distinct methods for executing from
+    # a pool or from a connection
 
-    async def _execute_query(
-        self,
-        query: str,
-        connection: Optional[aiopg.Connection] = None,
-        **arguments: Any,
+    async def execute_query(self, query: str, **arguments: Any) -> None:
+        with await self._pool.cursor() as cursor:
+            await cursor.execute(query, self._wrap_json(arguments))
+
+    async def _execute_query_connection(
+        self, query: str, connection: aiopg.Connection, **arguments: Any,
     ) -> None:
-        # The private version of the method accepts an arbitrary connection
-        with connection or self._pool.cursor() as cursor:
+        async with connection.cursor() as cursor:
             await cursor.execute(query, self._wrap_json(arguments))
 
     async def execute_query_one(self, query: str, **arguments: Any) -> Dict[str, Any]:
@@ -166,18 +169,23 @@ class PostgresConnector(connector.BaseConnector):
     async def listen_notify(
         self, event: asyncio.Event, channels: Iterable[str]
     ) -> NoReturn:
-
+        # We need to acquire a dedicated connection, and use the listen
+        # query
         async with self._pool.acquire() as connection:
             for channel_name in channels:
-                await self._execute_query(
+                await self._execute_query_connection(
                     connection=connection,
                     query=self.make_dynamic_query(
                         query=sql.queries["listen_queue"], channel_name=channel_name
                     ),
                 )
 
+            # We'll leave this loop with a CancelError, when we get cancelled
             while True:
-                # We'll leave this loop with a CancelError, when we get cancelled
+                # TODO: because of https://github.com/aio-libs/aiopg/issues/249,
+                # we could get stuck in here forever if the connection closes.
+                # Maybe we should set a timeout and if connection is closed, reopen
+                # a new one.
                 await connection.notifies.get()
                 event.set()
 

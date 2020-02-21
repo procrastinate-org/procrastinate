@@ -7,8 +7,6 @@ from procrastinate import app, exceptions, jobs, signals, tasks, types
 
 logger = logging.getLogger(__name__)
 
-WORKER_TIMEOUT = 5.0  # seconds
-
 
 class Worker:
     def __init__(
@@ -17,7 +15,7 @@ class Worker:
         queues: Optional[Iterable[str]] = None,
         import_paths: Optional[Iterable[str]] = None,
         name: Optional[str] = None,
-        timeout: float = WORKER_TIMEOUT,
+        timeout: float = app.WORKER_TIMEOUT,
     ):
         self.app = app
         self.queues = queues
@@ -49,10 +47,7 @@ class Worker:
             self.job_store.listen_for_jobs(event=notify_event, queues=self.queues)
         )
 
-        def stop(
-            signum: Optional[signals.Signals] = None,
-            frame: Optional[signals.FrameType] = None,
-        ) -> None:
+        def stop() -> None:
             # Ensure worker will stop after finishing their task
             self.stop_requested = True
             # Ensure workers currently waiting are awakened

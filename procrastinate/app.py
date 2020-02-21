@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, Optional, Set
 
 from procrastinate import builtin_tasks
 from procrastinate import connector as connector_module
-from procrastinate import exceptions, healthchecks, jobs
+from procrastinate import healthchecks, jobs
 from procrastinate import retry as retry_module
 from procrastinate import schema, store, utils
 
@@ -13,6 +13,8 @@ if TYPE_CHECKING:
     from procrastinate import tasks, worker
 
 logger = logging.getLogger(__name__)
+
+WORKER_TIMEOUT = 5.0  # seconds
 
 
 @utils.add_sync_api
@@ -35,7 +37,7 @@ class App:
         *,
         connector: Optional[connector_module.BaseConnector] = None,
         import_paths: Optional[Iterable[str]] = None,
-        worker_timeout: float = worker.WORKER_TIMEOUT,
+        worker_timeout: float = WORKER_TIMEOUT,
         # Just for backwards compatibility
         job_store: Optional[connector_module.BaseConnector] = None,
     ):
