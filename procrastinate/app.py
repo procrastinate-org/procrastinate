@@ -35,6 +35,7 @@ class App:
         *,
         connector: Optional[connector_module.BaseConnector] = None,
         import_paths: Optional[Iterable[str]] = None,
+        worker_timeout: float = worker.WORKER_TIMEOUT,
         # Just for backwards compatibility
         job_store: Optional[connector_module.BaseConnector] = None,
     ):
@@ -57,6 +58,14 @@ class App:
             A :py:func:`App.task` that has a custom "name" parameter, that is not
             imported and whose module path is not in this list will
             fail to run.
+        worker_timeout:
+            This parameter indicates the maximum duration (in seconds) procrastinate
+            workers wait between each database job pull. Job activity will be pushed
+            from the db to the worker, but in case the push mechanism fails somehow,
+            workers will not stay idle longer than the number of seconds indicated by
+            this parameters.
+            Raising this parameter can lower the rate of workers making queries to the
+            database for requesting jobs.
         job_store:
             **Deprecated**: Old name of ``connector``.
         """
@@ -77,6 +86,7 @@ class App:
         self.builtin_tasks: Dict[str, "tasks.Task"] = {}
         self.queues: Set[str] = set()
         self.import_paths = import_paths or []
+        self.worker_timeout = worker_timeout
 
         self.job_store = store.JobStore(connector=self.connector)
 
@@ -185,7 +195,9 @@ class App:
     ) -> "worker.Worker":
         from procrastinate import worker
 
-        return worker.Worker(app=self, queues=queues, name=name)
+        return worker.Worker(
+            app=self, queues=queues, name=name, timeout=self.worker_timeout
+        )
 
     @functools.lru_cache(maxsize=1)
     def perform_import_paths(self):
@@ -200,10 +212,7 @@ class App:
         )
 
     async def run_worker_async(
-        self,
-        queues: Optional[Iterable[str]] = None,
-        name: Optional[str] = None,
-        only_once: bool = False,
+        self, queues: Optional[Iterable[str]] = None, name: Optional[str] = None,
     ) -> None:
         """
         Run a worker. This worker will run in the foreground
@@ -216,19 +225,9 @@ class App:
         queues:
             List of queues to listen to, or None to listen to
             every queue.
-        only_once:
-            If True, the worker will run but just for the currently
-            defined tasks. This function will return when the
-            listened queues are empty.
         """
         worker = self._worker(queues=queues, name=name)
-        if only_once:
-            try:
-                await worker.process_jobs_once()
-            except (exceptions.NoMoreJobs, exceptions.StopRequested):
-                pass
-        else:
-            await worker.run()
+        await worker.run()
 
     @property
     def schema_manager(self) -> schema.SchemaManager:
