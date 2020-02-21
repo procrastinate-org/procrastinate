@@ -5,12 +5,15 @@ asynchronicity
 backend
 backoff
 builtin
+Changelog
 codebase
 codebases
 coroutine
 coroutines
 cron
 crons
+deserialize
+deserializing
 Dramatiq
 enqueued
 formatters
@@ -20,3 +23,4 @@ middleware
 quickstart
 reimplement
 sync
+Travis
