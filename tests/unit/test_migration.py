@@ -1,6 +1,7 @@
 from collections import defaultdict
 
 from procrastinate import sql
+from procrastinate.schema import SchemaManager
 
 
 def test_get_schema(app):
@@ -15,5 +16,5 @@ def test_apply_schema(app, connector):
 
     assert connector.queries == [
         ("apply_schema", {}),
-        ("set_schema_version", {"version": app.schema_manager.version}),
+        ("set_schema_version", {"version": SchemaManager.get_version()}),
     ]

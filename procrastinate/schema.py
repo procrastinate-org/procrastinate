@@ -21,8 +21,8 @@ class SchemaManager:
     def get_schema() -> str:
         return read_text("procrastinate.sql", "schema.sql")
 
-    @property
-    def version(self):
+    @staticmethod
+    def get_version():
         version_ = pkg_resources.parse_version("1.0.0")
         for script in migrations_dir.glob("*.sql"):
             m = migration_script_pattern.match(script.name)
@@ -36,5 +36,5 @@ class SchemaManager:
         queries = self.get_schema()
         await self.connector.execute_query(query=queries)
         await self.connector.execute_query(
-            query=sql.queries["set_schema_version"], version=self.version,
+            query=sql.queries["set_schema_version"], version=self.get_version(),
         )

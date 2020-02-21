@@ -10,6 +10,7 @@ import pendulum
 
 import procrastinate
 from procrastinate import connector, exceptions, jobs, types
+from procrastinate.schema import SchemaManager
 
 logger = logging.getLogger(__name__)
 
@@ -279,7 +280,7 @@ def healthchecks(app: procrastinate.App):
     click.echo("DB connection: OK")
 
     db_schema_version = health_check.get_schema_version()  # type: ignore
-    file_schema_version = app.schema_manager.version
+    file_schema_version = SchemaManager.get_version()
     schema_ok = db_schema_version == file_schema_version
     if schema_ok:
         click.echo(f"DB schema is up-to-date ({db_schema_version})")
