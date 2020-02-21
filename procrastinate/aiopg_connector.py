@@ -105,6 +105,10 @@ class PostgresConnector(connector.BaseConnector):
             Passed to aiopg. Default is :py:class:`psycopg2.extras.RealDictCursor`
             instead of standard cursor. There is no identified use case for changing
             this.
+        maxsize (int):
+            Passed to aiopg. Cannot be lower than 2, otherwise worker won't be
+            functionning normally (one connection for listen/notify, one for executing
+            tasks)
         """
         base_on_connect = kwargs.pop("on_connect", None)
 
@@ -123,6 +127,9 @@ class PostgresConnector(connector.BaseConnector):
             "cursor_factory": RealDictCursor,
         }
         defaults.update(kwargs)
+
+        if "maxsize" in kwargs:
+            kwargs["maxsize"] = max(2, kwargs["maxsize"])
 
         pool = await aiopg.create_pool(**defaults)
 
