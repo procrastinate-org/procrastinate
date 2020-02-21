@@ -208,6 +208,71 @@ not related to your PR (but please put it in a dedicated commit).
 If you need to add words to the spell checking dictionary, it's in
 ``docs/spelling_wordlist.txt``. Make sure the file is alphabetically sorted!
 
+Migrations
+----------
+
+Create database migration scripts
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+If you make changes to the database structure (``procrastinate/sql/structure.sql``) you
+also need to create a corresponding migration script in the
+``procrastinate/sql/migrations`` directory.
+
+For example, let's say you want to add column named ``extra`` to the
+``procrastinate_jobs`` table. You would obviously edit
+``procrastinate/sql/structure.sql`` and change the definition of the table to add that
+column. But you'd also need to create a migration script, whose content would look like
+this:
+
+.. code-block:: sql
+
+    ALTER TABLE procrastinate_jobs ADD COLUMN extra TEXT;
+
+The name of migration scripts must follow a specific pattern:
+
+.. code-block::
+
+    delta_x.y.z_your_migration_script_name.sql
+
+We follow the conventions and rules of the `Pum`_ (PostgreSQL Updates Manager) project.
+
+.. _`Pum`: https://github.com/opengisch/pum/
+
+``x.y.z`` is a number associated with your migration script (e.g. ``1.0.1``).
+``your_migration_script_name`` provides a short description of your change; it is
+important to use underscores rather than hyphens between words.
+
+The series of migration numbers must be strictly increasing. So you must pick for your
+migration script a number that is higher than all the existing ones.
+
+Also, we use a semantic-versioning-like scheme, so you'd increment ``x`` (MAJOR) for a
+breaking change, ``y`` (MINOR) for a non-breaking change (e.g.  adding a column), and
+``z`` (PATCH) for a bug fix (e.g. fixing a bug in an SQL function).
+
+For example, let's say the ``migrations`` directory includes migration scripts numbered
+``1.0.0`` and ``1.0.1``, and you're fixing a bug in an SQL function. You will then use
+number ``1.0.2`` for your migration script.
+
+Finally, don't forget to update the version number in ``migration.py`` and at the top
+of ``structure.sql``.
+
+Find a given schema version
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+To extract the full SQL schema at a given schema version, do:
+
+.. code-block:: console
+
+    $ VERSION="1.0.0"
+    $ git show $( \
+        git log \
+            --pretty=format:"%h" \
+            -S "Schema version $VERSION" \
+            -- procrastinate/sql/structure.sql \
+        | tail -1 \
+    ):procrastinate/sql/structure.sql
+
+
 Try our demo
 ------------
 
@@ -247,8 +312,8 @@ Release a new version
 Prepare a changelog in a drafted GitHub release, and then release it, with a tag.
 That's it.
 
-The tag will be seen by travis, that will then create a release (using the tag as
-version number, thanks to our setup.py), and push it to PyPI (using the new API
+The tag will be seen by Travis, that will then create a release (using the tag as
+version number, thanks to our ``setup.py``), and push it to PyPI (using the new API
 tokens and an environment variable). That build should also trigger a ReadTheDocs
 build, which will read GitHub releases (thanks to our ``changelog`` extension) and
 write a proper changelog in the published documentation.

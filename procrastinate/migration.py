@@ -6,7 +6,7 @@ from procrastinate import sql, utils
 
 @utils.add_sync_api
 class Migrator:
-    version = "0.2.1"
+    version = "1.1.0"
 
     def __init__(self, connector: connector_module.BaseConnector):
 

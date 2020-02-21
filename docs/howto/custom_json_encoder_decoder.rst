@@ -2,7 +2,7 @@ Define custom JSON encoders and decoders
 ----------------------------------------
 
 When calling ``mytask.defer()`` to create a job, the task arguments are serialized into
-a JSON string for storing into the Postgres database.
+a JSON string for storing into the PostgreSQL database.
 
 And after fetching a job from the database Procrastinate workers need to deserialize
 the task arguments before calling the task.
@@ -41,8 +41,8 @@ In this example the custom JSON dumps and loads functions are based on the stand
 ``object_hook`` for serializing and deserializing ``datetime`` objects, respectively.
 (See the `Python 3 json documentation`_ for more detail.)
 
-This mechanism even makes it possible to use a different JSON implemation than ``json``,
-such as `UltraJSON`_ for example.
+This mechanism even makes it possible to use a different JSON implementation than
+``json``, such as `UltraJSON`_ for example.
 
 Also, if your encoding function starts resembling a long list of ``if isinstance``
 calls, you may want to have a look at ``functools.singledispatch`` for a cleaner

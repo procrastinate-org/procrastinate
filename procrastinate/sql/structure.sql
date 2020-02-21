@@ -1,3 +1,5 @@
+-- Schema version 1.1.0
+
 CREATE EXTENSION IF NOT EXISTS plpgsql WITH SCHEMA pg_catalog;
 
 CREATE TABLE IF NOT EXISTS procrastinate_version (
@@ -32,7 +34,6 @@ CREATE TABLE procrastinate_jobs (
     args jsonb DEFAULT '{}' NOT NULL,
     status procrastinate_job_status DEFAULT 'todo'::procrastinate_job_status NOT NULL,
     scheduled_at timestamp with time zone NULL,
-    started_at timestamp with time zone NULL,
     attempts integer DEFAULT 0 NOT NULL
 );
 
@@ -70,8 +71,7 @@ BEGIN
             RETURNING object
 	)
 	UPDATE procrastinate_jobs
-		SET status = 'doing',
-            started_at = NOW()
+		SET status = 'doing'
 		FROM potential_job, lock_object
         WHERE lock_object.object IS NOT NULL
 		AND procrastinate_jobs.id = potential_job.id

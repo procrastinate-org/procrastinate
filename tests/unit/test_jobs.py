@@ -53,7 +53,6 @@ def test_job_deferrer_defer(job_store, connector):
             "lock": "sher",
             "queue_name": "marsupilami",
             "scheduled_at": None,
-            "started_at": None,
             "status": "todo",
             "task_name": "mytask",
         }
@@ -80,7 +79,6 @@ async def test_job_deferrer_defer_async(job_store, connector):
             "lock": "sher",
             "queue_name": "marsupilami",
             "scheduled_at": None,
-            "started_at": None,
             "status": "todo",
             "task_name": "mytask",
         }

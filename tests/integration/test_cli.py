@@ -55,7 +55,7 @@ def test_migrate(entrypoint, click_app, mocker, job_store):
 def test_migrate_text(entrypoint):
     result = entrypoint("migrate --text")
 
-    assert result.output.startswith("CREATE")
+    assert result.output.startswith("-- Schema version ")
     assert result.exit_code == 0
 
 
@@ -146,7 +146,6 @@ def test_defer(entrypoint, click_app, connector):
             "lock": "sherlock",
             "queue_name": "default",
             "scheduled_at": None,
-            "started_at": None,
             "status": "todo",
             "task_name": "hello",
         }
@@ -167,7 +166,6 @@ def test_defer_unknown(entrypoint, click_app, connector):
             "lock": "sherlock",
             "queue_name": "default",
             "scheduled_at": None,
-            "started_at": None,
             "status": "todo",
             "task_name": "hello",
         }

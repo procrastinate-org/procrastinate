@@ -25,7 +25,9 @@ class ChangelogDirective(Directive):
             par = nodes.paragraph()
             par += nodes.Text("(Changelog not built because ")
             par += nodes.literal("", "changelog_github_token")
-            par += nodes.Text(" parameter is missing in conf.py)")
+            par += nodes.Text(" parameter is missing in ")
+            par += nodes.literal("", "conf.py")
+            par += nodes.Text(")")
             return [par]
 
         owner_repo = self.extract_github_repo_name(self.options["github"])

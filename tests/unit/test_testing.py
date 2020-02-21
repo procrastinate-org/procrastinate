@@ -71,7 +71,6 @@ def test_defer_job_one(connector):
             "args": {"a": "b"},
             "status": "todo",
             "scheduled_at": None,
-            "started_at": None,
             "attempts": 0,
         }
     }
@@ -102,7 +101,6 @@ def test_select_stalled_jobs_all(connector):
         1: {
             "id": 1,
             "status": "succeeded",
-            "started_at": pendulum.datetime(2000, 1, 1),
             "queue_name": "marsupilami",
             "task_name": "mytask",
         },
@@ -110,7 +108,6 @@ def test_select_stalled_jobs_all(connector):
         2: {
             "id": 2,
             "status": "doing",
-            "started_at": pendulum.datetime(2000, 1, 1),
             "queue_name": "other_queue",
             "task_name": "mytask",
         },
@@ -118,15 +115,13 @@ def test_select_stalled_jobs_all(connector):
         3: {
             "id": 3,
             "status": "doing",
-            "started_at": pendulum.datetime(2000, 1, 1),
             "queue_name": "marsupilami",
             "task_name": "my_other_task",
         },
-        # This one because  it's not stalled
+        # This one because it's not stalled
         4: {
             "id": 4,
             "status": "doing",
-            "started_at": pendulum.datetime(2100, 1, 1),
             "queue_name": "marsupilami",
             "task_name": "mytask",
         },
@@ -134,7 +129,6 @@ def test_select_stalled_jobs_all(connector):
         5: {
             "id": 5,
             "status": "doing",
-            "started_at": pendulum.datetime(2000, 1, 1),
             "queue_name": "marsupilami",
             "task_name": "mytask",
         },
@@ -142,10 +136,17 @@ def test_select_stalled_jobs_all(connector):
         6: {
             "id": 6,
             "status": "doing",
-            "started_at": pendulum.datetime(2000, 1, 1),
             "queue_name": "marsupilami",
             "task_name": "mytask",
         },
+    }
+    connector.events = {
+        1: [{"at": pendulum.datetime(2000, 1, 1)}],
+        2: [{"at": pendulum.datetime(2000, 1, 1)}],
+        3: [{"at": pendulum.datetime(2000, 1, 1)}],
+        4: [{"at": pendulum.datetime(2100, 1, 1)}],
+        5: [{"at": pendulum.datetime(2000, 1, 1)}],
+        6: [{"at": pendulum.datetime(2000, 1, 1)}],
     }
 
     results = connector.select_stalled_jobs_all(
