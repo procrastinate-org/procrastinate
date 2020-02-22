@@ -253,8 +253,7 @@ For example, let's say the ``migrations`` directory includes migration scripts n
 ``1.0.0`` and ``1.0.1``, and you're fixing a bug in an SQL function. You will then use
 number ``1.0.2`` for your migration script.
 
-Finally, don't forget to update the version number in ``schema.py`` and at the top
-of ``schema.sql``.
+Finally, don't forget to update at the top of ``schema.sql``.
 
 Find a given schema version
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^

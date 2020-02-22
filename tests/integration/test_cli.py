@@ -63,7 +63,7 @@ def test_healthchecks(entrypoint, click_app, mocker):
     check_version = mocker.patch(
         "procrastinate.healthchecks.HealthCheckRunner.get_schema_version"
     )
-    check_version.return_value = SchemaManager.version
+    check_version.return_value = SchemaManager.get_version()
     count_jobs = mocker.patch(
         "procrastinate.healthchecks.HealthCheckRunner.get_status_count"
     )
