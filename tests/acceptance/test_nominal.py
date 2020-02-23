@@ -5,9 +5,6 @@ import time
 
 import pytest
 
-from .app import json_dumps
-from .param import Param
-
 
 @pytest.fixture
 def process_env(connection_params):
@@ -24,6 +21,8 @@ def process_env(connection_params):
 
 @pytest.fixture
 def defer(process_env):
+    from .app import json_dumps
+
     def func(task_name, lock=None, **kwargs):
         lock_args = ["--lock", lock] if lock else []
         full_task_name = f"tests.acceptance.app.{task_name}"
@@ -61,6 +60,7 @@ def running_worker(process_env):
 
 
 def test_nominal(defer, worker):
+    from .param import Param
 
     defer("sum_task", a=5, b=7)
     defer("sum_task_param", p1=Param(3), p2=Param(4))
