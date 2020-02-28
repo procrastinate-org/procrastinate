@@ -2,7 +2,7 @@ from collections import defaultdict
 
 
 def test_get_schema(app):
-    assert app.schema_manager.get_schema().startswith("-- Schema version ")
+    assert app.schema_manager.get_schema().startswith("-- Procrastinate Schema")
 
 
 def test_apply_schema(app, connector):

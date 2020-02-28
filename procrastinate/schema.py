@@ -1,4 +1,5 @@
 from importlib_resources import read_text
+
 from procrastinate import connector as connector_module
 from procrastinate import utils
 

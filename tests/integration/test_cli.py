@@ -50,7 +50,7 @@ def test_schema_apply(entrypoint, click_app, mocker, job_store):
 def test_schema_read(entrypoint):
     result = entrypoint("schema --read")
 
-    assert result.output.startswith("-- Schema version ")
+    assert result.output.startswith("-- Procrastinate Schema")
     assert result.exit_code == 0
 
 

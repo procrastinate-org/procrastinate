@@ -1,4 +1,4 @@
--- Schema version 1.2.0
+-- Procrastinate Schema
 
 CREATE EXTENSION IF NOT EXISTS plpgsql WITH SCHEMA pg_catalog;
 
