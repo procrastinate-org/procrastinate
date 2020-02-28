@@ -219,58 +219,38 @@ also need to create a corresponding migration script in the
 ``procrastinate/sql/migrations`` directory.
 
 For example, let's say you want to add column named ``extra`` to the
-``procrastinate_jobs`` table. You would obviously edit
-``procrastinate/sql/schema.sql`` and change the definition of the table to add that
-column. But you'd also need to create a migration script, whose content would look like
-this:
+``procrastinate_jobs`` table. You would obviously edit ``procrastinate/sql/schema.sql``
+and change the definition of the table to add that column. But you'd also need to create
+a migration script, whose content would look like this:
 
 .. code-block:: sql
 
+    -- add a column extra to the procrastinate_jobs table
     ALTER TABLE procrastinate_jobs ADD COLUMN extra TEXT;
 
 The name of migration scripts must follow a specific pattern:
 
 .. code-block::
 
-    delta_x.y.z_your_migration_script_name.sql
+    delta_x.y.z_abc_very_short_description_of_your_changes.sql
 
 We follow the conventions and rules of the `Pum`_ (PostgreSQL Updates Manager) project.
 
 .. _`Pum`: https://github.com/opengisch/pum/
 
-``x.y.z`` is a number associated with your migration script (e.g. ``1.0.1``).
-``your_migration_script_name`` provides a short description of your change; it is
-important to use underscores rather than hyphens between words.
+``x.y.z`` is the number of the latest released version of Procrastinate. (The latest
+release is the one marked ``Latest release`` on the `Procrastinate releases`_ page.)
+``abc`` is the migration script's serial number, ``001`` being the first number in the
+series. And, finally, ``very_short_description_of_your_changes`` is a very short
+description of the changes. It is important to use underscores between the different
+parts, and between words in the short description.
 
-The series of migration numbers must be strictly increasing. So you must pick for your
-migration script a number that is higher than all the existing ones.
+.. _`Procrastinate releases`: https://github.com/peopledoc/procrastinate/releases
 
-Also, we use a semantic-versioning-like scheme, so you'd increment ``x`` (MAJOR) for a
-breaking change, ``y`` (MINOR) for a non-breaking change (e.g.  adding a column), and
-``z`` (PATCH) for a bug fix (e.g. fixing a bug in an SQL function).
-
-For example, let's say the ``migrations`` directory includes migration scripts numbered
-``1.0.0`` and ``1.0.1``, and you're fixing a bug in an SQL function. You will then use
-number ``1.0.2`` for your migration script.
-
-Finally, don't forget to update at the top of ``schema.sql``.
-
-Find a given schema version
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-To extract the full SQL schema at a given schema version, do:
-
-.. code-block:: console
-
-    $ VERSION="1.0.0"
-    $ git show $( \
-        git log \
-            --pretty=format:"%h" \
-            -S "Schema version $VERSION" \
-            -- procrastinate/sql/schema.sql \
-        | tail -1 \
-    ):procrastinate/sql/schema.sql
-
+For example, let's say the latest released version of Procrastinate is ``1.0.1``, and
+that the ``migrations`` directory already includes a migration script whose serial
+number is ``001`` for that release number. In that case, if you need to add a migration
+script, its name will start with ``delta_1.0.1_002_``.
 
 Try our demo
 ------------
