@@ -1,13 +1,7 @@
--- Schema version 1.1.0
+-- Procrastinate Schema
 
 CREATE EXTENSION IF NOT EXISTS plpgsql WITH SCHEMA pg_catalog;
 
-CREATE TABLE IF NOT EXISTS procrastinate_version (
-    id BIGSERIAL PRIMARY KEY,
-    version TEXT,
-    name TEXT,
-    applied_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
 
 CREATE TYPE procrastinate_job_status AS ENUM (
     'todo',  -- The job is queued

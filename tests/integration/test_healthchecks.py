@@ -3,7 +3,6 @@ import pytest
 
 from procrastinate import aiopg_connector, jobs
 from procrastinate.healthchecks import HealthCheckRunner
-from procrastinate.schema import SchemaManager
 
 pytestmark = pytest.mark.asyncio
 
@@ -17,10 +16,6 @@ async def test_check_connection(checker):
     assert await checker.check_connection_async() is True
 
 
-async def test_get_schema_version(checker):
-    assert await checker.get_schema_version_async() == SchemaManager.get_version()
-
-
 async def test_get_status_count(checker):
     status_count = await checker.get_status_count_async()
     assert set(status_count.keys()) == set(jobs.Status)
@@ -29,8 +24,7 @@ async def test_get_status_count(checker):
 
 
 @pytest.mark.parametrize(
-    "method",
-    ["check_connection_async", "get_schema_version_async", "get_status_count_async"],
+    "method", ["check_connection_async", "get_status_count_async"],
 )
 async def test_db_down(method):
     bad_job_store = aiopg_connector.PostgresConnector(dsn="", dbname="a_bad_db_name")

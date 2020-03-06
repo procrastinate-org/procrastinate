@@ -1,3 +1,5 @@
+-- replace the procrastinate_fetch_job function with a version that doesn't
+-- set the started_at field when updating the procrastinate_jobs table
 CREATE OR REPLACE FUNCTION procrastinate_fetch_job(target_queue_names character varying[]) RETURNS procrastinate_jobs
     LANGUAGE plpgsql
     AS $$
@@ -30,5 +32,3 @@ BEGIN
 	RETURN found_jobs;
 END;
 $$;
-
-ALTER TABLE procrastinate_jobs DROP COLUMN started_at;
