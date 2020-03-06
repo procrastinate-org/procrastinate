@@ -245,23 +245,35 @@ def configure_job(
 @click.pass_obj
 @handle_errors()
 @click.option(
-    "--apply/--read",
-    default=True,  # a.k.a run
-    help="*Read* the schema SQL and output it, or *apply* it to the DB directly"
-    " (default)",
+    "--apply",
+    "action",
+    flag_value="apply",
+    help="Apply the schema to the DB (default)",
+    default=True,
 )
-def schema(app: procrastinate.App, apply: bool):
+@click.option(
+    "--read", "action", flag_value="read", help="Read the schema SQL and output it",
+)
+@click.option(
+    "--migrations-path",
+    "action",
+    flag_value="migrations-path",
+    help="Output the path to the directory containing the migration scripts",
+)
+def schema(app: procrastinate.App, action: str):
     """
     Apply SQL schema to the empty database. This won't work if the schema has already
     been applied.
     """
     schema_manager = app.schema_manager
-    if apply:
+    if action == "apply":
         click.echo("Applying schema")
         schema_manager.apply_schema()  # type: ignore
         click.echo("Done")
-    else:
+    elif action == "read":
         click.echo(schema_manager.get_schema(), nl=False)
+    else:
+        click.echo(schema_manager.get_migrations_path())
 
 
 @cli.command()
