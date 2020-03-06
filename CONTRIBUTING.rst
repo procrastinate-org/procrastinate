@@ -218,11 +218,12 @@ If you make changes to the database structure (``procrastinate/sql/schema.sql``)
 also need to create a corresponding migration script in the
 ``procrastinate/sql/migrations`` directory.
 
-For example, let's say you want to add column named ``extra`` to the
-``procrastinate_jobs`` table. You would edit ``procrastinate/sql/schema.sql``
-and change the definition of the table to add that column.
-This will be enough for new procrastinate users, but existing users will need
-a way to migrate their existing schema into the new one. For that, you'd also need to create
+For example, let's say you want to add a column named ``extra`` to the
+``procrastinate_jobs`` table. You will first edit ``procrastinate/sql/schema.sql`` and
+change the definition of the table to add that column. That would be sufficient for new
+Procrastinate users, but existing users, whose database already includes Procrastinate
+objects (tables, indexes, ...), need to be able to migrate their existing schema into
+the new one. For that reason, as a Procrastinate developer, you'll also need to create
 a migration script, whose content would look like this:
 
 .. code-block:: sql
