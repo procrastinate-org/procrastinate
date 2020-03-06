@@ -49,7 +49,7 @@ the Pum command to set the baseline:
 
 .. code-block:: console
 
-    pum baseline --pg_service procrastinate --table public.pum --dir procrastinate/sql/migrations/ --baseline 0.5.0
+    pum baseline --pg_service procrastinate --table public.pum --dir $(procrastinate schema --migrations-path) --baseline 0.5.0
 
 * ``--pg_service`` specifies the PostgreSQL Connection Service to use
 * ``--table`` specifies the name of the Pum table to create and insert the baseline into
@@ -57,6 +57,12 @@ the Pum command to set the baseline:
 * ``--dir`` specifies the path of the directory including migration scripts (it is
   not relevant here, yet mandatory)
 * ``--baseline`` specifies the version number to use for the baseline
+
+.. note::
+
+    The command ``procastinate schema --migrations-path`` is not available with
+    Procrastinate <= 0.5.0. So you'll have to find the path to the migrations directory
+    (``sql/migrations`` within the ``site-packages/procrastinate`` directory).
 
 You're all set at this point! Procrastinate is ready to use, and your Pum baseline is
 set for future migrations of the Procrastinate schema.
@@ -70,7 +76,7 @@ This is how migration scripts are applied using Pum:
 
 .. code-block:: console
 
-    pum upgrade --pg_service procrastinate --table public.pum --dir procrastinate/sql/migrations/
+    pum upgrade --pg_service procrastinate --table public.pum --dir $(procrastinate schema --migrations-path)
 
 The ``--pg_service``, ``--table``, and ``--dir`` flags have been described above, in the
 context of the ``pum baseline`` command.
