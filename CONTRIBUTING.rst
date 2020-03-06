@@ -219,8 +219,10 @@ also need to create a corresponding migration script in the
 ``procrastinate/sql/migrations`` directory.
 
 For example, let's say you want to add column named ``extra`` to the
-``procrastinate_jobs`` table. You would obviously edit ``procrastinate/sql/schema.sql``
-and change the definition of the table to add that column. But you'd also need to create
+``procrastinate_jobs`` table. You would edit ``procrastinate/sql/schema.sql``
+and change the definition of the table to add that column.
+This will be enough for new procrastinate users, but existing users will need
+a way to migrate their existing schema into the new one. For that, you'd also need to create
 a migration script, whose content would look like this:
 
 .. code-block:: sql
