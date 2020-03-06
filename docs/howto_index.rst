@@ -25,3 +25,4 @@ How-to...
     howto/monitoring
     howto/remove_old_jobs
     howto/custom_json_encoder_decoder
+    howto/set_database_schema
