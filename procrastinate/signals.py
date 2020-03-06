@@ -1,9 +1,8 @@
 import logging
-
 import signal
 import threading
-from contextlib import contextmanager
 import types
+from contextlib import contextmanager
 from typing import Callable
 
 logger = logging.getLogger(__name__)
