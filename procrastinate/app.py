@@ -65,7 +65,7 @@ class App:
             workers wait between each database job pull. Job activity will be pushed
             from the db to the worker, but in case the push mechanism fails somehow,
             workers will not stay idle longer than the number of seconds indicated by
-            this parameters.
+            this parameter.
             Raising this parameter can lower the rate of workers making queries to the
             database for requesting jobs.
         job_store:

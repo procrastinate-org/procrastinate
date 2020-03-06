@@ -100,7 +100,7 @@ class PostgresConnector(connector.BaseConnector):
         maxsize (int):
             Passed to aiopg. Cannot be lower than 2, otherwise worker won't be
             functionning normally (one connection for listen/notify, one for executing
-            tasks)
+            tasks).
         """
         base_on_connect = kwargs.pop("on_connect", None)
 
