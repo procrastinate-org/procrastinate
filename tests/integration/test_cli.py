@@ -54,6 +54,13 @@ def test_schema_read(entrypoint):
     assert result.exit_code == 0
 
 
+def test_schema_migrations_patth(entrypoint):
+    result = entrypoint("schema --migrations-path")
+
+    assert result.output.endswith("sql/migrations\n")
+    assert result.exit_code == 0
+
+
 def test_healthchecks(entrypoint, click_app, mocker):
     check_db = mocker.patch(
         "procrastinate.healthchecks.HealthCheckRunner.check_connection"
