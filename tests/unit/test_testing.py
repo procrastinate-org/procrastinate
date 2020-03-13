@@ -1,3 +1,4 @@
+import asyncio
 import pendulum
 import pytest
 
@@ -256,9 +257,14 @@ def test_finish_job_run_retry_no_schedule(connector):
 
 
 @pytest.mark.asyncio
-async def test_wait_for_activity(connector):
+async def test_listen_notify(connector):
     # If we don't crash, it's enough
-    await connector.wait_for_activity()
+    event = asyncio.Event()
+    task = asyncio.create_task(
+        connector.listen_notify(event=event, channels=["channel_name"])
+    )
+    await event.wait()
+    task.cancel()
 
 
 def test_apply_schema_run(connector):
