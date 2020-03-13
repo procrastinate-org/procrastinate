@@ -8,18 +8,14 @@ pytestmark = pytest.mark.asyncio
 
 async def test_run(app, connector):
     class TestWorker(worker.Worker):
-        i = 0
 
-        async def process_next_job(self):
-            self.i += 1
-            if self.i == 2:
-                raise exceptions.NoMoreJobs
-            elif self.i == 3:
-                raise exceptions.StopRequested
+        async def single_worker(self, notify_event):
+            await notify_event.wait()
 
     test_worker = TestWorker(app=app, queues=["marsupilami"])
 
     await test_worker.run()
+    test_worker.notify_task.cancel()
 
     assert app.connector.queries == [
         ("listen_for_jobs", "procrastinate_queue#marsupilami")
@@ -34,7 +30,7 @@ async def test_run(app, connector):
         (exceptions.TaskNotFound(), "failed"),
     ],
 )
-async def test_process_next_job(
+async def test_process_job(
     mocker, app, job_factory, connector, side_effect, status
 ):
     job = job_factory(id=1)
@@ -48,34 +44,16 @@ async def test_process_next_job(
     run_job = mocker.patch(
         "procrastinate.worker.Worker.run_job", side_effect=side_effect or coro
     )
-    await test_worker.process_next_job()
+    await test_worker.process_job(job)
 
-    run_job.assert_called_with(job=job)
-
+    run_job.assert_called_once()
+    assert run_job.call_args.args == ()
+    assert run_job.call_args.kwargs["job"] == job
+    assert "log_context" in run_job.call_args.kwargs
     assert connector.jobs[1]["status"] == status
 
 
-async def test_process_next_job_raise_no_more_jobs(app):
-    test_worker = worker.Worker(app)
-
-    with pytest.raises(exceptions.NoMoreJobs):
-        await test_worker.process_next_job()
-
-
-async def test_process_next_job_raise_stop_requested(app):
-    test_worker = worker.Worker(app)
-
-    @app.task
-    def empty():
-        test_worker.stop_requested = True
-
-    await empty.defer_async()
-
-    with pytest.raises(exceptions.StopRequested):
-        await test_worker.process_next_job()
-
-
-async def test_process_next_job_retry_failed_job(connector, mocker, app, job_factory):
+async def test_process_job_retry_failed_job(connector, mocker, app, job_factory):
     job = job_factory(id=1)
     await app.job_store.defer_job(job)
 
@@ -87,7 +65,7 @@ async def test_process_next_job_retry_failed_job(connector, mocker, app, job_fac
     )
 
     test_worker = worker.Worker(app, queues=["queue"])
-    await test_worker.process_next_job()
+    await test_worker.process_job(job)
 
     assert len(connector.jobs) == 1
     new_job = connector.jobs[1]
@@ -111,7 +89,8 @@ async def test_run_job(app):
         queue="yay",
     )
     test_worker = worker.Worker(app, queues=["yay"])
-    await test_worker.run_job(job)
+    log_context = {"worker_name": "foo", "job": job.get_context()}
+    await test_worker.run_job(job, log_context)
 
     assert result == [12]
 
@@ -131,7 +110,8 @@ async def test_run_job_async(app):
         queue="yay",
     )
     test_worker = worker.Worker(app, queues=["yay"])
-    await test_worker.run_job(job)
+    log_context = {"worker_name": "foo", "job": job.get_context()}
+    await test_worker.run_job(job, log_context)
 
     assert result == [12]
 
@@ -158,7 +138,8 @@ async def test_run_job_log_result(caplog, app):
         queue="yay",
     )
     test_worker = worker.Worker(app, queues=["yay"])
-    await test_worker.run_job(job)
+    log_context = {"worker_name": "foo", "job": job.get_context()}
+    await test_worker.run_job(job, log_context)
 
     assert result == [12]
 
@@ -183,15 +164,17 @@ async def test_run_job_log_name(caplog, app):
     )
 
     test_worker = worker.Worker(app, queues=["yay"])
-    await test_worker.run_job(job)
+    log_context = {"worker_name": test_worker.worker_name, "job": job.get_context()}
+    await test_worker.run_job(job, log_context)
     assert len(caplog.records) == 2
     assert all(record.name.endswith("worker") for record in caplog.records)
-    assert all(not hasattr(record, "worker_name") for record in caplog.records)
+    assert all(record.worker_name is None for record in caplog.records)
 
     caplog.clear()
 
     test_worker = worker.Worker(app, queues=["yay"], name="w1")
-    await test_worker.run_job(job)
+    log_context = {"worker_name": test_worker.worker_name, "job": job.get_context()}
+    await test_worker.run_job(job, log_context)
     assert len(caplog.records) == 2
     assert all(record.name.endswith("worker.w1") for record in caplog.records)
     assert all(record.worker_name == "w1" for record in caplog.records)
@@ -214,8 +197,9 @@ async def test_run_job_error(app):
         queue="yay",
     )
     test_worker = worker.Worker(app, queues=["yay"])
+    log_context = {"worker_name": test_worker.worker_name, "job": job.get_context()}
     with pytest.raises(exceptions.JobError):
-        await test_worker.run_job(job)
+        await test_worker.run_job(job, log_context)
 
 
 async def test_run_job_retry(app):
@@ -235,8 +219,9 @@ async def test_run_job_retry(app):
         queue="yay",
     )
     test_worker = worker.Worker(app, queues=["yay"])
+    log_context = {"worker_name": test_worker.worker_name, "job": job.get_context()}
     with pytest.raises(exceptions.JobRetry):
-        await test_worker.run_job(job)
+        await test_worker.run_job(job, log_context)
 
 
 async def test_run_job_not_found(app):
@@ -248,5 +233,6 @@ async def test_run_job_not_found(app):
         queue="yay",
     )
     test_worker = worker.Worker(app, queues=["yay"])
+    log_context = {"worker_name": test_worker.worker_name, "job": job.get_context()}
     with pytest.raises(exceptions.TaskNotFound):
-        await test_worker.run_job(job)
+        await test_worker.run_job(job, log_context)

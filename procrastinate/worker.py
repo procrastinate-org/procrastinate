@@ -40,10 +40,11 @@ class Worker:
             self.worker_name = None
 
         self.current_job_context: Optional[Dict] = None
+        self.notify_task: Optional[asyncio.Task] = None
 
     async def run(self) -> None:
         notify_event = asyncio.Event()
-        notifier = asyncio.create_task(
+        self.notify_task = asyncio.create_task(
             self.job_store.listen_for_jobs(event=notify_event, queues=self.queues)
         )
 
@@ -53,7 +54,7 @@ class Worker:
             # Ensure workers currently waiting are awakened
             notify_event.set()
             # Stop the listen/notify task
-            notifier.cancel()
+            self.notify_task.cancel()
 
             extra: Dict[str, Any] = {
                 "action": "stopping_worker",

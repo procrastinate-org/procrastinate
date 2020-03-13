@@ -1,9 +1,9 @@
+import asyncio
 import datetime
 from itertools import count
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from typing import Any, Dict, Iterable, List, NoReturn, Optional, Tuple
 
 import pendulum
-
 from procrastinate import connector, schema, sql
 
 JobRow = Dict[str, Any]
@@ -54,9 +54,6 @@ class InMemoryConnector(connector.BaseConnector):
             self.queries.append((query_name, arguments))
         return getattr(self, f"{query_name}_{suffix}")(**arguments)
 
-    def make_dynamic_query(self, query, **identifiers: str) -> str:
-        return query.format(**identifiers)
-
     async def execute_query(self, query: str, **arguments: Any) -> None:
         self.generic_execute(query, "run", **arguments)
 
@@ -68,8 +65,20 @@ class InMemoryConnector(connector.BaseConnector):
     ) -> List[Dict[str, Any]]:
         return self.generic_execute(query, "all", **arguments)
 
-    async def wait_for_activity(self) -> None:
-        pass
+    def make_dynamic_query(self, query, **identifiers: str) -> str:
+        return query.format(**identifiers)
+
+    async def listen_notify(
+        self, event: asyncio.Event, channels: Iterable[str]
+    ) -> NoReturn:
+        for channel_name in channels:
+            query = self.make_dynamic_query(
+                query=sql.queries["listen_queue"], channel_name=channel_name
+            )
+            self.generic_execute(query, "run")
+        while True:
+            await asyncio.sleep(0)
+            event.set()
 
     def stop(self) -> None:
         pass

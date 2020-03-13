@@ -10,7 +10,6 @@ logger = logging.getLogger(__name__)
 
 @contextmanager
 def on_stop(callback: Callable[[], None]):
-    print("yay")
     if threading.current_thread() is not threading.main_thread():
         logger.debug(
             "Skipping signal handling, because this is not the main thread",
