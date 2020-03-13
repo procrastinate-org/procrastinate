@@ -19,7 +19,7 @@ def test_worker_load_task_known_missing(app):
 
     task_worker.known_missing_tasks.add("foobarbaz")
     with pytest.raises(exceptions.TaskNotFound):
-        task_worker.load_task("foobarbaz")
+        task_worker.load_task("foobarbaz", {})
 
 
 def test_worker_load_task_known_task(app):
@@ -29,14 +29,16 @@ def test_worker_load_task_known_task(app):
     def task_func():
         pass
 
-    assert task_worker.load_task("tests.unit.test_worker_sync.task_func") == task_func
+    assert (
+        task_worker.load_task("tests.unit.test_worker_sync.task_func", {}) == task_func
+    )
 
 
 def test_worker_load_task_new_missing(app):
     task_worker = worker.Worker(app=app, queues=["yay"])
 
     with pytest.raises(exceptions.TaskNotFound):
-        task_worker.load_task("foobarbaz")
+        task_worker.load_task("foobarbaz", {})
 
     assert task_worker.known_missing_tasks == {"foobarbaz"}
 
@@ -55,7 +57,8 @@ def test_worker_load_task_unknown_task(app, caplog):
     unknown_task = task_func
 
     assert (
-        task_worker.load_task("tests.unit.test_worker_sync.unknown_task") == task_func
+        task_worker.load_task("tests.unit.test_worker_sync.unknown_task", {})
+        == task_func
     )
 
     assert [record for record in caplog.records if record.action == "load_dynamic_task"]

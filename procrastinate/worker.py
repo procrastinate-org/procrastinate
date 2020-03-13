@@ -173,7 +173,11 @@ class Worker:
 
         self.logger.warning(
             f"Task at {task_name} was not registered, it's been loaded dynamically.",
-            extra={"action": "load_dynamic_task", "task_name": task_name},
+            extra={
+                "action": "load_dynamic_task",
+                "task_name": task_name,
+                **log_context,
+            },
         )
 
         self.app.tasks[task_name] = task
