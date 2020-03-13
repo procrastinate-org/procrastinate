@@ -27,9 +27,7 @@ class BaseRetryStrategy:
         schedule_at = pendulum.now("UTC").add(seconds=schedule_in)
         return exceptions.JobRetry(schedule_at)
 
-    def get_schedule_in(
-        self, *, exception: Exception, attempts: int
-    ) -> Optional[float]:
+    def get_schedule_in(self, *, exception: Exception, attempts: int) -> Optional[int]:
         """
         Parameters
         ----------
@@ -39,7 +37,7 @@ class BaseRetryStrategy:
 
         Returns
         -------
-        ``Optional[float]``
+        ``Optional[int]``
             If a job should not be retried, this function should return None.
             Otherwise, it should return the duration after which to schedule the
             new job run, *in seconds*.
@@ -75,14 +73,12 @@ class RetryStrategy(BaseRetryStrategy):
     """
 
     max_attempts: Optional[int] = None
-    wait: float = 0.0
-    linear_wait: float = 0.0
-    exponential_wait: float = 0.0
+    wait: int = 0
+    linear_wait: int = 0
+    exponential_wait: int = 0
     retry_exceptions: Optional[Iterable[Type[Exception]]] = None
 
-    def get_schedule_in(
-        self, *, exception: Exception, attempts: int
-    ) -> Optional[float]:
+    def get_schedule_in(self, *, exception: Exception, attempts: int) -> Optional[int]:
         if self.max_attempts and attempts >= self.max_attempts:
             return None
         # isinstance's 2nd param must be a tuple, not an arbitrary iterable
@@ -90,7 +86,7 @@ class RetryStrategy(BaseRetryStrategy):
             exception, tuple(self.retry_exceptions)
         ):
             return None
-        wait: float = self.wait
+        wait: int = self.wait
         wait += self.linear_wait * attempts
         wait += self.exponential_wait ** (attempts + 1)
         return wait
