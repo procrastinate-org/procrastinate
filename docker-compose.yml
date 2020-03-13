@@ -1,6 +1,19 @@
 version: '2.1'
 services:
-
+  procrastinate:
+    build: .
+    volumes:
+      - ".:/procrastinate_dev"
+    command: ["procrastinate", "worker"]
+    environment:
+      PYTHONPATH: .
+      PROCRASTINATE_APP: procrastinate_demo.app.app
+      PGDATABASE: procrastinate
+      PGHOST: postgres
+      PGUSER: postgres
+    depends_on:
+      - postgres
+    user: ${UID:-0}:${GID:-0}
   postgres:
     image: postgres:10
     ports: ["5432:5432"]

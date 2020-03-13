@@ -16,8 +16,8 @@ TL;DR
     $ # Export libpq env vars for PG connection
     $ export PGDATABASE=procrastinate PGHOST=localhost PGUSER=postgres
 
-    $ # Launch PostgreSQL within Docker
-    $ docker-compose up -d
+    $ # Start PostgreSQL in a Docker container
+    $ docker-compose up -d postgres
 
     $ # Explore tox entrypoints
     $ tox -l
@@ -43,7 +43,7 @@ Environment variables
 The `export` command below will be necessary whenever you want to interact with
 the database (using the project locally, launching tests, ...).
 These are standard ``libpq`` environment variables, and the values used below correspond
-to the docker setup. Feel free to adjust them as necessary.
+to the Docker setup. Feel free to adjust them as necessary.
 
 .. code-block:: console
 
@@ -52,13 +52,13 @@ to the docker setup. Feel free to adjust them as necessary.
 Create your development database
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The development database can be launched using docker with a single command.
+The development database can be launched using Docker with a single command.
 The PostgreSQL database we used is a fresh standard out-of-the-box database
 on the latest stable version.
 
 .. code-block:: console
 
-    $ docker-compose up -d
+    $ docker-compose up -d postgres
 
 If you want to try out the project locally, it's useful to have ``postgresql-client``
 installed. It will give you both a PostgreSQL console (``psql``) and specialized
@@ -273,6 +273,101 @@ Schedule some tasks with:
 .. code-block:: console
 
     (venv) $ python -m procrastinate_demo
+
+Use Docker for Procrastinate development
+----------------------------------------
+
+In the development setup described above, Procrastinate, its dependencies, and the
+development tools (``tox``, ``black``, ``pytest``, etc.) are installed in a virtual
+Python environment on the host system. Alternatively, they can be installed in a Docker
+image, and Procrastinate and all the development tools can be run in Docker containers.
+Docker is useful when you can't, or don't want to, install System requirements such as
+the ``libpq-dev`` package (required by the ``psycopg2`` dependency).
+
+This section shows, through ``docker-compose`` command examples, how to test and run
+Procrastinate in Docker.
+
+Build the ``procrastinate`` Docker image:
+
+.. code-block:: console
+
+    $ docker-compose build procrastinate
+
+Run the automated tests:
+
+.. code-block:: console
+
+    $ export UID
+    $ export GID=$(id -g)
+    $ docker-compose run --rm procrastinate pytest
+
+Docker Compose is configured (in ``docker-compose.yml``) to mount the local directory on
+the host system onto ``/procrastinate_dev`` in the container. This means that local
+changes made to the Procrastinate code are visible in Procrastinate containers.
+
+The ``UID`` and ``GID`` environment variables are set and exported for the Procrastinate
+container to be run with the current user id and group id. If not set or exported, the
+Procrastinate container will run as root, and files owned by root may be created in the
+developer's working directory.
+
+In the definition of the ``procrastinate`` service in ``docker-compose.yml`` the
+``PROCRASTINATE_APP`` variable is set to ``procrastinate_demo.app.app`` (the
+Procrastinate demo application). So ``procrastinate`` commands run in Procrastinate
+containers are always run as if they were passed ``--app procrastinate_demo.app.app``.
+
+Run the ``procrastinate`` command :
+
+.. code-block:: console
+
+    $ docker-compose run --rm procrastinate procrastinate -h
+
+Apply the Procrastinate database schema:
+
+.. code-block:: console
+
+    $ docker-compose run --rm procrastinate procrastinate schema --apply
+
+Run the Procrastinate healthchecks:
+
+.. code-block:: console
+
+    $ docker-compose run --rm procrastinate procrastinate healthchecks
+
+Start a Procrastinate worker (``-d`` used to start the container in detached mode):
+
+.. code-block:: console
+
+    $ docker-compose up -d procrastinate
+
+Run a command (``bash`` here) in the Procrastinate worker container just started:
+
+.. code-block:: console
+
+    $ docker-compose exec procrastinate bash
+
+Watch the Procrastinate worker logs:
+
+.. code-block:: console
+
+    $ docker-compose logs -ft procrastinate
+
+Use the ``procrastinate defer`` command to create a job:
+
+.. code-block:: console
+
+    $ docker-compose run --rm procrastinate procrastinate defer procrastinate_demo.tasks.sum '{"a":3, "b": 5}'
+
+Or run the demo main file:
+
+.. code-block:: console
+
+    $ docker-compose run --rm procrastinate python -m procrastinate_demo
+
+Stop and remove all the containers (including the ``postgres`` container):
+
+.. code-block:: console
+
+    $ docker-compose down
 
 Wait, there are ``async`` and ``await`` keywords everywhere!?
 -------------------------------------------------------------
