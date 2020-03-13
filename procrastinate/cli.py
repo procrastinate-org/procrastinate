@@ -1,5 +1,4 @@
 import contextlib
-import datetime
 import json
 import logging
 import os
@@ -207,7 +206,9 @@ def load_json_args(json_args: str, json_loads: Callable) -> types.JSONDict:
     return args
 
 
-def get_schedule_at(at: Optional[str]) -> Optional[datetime.datetime]:
+# return type should not be Optional[str], but there's a typing bug in
+# Pendulum 2.1.0 (https://github.com/sdispater/pendulum/issues/450)
+def get_schedule_at(at: Optional[str]) -> Optional[str]:
     if at is None:
         return None
 
