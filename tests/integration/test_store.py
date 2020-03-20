@@ -1,3 +1,4 @@
+import asyncio
 import datetime
 import random
 import string
@@ -349,26 +350,47 @@ async def test_finish_job_retry(get_all, pg_job_store):
 
 async def test_listen_for_jobs(pg_job_store, pg_connector):
     queue = "".join(random.choices(string.ascii_letters, k=10))
-    queue_full_name = f"procrastinate_queue#{queue}"
+    channel = f"procrastinate_queue#{queue}"
 
-    await pg_job_store.listen_for_jobs(queues=[queue])
-
-    count = await pg_connector.execute_query_one(
-        """SELECT COUNT(*) FROM pg_listening_channels()
-                          WHERE pg_listening_channels = %(queue)s""",
-        queue=queue_full_name,
+    listen_event = asyncio.Event()
+    notify_event = asyncio.Event()
+    task = asyncio.create_task(
+        pg_job_store.listen_for_jobs(
+            notify_event=notify_event, queues=[queue], listen_event=listen_event
+        )
     )
-    assert count["count"] == 1
+    await listen_event.wait()
+    await pg_connector.execute_query(
+        pg_connector.make_dynamic_query("NOTIFY {channel}", channel=channel)
+    )
+    try:
+        await asyncio.wait_for(notify_event.wait(), 5)
+    except asyncio.TimeoutError:
+        pytest.fail("Notify event was not set")
+    finally:
+        task.cancel()
 
 
 async def test_listen_for_jobs_all_queue(pg_job_store, pg_connector):
-    await pg_job_store.listen_for_jobs()
-
-    count = await pg_connector.execute_query_one(
-        """SELECT COUNT(*) FROM pg_listening_channels()
-           WHERE pg_listening_channels = 'procrastinate_any_queue'"""
+    listen_event = asyncio.Event()
+    notify_event = asyncio.Event()
+    task = asyncio.create_task(
+        pg_job_store.listen_for_jobs(
+            notify_event=notify_event, listen_event=listen_event
+        )
     )
-    assert count["count"] == 1
+    await listen_event.wait()
+    await pg_connector.execute_query(
+        pg_connector.make_dynamic_query(
+            "NOTIFY {channel}", channel="procrastinate_any_queue"
+        )
+    )
+    try:
+        await asyncio.wait_for(notify_event.wait(), 5)
+    except asyncio.TimeoutError:
+        pytest.fail("Notify event was not set")
+    finally:
+        task.cancel()
 
 
 async def test_enum_synced(pg_connector):

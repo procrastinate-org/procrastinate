@@ -89,10 +89,12 @@ async def test_finish_job(job_store, job_factory, connector):
     ],
 )
 async def test_listen_for_jobs(job_store, connector, mocker, queues, channels):
-    notify_event = asyncio.Event()
+    listen_event = asyncio.Event()
     task = asyncio.create_task(
-        job_store.listen_for_jobs(event=notify_event, queues=queues)
+        job_store.listen_for_jobs(
+            notify_event=asyncio.Event(), queues=queues, listen_event=listen_event
+        )
     )
-    await notify_event.wait()
+    await listen_event.wait()
     task.cancel()
     assert connector.queries == [("listen_for_jobs", channel) for channel in channels]

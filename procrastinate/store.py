@@ -96,8 +96,14 @@ class JobStore:
         )
 
     async def listen_for_jobs(
-        self, *, event: asyncio.Event, queues: Optional[Iterable[str]] = None,
+        self,
+        *,
+        notify_event: asyncio.Event,
+        queues: Optional[Iterable[str]] = None,
+        listen_event: Optional[asyncio.Event] = None,
     ) -> None:
         await self.connector.listen_notify(
-            event=event, channels=get_channel_for_queues(queues=queues)
+            channels=get_channel_for_queues(queues=queues),
+            notify_event=notify_event,
+            listen_event=listen_event,
         )

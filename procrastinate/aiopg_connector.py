@@ -167,7 +167,10 @@ class PostgresConnector(connector.BaseConnector):
         )
 
     async def listen_notify(
-        self, event: asyncio.Event, channels: Iterable[str]
+        self,
+        channels: Iterable[str],
+        notify_event: asyncio.Event,
+        listen_event: Optional[asyncio.Event],
     ) -> NoReturn:
         # We need to acquire a dedicated connection, and use the listen
         # query
@@ -179,15 +182,16 @@ class PostgresConnector(connector.BaseConnector):
                         query=sql.queries["listen_queue"], channel_name=channel_name
                     ),
                 )
-
-            # We'll leave this loop with a CancelError, when we get cancelled
+            if listen_event:
+                listen_event.set()
+            # We'll leave this loop with a CancelledError, when we get cancelled
             while True:
                 # TODO: because of https://github.com/aio-libs/aiopg/issues/249,
                 # we could get stuck in here forever if the connection closes.
                 # Maybe we should set a timeout and if connection is closed, reopen
                 # a new one.
                 await connection.notifies.get()
-                event.set()
+                notify_event.set()
 
 
 def PostgresJobStore(*args, **kwargs):

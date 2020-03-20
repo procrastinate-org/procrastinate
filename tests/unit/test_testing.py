@@ -259,11 +259,13 @@ def test_finish_job_run_retry_no_schedule(connector):
 @pytest.mark.asyncio
 async def test_listen_notify(connector):
     # If we don't crash, it's enough
-    event = asyncio.Event()
+    notify_event = asyncio.Event()
     task = asyncio.create_task(
-        connector.listen_notify(event=event, channels=["channel_name"])
+        connector.listen_notify(
+            channels=["channel_name"], notify_event=notify_event, listen_event=None
+        )
     )
-    await event.wait()
+    await notify_event.wait()
     task.cancel()
 
 

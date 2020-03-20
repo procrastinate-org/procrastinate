@@ -45,7 +45,9 @@ class Worker:
     async def run(self) -> None:
         notify_event = asyncio.Event()
         self.notify_task = asyncio.create_task(
-            self.job_store.listen_for_jobs(event=notify_event, queues=self.queues)
+            self.job_store.listen_for_jobs(
+                queues=self.queues, notify_event=notify_event
+            )
         )
 
         def stop() -> None:

@@ -69,16 +69,21 @@ class InMemoryConnector(connector.BaseConnector):
         return query.format(**identifiers)
 
     async def listen_notify(
-        self, event: asyncio.Event, channels: Iterable[str]
+        self,
+        channels: Iterable[str],
+        notify_event: asyncio.Event,
+        listen_event: Optional[asyncio.Event],
     ) -> NoReturn:
         for channel_name in channels:
             query = self.make_dynamic_query(
                 query=sql.queries["listen_queue"], channel_name=channel_name
             )
             self.generic_execute(query, "run")
+        if listen_event:
+            listen_event.set()
         while True:
             await asyncio.sleep(0)
-            event.set()
+            notify_event.set()
 
     def stop(self) -> None:
         pass
