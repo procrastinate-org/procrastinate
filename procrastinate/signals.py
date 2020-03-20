@@ -2,9 +2,8 @@ import asyncio
 import logging
 import signal
 import threading
-import types
 from contextlib import contextmanager
-from typing import Callable
+from typing import Any, Callable, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +24,7 @@ logger = logging.getLogger(__name__)
 @contextmanager
 def on_stop(callback: Callable[[], None]):
     if threading.current_thread() is not threading.main_thread():
-        logger.debug(
+        logger.warning(
             "Skipping signal handling, because this is not the main thread",
             extra={"action": "skip_signal_handlers"},
         )
@@ -34,29 +33,57 @@ def on_stop(callback: Callable[[], None]):
 
     sigint_handler = signal.getsignal(signal.SIGINT)
     sigterm_handler = signal.getsignal(signal.SIGTERM)
-    loop = asyncio.get_running_loop()
 
-    def uninstall_and_callback() -> None:
-        loop.remove_signal_handler(signal.SIGINT)
-        loop.remove_signal_handler(signal.SIGTERM)
-        signal.signal(signal.SIGINT, sigint_handler)
-        signal.signal(signal.SIGTERM, sigterm_handler)
+    uninstalled = False
+    loop: Optional[asyncio.AbstractEventLoop]
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        loop = None
+
+    def uninstall_and_callback(*args) -> None:
+        nonlocal uninstalled
+        uninstalled = True
+        uninstall(
+            loop=loop, sigint_handler=sigint_handler, sigterm_handler=sigterm_handler
+        )
         callback()
 
     try:
-        logger.debug(
-            "Installing signal handler", extra={"action": "install_signal_handlers"}
-        )
-        loop.add_signal_handler(signal.SIGINT, uninstall_and_callback)
-        loop.add_signal_handler(signal.SIGTERM, uninstall_and_callback)
-
+        install(loop=loop, handler=uninstall_and_callback)
         yield
     finally:
-        logger.debug(
-            "Resetting previous signal handler",
-            extra={"action": "uninstall_signal_handlers"},
-        )
+        if not uninstalled:
+            uninstall(
+                loop=loop,
+                sigint_handler=sigint_handler,
+                sigterm_handler=sigterm_handler,
+            )
+
+
+def install(loop: Optional[asyncio.AbstractEventLoop], handler: Callable):
+    logger.debug(
+        "Installing signal handler", extra={"action": "install_signal_handlers"}
+    )
+    if loop:
+        loop.add_signal_handler(signal.SIGINT, handler)
+        loop.add_signal_handler(signal.SIGTERM, handler)
+    else:
+        signal.signal(signal.SIGINT, handler)
+        signal.signal(signal.SIGTERM, handler)
+
+
+def uninstall(
+    loop: Optional[asyncio.AbstractEventLoop],
+    sigint_handler: Any,
+    sigterm_handler: Any,
+):
+    logger.debug(
+        "Resetting previous signal handler",
+        extra={"action": "uninstall_signal_handlers"},
+    )
+    if loop:
         loop.remove_signal_handler(signal.SIGINT)
         loop.remove_signal_handler(signal.SIGTERM)
-        signal.signal(signal.SIGINT, sigint_handler)
-        signal.signal(signal.SIGTERM, sigterm_handler)
+    signal.signal(signal.SIGINT, sigint_handler)
+    signal.signal(signal.SIGTERM, sigterm_handler)
