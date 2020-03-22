@@ -1,4 +1,5 @@
 import asyncio
+import functools
 import importlib
 import logging
 import types
@@ -80,7 +81,7 @@ def wrap_one(cls: Type, attribute_name: str):
         return
 
     # Create a wrapper that will call the method in a run_until_complete
-    # @functools.wraps(attribute)
+    @functools.wraps(wrapped)
     def wrapper(*args, **kwargs):
         awaitable = wrapped(*args, **kwargs)
         return sync_await(awaitable=awaitable)
