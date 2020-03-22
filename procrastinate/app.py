@@ -221,8 +221,7 @@ class App:
     ) -> None:
         """
         Run a worker. This worker will run in the foreground and the function will not
-        return until the worker stops (most probably when it receives a stop signal)
-        (except if `only_once` is True).
+        return until the worker stops (most probably when it receives a stop signal).
 
         Parameters
         ----------
