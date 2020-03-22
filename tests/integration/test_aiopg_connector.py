@@ -37,6 +37,24 @@ async def test_create_with_pool(connection_params):
         await connector.close_async()
 
 
+async def test_create_with_pool_on_connect(pg_connector_factory):
+    called = []
+
+    async def on_connect(connection):
+        called.append(connection)
+
+    connector = await pg_connector_factory(on_connect=on_connect)
+    await connector.execute_query("SELECT 1")
+
+    assert len(called) > 0
+    assert isinstance(called[0], aiopg.Connection)
+
+
+async def test_create_with_pool_maxsize(pg_connector_factory):
+    connector = await pg_connector_factory(maxsize=1)
+    assert connector._pool.maxsize == 2
+
+
 @pytest.mark.parametrize(
     "method_name, result",
     [

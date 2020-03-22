@@ -106,7 +106,7 @@ class PostgresConnector(connector.BaseConnector):
 
         async def on_connect(connection):
             if base_on_connect:
-                base_on_connect(connection)
+                await base_on_connect(connection)
             if json_loads:
                 psycopg2.extras.register_default_jsonb(connection.raw, loads=json_loads)
 
@@ -118,10 +118,10 @@ class PostgresConnector(connector.BaseConnector):
             "on_connect": on_connect,
             "cursor_factory": RealDictCursor,
         }
-        defaults.update(kwargs)
-
         if "maxsize" in kwargs:
             kwargs["maxsize"] = max(2, kwargs["maxsize"])
+
+        defaults.update(kwargs)
 
         pool = await aiopg.create_pool(**defaults)
 
