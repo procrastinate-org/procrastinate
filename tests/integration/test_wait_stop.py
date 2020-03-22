@@ -2,7 +2,8 @@ import asyncio
 
 import pytest
 
-from procrastinate import worker as worker_module, app
+from procrastinate import app
+from procrastinate import worker as worker_module
 
 
 @pytest.mark.asyncio

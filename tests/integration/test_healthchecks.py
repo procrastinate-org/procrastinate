@@ -1,7 +1,6 @@
-import psycopg2
 import pytest
 
-from procrastinate import aiopg_connector, jobs
+from procrastinate import jobs
 from procrastinate.healthchecks import HealthCheckRunner
 
 pytestmark = pytest.mark.asyncio
