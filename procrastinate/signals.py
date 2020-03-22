@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import signal
+import sys
 import threading
 from contextlib import contextmanager
 from typing import Any, Callable, Optional
@@ -37,7 +38,10 @@ def on_stop(callback: Callable[[], None]):
     uninstalled = False
     loop: Optional[asyncio.AbstractEventLoop]
     try:
-        loop = asyncio.get_running_loop()
+        if sys.version_info < (3, 7):
+            loop = asyncio.get_event_loop()
+        else:
+            loop = asyncio.get_running_loop()
     except RuntimeError:
         loop = None
 
