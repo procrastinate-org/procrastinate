@@ -93,6 +93,8 @@ def wrap_one(cls: Type, attribute_name: str):
         final_wrapper = classmethod(wrapper)
     elif isinstance(attribute, staticmethod):
         final_wrapper = staticmethod(wrapper)
+    else:
+        raise ValueError(f"Invalid object of type {type(attribute)}")
 
     # Save this new method on the class
     name = wrapper.__name__ = attribute_name[: -len(suffix)]

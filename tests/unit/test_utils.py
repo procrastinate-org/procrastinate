@@ -152,3 +152,18 @@ def test_add_sync_api_staticmethods_sync():
     Test.a("sync")
 
     assert result == ["sync"]
+
+
+def test_add_sync_api_invalid():
+    # This test gives the decorator an object that looks like an async method
+    # but is not. Given it's neither a method nor a classmethod nor a staticmethod
+    # but a NotAMethod(), it should be detected as such.
+    class NotAMethod:
+        async def __func__():
+            pass
+
+    with pytest.raises(ValueError):
+
+        @utils.add_sync_api
+        class Test:
+            a_async = NotAMethod()
