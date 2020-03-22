@@ -49,7 +49,7 @@ class Worker:
 
     @contextlib.contextmanager
     def listener(self):
-        notifier = asyncio.create_task(
+        notifier = asyncio.ensure_future(
             self.job_store.listen_for_jobs(event=self.notify_event, queues=self.queues)
         )
         try:

@@ -10,7 +10,7 @@ pytestmark = pytest.mark.asyncio
 @pytest.fixture
 async def running_worker(app):
     running_worker = worker.Worker(app=app, queues=["some_queue"])
-    task = asyncio.create_task(running_worker.run())
+    task = asyncio.ensure_future(running_worker.run())
     running_worker.task = task
     yield running_worker
     running_worker.stop()

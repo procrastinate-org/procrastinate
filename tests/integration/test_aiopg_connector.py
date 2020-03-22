@@ -130,7 +130,7 @@ async def test_listen_notify(pg_connector):
     channel = "somechannel"
     event = asyncio.Event()
 
-    task = asyncio.create_task(
+    task = asyncio.ensure_future(
         pg_connector.listen_notify(channels=[channel], event=event)
     )
     try:
@@ -166,7 +166,7 @@ async def test_loop_notify_timeout(pg_connector):
     # connection closes, we eventually finish the coroutine.
     event = asyncio.Event()
     async with pg_connector._pool.acquire() as connection:
-        task = asyncio.create_task(
+        task = asyncio.ensure_future(
             pg_connector._loop_notify(event=event, connection=connection, timeout=0.01)
         )
         await asyncio.sleep(0.1)

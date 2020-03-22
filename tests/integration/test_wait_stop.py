@@ -13,7 +13,7 @@ async def test_wait_for_activity(pg_connector):
     """
     pg_app = app.App(connector=pg_connector)
     worker = worker_module.Worker(app=pg_app, timeout=2)
-    task = asyncio.create_task(worker.single_worker())
+    task = asyncio.ensure_future(worker.single_worker())
     await asyncio.sleep(0.2)  # should be enough so that we're waiting
 
     worker.stop_requested = True
@@ -32,7 +32,7 @@ async def test_wait_for_activity_timeout(pg_connector):
     """
     pg_app = app.App(connector=pg_connector)
     worker = worker_module.Worker(app=pg_app, timeout=2)
-    task = asyncio.create_task(worker.single_worker())
+    task = asyncio.ensure_future(worker.single_worker())
     try:
         await asyncio.sleep(0.2)  # should be enough so that we're waiting
 
@@ -51,7 +51,7 @@ async def test_wait_for_activity_stop_from_signal(pg_connector, kill_own_pid):
     """
     pg_app = app.App(connector=pg_connector)
     worker = worker_module.Worker(app=pg_app, timeout=2)
-    task = asyncio.create_task(worker.run())
+    task = asyncio.ensure_future(worker.run())
     await asyncio.sleep(0.2)  # should be enough so that we're waiting
 
     kill_own_pid()
@@ -69,7 +69,7 @@ async def test_wait_for_activity_stop(pg_connector):
     """
     pg_app = app.App(connector=pg_connector)
     worker = worker_module.Worker(app=pg_app, timeout=2)
-    task = asyncio.create_task(worker.run())
+    task = asyncio.ensure_future(worker.run())
     await asyncio.sleep(0.2)  # should be enough so that we're waiting
 
     worker.stop()
