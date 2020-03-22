@@ -11,6 +11,8 @@ from procrastinate import connector, sql, utils
 
 logger = logging.getLogger(__name__)
 
+LISTEN_TIMEOUT = 30.0
+
 
 @utils.add_sync_api
 class PostgresConnector(connector.BaseConnector):
@@ -171,23 +173,39 @@ class PostgresConnector(connector.BaseConnector):
     ) -> NoReturn:
         # We need to acquire a dedicated connection, and use the listen
         # query
-        async with self._pool.acquire() as connection:
-            for channel_name in channels:
-                await self._execute_query_connection(
-                    connection=connection,
-                    query=self.make_dynamic_query(
-                        query=sql.queries["listen_queue"], channel_name=channel_name
-                    ),
-                )
-
-            # We'll leave this loop with a CancelError, when we get cancelled
-            while True:
+        while True:
+            async with self._pool.acquire() as connection:
+                for channel_name in channels:
+                    await self._execute_query_connection(
+                        connection=connection,
+                        query=self.make_dynamic_query(
+                            query=sql.queries["listen_queue"], channel_name=channel_name
+                        ),
+                    )
+                # Initial set() lets caller know that we're ready to listen
                 event.set()
-                # TODO: because of https://github.com/aio-libs/aiopg/issues/249,
-                # we could get stuck in here forever if the connection closes.
-                # Maybe we should set a timeout and if connection is closed, reopen
-                # a new one.
-                await connection.notifies.get()
+                await self._loop_notify(event=event, connection=connection)
+
+    async def _loop_notify(
+        self,
+        event: asyncio.Event,
+        connection: aiopg.Connection,
+        timeout: float = LISTEN_TIMEOUT,
+    ) -> None:
+        # We'll leave this loop with a CancelledError, when we get cancelled
+        while True:
+            # because of https://github.com/aio-libs/aiopg/issues/249,
+            # we could get stuck in here forever if the connection closes.
+            # That's why we need timeout and if connection is closed, reopen
+            # a new one.
+            if connection.closed:
+                return
+            try:
+                await asyncio.wait_for(connection.notifies.get(), timeout)
+            except asyncio.TimeoutError:
+                continue
+
+            event.set()
 
 
 def PostgresJobStore(*args, **kwargs):

@@ -2,6 +2,7 @@ import asyncio
 import functools
 import json
 
+import aiopg
 import pytest
 
 from procrastinate import aiopg_connector
@@ -141,3 +142,39 @@ async def test_listen_notify(pg_connector):
         pytest.fail("Notify not received within 1 sec")
     finally:
         task.cancel()
+
+
+async def test_loop_notify_stop_when_connection_closed(pg_connector):
+    # We want to make sure that the when the connection is closed, the loop end.
+    event = asyncio.Event()
+    async with pg_connector._pool.acquire() as connection:
+        coro = pg_connector._loop_notify(event=event, connection=connection)
+        await asyncio.sleep(0.1)
+        # Currently, the the connection closes, the notifies queue is not
+        # awaken. This test validates the "normal" stopping condition, there is
+        # a separate test for the timeout.
+        connection.close()
+        await connection.notifies.put("s")
+        try:
+            await asyncio.wait_for(coro, 0.1)
+        except asyncio.TimeoutError:
+            pytest.fail("Failed to detect that connection was closed and stop")
+
+
+async def test_loop_notify_timeout(pg_connector):
+    # We want to make sure that when the listen starts, we don't listen forever. If the
+    # connection closes, we eventually finish the coroutine.
+    event = asyncio.Event()
+    async with pg_connector._pool.acquire() as connection:
+        task = asyncio.create_task(
+            pg_connector._loop_notify(event=event, connection=connection, timeout=0.01)
+        )
+        await asyncio.sleep(0.1)
+        assert not task.done()
+        connection.close()
+        try:
+            await asyncio.wait_for(task, 0.1)
+        except asyncio.TimeoutError:
+            pytest.fail("Failed to detect that connection was closed and stop")
+
+    assert not event.is_set()
