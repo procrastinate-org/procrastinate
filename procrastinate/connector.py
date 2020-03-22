@@ -6,7 +6,10 @@ class BaseConnector:
     json_dumps: Optional[Callable] = None
     json_loads: Optional[Callable] = None
 
-    async def close(self) -> None:
+    async def close_async(self) -> None:
+        pass
+
+    def close(self) -> None:
         pass
 
     async def execute_query(self, query: str, **arguments: Any) -> None:
