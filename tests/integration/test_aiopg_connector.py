@@ -26,15 +26,10 @@ async def pg_connector_factory(connection_params):
         await connector.close_async()
 
 
-async def test_create_with_pool(connection_params):
-    connector = await aiopg_connector.PostgresConnector.create_with_pool_async(
-        **connection_params
-    )
-    try:
-        async with connector._pool.acquire() as connection:
-            assert connection.dsn == "dbname=" + connection_params["dbname"]
-    finally:
-        await connector.close_async()
+async def test_create_with_pool(pg_connector_factory, connection_params):
+    connector = await pg_connector_factory(**connection_params)
+    async with connector._pool.acquire() as connection:
+        assert connection.dsn == "dbname=" + connection_params["dbname"]
 
 
 async def test_create_with_pool_on_connect(pg_connector_factory):
@@ -123,10 +118,10 @@ async def test_close_async(pg_connector):
 
 
 async def test_get_connection_no_psycopg2_adapter_registration(
-    connection_params, mocker
+    pg_connector_factory, mocker
 ):
     register_adapter = mocker.patch("psycopg2.extensions.register_adapter")
-    await aiopg_connector.PostgresConnector.create_with_pool_async(**connection_params)
+    await pg_connector_factory()
     assert not register_adapter.called
 
 
