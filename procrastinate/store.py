@@ -16,10 +16,6 @@ class JobStore:
     def __init__(self, connector: connector.BaseConnector):
         self.connector = connector
 
-    # stop, being called in a signal handler, may NOT be an awaitable
-    def stop(self):
-        self.connector.interrupt_wait()
-
     async def defer_job(self, job: jobs.Job) -> int:
         result = await self.connector.execute_query_one(
             query=sql.queries["defer_job"],
