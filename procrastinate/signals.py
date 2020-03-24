@@ -37,13 +37,16 @@ def on_stop(callback: Callable[[], None]):
 
     uninstalled = False
     loop: Optional[asyncio.AbstractEventLoop]
-    try:
-        if sys.version_info < (3, 7):
+    if sys.version_info < (3, 7):
+        if asyncio.Task.current_task():
             loop = asyncio.get_event_loop()
         else:
+            loop = None
+    else:
+        try:
             loop = asyncio.get_running_loop()
-    except RuntimeError:
-        loop = None
+        except RuntimeError:
+            loop = None
 
     def uninstall_and_callback(*args) -> None:
         nonlocal uninstalled
