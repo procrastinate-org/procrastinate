@@ -17,10 +17,14 @@ are accessible through :py:attr:`App.builtin_tasks`:
     app.builtin_tasks["remove_old_jobs"].defer(max_hours=72)
 
 
-Job stores
+Connectors
 ----------
 
+.. This does not indicate that create_with_pool* is an async classmethod because of
+   https://github.com/sphinx-doc/sphinx/issues/7189
+
 .. autoclass:: procrastinate.PostgresConnector
+    :members: create_with_pool, create_with_pool_async, close, close_async
 
 .. autoclass:: procrastinate.testing.InMemoryConnector
     :members: reset

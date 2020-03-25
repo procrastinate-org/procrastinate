@@ -1,3 +1,5 @@
+import asyncio
+
 import pendulum
 import pytest
 
@@ -255,22 +257,24 @@ def test_finish_job_run_retry_no_schedule(connector):
     assert len(connector.events[id]) == 3
 
 
-@pytest.mark.asyncio
-async def test_wait_for_activity(connector):
-    # If we don't crash, it's enough
-    await connector.wait_for_activity()
-
-
 def test_apply_schema_run(connector):
     # If we don't crash, it's enough
     connector.apply_schema_run()
 
 
-def test_stop(connector):
-    # If we don't crash, it's enough
-    connector.stop()
-
-
 def test_listen_for_jobs_run(connector):
     # If we don't crash, it's enough
     connector.listen_for_jobs_run()
+
+
+@pytest.mark.asyncio
+async def test_defer_no_notify(connector):
+    # This test is there to check that if the defered queue doesn't match the
+    # listened queue, the testing connector doesn't notify.
+    event = asyncio.Event()
+    await connector.listen_notify(event=event, channels="some_other_channel")
+    connector.defer_job_one(
+        task_name="foo", lock="bar", args={}, scheduled_at=None, queue="baz"
+    )
+
+    assert not event.is_set()

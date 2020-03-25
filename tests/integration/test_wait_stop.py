@@ -1,35 +1,28 @@
 import asyncio
-import time
 
 import pytest
 
-from procrastinate import App, jobs, store
+from procrastinate import app
+from procrastinate import worker as worker_module
 
 
 @pytest.mark.asyncio
 async def test_wait_for_activity(pg_connector):
     """
-    Testing that a new job arriving in the queue interrupts the wait
+    Testing that a new event interrupts the wait
     """
-    pg_connector.socket_timeout = 2
-    job_store = store.JobStore(connector=pg_connector)
-    await job_store.listen_for_jobs()
+    pg_app = app.App(connector=pg_connector)
+    worker = worker_module.Worker(app=pg_app, timeout=2)
+    task = asyncio.ensure_future(worker.single_worker())
+    await asyncio.sleep(0.2)  # should be enough so that we're waiting
 
-    async def defer_job():
-        await asyncio.sleep(0.5)
-        await job_store.defer_job(
-            jobs.Job(id=0, queue="yay", task_name="oh", lock="sher", task_kwargs={})
-        )
+    worker.stop_requested = True
+    worker.notify_event.set()
 
-    before = time.perf_counter()
-    await asyncio.gather(pg_connector.wait_for_activity(), defer_job())
-    after = time.perf_counter()
-
-    # If we wait less than 1 sec, it means the wait didn't reach the timeout.
-    assert after - before < 1
-
-    # We *did* create a job
-    assert await job_store.fetch_job(queues=None)
+    try:
+        await asyncio.wait_for(task, timeout=0.2)
+    except asyncio.TimeoutError:
+        pytest.fail("Failed to stop worker within .2s")
 
 
 @pytest.mark.asyncio
@@ -37,13 +30,18 @@ async def test_wait_for_activity_timeout(pg_connector):
     """
     Testing that we timeout if nothing happens
     """
-    pg_connector.socket_timeout = 0.01
+    pg_app = app.App(connector=pg_connector)
+    worker = worker_module.Worker(app=pg_app, timeout=2)
+    task = asyncio.ensure_future(worker.single_worker())
+    try:
+        await asyncio.sleep(0.2)  # should be enough so that we're waiting
 
-    before = time.perf_counter()
-    await pg_connector.wait_for_activity()
-    after = time.perf_counter()
+        worker.stop_requested = True
 
-    assert after - before < 0.1
+        with pytest.raises(asyncio.TimeoutError):
+            await asyncio.wait_for(task, timeout=0.2)
+    finally:
+        worker.notify_event.set()
 
 
 @pytest.mark.asyncio
@@ -51,39 +49,32 @@ async def test_wait_for_activity_stop_from_signal(pg_connector, kill_own_pid):
     """
     Testing than ctrl+c interrupts the wait
     """
-    pg_connector.socket_timeout = 2
-    app = App(connector=pg_connector)
+    pg_app = app.App(connector=pg_connector)
+    worker = worker_module.Worker(app=pg_app, timeout=2)
+    task = asyncio.ensure_future(worker.run())
+    await asyncio.sleep(0.2)  # should be enough so that we're waiting
 
-    async def stop():
-        await asyncio.sleep(0.5)
-        kill_own_pid()
+    kill_own_pid()
 
-    before = time.perf_counter()
-    await asyncio.gather(app.run_worker_async(), stop())
-    after = time.perf_counter()
-
-    # If we wait less than 1 sec, it means the wait didn't reach the timeout.
-    assert after - before < 1
+    try:
+        await asyncio.wait_for(task, timeout=0.2)
+    except asyncio.TimeoutError:
+        pytest.fail("Failed to stop worker within .2s")
 
 
 @pytest.mark.asyncio
-async def test_wait_for_activity_stop_from_pipe(pg_connector):
+async def test_wait_for_activity_stop(pg_connector):
     """
     Testing than calling job_store.stop() interrupts the wait
     """
-    # This is a sub-case from above but we never know.
-    pg_connector.socket_timeout = 2
-    job_store = store.JobStore(connector=pg_connector)
+    pg_app = app.App(connector=pg_connector)
+    worker = worker_module.Worker(app=pg_app, timeout=2)
+    task = asyncio.ensure_future(worker.run())
+    await asyncio.sleep(0.2)  # should be enough so that we're waiting
 
-    await job_store.listen_for_jobs()
+    worker.stop()
 
-    async def stop():
-        await asyncio.sleep(0.5)
-        pg_connector.interrupt_wait()
-
-    before = time.perf_counter()
-    await asyncio.gather(pg_connector.wait_for_activity(), stop())
-    after = time.perf_counter()
-
-    # If we wait less than 1 sec, it means the wait didn't reach the timeout.
-    assert after - before < 1
+    try:
+        await asyncio.wait_for(task, timeout=0.2)
+    except asyncio.TimeoutError:
+        pytest.fail("Failed to stop worker within .2s")

@@ -80,9 +80,12 @@ def test_app_register_queue_already_exists(app):
 def test_app_worker(app, mocker):
     Worker = mocker.patch("procrastinate.worker.Worker")
 
-    app._worker(queues=["yay"], name="w1")
+    app.worker_timeout = 12
+    app._worker(queues=["yay"], name="w1", wait=False)
 
-    Worker.assert_called_once_with(queues=["yay"], app=app, name="w1")
+    Worker.assert_called_once_with(
+        queues=["yay"], app=app, name="w1", timeout=12, wait=False,
+    )
 
 
 def test_app_run_worker(app, mocker):
@@ -91,18 +94,6 @@ def test_app_run_worker(app, mocker):
     app.run_worker(queues=["yay"])
 
     run.assert_called_once_with()
-
-
-def test_app_run_worker_only_once(app):
-    @app.task
-    def yay():
-        pass
-
-    yay.defer()
-
-    assert len(app.connector.finished_jobs) == 0
-    app.run_worker(only_once=True)
-    assert len(app.connector.finished_jobs) == 1
 
 
 def test_from_path(mocker):

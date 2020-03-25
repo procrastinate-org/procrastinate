@@ -16,7 +16,7 @@ def main():
     tasks.sleep.configure(lock="a").defer(i=4)
     tasks.random_fail.defer()
 
-    app.close_connection()
+    app.connector.close()
 
 
 if __name__ == "__main__":

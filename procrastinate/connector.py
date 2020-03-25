@@ -1,13 +1,15 @@
-from typing import Any, Callable, Dict, List, Optional
-
-SOCKET_TIMEOUT = 5.0  # seconds
+import asyncio
+from typing import Any, Callable, Dict, Iterable, List, Optional
 
 
 class BaseConnector:
     json_dumps: Optional[Callable] = None
     json_loads: Optional[Callable] = None
 
-    async def close_connection(self) -> None:
+    async def close_async(self) -> None:
+        pass
+
+    def close(self) -> None:
         pass
 
     async def execute_query(self, query: str, **arguments: Any) -> None:
@@ -24,8 +26,7 @@ class BaseConnector:
     def make_dynamic_query(self, query: str, **identifiers: str) -> str:
         raise NotImplementedError
 
-    async def wait_for_activity(self) -> None:
-        raise NotImplementedError
-
-    def interrupt_wait(self):
+    async def listen_notify(
+        self, event: asyncio.Event, channels: Iterable[str]
+    ) -> None:
         raise NotImplementedError

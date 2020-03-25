@@ -2,7 +2,8 @@ import asyncio
 import functools
 import importlib
 import logging
-from typing import Awaitable, Iterable, Type, TypeVar
+import types
+from typing import Any, Awaitable, Iterable, Type, TypeVar
 
 from procrastinate import exceptions
 
@@ -67,26 +68,46 @@ def wrap_one(cls: Type, attribute_name: str):
     if attribute_name.startswith("_") or not attribute_name.endswith(suffix):
         return
 
-    attribute = getattr(cls, attribute_name)
+    # Methods are descriptors so using getattr here will not give us the real method
+    cls_vars = vars(cls)
+    attribute = cls_vars[attribute_name]
+
+    # If method is a classmethod or staticmethod, its real function, that may be
+    # async, is stored in __func__.
+    wrapped = getattr(attribute, "__func__", attribute)
 
     # Keep only async def methods
-    if not asyncio.iscoroutinefunction(attribute):
+    if not asyncio.iscoroutinefunction(wrapped):
         return
 
     # Create a wrapper that will call the method in a run_until_complete
-    @functools.wraps(attribute)
-    def wrapper(self, *args, **kwargs):
-        awaitable = attribute(self, *args, **kwargs)
+    @functools.wraps(wrapped)
+    def wrapper(*args, **kwargs):
+        awaitable = wrapped(*args, **kwargs)
         return sync_await(awaitable=awaitable)
+
+    final_wrapper: Any
+    if isinstance(attribute, types.FunctionType):  # classic method
+        final_wrapper = wrapper
+    elif isinstance(attribute, classmethod):
+        final_wrapper = classmethod(wrapper)
+    elif isinstance(attribute, staticmethod):
+        final_wrapper = staticmethod(wrapper)
+    else:
+        raise ValueError(f"Invalid object of type {type(attribute)}")
 
     # Save this new method on the class
     name = wrapper.__name__ = attribute_name[: -len(suffix)]
-    setattr(cls, name, wrapper)
+    setattr(cls, name, final_wrapper)
 
 
 def sync_await(awaitable: Awaitable[T]) -> T:
     """
     Given an awaitable, awaits it synchronously. Returns the result after it's done.
     """
+
     loop = asyncio.get_event_loop()
+    if loop.is_closed():
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
     return loop.run_until_complete(awaitable)

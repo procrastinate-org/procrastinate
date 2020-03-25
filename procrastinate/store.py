@@ -1,3 +1,4 @@
+import asyncio
 import datetime
 from typing import Iterable, Optional
 
@@ -14,13 +15,6 @@ def get_channel_for_queues(queues: Optional[Iterable[str]] = None) -> Iterable[s
 class JobStore:
     def __init__(self, connector: connector.BaseConnector):
         self.connector = connector
-
-    async def wait_for_jobs(self):
-        return await self.connector.wait_for_activity()
-
-    # stop, being called in a signal handler, may NOT be an awaitable
-    def stop(self):
-        self.connector.interrupt_wait()
 
     async def defer_job(self, job: jobs.Job) -> int:
         result = await self.connector.execute_query_one(
@@ -94,11 +88,9 @@ class JobStore:
             scheduled_at=scheduled_at,
         )
 
-    async def listen_for_jobs(self, queues: Optional[Iterable[str]] = None) -> None:
-        for channel_name in get_channel_for_queues(queues=queues):
-
-            await self.connector.execute_query(
-                query=self.connector.make_dynamic_query(
-                    query=sql.queries["listen_queue"], channel_name=channel_name
-                )
-            )
+    async def listen_for_jobs(
+        self, *, event: asyncio.Event, queues: Optional[Iterable[str]] = None,
+    ) -> None:
+        await self.connector.listen_notify(
+            event=event, channels=get_channel_for_queues(queues=queues)
+        )

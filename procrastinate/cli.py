@@ -1,3 +1,4 @@
+import asyncio
 import contextlib
 import json
 import logging
@@ -105,7 +106,9 @@ def cli(ctx: click.Context, app: str, **kwargs) -> None:
 @click.pass_obj
 def close_connection(procrastinate_app: procrastinate.App, *args, **kwargs):
     # There's an internal click param named app, we can't name our variable "app" too.
-    procrastinate_app.close_connection()  # type: ignore
+    procrastinate_app.connector.close()
+
+    asyncio.get_event_loop().close()
 
 
 @cli.command()

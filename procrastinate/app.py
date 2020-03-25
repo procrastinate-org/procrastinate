@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, Optional, Set
 
 from procrastinate import builtin_tasks
 from procrastinate import connector as connector_module
-from procrastinate import exceptions, healthchecks, jobs
+from procrastinate import healthchecks, jobs
 from procrastinate import retry as retry_module
 from procrastinate import schema, store, utils
 
@@ -13,6 +13,8 @@ if TYPE_CHECKING:
     from procrastinate import tasks, worker
 
 logger = logging.getLogger(__name__)
+
+WORKER_TIMEOUT = 5.0  # seconds
 
 
 @utils.add_sync_api
@@ -35,6 +37,7 @@ class App:
         *,
         connector: Optional[connector_module.BaseConnector] = None,
         import_paths: Optional[Iterable[str]] = None,
+        worker_timeout: float = WORKER_TIMEOUT,
         # Just for backwards compatibility
         job_store: Optional[connector_module.BaseConnector] = None,
     ):
@@ -57,6 +60,14 @@ class App:
             A :py:func:`App.task` that has a custom "name" parameter, that is not
             imported and whose module path is not in this list will
             fail to run.
+        worker_timeout:
+            This parameter indicates the maximum duration (in seconds) procrastinate
+            workers wait between each database job pull. Job activity will be pushed
+            from the db to the worker, but in case the push mechanism fails somehow,
+            workers will not stay idle longer than the number of seconds indicated by
+            this parameter.
+            Raising this parameter can lower the rate of workers making queries to the
+            database for requesting jobs.
         job_store:
             **Deprecated**: Old name of ``connector``.
         """
@@ -77,6 +88,7 @@ class App:
         self.builtin_tasks: Dict[str, "tasks.Task"] = {}
         self.queues: Set[str] = set()
         self.import_paths = import_paths or []
+        self.worker_timeout = worker_timeout
 
         self.job_store = store.JobStore(connector=self.connector)
 
@@ -181,11 +193,13 @@ class App:
         return tasks.configure_task(name=name, job_store=self.job_store, **kwargs)
 
     def _worker(
-        self, queues: Optional[Iterable[str]] = None, name: Optional[str] = None
+        self, queues: Optional[Iterable[str]], name: Optional[str], wait: bool
     ) -> "worker.Worker":
         from procrastinate import worker
 
-        return worker.Worker(app=self, queues=queues, name=name)
+        return worker.Worker(
+            app=self, queues=queues, name=name, timeout=self.worker_timeout, wait=wait
+        )
 
     @functools.lru_cache(maxsize=1)
     def perform_import_paths(self):
@@ -203,32 +217,22 @@ class App:
         self,
         queues: Optional[Iterable[str]] = None,
         name: Optional[str] = None,
-        only_once: bool = False,
+        wait: bool = True,
     ) -> None:
         """
-        Run a worker. This worker will run in the foreground
-        and the function will not return until the worker stops
-        (most probably when it receives a stop signal) (except if
-        `only_once` is True).
+        Run a worker. This worker will run in the foreground and the function will not
+        return until the worker stops (most probably when it receives a stop signal).
 
         Parameters
         ----------
         queues:
-            List of queues to listen to, or None to listen to
-            every queue.
-        only_once:
-            If True, the worker will run but just for the currently
-            defined tasks. This function will return when the
-            listened queues are empty.
+            List of queues to listen to, or None to listen to every queue.
+        wait:
+            If False, worker will terminate as soon as it has caught up with the queues.
         """
-        worker = self._worker(queues=queues, name=name)
-        if only_once:
-            try:
-                await worker.process_jobs_once()
-            except (exceptions.NoMoreJobs, exceptions.StopRequested):
-                pass
-        else:
-            await worker.run()
+        self.perform_import_paths()
+        worker = self._worker(queues=queues, name=name, wait=wait)
+        await worker.run()
 
     @property
     def schema_manager(self) -> schema.SchemaManager:
@@ -237,6 +241,3 @@ class App:
     @property
     def health_check_runner(self) -> healthchecks.HealthCheckRunner:
         return healthchecks.HealthCheckRunner(connector=self.connector)
-
-    async def close_connection_async(self):
-        await self.connector.close_connection()

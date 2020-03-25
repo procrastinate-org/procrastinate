@@ -1,6 +1,4 @@
 import datetime
-import random
-import string
 
 import pendulum
 import pytest
@@ -345,30 +343,6 @@ async def test_finish_job_retry(get_all, pg_job_store):
 
     assert job2.id == job1.id
     assert job2.attempts == job1.attempts + 1
-
-
-async def test_listen_for_jobs(pg_job_store, pg_connector):
-    queue = "".join(random.choices(string.ascii_letters, k=10))
-    queue_full_name = f"procrastinate_queue#{queue}"
-
-    await pg_job_store.listen_for_jobs(queues=[queue])
-
-    count = await pg_connector.execute_query_one(
-        """SELECT COUNT(*) FROM pg_listening_channels()
-                          WHERE pg_listening_channels = %(queue)s""",
-        queue=queue_full_name,
-    )
-    assert count["count"] == 1
-
-
-async def test_listen_for_jobs_all_queue(pg_job_store, pg_connector):
-    await pg_job_store.listen_for_jobs()
-
-    count = await pg_connector.execute_query_one(
-        """SELECT COUNT(*) FROM pg_listening_channels()
-           WHERE pg_listening_channels = 'procrastinate_any_queue'"""
-    )
-    assert count["count"] == 1
 
 
 async def test_enum_synced(pg_connector):
