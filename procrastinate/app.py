@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, Optional, Set
 
 from procrastinate import builtin_tasks
 from procrastinate import connector as connector_module
-from procrastinate import healthchecks, jobs
+from procrastinate import admin, healthchecks, jobs
 from procrastinate import retry as retry_module
 from procrastinate import schema, store, utils
 
@@ -241,3 +241,7 @@ class App:
     @property
     def health_check_runner(self) -> healthchecks.HealthCheckRunner:
         return healthchecks.HealthCheckRunner(connector=self.connector)
+
+    @property
+    def admin(self) -> admin.Admin:
+        return admin.Admin(connector=self.connector)

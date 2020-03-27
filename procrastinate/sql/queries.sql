@@ -58,3 +58,49 @@ SELECT TRUE as check;
 -- count_jobs_status --
 -- Count the number of jobs per status
 SELECT count(*) AS count, status FROM procrastinate_jobs GROUP BY status;
+
+-- list_jobs --
+-- Get list of jobs
+SELECT id,
+       queue_name,
+       task_name,
+       lock,
+       args,
+       status,
+       scheduled_at,
+       started_at,
+       attempts
+  FROM procrastinate_jobs
+ ORDER BY id ASC;
+
+-- list_queues --
+-- Get list of queues and number of jobs per queue
+SELECT queue_name AS name,
+       COUNT(id) AS nb_jobs,
+       (WITH stats AS (
+           SELECT status,
+                  COUNT(*) AS nb_jobs
+             FROM procrastinate_jobs
+            WHERE queue_name = j.queue_name
+            GROUP BY status
+           )
+           SELECT json_object_agg(status, nb_jobs) FROM stats
+       ) AS stats
+  FROM procrastinate_jobs AS j
+ GROUP BY name;
+
+-- list_tasks --
+-- Get list of tasks and number of jobs per task
+SELECT task_name AS name,
+       COUNT(id) AS nb_jobs,
+       (WITH stats AS (
+           SELECT status,
+                  COUNT(*) AS nb_jobs
+             FROM procrastinate_jobs
+            WHERE task_name = j.task_name
+            GROUP BY status
+           )
+           SELECT json_object_agg(status, nb_jobs) FROM stats
+       ) AS stats
+  FROM procrastinate_jobs AS j
+ GROUP BY name;

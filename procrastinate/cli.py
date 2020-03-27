@@ -307,7 +307,7 @@ def shell(app: procrastinate.App):
     """
     Administration shell for procrastinate.
     """
-    ProcrastinateShell(app).cmdloop()
+    ProcrastinateShell(app.admin).cmdloop()
 
 
 def main():
