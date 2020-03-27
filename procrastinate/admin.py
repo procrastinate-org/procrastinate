@@ -9,7 +9,8 @@ class Admin:
 
     async def list_jobs_async(self):
         return [
-            dict(row) for row in await self.connector.execute_query_all(
+            dict(row)
+            for row in await self.connector.execute_query_all(
                 query=sql.queries["list_jobs"],
             )
         ]
@@ -20,6 +21,7 @@ class Admin:
                 "name": row["name"],
                 "nb_jobs": row["nb_jobs"],
                 "nb_todo": row["stats"].get("todo", 0),
+                "nb_doing": row["stats"].get("doing", 0),
                 "nb_succeeded": row["stats"].get("succeeded", 0),
                 "nb_failed": row["stats"].get("failed", 0),
             }
@@ -34,6 +36,7 @@ class Admin:
                 "name": row["name"],
                 "nb_jobs": row["nb_jobs"],
                 "nb_todo": row["stats"].get("todo", 0),
+                "nb_doing": row["stats"].get("doing", 0),
                 "nb_succeeded": row["stats"].get("succeeded", 0),
                 "nb_failed": row["stats"].get("failed", 0),
             }

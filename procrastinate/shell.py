@@ -1,7 +1,6 @@
 import cmd
 
 from procrastinate import admin
-from procrastinate.utils import sync_await
 
 
 class ProcrastinateShell(cmd.Cmd):
@@ -25,11 +24,17 @@ class ProcrastinateShell(cmd.Cmd):
     def do_list_queues(self, _):
         for queue in self.admin.list_queues():
             print(
-                f"{queue['name']}: {queue['nb_jobs']} jobs (todo: {queue['nb_todo']}, succeeded: {queue['nb_succeeded']}, failed: {queue['nb_failed']})"
+                f"{queue['name']}: {queue['nb_jobs']} jobs ("
+                f"todo: {queue['nb_todo']}, "
+                f"succeeded: {queue['nb_succeeded']}, "
+                f"failed: {queue['nb_failed']})"
             )
 
     def do_list_tasks(self, _):
         for task in self.admin.list_tasks():
             print(
-                f"{task['name']}: {task['nb_jobs']} jobs (todo: {task['nb_todo']}, succeeded: {task['nb_succeeded']}, failed: {task['nb_failed']})"
+                f"{task['name']}: {task['nb_jobs']} jobs ("
+                f"todo: {task['nb_todo']}, "
+                f"succeeded: {task['nb_succeeded']}, "
+                f"failed: {task['nb_failed']})"
             )

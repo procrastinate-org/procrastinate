@@ -68,7 +68,6 @@ SELECT id,
        args,
        status,
        scheduled_at,
-       started_at,
        attempts
   FROM procrastinate_jobs
  ORDER BY id ASC;
