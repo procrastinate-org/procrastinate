@@ -14,7 +14,7 @@ TL;DR
 .. code-block:: console
 
     $ # Export libpq env vars for PG connection
-    $ export PGDATABASE=procrastinate PGHOST=localhost PGUSER=postgres
+    $ export PGDATABASE=procrastinate PGHOST=localhost PGUSER=postgres PGPASSWORD=password
 
     $ # Start PostgreSQL in a Docker container
     $ docker-compose up -d postgres
@@ -47,7 +47,7 @@ to the Docker setup. Feel free to adjust them as necessary.
 
 .. code-block:: console
 
-    $ export PGDATABASE=procrastinate PGHOST=localhost PGUSER=postgres
+    $ export PGDATABASE=procrastinate PGHOST=localhost PGUSER=postgres PGPASSWORD=password
 
 Create your development database
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
