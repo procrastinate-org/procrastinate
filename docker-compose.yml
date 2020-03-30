@@ -11,6 +11,7 @@ services:
       PGDATABASE: procrastinate
       PGHOST: postgres
       PGUSER: postgres
+      PGPASSWORD: password
     depends_on:
       - postgres
     user: ${UID:-0}:${GID:-0}
@@ -19,3 +20,4 @@ services:
     ports: ["5432:5432"]
     environment:
         POSTGRES_DB: procrastinate
+        POSTGRES_PASSWORD: password
