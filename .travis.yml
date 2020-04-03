@@ -23,11 +23,15 @@ matrix:
     env:
       TOX_ENV: py37-unit-tests,py37-integration-tests,py37-acceptance-tests
 
-  - python: 3.7
+  - python: 3.8
+    env:
+      TOX_ENV: py38-unit-tests,py38-integration-tests,py38-acceptance-tests
+
+  - python: 3.8
     env:
       TOX_ENV: check-lint
 
-  - python: 3.7
+  - python: 3.8
     env:
       TOX_ENV: docs
 
@@ -50,7 +54,7 @@ after_success:
 jobs:
   include:
     - stage: deploy
-      python: 3.7
+      python: 3.8
       deploy:
         provider: pypi
         user: __token__
