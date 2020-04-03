@@ -77,7 +77,7 @@ class App:
                 "Use App(connector=procrastinate.PostgresConnector(...)) "
                 "instead of App(job_store=procrastinate.PostgresJobStore())"
             )
-            logger.warn(f"Deprecation Warning: {message}")
+            logger.warning(f"Deprecation Warning: {message}")
             warnings.warn(DeprecationWarning(message))
             connector = job_store
         if not connector:
