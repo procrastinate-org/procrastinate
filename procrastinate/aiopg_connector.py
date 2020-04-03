@@ -213,6 +213,6 @@ def PostgresJobStore(*args, **kwargs):
         "Use procrastinate.PostgresConnector(...) "
         "instead of procrastinate.PostgresJobStore(...), with the same arguments"
     )
-    logger.warn(f"Deprecation Warning: {message}")
+    logger.warning(f"Deprecation Warning: {message}")
     warnings.warn(DeprecationWarning(message))
     return PostgresConnector.create_with_pool(*args, **kwargs)
