@@ -1,4 +1,4 @@
-Cf. #<ticket number>
+Closes #<ticket number>
 
 ### Successful PR Checklist:
 - [ ] Tests
