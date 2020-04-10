@@ -18,7 +18,8 @@ LISTEN_TIMEOUT = 30.0
 class PostgresConnector(connector.BaseConnector):
     def __init__(
         self,
-        pool: aiopg.Pool,
+        pool: Optional[aiopg.Pool] = None,
+        pool_kwargs: Optional[Dict] = None,
         json_dumps: Optional[Callable] = None,
         json_loads: Optional[Callable] = None,
     ):
@@ -30,11 +31,13 @@ class PostgresConnector(connector.BaseConnector):
         Parameters
         ----------
         pool:
-            An aiopg pool, either externally configured or passed by
-            :py:func:`PostgresConnector.create_with_pool`.
+            Optional. An aiopg pool externally configured
+        pool_kwargs:
+            Optional. Arguments passed to the aiopg pool during creation.
 
         """
         self._pool = pool
+        self._pool_kwargs = pool_kwargs or {}
         self.json_dumps = json_dumps
         self.json_loads = json_loads
 
@@ -42,8 +45,9 @@ class PostgresConnector(connector.BaseConnector):
         """
         Closes the pool and awaits all connections to be released.
         """
-        self._pool.close()
-        await self._pool.wait_closed()
+        if self._pool:
+            self._pool.close()
+            await self._pool.wait_closed()
 
     def _wrap_json(self, arguments: Dict[str, Any]):
         return {
@@ -54,12 +58,12 @@ class PostgresConnector(connector.BaseConnector):
         }
 
     @classmethod
-    async def create_with_pool_async(
+    def create_with_pool(
         cls,
         json_dumps: Optional[Callable] = None,
         json_loads: Optional[Callable] = None,
         **kwargs,
-    ) -> aiopg.Pool:
+    ) -> "PostgresConnector":
         """
         Creates a connector, and its connection pool, using the provided parameters.
         All additional parameters will be used to create a
@@ -104,13 +108,23 @@ class PostgresConnector(connector.BaseConnector):
             functionning normally (one connection for listen/notify, one for executing
             tasks)
         """
+        return cls(pool_kwargs=kwargs, json_dumps=json_dumps, json_loads=json_loads)
+
+    async def _get_pool(self) -> aiopg.Pool:
+        if self._pool:
+            return self._pool
+
+        kwargs = self._pool_kwargs
+
         base_on_connect = kwargs.pop("on_connect", None)
 
         async def on_connect(connection):
             if base_on_connect:
                 await base_on_connect(connection)
-            if json_loads:
-                psycopg2.extras.register_default_jsonb(connection.raw, loads=json_loads)
+            if self.json_loads:
+                psycopg2.extras.register_default_jsonb(
+                    connection.raw, loads=self.json_loads
+                )
 
         defaults = {
             "dsn": "",
@@ -125,9 +139,8 @@ class PostgresConnector(connector.BaseConnector):
 
         defaults.update(kwargs)
 
-        pool = await aiopg.create_pool(**defaults)
-
-        return cls(pool=pool, json_dumps=json_dumps, json_loads=json_loads)
+        self._pool = await aiopg.create_pool(**defaults)
+        return self._pool
 
     # Pools and single connections do not exactly share their cursor API:
     # - connection.cursor() is an async context manager (async with)
@@ -136,7 +149,9 @@ class PostgresConnector(connector.BaseConnector):
     # a pool or from a connection
 
     async def execute_query(self, query: str, **arguments: Any) -> None:
-        with await self._pool.cursor() as cursor:
+        pool = await self._get_pool()
+
+        with await pool.cursor() as cursor:
             await cursor.execute(query, self._wrap_json(arguments))
 
     async def _execute_query_connection(
@@ -146,7 +161,9 @@ class PostgresConnector(connector.BaseConnector):
             await cursor.execute(query, self._wrap_json(arguments))
 
     async def execute_query_one(self, query: str, **arguments: Any) -> Dict[str, Any]:
-        with await self._pool.cursor() as cursor:
+        pool = await self._get_pool()
+
+        with await pool.cursor() as cursor:
             await cursor.execute(query, self._wrap_json(arguments))
 
             return await cursor.fetchone()
@@ -154,8 +171,9 @@ class PostgresConnector(connector.BaseConnector):
     async def execute_query_all(
         self, query: str, **arguments: Any
     ) -> List[Dict[str, Any]]:
+        pool = await self._get_pool()
 
-        with await self._pool.cursor() as cursor:
+        with await pool.cursor() as cursor:
             await cursor.execute(query, self._wrap_json(arguments))
 
             return await cursor.fetchall()
@@ -171,10 +189,12 @@ class PostgresConnector(connector.BaseConnector):
     async def listen_notify(
         self, event: asyncio.Event, channels: Iterable[str]
     ) -> NoReturn:
+        pool = await self._get_pool()
+
         # We need to acquire a dedicated connection, and use the listen
         # query
         while True:
-            async with self._pool.acquire() as connection:
+            async with pool.acquire() as connection:
                 for channel_name in channels:
                     await self._execute_query_connection(
                         connection=connection,
