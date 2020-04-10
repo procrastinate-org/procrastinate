@@ -16,7 +16,7 @@ async def pg_connector_factory(connection_params):
 
     async def _(**kwargs):
         connection_params.update(kwargs)
-        connector = await aiopg_connector.PostgresConnector.create_with_pool_async(
+        connector = aiopg_connector.PostgresConnector.create_with_pool(
             **connection_params
         )
         connectors.append(connector)
@@ -29,7 +29,8 @@ async def pg_connector_factory(connection_params):
 
 async def test_create_with_pool(pg_connector_factory, connection_params):
     connector = await pg_connector_factory(**connection_params)
-    async with connector._pool.acquire() as connection:
+    pool = await connector._get_pool()
+    async with pool.acquire() as connection:
         assert connection.dsn == "dbname=" + connection_params["dbname"]
 
 
@@ -48,7 +49,8 @@ async def test_create_with_pool_on_connect(pg_connector_factory):
 
 async def test_create_with_pool_maxsize(pg_connector_factory):
     connector = await pg_connector_factory(maxsize=1)
-    assert connector._pool.maxsize == 2
+    pool = await connector._get_pool()
+    assert pool.maxsize == 2
 
 
 @pytest.mark.parametrize(
@@ -147,7 +149,9 @@ async def test_listen_notify(pg_connector):
 async def test_loop_notify_stop_when_connection_closed(pg_connector):
     # We want to make sure that the when the connection is closed, the loop end.
     event = asyncio.Event()
-    async with pg_connector._pool.acquire() as connection:
+    pool = await pg_connector._get_pool()
+
+    async with pool.acquire() as connection:
         coro = pg_connector._loop_notify(event=event, connection=connection)
         await asyncio.sleep(0.1)
         # Currently, the the connection closes, the notifies queue is not
@@ -165,7 +169,9 @@ async def test_loop_notify_timeout(pg_connector):
     # We want to make sure that when the listen starts, we don't listen forever. If the
     # connection closes, we eventually finish the coroutine.
     event = asyncio.Event()
-    async with pg_connector._pool.acquire() as connection:
+    pool = await pg_connector._get_pool()
+
+    async with pool.acquire() as connection:
         task = asyncio.ensure_future(
             pg_connector._loop_notify(event=event, connection=connection, timeout=0.01)
         )

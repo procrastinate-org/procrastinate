@@ -84,9 +84,7 @@ async def connection(connection_params):
 
 @pytest.fixture
 async def pg_connector(connection_params):
-    connector = await aiopg_connector.PostgresConnector.create_with_pool_async(
-        **connection_params
-    )
+    connector = aiopg_connector.PostgresConnector.create_with_pool(**connection_params)
     yield connector
     await connector.close_async()
 
