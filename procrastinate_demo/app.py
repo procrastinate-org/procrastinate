@@ -1,6 +1,6 @@
 import procrastinate
 
 app = procrastinate.App(
-    connector=procrastinate.PostgresConnector.create_with_pool(),  # type: ignore
+    connector=procrastinate.PostgresConnector(),
     import_paths=["procrastinate_demo.tasks"],
 )

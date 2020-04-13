@@ -20,3 +20,7 @@ class LoadFromPathError(ImportError, ProcrastinateException):
 class JobRetry(ProcrastinateException):
     def __init__(self, scheduled_at: datetime.datetime):
         self.scheduled_at = scheduled_at
+
+
+class PoolAlreadySet(ProcrastinateException):
+    pass

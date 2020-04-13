@@ -2,7 +2,7 @@ import asyncio
 import functools
 import json
 
-import aiopg
+import attr
 import pytest
 
 from procrastinate import aiopg_connector
@@ -14,10 +14,12 @@ pytestmark = pytest.mark.asyncio
 async def pg_connector_factory(connection_params):
     connectors = []
 
-    async def _(**kwargs):
+    def _(**kwargs):
+        json_dumps = kwargs.pop("json_dumps", None)
+        json_loads = kwargs.pop("json_loads", None)
         connection_params.update(kwargs)
-        connector = await aiopg_connector.PostgresConnector.create_with_pool_async(
-            **connection_params
+        connector = aiopg_connector.PostgresConnector(
+            json_dumps=json_dumps, json_loads=json_loads, **connection_params
         )
         connectors.append(connector)
         return connector
@@ -27,39 +29,40 @@ async def pg_connector_factory(connection_params):
         await connector.close_async()
 
 
-async def test_create_with_pool(pg_connector_factory, connection_params):
-    connector = await pg_connector_factory(**connection_params)
-    async with connector._pool.acquire() as connection:
-        assert connection.dsn == "dbname=" + connection_params["dbname"]
+async def test_create_pool(connection_params):
+    pool = await aiopg_connector.PostgresConnector._create_pool(connection_params)
+    async with pool:
+        async with pool.acquire() as connection:
+            assert connection.dsn == "dbname=" + connection_params["dbname"]
 
 
-async def test_create_with_pool_on_connect(pg_connector_factory):
+async def test_adapt_pool_args_on_connect(mocker):
     called = []
 
     async def on_connect(connection):
         called.append(connection)
 
-    connector = await pg_connector_factory(on_connect=on_connect)
-    await connector.execute_query("SELECT 1")
+    args = aiopg_connector.PostgresConnector._adapt_pool_args(
+        pool_args={"on_connect": on_connect}, json_loads=None
+    )
 
-    assert len(called) > 0
-    assert isinstance(called[0], aiopg.Connection)
+    assert args["on_connect"] is not on_connect
 
+    connection = mocker.Mock()
+    await args["on_connect"](connection)
 
-async def test_create_with_pool_maxsize(pg_connector_factory):
-    connector = await pg_connector_factory(maxsize=1)
-    assert connector._pool.maxsize == 2
+    assert called == [connection]
 
 
 @pytest.mark.parametrize(
-    "method_name, result",
+    "method_name, expected",
     [
         ("execute_query_one", {"json": {"a": "a", "b": "foo"}}),
         ("execute_query_all", [{"json": {"a": "a", "b": "foo"}}]),
     ],
 )
-async def test_execute_query_one_json_loads(
-    pg_connector_factory, mocker, method_name, result
+async def test_execute_query_json_dumps(
+    pg_connector_factory, mocker, method_name, expected
 ):
     class NotJSONSerializableByDefault:
         pass
@@ -72,11 +75,31 @@ async def test_execute_query_one_json_loads(
     query = "SELECT %(arg)s::jsonb as json"
     arg = {"a": "a", "b": NotJSONSerializableByDefault()}
     json_dumps = functools.partial(json.dumps, default=encode)
-    connector = await pg_connector_factory(json_dumps=json_dumps)
+    connector = pg_connector_factory(json_dumps=json_dumps)
     method = getattr(connector, method_name)
 
     result = await method(query, arg=arg)
-    assert result == result
+    assert result == expected
+
+
+async def test_json_loads(pg_connector_factory, mocker):
+    @attr.dataclass
+    class Param:
+        p: int
+
+    def decode(dct):
+        if "b" in dct:
+            dct["b"] = Param(p=dct["b"])
+        return dct
+
+    json_loads = functools.partial(json.loads, object_hook=decode)
+
+    query = "SELECT %(arg)s::jsonb as json"
+    arg = {"a": 1, "b": 2}
+    connector = pg_connector_factory(json_loads=json_loads)
+
+    result = await connector.execute_query_one(query, arg=arg)
+    assert result["json"] == {"a": 1, "b": Param(p=2)}
 
 
 async def test_execute_query(pg_connector):
@@ -114,15 +137,18 @@ async def test_execute_query_simultaneous(pg_connector):
 
 async def test_close_async(pg_connector):
     await pg_connector.execute_query("SELECT 1")
+    pool = pg_connector._pool
     await pg_connector.close_async()
-    assert pg_connector._pool.closed is True
+    assert pool.closed is True
+    assert pg_connector._pool is None
 
 
 async def test_get_connection_no_psycopg2_adapter_registration(
     pg_connector_factory, mocker
 ):
     register_adapter = mocker.patch("psycopg2.extensions.register_adapter")
-    await pg_connector_factory()
+    connector = pg_connector_factory()
+    await connector._get_pool()
     assert not register_adapter.called
 
 
@@ -147,7 +173,8 @@ async def test_listen_notify(pg_connector):
 async def test_loop_notify_stop_when_connection_closed(pg_connector):
     # We want to make sure that the when the connection is closed, the loop end.
     event = asyncio.Event()
-    async with pg_connector._pool.acquire() as connection:
+    pool = await pg_connector._get_pool()
+    async with pool.acquire() as connection:
         coro = pg_connector._loop_notify(event=event, connection=connection)
         await asyncio.sleep(0.1)
         # Currently, the the connection closes, the notifies queue is not
@@ -165,7 +192,8 @@ async def test_loop_notify_timeout(pg_connector):
     # We want to make sure that when the listen starts, we don't listen forever. If the
     # connection closes, we eventually finish the coroutine.
     event = asyncio.Event()
-    async with pg_connector._pool.acquire() as connection:
+    pool = await pg_connector._get_pool()
+    async with pool.acquire() as connection:
         task = asyncio.ensure_future(
             pg_connector._loop_notify(event=event, connection=connection, timeout=0.01)
         )

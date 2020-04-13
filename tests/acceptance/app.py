@@ -25,7 +25,7 @@ json_dumps = functools.partial(json.dumps, default=encode)
 json_loads = functools.partial(json.loads, object_hook=decode)
 
 app = procrastinate.App(
-    connector=procrastinate.PostgresConnector.create_with_pool(  # type: ignore
+    connector=procrastinate.PostgresConnector(
         json_dumps=json_dumps, json_loads=json_loads
     )
 )
@@ -38,6 +38,10 @@ def sum_task(a, b):
 
 @app.task(queue="default")
 def sum_task_param(p1: Param, p2: Param):
+    if not isinstance(p1, Param):
+        raise Exception("wrong type for p1")
+    if not isinstance(p2, Param):
+        raise Exception("wrong type for p2")
     print(p1 + p2)
 
 
