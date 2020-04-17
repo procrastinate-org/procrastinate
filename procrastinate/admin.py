@@ -63,3 +63,10 @@ class Admin:
                 lock=lock,
             )
         ]
+
+    async def set_job_status_async(self, id, status):
+        await self.connector.execute_query(
+            query=sql.queries["set_job_status"], id=id, status=status,
+        )
+        (result,) = await self.list_jobs_async(id=id)
+        return result

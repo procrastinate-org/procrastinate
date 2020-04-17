@@ -138,3 +138,8 @@ SELECT task_name AS name,
        ) AS stats
   FROM jobs AS j
  GROUP BY name;
+
+-- set_job_status --
+UPDATE procrastinate_jobs
+   SET status = %(status)s
+ WHERE id = %(id)s
