@@ -3,6 +3,11 @@ import cmd
 from procrastinate import admin
 
 
+def parse_argument(arg):
+    splitted_args = (item.partition("=") for item in arg.split())
+    return {key: value for key, _, value in splitted_args}
+
+
 class ProcrastinateShell(cmd.Cmd):
     intro = "Welcome to the procrastinate shell.   Type help or ? to list commands.\n"
     prompt = "procrastinate> "
@@ -17,12 +22,14 @@ class ProcrastinateShell(cmd.Cmd):
 
     do_exit = do_EOF
 
-    def do_list_jobs(self, _):
-        for job in self.admin.list_jobs():
+    def do_list_jobs(self, arg):
+        kwargs = parse_argument(arg)
+        for job in self.admin.list_jobs(**kwargs):
             print(job)
 
-    def do_list_queues(self, _):
-        for queue in self.admin.list_queues():
+    def do_list_queues(self, arg):
+        kwargs = parse_argument(arg)
+        for queue in self.admin.list_queues(**kwargs):
             print(
                 f"{queue['name']}: {queue['nb_jobs']} jobs ("
                 f"todo: {queue['nb_todo']}, "
@@ -30,8 +37,9 @@ class ProcrastinateShell(cmd.Cmd):
                 f"failed: {queue['nb_failed']})"
             )
 
-    def do_list_tasks(self, _):
-        for task in self.admin.list_tasks():
+    def do_list_tasks(self, arg):
+        kwargs = parse_argument(arg)
+        for task in self.admin.list_tasks(**kwargs):
             print(
                 f"{task['name']}: {task['nb_jobs']} jobs ("
                 f"todo: {task['nb_todo']}, "

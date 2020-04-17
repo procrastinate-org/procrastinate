@@ -42,8 +42,8 @@ async def test_list_jobs(admin, pg_job_store):
     assert await admin.list_jobs_async() == [
         {
             "id": 1,
-            "queue_name": "q1",
-            "task_name": "task_foo",
+            "queue": "q1",
+            "task": "task_foo",
             "lock": "lock1",
             "args": {"key": "a"},
             "status": "todo",
@@ -52,8 +52,8 @@ async def test_list_jobs(admin, pg_job_store):
         },
         {
             "id": 2,
-            "queue_name": "q1",
-            "task_name": "task_bar",
+            "queue": "q1",
+            "task": "task_bar",
             "lock": "lock2",
             "args": {"key": "b"},
             "status": "failed",
@@ -62,11 +62,63 @@ async def test_list_jobs(admin, pg_job_store):
         },
         {
             "id": 3,
-            "queue_name": "q2",
-            "task_name": "task_foo",
+            "queue": "q2",
+            "task": "task_foo",
             "lock": "lock3",
             "args": {"key": "c"},
             "status": "succeeded",
+            "scheduled_at": None,
+            "attempts": 1,
+        },
+    ]
+
+    assert await admin.list_jobs_async(id=1) == [
+        {
+            "id": 1,
+            "queue": "q1",
+            "task": "task_foo",
+            "lock": "lock1",
+            "args": {"key": "a"},
+            "status": "todo",
+            "scheduled_at": None,
+            "attempts": 0,
+        },
+    ]
+
+    assert await admin.list_jobs_async(lock="lock3") == [
+        {
+            "id": 3,
+            "queue": "q2",
+            "task": "task_foo",
+            "lock": "lock3",
+            "args": {"key": "c"},
+            "status": "succeeded",
+            "scheduled_at": None,
+            "attempts": 1,
+        },
+    ]
+
+    assert await admin.list_jobs_async(queue="q1", task="task_foo") == [
+        {
+            "id": 1,
+            "queue": "q1",
+            "task": "task_foo",
+            "lock": "lock1",
+            "args": {"key": "a"},
+            "status": "todo",
+            "scheduled_at": None,
+            "attempts": 0,
+        },
+    ]
+
+    assert await admin.list_jobs_async(status="failed") == [
+        {
+            "id": 2,
+            "queue": "q1",
+            "task": "task_bar",
+            "lock": "lock2",
+            "args": {"key": "b"},
+            "status": "failed",
             "scheduled_at": None,
             "attempts": 1,
         },
@@ -93,6 +145,58 @@ async def test_list_queues(admin):
         },
     ]
 
+    assert await admin.list_queues_async(queue="q2") == [
+        {
+            "name": "q2",
+            "nb_jobs": 1,
+            "nb_todo": 0,
+            "nb_doing": 0,
+            "nb_succeeded": 1,
+            "nb_failed": 0,
+        },
+    ]
+
+    assert await admin.list_queues_async(task="task_foo") == [
+        {
+            "name": "q1",
+            "nb_jobs": 1,
+            "nb_todo": 1,
+            "nb_doing": 0,
+            "nb_succeeded": 0,
+            "nb_failed": 0,
+        },
+        {
+            "name": "q2",
+            "nb_jobs": 1,
+            "nb_todo": 0,
+            "nb_doing": 0,
+            "nb_succeeded": 1,
+            "nb_failed": 0,
+        },
+    ]
+
+    assert await admin.list_queues_async(status="todo") == [
+        {
+            "name": "q1",
+            "nb_jobs": 1,
+            "nb_todo": 1,
+            "nb_doing": 0,
+            "nb_succeeded": 0,
+            "nb_failed": 0,
+        },
+    ]
+
+    assert await admin.list_queues_async(lock="lock2") == [
+        {
+            "name": "q1",
+            "nb_jobs": 1,
+            "nb_todo": 0,
+            "nb_doing": 0,
+            "nb_succeeded": 0,
+            "nb_failed": 1,
+        },
+    ]
+
 
 async def test_list_tasks(admin):
     assert await admin.list_tasks_async() == [
@@ -104,6 +208,50 @@ async def test_list_tasks(admin):
             "nb_succeeded": 1,
             "nb_failed": 0,
         },
+        {
+            "name": "task_bar",
+            "nb_jobs": 1,
+            "nb_todo": 0,
+            "nb_doing": 0,
+            "nb_succeeded": 0,
+            "nb_failed": 1,
+        },
+    ]
+
+    assert await admin.list_tasks_async(queue="q2") == [
+        {
+            "name": "task_foo",
+            "nb_jobs": 1,
+            "nb_todo": 0,
+            "nb_doing": 0,
+            "nb_succeeded": 1,
+            "nb_failed": 0,
+        },
+    ]
+
+    assert await admin.list_tasks_async(task="task_foo") == [
+        {
+            "name": "task_foo",
+            "nb_jobs": 2,
+            "nb_todo": 1,
+            "nb_doing": 0,
+            "nb_succeeded": 1,
+            "nb_failed": 0,
+        },
+    ]
+
+    assert await admin.list_tasks_async(status="todo") == [
+        {
+            "name": "task_foo",
+            "nb_jobs": 1,
+            "nb_todo": 1,
+            "nb_doing": 0,
+            "nb_succeeded": 0,
+            "nb_failed": 0,
+        },
+    ]
+
+    assert await admin.list_tasks_async(lock="lock2") == [
         {
             "name": "task_bar",
             "nb_jobs": 1,

@@ -62,44 +62,79 @@ SELECT count(*) AS count, status FROM procrastinate_jobs GROUP BY status;
 -- list_jobs --
 -- Get list of jobs
 SELECT id,
-       queue_name,
-       task_name,
+       queue_name AS queue,
+       task_name AS task,
        lock,
        args,
        status,
        scheduled_at,
        attempts
   FROM procrastinate_jobs
+ WHERE (%(id)s IS NULL OR id = %(id)s)
+   AND (%(queue)s IS NULL OR queue_name = %(queue)s)
+   AND (%(task)s IS NULL OR task_name = %(task)s)
+   AND (%(status)s IS NULL OR status = %(status)s)
+   AND (%(lock)s IS NULL OR lock = %(lock)s)
  ORDER BY id ASC;
 
 -- list_queues --
 -- Get list of queues and number of jobs per queue
+WITH jobs AS (
+   SELECT id,
+          queue_name,
+          task_name,
+          lock,
+          args,
+          status,
+          scheduled_at,
+          attempts
+     FROM procrastinate_jobs
+    WHERE (%(queue)s IS NULL OR queue_name = %(queue)s)
+      AND (%(task)s IS NULL OR task_name = %(task)s)
+      AND (%(status)s IS NULL OR status = %(status)s)
+      AND (%(lock)s IS NULL OR lock = %(lock)s)
+)
 SELECT queue_name AS name,
        COUNT(id) AS nb_jobs,
        (WITH stats AS (
            SELECT status,
                   COUNT(*) AS nb_jobs
-             FROM procrastinate_jobs
+             FROM jobs
             WHERE queue_name = j.queue_name
             GROUP BY status
            )
            SELECT json_object_agg(status, nb_jobs) FROM stats
        ) AS stats
-  FROM procrastinate_jobs AS j
+  FROM jobs AS j
  GROUP BY name;
 
 -- list_tasks --
 -- Get list of tasks and number of jobs per task
+WITH jobs AS (
+   SELECT id,
+          queue_name,
+          task_name,
+          lock,
+          args,
+          status,
+          scheduled_at,
+          attempts
+     FROM procrastinate_jobs
+    WHERE (%(queue)s IS NULL OR queue_name = %(queue)s)
+      AND (%(task)s IS NULL OR task_name = %(task)s)
+      AND (%(status)s IS NULL OR status = %(status)s)
+      AND (%(lock)s IS NULL OR lock = %(lock)s)
+)
 SELECT task_name AS name,
        COUNT(id) AS nb_jobs,
        (WITH stats AS (
            SELECT status,
                   COUNT(*) AS nb_jobs
-             FROM procrastinate_jobs
+             FROM jobs
             WHERE task_name = j.task_name
             GROUP BY status
            )
            SELECT json_object_agg(status, nb_jobs) FROM stats
        ) AS stats
-  FROM procrastinate_jobs AS j
+  FROM jobs AS j
  GROUP BY name;

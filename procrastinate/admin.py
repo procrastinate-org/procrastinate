@@ -7,15 +7,24 @@ class Admin:
     def __init__(self, connector: connector_module.BaseConnector):
         self.connector = connector
 
-    async def list_jobs_async(self):
+    async def list_jobs_async(
+        self, id=None, queue=None, task=None, status=None, lock=None,
+    ):
         return [
             dict(row)
             for row in await self.connector.execute_query_all(
                 query=sql.queries["list_jobs"],
+                id=id,
+                queue=queue,
+                task=task,
+                status=status,
+                lock=lock,
             )
         ]
 
-    async def list_queues_async(self):
+    async def list_queues_async(
+        self, queue=None, task=None, status=None, lock=None,
+    ):
         return [
             {
                 "name": row["name"],
@@ -27,10 +36,16 @@ class Admin:
             }
             for row in await self.connector.execute_query_all(
                 query=sql.queries["list_queues"],
+                queue=queue,
+                task=task,
+                status=status,
+                lock=lock,
             )
         ]
 
-    async def list_tasks_async(self):
+    async def list_tasks_async(
+        self, queue=None, task=None, status=None, lock=None,
+    ):
         return [
             {
                 "name": row["name"],
@@ -42,5 +57,9 @@ class Admin:
             }
             for row in await self.connector.execute_query_all(
                 query=sql.queries["list_tasks"],
+                queue=queue,
+                task=task,
+                status=status,
+                lock=lock,
             )
         ]
