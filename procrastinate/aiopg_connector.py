@@ -132,6 +132,8 @@ class PostgresConnector(connector.BaseConnector):
         self._pool = pool
 
     async def _get_pool(self) -> aiopg.Pool:
+        if self._pool:
+            return self._pool
         async with self._lock:
             if not self._pool:
                 self.set_pool(await self._create_pool(self._pool_args))
