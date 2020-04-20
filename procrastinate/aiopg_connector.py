@@ -24,17 +24,27 @@ class PostgresConnector(connector.BaseConnector):
         **kwargs: Any,
     ):
         """
-        Create a PostgreSQL connector. The connector is based on an
-        :py:func:`aiopg.Pool` that will be created upon first use.
+        Create a PostgreSQL connector. The connector uses an :py:func:`aiopg.Pool`,
+        which is either created automatically upon first use, or set through the
+        py:func:`PostgresConnector.set_pool` method.
 
-        All extra parameters will be passed to ``aiopg`` (see documentation__). Some
-        parameter definitions can be modified (see below).
+        All other arguments than ``json_dumps`` and ``json_loads`` are passed to
+        ``aiopg.create_pool`` (see aiopg documentation__), with default values that
+        may differ from those of ``aiopg`` (see the list of parameters below).
 
         .. _psycopg2 doc: https://www.psycopg.org/docs/extras.html#json-adaptation
         .. __: https://aiopg.readthedocs.io/en/stable/core.html#aiopg.create_pool
 
         Parameters
         ----------
+        json_dumps:
+            The JSON dumps function to use for serializing job arguments. Defaults to
+            the function used by psycopg2. See the `psycopg2 doc`_.
+        json_loads:
+            The JSON loads function to use for deserializing job arguments. Defaults
+            to the function used by psycopg2. See the `psycopg2 doc`_. Unused if the
+            pool is externally created and set into the connector through the
+            :py:func:`PostgresConnector.set_pool` method.
         dsn (Optional[str]):
             Passed to aiopg. Default is "" instead of None, which means if no argument
             is passed, it will connect to localhost:5432 instead of a Unix-domain
@@ -55,17 +65,10 @@ class PostgresConnector(connector.BaseConnector):
         maxsize (int):
             Passed to aiopg. Cannot be lower than 2, otherwise worker won't be
             functionning normally (one connection for listen/notify, one for executing
-            tasks)
+            tasks).
         minsize (int):
             Passed to aiopg. Initial connections are not opened when the connector
             is created, but at first use of the pool.
-        json_dumps:
-            The JSON dumps function to use for serializing job arguments. Defaults to
-            the function used by psycopg2. See the `psycopg2 doc`_.
-        json_loads:
-            The JSON loads function to use for deserializing job arguments. Defaults
-            to the function used by psycopg2. See the `psycopg2 doc`_. Unused if pool
-            is passed.
         """
         self._pool: Optional[aiopg.Pool] = None
         self.json_dumps = json_dumps
