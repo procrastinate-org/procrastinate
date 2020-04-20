@@ -1,6 +1,5 @@
 import pytest
 
-import procrastinate
 from procrastinate import aiopg_connector
 
 
@@ -29,10 +28,3 @@ def test_adapt_pool_args_maxsize():
     )
 
     assert args["maxsize"] == 2
-
-
-def test_app_deprecation(caplog, mocker):
-    with pytest.deprecated_call():
-        procrastinate.PostgresJobStore()
-    assert caplog.records[0].levelname == "WARNING"
-    assert caplog.records[0].message.startswith("Deprecation Warning")

@@ -1,6 +1,5 @@
 import asyncio
 import logging
-import warnings
 from typing import Any, Callable, Dict, Iterable, List, NoReturn, Optional
 
 import aiopg
@@ -222,13 +221,3 @@ class PostgresConnector(connector.BaseConnector):
                 continue
 
             event.set()
-
-
-def PostgresJobStore(*args, **kwargs):
-    message = (
-        "Use procrastinate.PostgresConnector(...) "
-        "instead of procrastinate.PostgresJobStore(...), with the same arguments"
-    )
-    logger.warning(f"Deprecation Warning: {message}")
-    warnings.warn(DeprecationWarning(message))
-    return PostgresConnector(**kwargs)

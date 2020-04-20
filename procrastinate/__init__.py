@@ -1,5 +1,5 @@
 from procrastinate import metadata as _metadata_module
-from procrastinate.aiopg_connector import PostgresConnector, PostgresJobStore
+from procrastinate.aiopg_connector import PostgresConnector
 from procrastinate.app import App
 from procrastinate.retry import BaseRetryStrategy, RetryStrategy
 
@@ -7,7 +7,6 @@ __all__ = [
     "App",
     "BaseRetryStrategy",
     "PostgresConnector",
-    "PostgresJobStore",
     "RetryStrategy",
 ]
 
