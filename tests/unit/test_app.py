@@ -3,20 +3,12 @@ import asyncio
 import pendulum
 import pytest
 
-from procrastinate import aiopg_connector
 from procrastinate import app as app_module
 from procrastinate import tasks
 
 
 def task_func():
     pass
-
-
-def test_app_deprecation(caplog):
-    with pytest.deprecated_call():
-        app_module.App(job_store=aiopg_connector.PostgresConnector)
-    assert caplog.records[0].levelname == "WARNING"
-    assert caplog.records[0].message.startswith("Deprecation Warning")
 
 
 def test_app_no_connector():

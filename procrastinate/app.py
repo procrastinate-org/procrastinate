@@ -1,6 +1,5 @@
 import functools
 import logging
-import warnings
 from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, Optional, Set
 
 from procrastinate import builtin_tasks
@@ -35,11 +34,9 @@ class App:
     def __init__(
         self,
         *,
-        connector: Optional[connector_module.BaseConnector] = None,
+        connector: connector_module.BaseConnector,
         import_paths: Optional[Iterable[str]] = None,
         worker_timeout: float = WORKER_TIMEOUT,
-        # Just for backwards compatibility
-        job_store: Optional[connector_module.BaseConnector] = None,
     ):
         """
         Parameters
@@ -47,8 +44,7 @@ class App:
         connector:
             Instance of a subclass of :py:class:`BaseConnector`, typically
             :py:class:`PostgresConnector`. It will be responsible for all
-            communications with the database.
-            Mandatory if job_store is not passed.
+            communications with the database. Mandatory.
         import_paths:
             List of python dotted paths of modules to import, to make sure
             that the workers know about all possible tasks.
@@ -68,21 +64,7 @@ class App:
             this parameter.
             Raising this parameter can lower the rate of workers making queries to the
             database for requesting jobs.
-        job_store:
-            **Deprecated**: Old name of ``connector``.
         """
-        # Compatibility
-        if job_store:
-            message = (
-                "Use App(connector=procrastinate.PostgresConnector(...)) "
-                "instead of App(job_store=procrastinate.PostgresJobStore())"
-            )
-            logger.warning(f"Deprecation Warning: {message}")
-            warnings.warn(DeprecationWarning(message))
-            connector = job_store
-        if not connector:
-            raise TypeError("App() missing 1 required argument: 'connector'")
-
         self.connector = connector
         self.tasks: Dict[str, "tasks.Task"] = {}
         self.builtin_tasks: Dict[str, "tasks.Task"] = {}
