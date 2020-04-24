@@ -43,7 +43,7 @@ class Job:
     queue :
         Queue name the job will be run in.
     lock :
-        Lock object in database that prevents other jobs with the same lock to run
+        Lock object in database that prevents other jobs with the same lock from running.
         concurrently.
     task_name :
         Name of the associated task.

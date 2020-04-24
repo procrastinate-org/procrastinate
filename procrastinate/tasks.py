@@ -55,7 +55,7 @@ def configure_task(
 @utils.add_sync_api
 class Task:
     """
-    A task is a function that would be executed later. It is linked to a
+    A task is a function that should be executed later. It is linked to a
     default queue, and expects keyword arguments.
 
     Attributes
