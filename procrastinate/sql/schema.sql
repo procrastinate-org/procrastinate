@@ -69,7 +69,7 @@ BEGIN
 		FROM potential_job, lock_object
         WHERE lock_object.object IS NOT NULL
 		AND procrastinate_jobs.id = potential_job.id
-		RETURNING * INTO found_jobs;
+		RETURNING procrastinate_jobs.* INTO found_jobs;
 
 	RETURN found_jobs;
 END;
