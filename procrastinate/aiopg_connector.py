@@ -30,6 +30,7 @@ def wrap_exceptions(coro: CoroutineFunction) -> CoroutineFunction:
         except psycopg2.Error as exc:
             raise exceptions.ConnectorException from exc
 
+    wrapped._exceptions_wrapped = True  # type: ignore
     return wrapped
 
 
