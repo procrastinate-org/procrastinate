@@ -83,6 +83,7 @@ class App:
         queue: str = jobs.DEFAULT_QUEUE,
         name: Optional[str] = None,
         retry: retry_module.RetryValue = False,
+        pass_context: bool = False,
     ) -> Any:
         """
         Declare a function as a task. This method is meant to be used as a decorator::
@@ -122,6 +123,8 @@ class App:
             - A :py:class:`procrastinate.RetryStrategy` instance for complex cases
 
             Default is no retry.
+        pass_context :
+            Passes the task execution context in the task as first
         """
         # Because of https://github.com/python/mypy/issues/3157, this function
         # is quite impossible to type consistently, so, we're just using "Any"
@@ -129,7 +132,14 @@ class App:
         def _wrap(func: Callable[..., "tasks.Task"]):
             from procrastinate import tasks
 
-            task = tasks.Task(func, app=self, queue=queue, name=name, retry=retry)
+            task = tasks.Task(
+                func,
+                app=self,
+                queue=queue,
+                name=name,
+                retry=retry,
+                pass_context=pass_context,
+            )
             self._register(task)
 
             return functools.update_wrapper(task, func)
