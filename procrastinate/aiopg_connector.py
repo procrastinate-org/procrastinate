@@ -49,8 +49,8 @@ class PostgresConnector(connector.BaseConnector):
         py:func:`PostgresConnector.set_pool` method.
 
         All other arguments than ``json_dumps`` and ``json_loads`` are passed to
-        ``aiopg.create_pool`` (see aiopg documentation__), with default values that
-        may differ from those of ``aiopg`` (see the list of parameters below).
+        :py:func:`aiopg.create_pool` (see aiopg documentation__), with default values
+        that may differ from those of ``aiopg`` (see the list of parameters below).
 
         .. _psycopg2 doc: https://www.psycopg.org/docs/extras.html#json-adaptation
         .. __: https://aiopg.readthedocs.io/en/stable/core.html#aiopg.create_pool

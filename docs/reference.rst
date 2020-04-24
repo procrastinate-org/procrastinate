@@ -5,7 +5,7 @@ App
 ---
 
 .. autoclass:: procrastinate.App
-    :members: task, run_worker, configure_task
+    :members: task, run_worker, configure_task, from_path
 
 App.builtin_tasks
 """""""""""""""""
@@ -51,3 +51,11 @@ Retry strategies
 
 .. autoclass:: procrastinate.BaseRetryStrategy
     :members: get_schedule_in
+
+
+Exceptions
+----------
+
+.. automodule:: procrastinate.exceptions
+    :members: ProcrastinateException, PoolAlreadySet, LoadFromPathError,
+              ConnectorException

@@ -28,7 +28,17 @@ class App:
     """
 
     @classmethod
-    def from_path(cls, dotted_path: str):
+    def from_path(cls, dotted_path: str) -> "App":
+        """
+        Create an :py:class:`App` object by dynamically loading the
+        object at the given path.
+
+        Parameters
+        ----------
+        dotted_path :
+            Dotted path to the object to load (e.g.
+            ``mymodule.submodule.procrastinate_app``)
+        """
         return utils.load_from_path(dotted_path, cls)
 
     def __init__(
