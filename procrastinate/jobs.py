@@ -1,7 +1,7 @@
 import datetime
 import logging
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Dict, Iterable, Optional
+from typing import TYPE_CHECKING, Any, Dict, Optional
 
 import attr
 
