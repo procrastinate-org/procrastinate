@@ -24,3 +24,7 @@ class JobRetry(ProcrastinateException):
 
 class PoolAlreadySet(ProcrastinateException):
     pass
+
+
+class ConnectorException(ProcrastinateException):
+    pass

@@ -1,8 +1,10 @@
 import asyncio
+import functools
 import logging
-from typing import Any, Callable, Dict, Iterable, List, NoReturn, Optional
+from typing import Any, Callable, Coroutine, Dict, Iterable, List, NoReturn, Optional
 
 import aiopg
+import psycopg2
 import psycopg2.sql
 from psycopg2.extras import Json, RealDictCursor
 
@@ -11,6 +13,24 @@ from procrastinate import connector, exceptions, sql, utils
 logger = logging.getLogger(__name__)
 
 LISTEN_TIMEOUT = 30.0
+
+CoroutineFunction = Callable[..., Coroutine]
+
+
+def wrap_exceptions(coro: CoroutineFunction) -> CoroutineFunction:
+    """
+    Wrap psycopg2 and aiopg errors as connector exceptions
+    This decorator is expected to be used on coroutine functions only
+    """
+
+    @functools.wraps(coro)
+    async def wrapped(*args, **kwargs):
+        try:
+            return await coro(*args, **kwargs)
+        except psycopg2.Error as exc:
+            raise exceptions.ConnectorException from exc
+
+    return wrapped
 
 
 @utils.add_sync_api
@@ -84,6 +104,7 @@ class PostgresConnector(connector.BaseConnector):
         """
         base_on_connect = pool_args.pop("on_connect", None)
 
+        @wrap_exceptions
         async def on_connect(connection):
             if base_on_connect:
                 await base_on_connect(connection)
@@ -104,6 +125,7 @@ class PostgresConnector(connector.BaseConnector):
         final_args.update(pool_args)
         return final_args
 
+    @wrap_exceptions
     async def close_async(self) -> None:
         """
         Close the pool and awaits all connections to be released.
@@ -122,6 +144,7 @@ class PostgresConnector(connector.BaseConnector):
         }
 
     @staticmethod
+    @wrap_exceptions
     async def _create_pool(pool_args: Dict[str, Any]) -> aiopg.Pool:
         return await aiopg.create_pool(**pool_args)
 
@@ -147,17 +170,20 @@ class PostgresConnector(connector.BaseConnector):
     # Because of this, it's easier to have 2 distinct methods for executing from
     # a pool or from a connection
 
+    @wrap_exceptions
     async def execute_query(self, query: str, **arguments: Any) -> None:
         pool = await self._get_pool()
         with await pool.cursor() as cursor:
             await cursor.execute(query, self._wrap_json(arguments))
 
+    @wrap_exceptions
     async def _execute_query_connection(
         self, query: str, connection: aiopg.Connection, **arguments: Any,
     ) -> None:
         async with connection.cursor() as cursor:
             await cursor.execute(query, self._wrap_json(arguments))
 
+    @wrap_exceptions
     async def execute_query_one(self, query: str, **arguments: Any) -> Dict[str, Any]:
         pool = await self._get_pool()
         with await pool.cursor() as cursor:
@@ -165,6 +191,7 @@ class PostgresConnector(connector.BaseConnector):
 
             return await cursor.fetchone()
 
+    @wrap_exceptions
     async def execute_query_all(
         self, query: str, **arguments: Any
     ) -> List[Dict[str, Any]]:
@@ -174,7 +201,7 @@ class PostgresConnector(connector.BaseConnector):
 
             return await cursor.fetchall()
 
-    def make_dynamic_query(self, query: str, **identifiers: str) -> str:
+    def _make_dynamic_query(self, query: str, **identifiers: str) -> str:
         return psycopg2.sql.SQL(query).format(
             **{
                 key: psycopg2.sql.Identifier(value)
@@ -182,6 +209,7 @@ class PostgresConnector(connector.BaseConnector):
             }
         )
 
+    @wrap_exceptions
     async def listen_notify(
         self, event: asyncio.Event, channels: Iterable[str]
     ) -> NoReturn:
@@ -193,7 +221,7 @@ class PostgresConnector(connector.BaseConnector):
                 for channel_name in channels:
                     await self._execute_query_connection(
                         connection=connection,
-                        query=self.make_dynamic_query(
+                        query=self._make_dynamic_query(
                             query=sql.queries["listen_queue"], channel_name=channel_name
                         ),
                     )
@@ -201,6 +229,7 @@ class PostgresConnector(connector.BaseConnector):
                 event.set()
                 await self._loop_notify(event=event, connection=connection)
 
+    @wrap_exceptions
     async def _loop_notify(
         self,
         event: asyncio.Event,
