@@ -62,15 +62,17 @@ class Task:
         queue: str,
         name: Optional[str] = None,
         retry: retry_module.RetryValue = False,
+        pass_context: bool = False,
     ):
         self.queue = queue
         self.app = app
         self.func: Callable = func
         self.retry_strategy = retry_module.get_retry_strategy(retry)
         self.name: str = name if name else self.full_path
+        self.pass_context = pass_context
 
-    def __call__(self, **kwargs: types.JSONValue) -> Any:
-        return self.func(**kwargs)
+    def __call__(self, *args, **kwargs: types.JSONValue) -> Any:
+        return self.func(*args, **kwargs)
 
     @property
     def full_path(self) -> str:

@@ -1,7 +1,7 @@
 import datetime
 import logging
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Dict, Optional
+from typing import TYPE_CHECKING, Any, Dict, Optional, Iterable
 
 import attr
 
@@ -103,3 +103,5 @@ class JobDeferrer:
             extra={"action": "job_defer", "job": context},
         )
         return id
+
+
