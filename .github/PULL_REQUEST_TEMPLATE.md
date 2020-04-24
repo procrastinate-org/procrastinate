@@ -1,6 +1,10 @@
 Closes #<ticket number>
 
+<!-- Please do not remove this, even if you think you don't need it -->
 ### Successful PR Checklist:
+<!-- In case of doubt, we're here to help. CONTIRBUTING.md might help too -->
 - [ ] Tests
-- [ ] Documentation (optionally: [run spell checking](https://github.com/peopledoc/procrastinate/blob/master/CONTRIBUTING.rst#build-the-documentation))
-- [ ] Had a good time contributing? (if not, feel free to give some feedback)
+  - [ ] (not applicable?)
+- [ ] Documentation
+  - [ ] (not applicable?)
+- [ ] Had a good time contributing?
