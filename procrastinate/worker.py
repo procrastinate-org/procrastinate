@@ -199,10 +199,7 @@ class Worker:
         job_args = ()
         if task.pass_context:
             context = JobContext(
-                worker_name=self.name,
-                worker_queues=self.queues,
-                job=job,
-                task=task,
+                worker_name=self.name, worker_queues=self.queues, job=job, task=task,
             )
             job_args = (context,)
         try:
@@ -262,11 +259,13 @@ class Worker:
             message = "Stop requested, no job to finish"
 
         self.logger.info(message, extra=extra)
-        
-        
+
+
 @attr.dataclass(frozen=True, kw_only=True)
 class JobContext:
-    worker_name: str
+    """Contains the context execution of a running task."""
+
+    worker_name: Optional[str]
     worker_queues: Optional[Iterable[str]] = None
     job: jobs.Job
     task: tasks.Task

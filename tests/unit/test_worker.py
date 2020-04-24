@@ -233,3 +233,24 @@ async def test_run_job_not_found(app):
     test_worker = worker.Worker(app, queues=["yay"])
     with pytest.raises(exceptions.TaskNotFound):
         await test_worker.run_job(job=job, log_context={"job": job.get_context()})
+
+
+async def test_run_job_pass_context(app):
+    result = []
+
+    @app.task(queue="yay", name="job", pass_context=True)
+    def task_func(test_context, a):
+        result.extend([test_context, a])
+
+    job = jobs.Job(
+        id=16, task_kwargs={"a": 1}, lock="sherlock", task_name="job", queue="yay",
+    )
+    test_worker = worker.Worker(app, queues=["yay"], name="my_worker")
+    await test_worker.run_job(job=job, log_context={"job": job.get_context()})
+
+    assert result == [
+        worker.JobContext(
+            worker_name="my_worker", worker_queues=["yay"], job=job, task=task_func,
+        ),
+        1,
+    ]

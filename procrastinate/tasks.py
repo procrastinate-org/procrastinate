@@ -54,6 +54,24 @@ def configure_task(
 
 @utils.add_sync_api
 class Task:
+    """
+    A task is a function that would be executed later. It is linked to a
+    default queue, and expects keyword arguments.
+
+    Attributes
+    ----------
+    queue : str
+        Default queue to send deferred jobs to.
+    name : str
+        Name of the task, usually the dotted path of the decorated function.
+    retry_strategy : RetryStrategy
+        Value indicating the retry conditions in case of
+        :py:class:`procrastinate.jobs.Job` error.
+    pass_context : bool
+        If ``True``, passes the task execution context as first positional argument on
+        :py:class:`procrastinate.jobs.Job` execution.
+    """
+
     def __init__(
         self,
         func: Callable,
