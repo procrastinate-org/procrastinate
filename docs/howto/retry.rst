@@ -1,5 +1,3 @@
-.. _retry:
-
 Define a retry strategy on a task
 ---------------------------------
 
@@ -13,7 +11,7 @@ app / machine reboots.
 Simple strategies
 ^^^^^^^^^^^^^^^^^
 
-- Define a number of attempts::
+- Retry 5 times (so 6 attempts total)::
 
     @app.task(retry=5)
     def flaky_task():
@@ -43,7 +41,7 @@ Advanced strategies let you:
 - define the exception types you want to retry on (if you don't, jobs will be retried
   on any type of exceptions)
 
-Define your precise strategy using a :py:class:`RetryStrategy` instance::
+Define your precise strategy using a `RetryStrategy` instance::
 
     from procrastinate import RetryStrategy
 
@@ -55,7 +53,7 @@ Define your precise strategy using a :py:class:`RetryStrategy` instance::
     def my_other_task():
         print("Hello world")
 
-:py:class:`RetryStrategy` takes 3 parameters related to how long it will wait
+`RetryStrategy` takes 3 parameters related to how long it will wait
 between retries:
 
 - ``wait=5`` to wait 5 seconds before each retry

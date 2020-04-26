@@ -1,6 +1,4 @@
-.. _how-to:
-
-How-to...
+How to...
 =========
 
 .. toctree::

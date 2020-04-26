@@ -44,7 +44,7 @@ Worker
 
 .. _glossary_app:
 
-App (or Application) (see :py:class:`procrastinate.App`)
+App (or Application) (see `App`)
     This is meant to be the main entry point of Procrastinate. The app knows
     all the tasks of your project, and thanks to the job store, it knows how
     to launch jobs to execute your tasks.

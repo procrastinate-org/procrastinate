@@ -19,7 +19,8 @@ definition of each event:
 ``started``
     The job was started by a worker.
 ``deferred_for_retry``
-    The job failed, but the :ref:`RetryStrategy <retry>` decided it should be retried.
+    The job failed, but according to the retry strategy, it should
+    be retried (see :doc:`retry`).
 ``failed``
     The job failed, and will not be retried.
 ``succeeded``

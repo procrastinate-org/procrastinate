@@ -1,5 +1,3 @@
-.. _discussions:
-
 Discussions
 ===========
 
@@ -119,7 +117,7 @@ running tasks are waiting one another. That being said, if a worker dies with a 
 will be up to you to free it. If the task fails but the worker survives though, the
 lock will be freed.
 
-For a more practical approach, see :ref:`how-to-locks`.
+For a more practical approach, see `howto/locks`.
 
 .. _discussion-async:
 
@@ -157,7 +155,7 @@ long as they are handled by two distinct workers (one async and one sync)
 
 So far, the only asynchronous interface implemented in procrastinate is job deferring.
 
-See :ref:`how-to-async` for API details.
+See `howto/async` for API details.
 
 Procrastinate's database interactions
 -------------------------------------

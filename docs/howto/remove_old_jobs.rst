@@ -1,5 +1,3 @@
-.. _remove_old_jobs:
-
 Remove old jobs
 ---------------
 
@@ -24,5 +22,5 @@ In Python code
 
     app.builtin_tasks["remove_old_jobs"].defer(max_hours=72)
 
-You can access the builtin task through :py:attr:`App.builtin_tasks`.
+You can access the builtin task through `App.builtin_tasks`.
 The parameters are the same than when accessing the task through the CLI.

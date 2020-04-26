@@ -46,9 +46,9 @@ class PostgresConnector(connector.BaseConnector):
         **kwargs: Any,
     ):
         """
-        Create a PostgreSQL connector. The connector uses an :py:func:`aiopg.Pool`,
+        Create a PostgreSQL connector. The connector uses an ``aiopg.Pool``,
         which is either created automatically upon first use, or set through the
-        py:func:`PostgresConnector.set_pool` method.
+        `PostgresConnector.set_pool` method.
 
         All other arguments than ``json_dumps`` and ``json_loads`` are passed to
         :py:func:`aiopg.create_pool` (see aiopg documentation__), with default values
@@ -66,7 +66,7 @@ class PostgresConnector(connector.BaseConnector):
             The JSON loads function to use for deserializing job arguments. Defaults
             to the function used by psycopg2. See the `psycopg2 doc`_. Unused if the
             pool is externally created and set into the connector through the
-            :py:func:`PostgresConnector.set_pool` method.
+            `PostgresConnector.set_pool` method.
         dsn (Optional[str]):
             Passed to aiopg. Default is "" instead of None, which means if no argument
             is passed, it will connect to localhost:5432 instead of a Unix-domain
@@ -81,7 +81,7 @@ class PostgresConnector(connector.BaseConnector):
             Passed to aiopg. Default is False instead of True to avoid messing with
             the global state.
         cursor_factory (psycopg2.extensions.cursor):
-            Passed to aiopg. Default is :py:class:`psycopg2.extras.RealDictCursor`
+            Passed to aiopg. Default is ``psycopg2.extras.RealDictCursor``
             instead of standard cursor. There is no identified use case for changing
             this.
         maxsize (int):
