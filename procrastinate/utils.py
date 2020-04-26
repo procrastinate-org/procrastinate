@@ -63,6 +63,18 @@ def add_sync_api(cls: Type) -> Type:
     return cls
 
 
+# https://github.com/sphinx-doc/sphinx/issues/7559
+SYNC_ADDENDUM = """
+        This method is the synchronous counterpart of `{}`.
+        Because of a slight issue in automatic doc generation, it
+        is shown here as "async", but this function is synchronous.
+"""
+
+ASYNC_ADDENDUM = """
+        This method is the asynchronous counterpart of `{}`.
+"""
+
+
 def wrap_one(cls: Type, attribute_name: str):
     suffix = "_async"
     if attribute_name.startswith("_") or not attribute_name.endswith(suffix):
@@ -80,11 +92,16 @@ def wrap_one(cls: Type, attribute_name: str):
     if not asyncio.iscoroutinefunction(wrapped):
         return
 
+    attribute.__doc__ = attribute.__doc__ or ""
+
     # Create a wrapper that will call the method in a run_until_complete
     @functools.wraps(wrapped)
     def wrapper(*args, **kwargs):
         awaitable = wrapped(*args, **kwargs)
         return sync_await(awaitable=awaitable)
+
+    sync_name = attribute_name[: -len(suffix)]
+    attribute.__doc__ += ASYNC_ADDENDUM.format(sync_name)
 
     final_wrapper: Any
     if isinstance(attribute, types.FunctionType):  # classic method
@@ -97,7 +114,8 @@ def wrap_one(cls: Type, attribute_name: str):
         raise ValueError(f"Invalid object of type {type(attribute)}")
 
     # Save this new method on the class
-    name = wrapper.__name__ = attribute_name[: -len(suffix)]
+    name = wrapper.__name__ = sync_name
+    final_wrapper.__doc__ += SYNC_ADDENDUM.format(attribute_name)
     setattr(cls, name, final_wrapper)
 
 
