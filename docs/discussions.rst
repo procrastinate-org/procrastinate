@@ -126,7 +126,7 @@ For a more practical approach, see :ref:`how-to-locks`.
 Asynchronous interface
 ----------------------
 
-Here, asynchronous (or async) means "using the Python `async/await` keywords, to make
+Here, asynchronous (or async) means "using the Python ``async/await`` keywords, to make
 I/Os run in parallel". Asynchronous work can be tricky in Python because once you start
 having something asynchronous, you soon realize everything needs to be asynchronous for
 it to work.

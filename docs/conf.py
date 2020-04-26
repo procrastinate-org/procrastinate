@@ -54,6 +54,10 @@ templates_path = ["_templates"]
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
+# When a word in enclosed between `backticks`, the role will automatically be
+# inferred. It can be set explicitely if ambiguous.
+default_role = "any"
+
 # -- Spell check -------------------------------------------------------------
 
 spelling_word_list_filename = "spelling_wordlist.txt"

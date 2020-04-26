@@ -25,8 +25,8 @@ definition of each event:
 ``succeeded``
     The job succeeded.
 ``cancelled``
-    The job was waiting to be executed, but was ultimately placed to `failed` or
-    `succeeded`, bypassing execution.
+    The job was waiting to be executed, but was ultimately placed to ``failed`` or
+    ``succeeded``, bypassing execution.
 ``scheduled``
     This is a special event. When the job is deferred, this is the date where it's
     expected to run.
