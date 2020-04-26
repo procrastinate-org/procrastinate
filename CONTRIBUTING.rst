@@ -214,6 +214,10 @@ not related to your PR (but please put it in a dedicated commit).
 If you need to add words to the spell checking dictionary, it's in
 ``docs/spelling_wordlist.txt``. Make sure the file is alphabetically sorted!
 
+If Sphinx's console output is translated and you would rather have in English,
+use the environment variable ``LC_ALL=C.utf-8`` (either exported or attached to the
+tox process)
+
 Migrations
 ----------
 
