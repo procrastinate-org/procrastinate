@@ -14,6 +14,7 @@
 # import sys
 # sys.path.insert(0, os.path.abspath('.'))
 
+import datetime
 import os
 import pathlib
 import sys
@@ -22,7 +23,7 @@ from typing import List
 # -- Project information -----------------------------------------------------
 
 project = "procrastinate"
-copyright = "2019, Peopledoc"
+copyright = f"{datetime.datetime.now().year}, Peopledoc"
 author = "Peopledoc"
 
 
