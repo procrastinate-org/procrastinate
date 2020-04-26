@@ -1,10 +1,10 @@
 Set the database schema
 -----------------------
 
-Any PostgreSQL database contains one or more *schemas*. Schemas are PostgreSQL way of
-implementing namespaces for database objects. See the `PostgreSQL Schema documentation`_
-for more detail on schemas. (See the `glossary <glossary_schema>` for a note on the
-overloading of the term *schema*.)
+Any PostgreSQL database contains one or more schemas. Schemas are
+PostgreSQL way of implementing namespaces for database objects. See the
+`PostgreSQL Schema documentation`_ for more detail on schemas. See the glossary
+on :term:`schema` for a note on the several meanings of the term *schema*.
 
 By default Procrastinate uses the ``public`` schema, which is PostgreSQL's default
 schema, i.e. the schema that every new database contains.
