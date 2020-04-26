@@ -15,7 +15,7 @@ From the CLI
     $ procrastinate defer procrastinate.builtin_tasks.remove_old_jobs max_hours=72
 
 For more information about this task's parameter,
-see its :ref:`reference <remove_old_jobs_reference>`
+see :py:func:`~procrastinate.builtin_tasks.remove_old_jobs`
 
 In Python code
 ^^^^^^^^^^^^^^

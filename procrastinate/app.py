@@ -21,10 +21,19 @@ class App:
     """
     The App is the main entry point for procrastinate integration.
 
-    Instantiate a single :py:class:`App` in your code
-    and use it to decorate your tasks with :py:func:`App.task`.
+    Instantiate a single `App` in your code
+    and use it to decorate your tasks with `App.task`.
 
-    You can run a worker with :py:func:`App.run_worker`.
+    You can run a worker with `App.run_worker`.
+
+    Attributes
+    ----------
+    tasks : ``Dict[str, tasks.Task]``
+        The mapping of all tasks known by the app. Only procrastinate is expected to
+        make changes to this mapping.
+    builtin_tasks : ``Dict[str, tasks.Task]``
+        The mapping of builtin tasks. Use it to programatically access builtin tasks, to
+        defer them.
     """
 
     @classmethod

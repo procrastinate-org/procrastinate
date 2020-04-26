@@ -5,17 +5,7 @@ App
 ---
 
 .. autoclass:: procrastinate.App
-    :members: task, run_worker, configure_task, from_path
-
-App.builtin_tasks
-"""""""""""""""""
-Builtin tasks are registered when the App object is initialized, and
-are accessible through :py:attr:`App.builtin_tasks`:
-
-.. code-block:: python
-
-    app.builtin_tasks["remove_old_jobs"].defer(max_hours=72)
-
+    :members: task, run_worker, run_worker_async, configure_task, from_path
 
 Connectors
 ----------
@@ -35,11 +25,11 @@ Tasks
 Builtin tasks
 -------------
 
-Procrastinate has builtin tasks that are all available from the CLI:
+Procrastinate has builtin tasks that are all available from the CLI.
+For all tasks, the context argument will be passed automatically.
 
-.. _remove_old_jobs_reference:
-
-.. autofunction:: procrastinate.builtin_tasks.remove_old_jobs(max_hours, queue=None, remove_error=False)
+.. automodule:: procrastinate.builtin_tasks
+    :members:
 
 Jobs
 ----
