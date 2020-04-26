@@ -1,7 +1,5 @@
-Defer a job
------------
-
-(See `glossary <glossary_defer>`)
+:term:`Defer` a job
+-------------------
 
 There are several ways to do this.
 

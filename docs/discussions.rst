@@ -7,7 +7,7 @@ How does this all work ?
 Procrastinate is based on several things:
 
 - PostgreSQL's top notch ability to manage locks, thanks to its ACID_ properties.
-  This ensures that when a worker starts executing a job, it's the only one.
+  This ensures that when a worker starts executing a :term:`job`, it's the only one.
   Procrastinate does this by executing a ``SELECT FOR UPDATE`` that will lock the
   jobs table. This might not scale to billions of simultaneous tables, but we don't
   expect to reach that level.
@@ -77,9 +77,9 @@ some projects that really stand out, to name a few:
 About locks
 -----------
 
-Let's say we have a task that writes a character at the end of a file after waiting for
-a random amount of time. This represents a real world problem where tasks take an
-unforeseeable amount of time and share resources like a database.
+Let's say we have a :term:`task` that writes a character at the end of a file after
+waiting for a random amount of time. This represents a real world problem where tasks
+take an unforeseeable amount of time and share resources like a database.
 
 We launch 4 tasks respectively writing ``a``, ``b``, ``c`` and ``d``. We would expect
 the file to contain ``abcd``, but it's not the case, for example maybe it's ``badc``.
@@ -132,8 +132,8 @@ it to work.
 Procrastinate aims at being compatible with both sync and async codebases.
 
 There are two distinct parts in procrastinate that are relevant for asynchronous work:
-deferring a job, and executing it. As a rule of thumb, only use asynchronous interface
-when you need it.
+:term:`deferring <Defer>` a :term:`job`, and executing it. As a rule of thumb, only use
+asynchronous interface when you need it.
 
 If you have, for example, an async web application, you will need to defer jobs
 asynchronously. You can't afford blocking the whole event loop while you connect to
@@ -144,7 +144,7 @@ Either they do long I/O calls that you would like to run in parallel, or you pla
 reuse parts of your codebase written with the asynchronous interface (say, an async ORM)
 and you don't want to have to maintain their equivalent using a synchronous interface.
 
-There's a catch, though. If your tasks are not async-friendly (time consuming,
+There's a catch, though. If your :term:`task` is not async-friendly (time consuming,
 either CPU intensive or they do synchronous I/O calls), you probably want to avoid
 executing them asynchronously. They will probably not perform worse but it may
 be disturbing for the reader, and if you ever implement tasks with real asynchronous
@@ -181,9 +181,9 @@ guarantee.
 
 .. _`advisory locks`: https://www.postgresql.org/docs/10/explicit-locking.html#ADVISORY-LOCKS
 
-So far, Procrastinate implements async job deferring, and async job executing but
-not in parallel, meaning it can run jobs written as a coroutine, but it will
-only execute one job at a time.
+So far, Procrastinate implements async job :term:`deferring <defer>`, and async job
+executing but not in parallel, meaning it can run jobs written as a coroutine, but it
+will only execute one job at a time.
 
 Why is Procrastinate asynchronous at core?
 ------------------------------------------
@@ -233,7 +233,7 @@ Wasn't this project named "Cabbage" ?
 Yes, in early development, we planned to call this "cabbage" in reference to
 celery, but even if the name was available on PyPI, by the time we stopped
 procrastinating and wanted to register it, it had been taken. Given this project
-is all about "launching tasks in an undetermined moment in the future", the new
+is all about "launching jobs in an undetermined moment in the future", the new
 name felt quite adapted too. Also, now you know why the project is named this way.
 
 Thanks PeopleDoc

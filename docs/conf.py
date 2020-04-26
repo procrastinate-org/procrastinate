@@ -59,6 +59,10 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 # inferred. It can be set explicitely if ambiguous.
 default_role = "any"
 
+# If we don't do that, glossary checks are case sensitive.
+# https://github.com/sphinx-doc/sphinx/issues/7418
+suppress_warnings = ["ref.term"]
+
 # -- Spell check -------------------------------------------------------------
 
 spelling_word_list_filename = "spelling_wordlist.txt"
