@@ -22,8 +22,8 @@ How-to...
     howto/logging
     howto/testing
     howto/deployment
+    howto/pum
     howto/monitoring
     howto/remove_old_jobs
     howto/custom_json_encoder_decoder
     howto/set_database_schema
-    howto/use_pum_for_migrations
