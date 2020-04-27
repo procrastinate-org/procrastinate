@@ -1,5 +1,3 @@
-.. _cron:
-
 Launch a task periodically
 --------------------------
 

@@ -2,7 +2,7 @@ Launch a job in the future
 --------------------------
 
 This section is about launching a job once, but in the future. You may want to read
-the :ref:`periodic launch <cron>` section.
+the `periodic launch <cron>` section.
 
 From the code
 ^^^^^^^^^^^^^

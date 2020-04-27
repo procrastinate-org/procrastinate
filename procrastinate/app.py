@@ -21,10 +21,19 @@ class App:
     """
     The App is the main entry point for procrastinate integration.
 
-    Instantiate a single :py:class:`App` in your code
-    and use it to decorate your tasks with :py:func:`App.task`.
+    Instantiate a single `App` in your code
+    and use it to decorate your tasks with `App.task`.
 
-    You can run a worker with :py:func:`App.run_worker`.
+    You can run a worker with `App.run_worker`.
+
+    Attributes
+    ----------
+    tasks : ``Dict[str, tasks.Task]``
+        The mapping of all tasks known by the app. Only procrastinate is expected to
+        make changes to this mapping.
+    builtin_tasks : ``Dict[str, tasks.Task]``
+        The mapping of builtin tasks. Use it to programatically access builtin tasks, to
+        defer them.
     """
 
     @classmethod
@@ -52,9 +61,9 @@ class App:
         Parameters
         ----------
         connector:
-            Instance of a subclass of :py:class:`BaseConnector`, typically
-            :py:class:`PostgresConnector`. It will be responsible for all
-            communications with the database. Mandatory.
+            Instance of a subclass of :py:class:`procrastinate.connector.BaseConnector`,
+            typically `PostgresConnector`. It will be responsible for all communications
+            with the database. Mandatory.
         import_paths:
             List of python dotted paths of modules to import, to make sure
             that the workers know about all possible tasks.
@@ -63,7 +72,7 @@ class App:
             fly and run, but you will get a warning.
             You don't need to specify paths that you know have already
             been imported, though it doesn't hurt.
-            A :py:func:`App.task` that has a custom "name" parameter, that is not
+            A `App.task` that has a custom "name" parameter, that is not
             imported and whose module path is not in this list will
             fail to run.
         worker_timeout:
@@ -124,13 +133,13 @@ class App:
             Name of the task, by default the full dotted path to the decorated function.
             if the function is nested or dynamically defined, it is important to give
             it a unique name, and to make sure the module that defines this function
-            is listed in the ``import_paths`` of the :py:class:`procrastinate.App`.
+            is listed in the ``import_paths`` of the `procrastinate.App`.
         retry :
             Details how to auto-retry the task if it fails. Can be:
 
             - A ``boolean``: will either not retry or retry indefinitely
             - An ``int``: the number of retries before it gives up
-            - A :py:class:`procrastinate.RetryStrategy` instance for complex cases
+            - A `procrastinate.RetryStrategy` instance for complex cases
 
             Default is no retry.
         pass_context :
@@ -183,7 +192,7 @@ class App:
             to the task (``my.module.my_task``)
 
         **kwargs: Any
-            Parameters from :py:func:`Task.configure`
+            Parameters from `Task.configure`
 
         Returns
         -------

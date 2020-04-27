@@ -100,7 +100,7 @@ class Task:
         """
         Create a job from this task and the given arguments.
         The job will be created with default parameters, if you want to better
-        specify when and how to launch this job, see :py:func:`Task.configure`.
+        specify when and how to launch this job, see `Task.configure`.
         """
         job_id = await self.configure().defer_async(**task_kwargs)
 
@@ -119,7 +119,7 @@ class Task:
         Configure the job with all the specific settings, defining how the job
         should be launched.
 
-        You should call the `defer` method (see :py:func:`Task.defer`) on the resulting
+        You should call the `defer` method (see `Task.defer`) on the resulting
         object, with the job task parameters.
 
         Parameters
@@ -127,8 +127,8 @@ class Task:
         lock :
             No two jobs with the same lock string can run simultaneously
         task_kwargs :
-            Arguments for the job task. You can also pass them to :py:func:`Task.defer`.
-            If you pass both, they will be updated (:py:func:`Task.defer` has priority)
+            Arguments for the job task. You can also pass them to `Task.defer`.
+            If you pass both, they will be updated (`Task.defer` has priority)
         schedule_at :
             A datetime before which the job should not be launched (incompatible with
             schedule_in)
@@ -144,7 +144,7 @@ class Task:
         Returns
         -------
         ``jobs.JobDeferrer``
-            An object with a ``defer`` method, identical to :py:func:`Task.defer`
+            An object with a ``defer`` method, identical to `Task.defer`
 
         Raises
         ------

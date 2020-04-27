@@ -40,7 +40,7 @@ Instructions for contribution
 Environment variables
 ^^^^^^^^^^^^^^^^^^^^^
 
-The `export` command below will be necessary whenever you want to interact with
+The ``export`` command below will be necessary whenever you want to interact with
 the database (using the project locally, launching tests, ...).
 These are standard ``libpq`` environment variables, and the values used below correspond
 to the Docker setup. Feel free to adjust them as necessary.
@@ -161,7 +161,7 @@ don't have to, but... Learn it, it's really cool !
 
 .. _`interactive rebase`: https://git-scm.com/book/en/v2/Git-Tools-Rewriting-History
 
-You can also install a `pre-commit`
+You can also install a ``pre-commit``
 hook which makes sure that all your commits are created clean:
 
 .. code-block:: console
@@ -213,6 +213,10 @@ not related to your PR (but please put it in a dedicated commit).
 
 If you need to add words to the spell checking dictionary, it's in
 ``docs/spelling_wordlist.txt``. Make sure the file is alphabetically sorted!
+
+If Sphinx's console output is localized and you would rather have it in English,
+use the environment variable ``LC_ALL=C.utf-8`` (either exported or attached to the
+tox process)
 
 Migrations
 ----------

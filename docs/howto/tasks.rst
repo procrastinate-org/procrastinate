@@ -7,7 +7,7 @@ You can specify a task with::
     def mytask(argument, other_argument):
         ...
 
-See :py:func:`App.task` for the exact parameters.
+See `App.task` for the exact parameters.
 
 If you're OK with all the default parameters, you can omit parentheses after
 ``task``::

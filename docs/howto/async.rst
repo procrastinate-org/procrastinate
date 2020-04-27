@@ -1,10 +1,8 @@
-.. _how-to-async:
-
 Launch a job and/or execute it asynchronously
 ---------------------------------------------
 
 First, make sure you understand the implications of using the asynchronous interface
-(see :ref:`discussion-async`).
+(see `discussion-async`).
 
 Defer jobs asynchronously
 ^^^^^^^^^^^^^^^^^^^^^^^^^

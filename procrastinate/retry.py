@@ -33,7 +33,7 @@ class BaseRetryStrategy:
         ----------
         attempts:
             The number of previous attempts for the current job. The first time
-            a job is run, `attempts` will be 0.
+            a job is run, ``attempts`` will be 0.
 
         Returns
         -------

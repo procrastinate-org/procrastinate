@@ -1,11 +1,9 @@
-.. _how-to-locks:
-
 Ensure jobs run sequentially and in order
 -----------------------------------------
 
 In this section, we'll see **how** to setup locks. If you want to know
 more about the locking feature (mainly the **why**), head to the Discussions
-section (see :ref:`discussion-locks`).
+section (see `discussion-locks`).
 
 Let's take our example from the section linked above. In a environment with at least 2
 workers, we're writing individual letters to the end of a file and want the letters to

@@ -177,10 +177,10 @@ Your final file
 Going further
 -------------
 
-To continue with practical steps, head to the :ref:`How-to... <how-to>` section. For
-example, have a look at the locks feature: :ref:`how-to-locks`.
+To continue with practical steps, head to the "`howto_index`" section. For
+example, have a look at the locks feature: `howto/locks`.
 
-If you want to better understand some design decisions, head to the :ref:`Discussions
+If you want to better understand some design decisions, head to the `Discussions
 <discussions>` sections.
 
 

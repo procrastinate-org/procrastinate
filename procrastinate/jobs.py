@@ -109,7 +109,7 @@ class JobDeferrer:
 
     async def defer_async(self, **task_kwargs: types.JSONValue) -> int:
         """
-        See :py:func:`Task.defer` for details.
+        See `Task.defer` for details.
         """
 
         job = self.make_new_job(**task_kwargs)
