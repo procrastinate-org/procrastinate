@@ -146,7 +146,7 @@ and you don't want to have to maintain their equivalent using a synchronous inte
 
 There's a catch, though. If your :term:`task` is not async-friendly (time consuming,
 either CPU intensive or they do synchronous I/O calls), you probably want to avoid
-executing them asynchronously. They will probably not perform worse but it may
+executing your tasks asynchronously. They will probably not perform worse but it may
 be disturbing for the reader, and if you ever implement tasks with real asynchronous
 I/O calls, they will perform badly because your event loop will be blocked.
 

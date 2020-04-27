@@ -9,13 +9,13 @@ Let's go through a few words and their meaning.
 .. glossary::
 
     Task
-        A task is a function that would be executed later. It is linked
+        A task is a function executed at a later time by another process. It is linked
         to a default queue, and expects keyword arguments (see `howto/tasks`).
 
     Job
         A job is the launching of a specific task with specific values for the
         keyword arguments. In your code, you're mainly interacting with jobs at
-        2 points: when you deferring them, and when their associated
+        2 points: when you defer them, and when their associated
         task is executed using the job's argument values.
         The analogy would be that a job is an instance of a task.
 
@@ -48,7 +48,7 @@ Let's go through a few words and their meaning.
     Schema
         The schema designates all the tables, relations, indexes, procedures, etc. in the
         database. Applying the schema means installing all those objects in the database.
-        A evolution in the schema (modifying the table structure, or the procedures) is
+        An evolution in the schema (modifying the table structure, or the procedures) is
         called a migration.
 
         This term is not to be confused with that of PostgreSQL. In PostgreSQL a database
