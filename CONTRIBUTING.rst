@@ -183,6 +183,12 @@ If ``tox`` is installed inside your ``virtualenv``, you may want to activate the
 
 This will keep you from creating a commit if there's a linting problem.
 
+In addition, an editorconfig_ file will help your favorite editor to respect
+procrastinate coding style. It is automatically used by most famous IDEs, such as
+Pycharm and VS Code.
+
+.. _editorconfig: https://editorconfig.org/
+
 Build the documentation
 ^^^^^^^^^^^^^^^^^^^^^^^
 
