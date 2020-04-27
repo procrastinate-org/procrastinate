@@ -23,9 +23,6 @@ class BaseConnector:
     ) -> List[Dict[str, Any]]:
         raise NotImplementedError
 
-    def make_dynamic_query(self, query: str, **identifiers: str) -> str:
-        raise NotImplementedError
-
     async def listen_notify(
         self, event: asyncio.Event, channels: Iterable[str]
     ) -> None:

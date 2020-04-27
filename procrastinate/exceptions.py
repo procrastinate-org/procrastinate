@@ -2,6 +2,10 @@ import datetime
 
 
 class ProcrastinateException(Exception):
+    """
+    Base type for all Procrastinate exceptions
+    """
+
     pass
 
 
@@ -14,7 +18,10 @@ class JobError(ProcrastinateException):
 
 
 class LoadFromPathError(ImportError, ProcrastinateException):
-    pass
+    """
+    Raised when calling :py:func:`procrastinate.App.from_path`
+    when the app is not found or the object is not an App.
+    """
 
 
 class JobRetry(ProcrastinateException):
@@ -23,4 +30,19 @@ class JobRetry(ProcrastinateException):
 
 
 class PoolAlreadySet(ProcrastinateException):
+    """
+    Indicates a call on connector.set_pool() was done but the
+    pool already had a set. Changing the pool of a connector is not
+    permitted.
+    """
+
+    pass
+
+
+class ConnectorException(ProcrastinateException):
+    """
+    Any kind of database error will be raised as this type.
+    The precise error can be seen with ``exception.__cause__``
+    """
+
     pass
