@@ -2,7 +2,7 @@ import asyncio
 import contextlib
 import logging
 import time
-from typing import Any, Dict, Iterable, Optional, Set, Union
+from typing import Any, Dict, Iterable, Optional, Set, Tuple, Union
 
 import attr
 
@@ -196,7 +196,7 @@ class Worker:
             extra={"action": "start_job", **log_context},
         )
         exc_info: Union[bool, Exception]
-        job_args = ()
+        job_args: Tuple = ()
         if task.pass_context:
             context = JobContext(
                 worker_name=self.name, worker_queues=self.queues, job=job, task=task,
