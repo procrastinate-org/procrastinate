@@ -32,6 +32,29 @@ class Status(Enum):
 
 @attr.dataclass(frozen=True, kw_only=True)
 class Job:
+    """
+    A job is the launching of a specific task with specific values for the
+    keyword arguments.
+
+    Attributes
+    ----------
+    id :
+        Internal id uniquely identifying the job.
+    queue :
+        Queue name the job will be run in.
+    lock :
+        Lock object in database that prevents other jobs with the same lock from running
+        concurrently.
+    task_name :
+        Name of the associated task.
+    task_kwargs :
+        Arguments used to call the task.
+    scheduled_at :
+        Date and time after which the job is expected to run.
+    attempts :
+        Number of times the job has been tried.
+    """
+
     id: Optional[int] = None
     queue: str
     lock: str

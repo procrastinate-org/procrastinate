@@ -2,7 +2,9 @@ import asyncio
 import contextlib
 import logging
 import time
-from typing import Any, Dict, Iterable, Optional, Set, Union
+from typing import Any, Dict, Iterable, Optional, Set, Tuple, Union
+
+import attr
 
 from procrastinate import app, exceptions, jobs, signals, tasks, types
 
@@ -194,8 +196,14 @@ class Worker:
             extra={"action": "start_job", **log_context},
         )
         exc_info: Union[bool, Exception]
+        job_args: Tuple = ()
+        if task.pass_context:
+            context = JobContext(
+                worker_name=self.name, worker_queues=self.queues, job=job, task=task,
+            )
+            job_args = (context,)
         try:
-            task_result = task(**job.task_kwargs)
+            task_result = task(*job_args, **job.task_kwargs)
             if asyncio.iscoroutine(task_result):
                 task_result = await task_result
 
@@ -251,3 +259,13 @@ class Worker:
             message = "Stop requested, no job to finish"
 
         self.logger.info(message, extra=extra)
+
+
+@attr.dataclass(frozen=True, kw_only=True)
+class JobContext:
+    """Contains the context execution of a running task."""
+
+    worker_name: Optional[str]
+    worker_queues: Optional[Iterable[str]] = None
+    job: jobs.Job
+    task: tasks.Task

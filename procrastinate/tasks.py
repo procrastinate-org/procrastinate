@@ -54,6 +54,24 @@ def configure_task(
 
 @utils.add_sync_api
 class Task:
+    """
+    A task is a function that should be executed later. It is linked to a
+    default queue, and expects keyword arguments.
+
+    Attributes
+    ----------
+    queue : str
+        Default queue to send deferred jobs to.
+    name : str
+        Name of the task, usually the dotted path of the decorated function.
+    retry_strategy : RetryStrategy
+        Value indicating the retry conditions in case of
+        :py:class:`procrastinate.jobs.Job` error.
+    pass_context : bool
+        If ``True``, passes the task execution context as first positional argument on
+        :py:class:`procrastinate.jobs.Job` execution.
+    """
+
     def __init__(
         self,
         func: Callable,
@@ -62,15 +80,17 @@ class Task:
         queue: str,
         name: Optional[str] = None,
         retry: retry_module.RetryValue = False,
+        pass_context: bool = False,
     ):
         self.queue = queue
         self.app = app
         self.func: Callable = func
         self.retry_strategy = retry_module.get_retry_strategy(retry)
         self.name: str = name if name else self.full_path
+        self.pass_context = pass_context
 
-    def __call__(self, **kwargs: types.JSONValue) -> Any:
-        return self.func(**kwargs)
+    def __call__(self, *args, **kwargs: types.JSONValue) -> Any:
+        return self.func(*args, **kwargs)
 
     @property
     def full_path(self) -> str:

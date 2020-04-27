@@ -41,6 +41,11 @@ Procrastinate has builtin tasks that are all available from the CLI:
 
 .. autofunction:: procrastinate.builtin_tasks.remove_old_jobs(max_hours, queue=None, remove_error=False)
 
+Jobs
+----
+
+.. autoclass:: procrastinate.jobs.Job
+
 
 Retry strategies
 ----------------
