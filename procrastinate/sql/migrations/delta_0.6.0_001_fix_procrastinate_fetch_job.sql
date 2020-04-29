@@ -1,6 +1,6 @@
 -- fix procrastinate_fetch_job that works by accident, now returning a proper
 -- procrastinate_jobs row
-CREATE FUNCTION procrastinate_fetch_job(target_queue_names character varying[]) RETURNS procrastinate_jobs
+CREATE OR REPLACE FUNCTION procrastinate_fetch_job(target_queue_names character varying[]) RETURNS procrastinate_jobs
     LANGUAGE plpgsql
     AS $$
 DECLARE
