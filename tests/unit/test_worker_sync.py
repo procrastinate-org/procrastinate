@@ -1,3 +1,5 @@
+import asyncio
+
 import pytest
 
 from procrastinate import exceptions, worker
@@ -65,6 +67,7 @@ def test_queues_display(queues, result):
 
 def test_stop(test_worker, caplog):
     caplog.set_level("INFO")
+    test_worker.notify_event = asyncio.Event()
 
     test_worker.stop()
 
@@ -76,6 +79,7 @@ def test_stop(test_worker, caplog):
 def test_stop_log_job(test_worker, caplog):
     caplog.set_level("INFO")
     test_worker.current_job_context = {"call_string": "yay()"}
+    test_worker.notify_event = asyncio.Event()
 
     test_worker.stop()
 

@@ -47,10 +47,11 @@ class Worker:
 
         self.current_job_context: Optional[Dict] = None
         self.stop_requested = False
-        self.notify_event = asyncio.Event()
+        self.notify_event: Optional[asyncio.Event] = None
 
     @contextlib.contextmanager
     def listener(self):
+        assert self.notify_event
         notifier = asyncio.ensure_future(
             self.job_store.listen_for_jobs(event=self.notify_event, queues=self.queues)
         )
@@ -62,6 +63,8 @@ class Worker:
     async def run(self) -> None:
         queues = self.queues
         display = queues_display(queues)
+        self.notify_event = asyncio.Event()
+        self.stop_requested = False
 
         self.logger.info(
             f"Starting worker on {display}",
@@ -83,35 +86,38 @@ class Worker:
                 "queues": queues,
             },
         )
+        self.notify_event = None
 
     async def single_worker(self):
-        queues = self.queues
-        display = queues_display(queues)
-
         while not self.stop_requested:
             job = await self.job_store.fetch_job(self.queues)
-            if not job:
-                if not self.wait:
+            if job:
+                await self.process_job(job=job)
+            else:
+                if not self.wait or self.stop_requested:
                     break
-                self.logger.debug(
-                    f"Waiting for new jobs on queues {display}",
-                    extra={
-                        "action": "waiting_for_jobs",
-                        "worker_name": self.worker_name,
-                        "queues": queues,
-                    },
-                )
-                self.notify_event.clear()
-                try:
-                    await asyncio.wait_for(
-                        self.notify_event.wait(), timeout=self.timeout
-                    )
-                    self.notify_event.clear()
-                except TimeoutError:
-                    pass
+                await self.wait_for_job()
 
-                continue
-            await self.process_job(job=job)
+    async def wait_for_job(self):
+        assert self.notify_event
+        queues = self.queues
+        display = queues_display(queues)
+        self.logger.debug(
+            f"Waiting for new jobs on queues {display}",
+            extra={
+                "action": "waiting_for_jobs",
+                "worker_name": self.worker_name,
+                "queues": queues,
+            },
+        )
+
+        self.notify_event.clear()
+        try:
+            await asyncio.wait_for(self.notify_event.wait(), timeout=self.timeout)
+        except TimeoutError:
+            pass
+        else:
+            self.notify_event.clear()
 
     async def process_job(self, job: jobs.Job) -> None:
         job_context = job.get_context()
@@ -247,7 +253,8 @@ class Worker:
         # Ensure worker will stop after finishing their task
         self.stop_requested = True
         # Ensure workers currently waiting are awakened
-        self.notify_event.set()
+        if self.notify_event:
+            self.notify_event.set()
 
         # Logging
         extra: Dict[str, Any] = {
