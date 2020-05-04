@@ -102,8 +102,14 @@ class Worker:
                     },
                 )
                 self.notify_event.clear()
-                await asyncio.wait([self.notify_event.wait()], timeout=self.timeout)
-                self.notify_event.clear()
+                try:
+                    await asyncio.wait_for(
+                        self.notify_event.wait(), timeout=self.timeout
+                    )
+                    self.notify_event.clear()
+                except TimeoutError:
+                    pass
+
                 continue
             await self.process_job(job=job)
 
