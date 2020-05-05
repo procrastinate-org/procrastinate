@@ -21,6 +21,8 @@ class JobContext:
         Name of the worker (may be useful for logging)
     worker_queues : ``Optional[Iterable[str]]``
         Queues listened by this worker
+    worker_id : `ìnt```
+        In case there are multiple async workers, this is the id of the worker.
     job : `Job`
         Current `Job` instance
     task : `Task`
@@ -30,6 +32,7 @@ class JobContext:
     app: Optional[app_module.App] = None
     worker_name: Optional[str] = None
     worker_queues: Optional[Iterable[str]] = None
+    worker_id: int = 0
     job: Optional[jobs.Job] = None
     task: Optional[tasks.Task] = None
     additional_context: Dict = attr.ib(factory=dict)
@@ -37,7 +40,11 @@ class JobContext:
     def log_extra(self, action: str, **kwargs: Any) -> types.JSONDict:
         extra: types.JSONDict = {
             "action": action,
-            "worker": {"name": self.worker_name, "queues": self.worker_queues},
+            "worker": {
+                "name": self.worker_name,
+                "id": self.worker_id,
+                "queues": self.worker_queues,
+            },
         }
         if self.job:
             extra["job"] = self.job.log_context()
