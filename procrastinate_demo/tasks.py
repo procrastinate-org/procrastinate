@@ -9,10 +9,10 @@ def sum(a, b):
 
 
 @app.task(queue="sleep")
-def sleep(i):
-    import time
+async def sleep(i):
+    import asyncio
 
-    time.sleep(i)
+    await asyncio.sleep(i)
 
 
 @app.task(queue="sums")
