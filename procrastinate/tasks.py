@@ -60,14 +60,14 @@ class Task:
 
     Attributes
     ----------
-    queue : str
+    queue : ``str``
         Default queue to send deferred jobs to.
-    name : str
+    name : ``str``
         Name of the task, usually the dotted path of the decorated function.
-    retry_strategy : RetryStrategy
+    retry_strategy : `RetryStrategy`
         Value indicating the retry conditions in case of
         :py:class:`procrastinate.jobs.Job` error.
-    pass_context : bool
+    pass_context : ``bool``
         If ``True``, passes the task execution context as first positional argument on
         :py:class:`procrastinate.jobs.Job` execution.
     """

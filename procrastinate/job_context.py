@@ -8,7 +8,24 @@ from procrastinate import jobs, tasks, types
 
 @attr.dataclass(frozen=True, kw_only=True)
 class JobContext:
-    """Contains the context execution of a running task."""
+    """
+    Execution context of a running job.
+    In theory, all attributes are optional. In practice, in a task, they will
+    always be set to their proper value.
+
+    Attributes
+    ----------
+    app : `App`
+        Procrastinate `App` running this job
+    worker_name : ``str``
+        Name of the worker (may be useful for logging)
+    worker_queues : ``Optional[Iterable[str]]``
+        Queues listened by this worker
+    job : `Job`
+        Current `Job` instance
+    task : `Task`
+        Current `Task` instance
+    """
 
     app: Optional[app_module.App] = None
     worker_name: Optional[str] = None
