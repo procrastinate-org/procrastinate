@@ -2,6 +2,7 @@ from typing import Any, Dict, Iterable, Optional
 
 import attr
 
+from procrastinate import app as app_module
 from procrastinate import jobs, tasks, types
 
 
@@ -9,6 +10,7 @@ from procrastinate import jobs, tasks, types
 class JobContext:
     """Contains the context execution of a running task."""
 
+    app: Optional[app_module.App] = None
     worker_name: Optional[str] = None
     worker_queues: Optional[Iterable[str]] = None
     job: Optional[jobs.Job] = None

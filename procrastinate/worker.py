@@ -37,7 +37,7 @@ class Worker:
             self.logger = logger
 
         self.base_context: job_context.JobContext = job_context.JobContext(
-            worker_name=self.worker_name, worker_queues=self.queues,
+            app=app, worker_name=self.worker_name, worker_queues=self.queues
         )
         self.current_context: job_context.JobContext = self.base_context
         self.stop_requested = False

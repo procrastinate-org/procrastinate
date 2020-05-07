@@ -12,9 +12,9 @@ def test_worker(app):
 
 
 @pytest.fixture
-def context():
+def context(app):
     def _(job):
-        return job_context.JobContext(worker_name="worker", job=job)
+        return job_context.JobContext(app=app, worker_name="worker", job=job)
 
     return _
 
