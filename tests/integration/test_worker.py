@@ -43,7 +43,7 @@ async def test_run(app, running_worker, caplog):
 
     assert [(r.levelname, r.action) for r in caplog.records] == [
         ("DEBUG", "register_queue"),
-        ("DEBUG", "about_to_job_defer"),
+        ("DEBUG", "about_to_defer_job"),
         ("INFO", "job_defer"),
         ("DEBUG", "loaded_job_info"),
         ("INFO", "start_job"),
