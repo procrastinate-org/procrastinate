@@ -68,3 +68,21 @@ async def test_wrap_exceptions_success():
 def test_wrap_exceptions_applied(method_name):
     connector = aiopg_connector.PostgresConnector()
     assert getattr(connector, method_name)._exceptions_wrapped is True
+
+
+def test_set_pool(mocker):
+    pool = mocker.Mock()
+    connector = aiopg_connector.PostgresConnector()
+
+    connector.set_pool(pool)
+
+    assert connector._pool is pool
+
+
+def test_set_pool_already_set(mocker):
+    pool = mocker.Mock()
+    connector = aiopg_connector.PostgresConnector()
+    connector.set_pool(pool)
+
+    with pytest.raises(exceptions.PoolAlreadySet):
+        connector.set_pool(pool)

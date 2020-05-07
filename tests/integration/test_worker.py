@@ -14,7 +14,7 @@ async def running_worker(app):
     running_worker.task = task
     yield running_worker
     running_worker.stop()
-    await asyncio.wait([task], timeout=0.5)
+    await asyncio.wait_for(task, timeout=0.5)
 
 
 async def test_run(app, running_worker, caplog):
