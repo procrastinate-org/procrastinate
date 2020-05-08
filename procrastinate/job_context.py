@@ -51,12 +51,26 @@ class JobContext:
 
         return {**extra, **self.additional_context, **kwargs}
 
-    def evolve(self, **update) -> "JobContext":
+    def evolve(self, **update: Any) -> "JobContext":
         return attr.evolve(self, **update)
 
     @property
-    def queues_display(self):
+    def queues_display(self) -> str:
         if self.worker_queues:
             return f"queues {', '.join(self.worker_queues)}"
         else:
             return "all queues"
+
+    def job_description(self, current_timestamp: float) -> str:
+        message = f"worker {self.worker_id}: "
+        if self.job:
+            message += self.job.call_string
+            start = self.additional_context.get("start_timestamp")
+            if start:
+                assert isinstance(start, float)
+                ago = current_timestamp - start
+                message += f" (started {ago:.3f} s ago)"
+        else:
+            message += "no current job"
+
+        return message

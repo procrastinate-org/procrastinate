@@ -257,13 +257,18 @@ class Worker:
 
         # Logging
 
-        context = self.current_context
-        if context.job:
-            message = (
-                f"Stop requested, waiting for job to finish: "
-                f"{context.job.call_string}"
-            )
-        else:
-            message = "Stop requested, no job currently running"
+        self.logger.info(
+            "Stop requested",
+            extra=self.base_context.log_extra(action="stopping_worker"),
+        )
 
-        self.logger.info(message, extra=context.log_extra(action="stopping_worker"))
+        contexts = [
+            context for context in self.current_contexts.values() if context.job
+        ]
+        now = time.time()
+        for context in contexts:
+            self.logger.info(
+                "Waiting for job to finish: "
+                + context.job_description(current_timestamp=now),
+                extra=context.log_extra(action="ending_job"),
+            )
