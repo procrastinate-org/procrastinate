@@ -35,7 +35,10 @@ class JobContext:
     additional_context: Dict = attr.ib(factory=dict)
 
     def log_extra(self, action: str, **kwargs: Any) -> types.JSONDict:
-        extra: types.JSONDict = {"action": action, "worker_name": self.worker_name}
+        extra: types.JSONDict = {
+            "action": action,
+            "worker": {"name": self.worker_name, "queues": self.worker_queues,},
+        }
         if self.job:
             extra["job"] = self.job.log_context()
 
