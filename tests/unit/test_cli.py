@@ -40,10 +40,12 @@ def test_set_verbosity(mocker, caplog):
 def test_handle_errors(raised, expected):
     @cli.handle_errors()
     def raise_exc():
-        raise exceptions.ProcrastinateException
+        raise exceptions.ProcrastinateException("foo") from IndexError("bar")
 
-    with pytest.raises(click.ClickException):
+    with pytest.raises(click.ClickException) as exc:
         raise_exc()
+
+    assert str(exc.value) == "foo\nbar"
 
 
 def test_handle_errors_no_error():
