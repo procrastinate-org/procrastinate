@@ -1,3 +1,5 @@
+import asyncio
+
 import pendulum
 import pytest
 
@@ -292,7 +294,7 @@ async def test_wait_for_job_without_job(app, mocker):
     # notify_event is set to None initially, and we skip run()
     test_worker.notify_event = mocker.Mock()
 
-    wait_for = mocker.Mock(side_effect=TimeoutError)
+    wait_for = mocker.Mock(side_effect=asyncio.TimeoutError)
 
     async def mock(coro, timeout):
         wait_for(coro, timeout=timeout)
