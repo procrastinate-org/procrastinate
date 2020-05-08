@@ -3,13 +3,13 @@ import contextlib
 import json
 import logging
 import os
-from typing import Any, Callable, Dict, Iterable, Optional
+from typing import Any, Callable, Dict, Optional
 
 import click
 import pendulum
 
 import procrastinate
-from procrastinate import connector, exceptions, jobs, types, utils
+from procrastinate import connector, exceptions, jobs, types, utils, worker
 
 logger = logging.getLogger(__name__)
 
@@ -84,11 +84,16 @@ def cli(ctx: click.Context, app: str, **kwargs) -> None:
     PROCRASTINATE_DEFER_UNKNOWN, ...).
     """
     if app:
-        ctx.obj = procrastinate.App.from_path(dotted_path=app)
+        app_obj = procrastinate.App.from_path(dotted_path=app)
     else:
         # If we don't provide an app, initialize a default one that will fail if it
         # needs its job store.
-        ctx.obj = procrastinate.App(connector=connector.BaseConnector())
+        app_obj = procrastinate.App(connector=connector.BaseConnector())
+    ctx.obj = app_obj
+
+    worker_defaults = app_obj.worker_defaults.copy()
+    worker_defaults["queues"] = ",".join(worker_defaults.get("queues") or [])
+    ctx.default_map = {"worker": worker_defaults}
 
 
 @cli.resultcallback()
@@ -100,19 +105,50 @@ def close_connection(procrastinate_app: procrastinate.App, *args, **kwargs):
     asyncio.get_event_loop().close()
 
 
-@cli.command()
+@cli.command("worker")
 @click.pass_obj
-@click.argument("queue", nargs=-1)
-@click.option("--name", help="Name of the worker")
+@click.option("-n", "--name", default=worker.WORKER_NAME, help="Name of the worker")
+@click.option(
+    "-q",
+    "--queues",
+    default="",
+    help="Comma separated names of the queues to listen "
+    "to (empty string for all queues)",
+)
+@click.option(
+    "-c",
+    "--concurrency",
+    type=int,
+    default=worker.WORKER_CONCURRENCY,
+    help="Number of parallel asynchronous jobs to process at once",
+)
+@click.option(
+    "-t",
+    "--timeout",
+    type=float,
+    default=worker.WORKER_TIMEOUT,
+    help="How long to wait for database event push before polling",
+)
+@click.option(
+    "-w",
+    "--wait/--one-shot",
+    default=True,
+    help="When all jobs have been processed, whether to "
+    "terminate or to wait for new jobs",
+)
 @handle_errors()
-def worker(app: procrastinate.App, queue: Iterable[str], name: Optional[str]):
+def worker_(app: procrastinate.App, queues: str, **kwargs):
     """
     Launch a worker, listening on the given queues (or all queues).
+    Values default to App.worker_defaults and then App.run_worker() defaults values.
     """
-    queues = list(queue) or None
-    queue_names = ", ".join(queues) if queues else "all queues"
+    queue_list = [q.strip() for q in queues.split(",")] if queues else None
+    if queue_list is None:
+        queue_names = "all queues"
+    else:
+        queue_names = ", ".join(queue_list)
     click.echo(f"Launching a worker on {queue_names}")
-    app.run_worker(queues=queues, name=name)  # type: ignore
+    app.run_worker(queues=queue_list, **kwargs)  # type: ignore
 
 
 @cli.command()
@@ -122,7 +158,10 @@ def worker(app: procrastinate.App, queue: Iterable[str], name: Optional[str]):
 @click.option(
     "--lock", help="A lock string. Jobs sharing the same lock will not run concurrently"
 )
-@click.option("--queue", help="The queue for deferring. Defaults to the task ")
+@click.option(
+    "--queue",
+    help="The queue for deferring. If not set, task's default queue will be used",
+)
 @click.option("--at", help="ISO-8601 localized datetime after which to launch the job")
 @click.option(
     "--in", "in_", type=int, help="Number of seconds after which to launch the job"

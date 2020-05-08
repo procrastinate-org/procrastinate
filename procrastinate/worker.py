@@ -9,7 +9,9 @@ from procrastinate import app, exceptions, job_context, jobs, signals, tasks
 logger = logging.getLogger(__name__)
 
 
-DEFAULT_WORKER_NAME = "worker"
+WORKER_NAME = "worker"
+WORKER_TIMEOUT = 5.0  # seconds
+WORKER_CONCURRENCY = 1  # parallel task(s)
 
 
 class Worker:
@@ -20,11 +22,11 @@ class Worker:
         name: Optional[str] = None,
         concurrency: int = 1,
         wait: bool = True,
-        timeout: float = app.WORKER_TIMEOUT,
+        timeout: float = WORKER_TIMEOUT,
     ):
         self.app = app
         self.queues = queues
-        self.worker_name: str = name or DEFAULT_WORKER_NAME
+        self.worker_name: str = name or WORKER_NAME
         self.concurrency = concurrency
 
         self.timeout = timeout
