@@ -13,6 +13,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 WORKER_TIMEOUT = 5.0  # seconds
+WORKER_CONCURRENCY = 1  # parallel task(s)
 
 
 @utils.add_sync_api
@@ -55,6 +56,7 @@ class App:
         connector: connector_module.BaseConnector,
         import_paths: Optional[Iterable[str]] = None,
         worker_timeout: float = WORKER_TIMEOUT,
+        worker_concurrency: int = WORKER_CONCURRENCY,
     ):
         """
         Parameters
@@ -75,13 +77,22 @@ class App:
             imported and whose module path is not in this list will
             fail to run.
         worker_timeout:
-            This parameter indicates the maximum duration (in seconds) procrastinate
+            Indicates the maximum duration (in seconds) procrastinate
             workers wait between each database job pull. Job activity will be pushed
             from the db to the worker, but in case the push mechanism fails somehow,
             workers will not stay idle longer than the number of seconds indicated by
             this parameter.
             Raising this parameter can lower the rate of workers making queries to the
             database for requesting jobs.
+            This parameter can be overridden when launching the worker.
+        worker_concurrency:
+            Indicates how many asynchronous jobs the worker can run in parallel.
+            Do not use concurrency if you have synchronous blocking tasks.
+            If this parameter is set too high compared to the size of your connector
+            pool, then your workers will likely spend their time waiting for a Postgres
+            connection. How exactly you should scale those parameters depend on the
+            size of your tasks, and the performance of your Postgres database.
+            See `concurrency`.
         """
         self.connector = connector
         self.tasks: Dict[str, "tasks.Task"] = {}
@@ -89,6 +100,7 @@ class App:
         self.queues: Set[str] = set()
         self.import_paths = import_paths or []
         self.worker_timeout = worker_timeout
+        self.worker_concurrency = worker_concurrency
 
         self.job_store = store.JobStore(connector=self.connector)
 
@@ -205,12 +217,28 @@ class App:
         return tasks.configure_task(name=name, job_store=self.job_store, **kwargs)
 
     def _worker(
-        self, queues: Optional[Iterable[str]], name: Optional[str], wait: bool
+        self,
+        queues: Optional[Iterable[str]],
+        name: Optional[str],
+        wait: bool,
+        timeout: Optional[float],
+        concurrency: Optional[int],
     ) -> "worker.Worker":
         from procrastinate import worker
 
+        if concurrency is None:
+            concurrency = self.worker_concurrency
+
+        if timeout is None:
+            timeout = self.worker_timeout
+
         return worker.Worker(
-            app=self, queues=queues, name=name, timeout=self.worker_timeout, wait=wait
+            app=self,
+            queues=queues,
+            name=name,
+            timeout=timeout,
+            concurrency=concurrency,
+            wait=wait,
         )
 
     @functools.lru_cache(maxsize=1)
@@ -230,6 +258,8 @@ class App:
         queues: Optional[Iterable[str]] = None,
         name: Optional[str] = None,
         wait: bool = True,
+        timeout: Optional[float] = None,
+        concurrency: Optional[int] = None,
     ) -> None:
         """
         Run a worker. This worker will run in the foreground and the function will not
@@ -243,7 +273,13 @@ class App:
             If False, worker will terminate as soon as it has caught up with the queues.
         """
         self.perform_import_paths()
-        worker = self._worker(queues=queues, name=name, wait=wait)
+        worker = self._worker(
+            queues=queues,
+            name=name,
+            wait=wait,
+            timeout=timeout,
+            concurrency=concurrency,
+        )
         await worker.run()
 
     @property

@@ -2,7 +2,7 @@ import asyncio
 import contextlib
 import logging
 import time
-from typing import Iterable, Optional, Set, Union
+from typing import Dict, Iterable, Optional, Set, Union
 
 from procrastinate import app, exceptions, job_context, jobs, signals, tasks
 
@@ -18,12 +18,15 @@ class Worker:
         app: app.App,
         queues: Optional[Iterable[str]] = None,
         name: Optional[str] = None,
+        concurrency: int = 1,
         wait: bool = True,
         timeout: float = app.WORKER_TIMEOUT,
     ):
         self.app = app
         self.queues = queues
         self.worker_name: str = name or DEFAULT_WORKER_NAME
+        self.concurrency = concurrency
+
         self.timeout = timeout
         self.wait = wait
 
@@ -39,9 +42,22 @@ class Worker:
         self.base_context: job_context.JobContext = job_context.JobContext(
             app=app, worker_name=self.worker_name, worker_queues=self.queues
         )
-        self.current_context: job_context.JobContext = self.base_context
+        self.current_contexts: Dict[int, job_context.JobContext] = {}
         self.stop_requested = False
         self.notify_event: Optional[asyncio.Event] = None
+
+    def context_for_worker(self, worker_id: int) -> job_context.JobContext:
+        return self.current_contexts.setdefault(
+            worker_id, self.base_context.evolve(worker_id=worker_id)
+        )
+
+    def update_context(self, worker_id: int, **kwargs) -> job_context.JobContext:
+        context = self.context_for_worker(worker_id).evolve(**kwargs)
+        self.current_contexts[worker_id] = context
+        return context
+
+    def reset_context(self, worker_id):
+        self.current_contexts.pop(worker_id, None)
 
     @contextlib.contextmanager
     def listener(self):
@@ -66,7 +82,12 @@ class Worker:
         )
 
         with self.listener(), signals.on_stop(self.stop):
-            await self.single_worker()
+            await asyncio.gather(
+                *(
+                    self.single_worker(worker_id=worker_id)
+                    for worker_id in range(self.concurrency)
+                )
+            )
 
         self.logger.info(
             f"Stopped worker on {self.base_context.queues_display}",
@@ -74,11 +95,12 @@ class Worker:
         )
         self.notify_event = None
 
-    async def single_worker(self):
+    async def single_worker(self, worker_id: int = 0):
+
         while not self.stop_requested:
             job = await self.job_store.fetch_job(self.queues)
             if job:
-                await self.process_job(job=job)
+                await self.process_job(job=job, worker_id=worker_id)
             else:
                 if not self.wait or self.stop_requested:
                     break
@@ -92,7 +114,6 @@ class Worker:
                 action="waiting_for_jobs", queues=self.queues
             ),
         )
-
         self.notify_event.clear()
         try:
             await asyncio.wait_for(self.notify_event.wait(), timeout=self.timeout)
@@ -101,8 +122,9 @@ class Worker:
         else:
             self.notify_event.clear()
 
-    async def process_job(self, job: jobs.Job) -> None:
-        self.current_context = context = self.base_context.evolve(job=job)
+    async def process_job(self, job: jobs.Job, worker_id: int = 0) -> None:
+        context = self.update_context(worker_id=worker_id, job=job)
+
         self.logger.debug(
             f"Loaded job info, about to start job {job.call_string}",
             extra=context.log_extra(action="loaded_job_info"),
@@ -111,7 +133,7 @@ class Worker:
         status = jobs.Status.FAILED
         next_attempt_scheduled_at = None
         try:
-            await self.run_job(job=job, context=context)
+            await self.run_job(job=job, worker_id=worker_id)
             status = jobs.Status.SUCCEEDED
         except exceptions.JobRetry as e:
             status = jobs.Status.TODO
@@ -134,7 +156,7 @@ class Worker:
             )
             self.current_job_context = None
 
-    def load_task(self, task_name: str, context: job_context.JobContext) -> tasks.Task:
+    def load_task(self, task_name: str, worker_id: int) -> tasks.Task:
         if task_name in self.known_missing_tasks:
             raise exceptions.TaskNotFound(f"Cancelling job for {task_name} (not found)")
 
@@ -151,6 +173,8 @@ class Worker:
             self.known_missing_tasks.add(task_name)
             raise
 
+        context = self.context_for_worker(worker_id=worker_id)
+
         self.logger.warning(
             f"Task at {task_name} was not registered, it's been loaded dynamically.",
             extra=context.log_extra(action="load_dynamic_task", task_name=task_name),
@@ -159,12 +183,12 @@ class Worker:
         self.app.tasks[task_name] = task
         return task
 
-    async def run_job(self, job: jobs.Job, context: job_context.JobContext) -> None:
+    async def run_job(self, job: jobs.Job, worker_id: int) -> None:
         task_name = job.task_name
 
-        task = self.load_task(task_name=task_name, context=context)
+        task = self.load_task(task_name=task_name, worker_id=worker_id)
 
-        self.current_context = context = context.evolve(task=task)
+        context = self.update_context(worker_id=worker_id, task=task)
 
         start_time = context.additional_context["start_timestamp"] = time.time()
 
@@ -180,6 +204,12 @@ class Worker:
             task_result = task(*job_args, **job.task_kwargs)
             if asyncio.iscoroutine(task_result):
                 task_result = await task_result
+            elif self.concurrency != 1:
+                logger.warning(
+                    "When using worker concurrency, non-async tasks will block "
+                    "the whole worker.",
+                    extra=context.log_extra(action="concurrent_sync_task"),
+                )
 
         except Exception as e:
             task_result = None
