@@ -185,7 +185,7 @@ async def test_run_job_log_name(
     record_names = [record.name for record in records]
     assert all([name.endswith(logger_name) for name in record_names])
 
-    worker_names = [getattr(record, "worker_name", None) for record in records]
+    worker_names = [getattr(record, "worker", {}).get("name") for record in records]
     assert all([name == record_worker_name for name in worker_names])
 
 

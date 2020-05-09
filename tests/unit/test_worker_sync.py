@@ -77,7 +77,7 @@ def test_stop(test_worker, caplog):
 def test_stop_log_job(test_worker, caplog, context, job_factory):
     caplog.set_level("INFO")
     test_worker.notify_event = asyncio.Event()
-    job = job_factory()
+    job = job_factory(id=42)
     context = context.evolve(job=job)
     test_worker.current_context = context
 
@@ -85,4 +85,4 @@ def test_stop_log_job(test_worker, caplog, context, job_factory):
 
     assert test_worker.stop_requested is True
     assert test_worker.notify_event.is_set()
-    assert caplog.messages == ["Stop requested, waiting for job to finish: bla()"]
+    assert caplog.messages == ["Stop requested, waiting for job to finish: bla[42]()"]
