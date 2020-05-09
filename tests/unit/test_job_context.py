@@ -17,26 +17,24 @@ def test_evolve():
 
 
 def test_log_extra():
-    context = job_context.JobContext(worker_name="a", additional_context={"ha": "ho"})
-
-    assert context.log_extra(action="foo", bar="baz") == {
-        "action": "foo",
-        "bar": "baz",
-        "ha": "ho",
-        "worker": {"name": "a", "queues": None},
-    }
-
-
-def test_log_extra_job(job_factory):
-    job = job_factory()
     context = job_context.JobContext(
-        worker_name="a", job=job, additional_context={"ha": "ho"},
+        worker_name="a", worker_id=2, additional_context={"ha": "ho"}
     )
 
     assert context.log_extra(action="foo", bar="baz") == {
         "action": "foo",
         "bar": "baz",
         "ha": "ho",
+        "worker": {"name": "a", "id": 2, "queues": None},
+    }
+
+
+def test_log_extra_job(job_factory):
+    job = job_factory()
+    context = job_context.JobContext(worker_name="a", worker_id=2, job=job)
+
+    assert context.log_extra(action="foo") == {
+        "action": "foo",
         "job": job.log_context(),
-        "worker": {"name": "a", "queues": None},
+        "worker": {"name": "a", "id": 2, "queues": None},
     }

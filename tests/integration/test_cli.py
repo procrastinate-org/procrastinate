@@ -30,11 +30,16 @@ def test_version(entrypoint):
 
 def test_worker(entrypoint, click_app, mocker):
     click_app.run_worker = mocker.MagicMock()
-    result = entrypoint("-a yay worker a b --name=w1")
+    result = entrypoint(
+        "--app yay worker --queues a,b --name=w1 --timeout=8.3 "
+        "--one-shot --concurrency=10"
+    )
 
     assert result.output.strip() == "Launching a worker on a, b"
     assert result.exit_code == 0
-    click_app.run_worker.assert_called_once_with(queues=["a", "b"], name="w1")
+    click_app.run_worker.assert_called_once_with(
+        concurrency=10, name="w1", queues=["a", "b"], timeout=8.3, wait=False,
+    )
 
 
 def test_schema_apply(entrypoint, click_app, mocker, job_store):

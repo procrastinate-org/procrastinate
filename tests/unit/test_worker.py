@@ -26,8 +26,8 @@ async def test_run(test_worker, mocker, caplog):
 
     single_worker = mocker.Mock()
 
-    async def mock():
-        single_worker()
+    async def mock(worker_id):
+        single_worker(worker_id=worker_id)
 
     test_worker.single_worker = mock
 
@@ -50,7 +50,7 @@ async def test_run(test_worker, mocker, caplog):
     ],
 )
 async def test_process_job(
-    mocker, test_worker, job_factory, connector, side_effect, status, context
+    mocker, test_worker, job_factory, connector, side_effect, status
 ):
     async def coro(*args, **kwargs):
         pass
@@ -62,13 +62,13 @@ async def test_process_job(
     await test_worker.process_job(job=job)
 
     test_worker.run_job.assert_called_with(
-        job=job, context=context(job=job),
+        job=job, worker_id=0,
     )
     assert connector.jobs[1]["status"] == status
 
 
 async def test_process_job_retry_failed_job(
-    mocker, test_worker, job_factory, connector, context
+    mocker, test_worker, job_factory, connector
 ):
     async def coro(*args, **kwargs):
         pass
@@ -80,14 +80,14 @@ async def test_process_job_retry_failed_job(
     job = job_factory(id=1)
     await test_worker.job_store.defer_job(job)
 
-    await test_worker.process_job(job=job)
+    await test_worker.process_job(job=job, worker_id=0)
 
-    test_worker.run_job.assert_called_with(job=job, context=context(job=job))
+    test_worker.run_job.assert_called_with(job=job, worker_id=0)
     assert connector.jobs[1]["status"] == "todo"
     assert connector.jobs[1]["scheduled_at"] == scheduled_at
 
 
-async def test_run_job(app, context):
+async def test_run_job(app):
     result = []
 
     @app.task(queue="yay", name="task_func")
@@ -102,12 +102,12 @@ async def test_run_job(app, context):
         queue="yay",
     )
     test_worker = worker.Worker(app, queues=["yay"])
-    await test_worker.run_job(job=job, context=context(job=job))
+    await test_worker.run_job(job=job, worker_id=3)
 
     assert result == [12]
 
 
-async def test_run_job_async(app, context):
+async def test_run_job_async(app):
     result = []
 
     @app.task(queue="yay", name="task_func")
@@ -122,12 +122,12 @@ async def test_run_job_async(app, context):
         queue="yay",
     )
     test_worker = worker.Worker(app, queues=["yay"])
-    await test_worker.run_job(job=job, context=context(job=job))
+    await test_worker.run_job(job=job, worker_id=3)
 
     assert result == [12]
 
 
-async def test_run_job_log_result(caplog, app, context):
+async def test_run_job_log_result(caplog, app):
     caplog.set_level("INFO")
 
     result = []
@@ -149,7 +149,7 @@ async def test_run_job_log_result(caplog, app, context):
         queue="yay",
     )
     test_worker = worker.Worker(app, queues=["yay"])
-    await test_worker.run_job(job=job, context=context(job=job))
+    await test_worker.run_job(job=job, worker_id=3)
 
     assert result == [12]
 
@@ -189,7 +189,7 @@ async def test_run_job_log_name(
     assert all([name == record_worker_name for name in worker_names])
 
 
-async def test_run_job_error(app, context):
+async def test_run_job_error(app):
     def job(a, b):  # pylint: disable=unused-argument
         raise ValueError("nope")
 
@@ -207,10 +207,10 @@ async def test_run_job_error(app, context):
     )
     test_worker = worker.Worker(app, queues=["yay"])
     with pytest.raises(exceptions.JobError):
-        await test_worker.run_job(job=job, context=context(job=job))
+        await test_worker.run_job(job=job, worker_id=3)
 
 
-async def test_run_job_retry(app, context):
+async def test_run_job_retry(app):
     def job(a, b):  # pylint: disable=unused-argument
         raise ValueError("nope")
 
@@ -228,10 +228,10 @@ async def test_run_job_retry(app, context):
     )
     test_worker = worker.Worker(app, queues=["yay"])
     with pytest.raises(exceptions.JobRetry):
-        await test_worker.run_job(job=job, context=context(job=job))
+        await test_worker.run_job(job=job, worker_id=3)
 
 
-async def test_run_job_not_found(app, context):
+async def test_run_job_not_found(app):
     job = jobs.Job(
         id=16,
         task_kwargs={"a": 9, "b": 3},
@@ -241,7 +241,7 @@ async def test_run_job_not_found(app, context):
     )
     test_worker = worker.Worker(app, queues=["yay"])
     with pytest.raises(exceptions.TaskNotFound):
-        await test_worker.run_job(job=job, context=context(job=job))
+        await test_worker.run_job(job=job, worker_id=3)
 
 
 async def test_run_job_pass_context(app):
@@ -256,9 +256,14 @@ async def test_run_job_pass_context(app):
     )
     test_worker = worker.Worker(app, queues=["yay"], name="my_worker")
     context = job_context.JobContext(
-        worker_name="my_worker", worker_queues=["yay"], job=job, task=task_func,
+        worker_name="my_worker",
+        worker_id=3,
+        worker_queues=["yay"],
+        job=job,
+        task=task_func,
     )
-    await test_worker.run_job(job=job, context=context)
+    test_worker.current_contexts[3] = context
+    await test_worker.run_job(job=job, worker_id=3)
 
     assert result == [
         context,
@@ -335,8 +340,8 @@ async def test_single_worker_stop_during_execution(app, mocker):
     await app.configure_task("bla").defer_async()
 
     class TestWorker(worker.Worker):
-        async def process_job(self, job):
-            process_job(job=job)
+        async def process_job(self, job, worker_id):
+            process_job(job=job, worker_id=worker_id)
             self.stop_requested = True
 
         async def wait_for_job(self):
@@ -355,8 +360,8 @@ async def test_single_worker_stop_during_wait(app, mocker):
     await app.configure_task("bla").defer_async()
 
     class TestWorker(worker.Worker):
-        async def process_job(self, job):
-            process_job(job=job)
+        async def process_job(self, job, worker_id):
+            process_job(job=job, worker_id=worker_id)
 
         async def wait_for_job(self):
             wait_for_job()

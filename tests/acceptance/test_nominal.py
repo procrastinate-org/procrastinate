@@ -49,7 +49,14 @@ def worker(running_worker):
 def running_worker(process_env):
     def func(*queues, name="worker"):
         return subprocess.Popen(
-            ["procrastinate", "-vvv", "worker", f"--name={name}", *queues],
+            [
+                "procrastinate",
+                "-vvv",
+                "worker",
+                f"--name={name}",
+                "--queues",
+                ",".join(queues),
+            ],
             env=process_env,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
