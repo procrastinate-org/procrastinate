@@ -58,14 +58,6 @@ def handle_errors():
         )
 
 
-def print_version(ctx, __, value):
-    if not value or ctx.resilient_parsing:
-        return
-    click.echo(f"{PROGRAM_NAME} {procrastinate.__version__}")
-    click.echo(f"License: {procrastinate.__license__}")
-    ctx.exit()
-
-
 @click.group(context_settings=CONTEXT_SETTINGS)
 @click.pass_context
 @click.option("--app", "-a", help="Dotted path to the Procrastinate app")
@@ -77,13 +69,8 @@ def print_version(ctx, __, value):
     count=True,
     help="Use multiple times to increase verbosity",
 )
-@click.option(
-    "-V",
-    "--version",
-    is_flag=True,
-    callback=print_version,
-    expose_value=False,
-    is_eager=True,
+@click.version_option(
+    procrastinate.__version__, "-V", "--version", prog_name=PROGRAM_NAME
 )
 @handle_errors()
 def cli(ctx: click.Context, app: str, **kwargs) -> None:
