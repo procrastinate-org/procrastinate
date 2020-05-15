@@ -26,8 +26,8 @@ async def test_run(test_worker, mocker, caplog):
     single_worker.assert_called()
 
     assert caplog.messages == [
-        f"Starting worker on all queues",
-        f"Stopped worker on all queues",
+        "Starting worker on all queues",
+        "Stopped worker on all queues",
     ]
 
 

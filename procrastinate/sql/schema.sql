@@ -170,7 +170,7 @@ CREATE TRIGGER procrastinate_trigger_status_events_update
 
 CREATE TRIGGER procrastinate_trigger_status_events_insert
     AFTER INSERT ON procrastinate_jobs
-    FOR EACH ROW WHEN ((new.status = 'doing'::procrastinate_job_status))
+    FOR EACH ROW WHEN ((new.status = 'todo'::procrastinate_job_status))
     EXECUTE PROCEDURE procrastinate_trigger_status_events_procedure_insert();
 
 CREATE TRIGGER procrastinate_trigger_scheduled_events
