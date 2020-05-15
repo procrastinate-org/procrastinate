@@ -101,7 +101,7 @@ Try 2
     assert stderr.count(waited_log) == 1
 
 
-def _test_lock(defer, running_worker):
+def test_lock(defer, running_worker):
     """
     In this test, we launch 2 workers in two parallel threads, and ask them
     both to process tasks with the same lock. We check that the second task is
