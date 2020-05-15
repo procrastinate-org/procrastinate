@@ -31,7 +31,7 @@ jobs:
           - postgresql-client-10
       python: 3.6
       env:
-        TOX_ENV: py36-unit-tests,py36-integration-tests,py36-acceptance-tests
+        TOX_ENV: py36-unit-tests,py36-integration-tests,py36-acceptance-tests,py36-migration-tests
 
     - python: 3.7
       addons:
@@ -41,7 +41,7 @@ jobs:
           - postgresql-10
           - postgresql-client-10
       env:
-        TOX_ENV: py37-unit-tests,py37-integration-tests,py37-acceptance-tests
+        TOX_ENV: py37-unit-tests,py37-integration-tests,py37-acceptance-tests,py37-migration-tests
 
     - python: 3.8
       addons:
@@ -51,7 +51,7 @@ jobs:
           - postgresql-10
           - postgresql-client-10
       env:
-        TOX_ENV: py38-unit-tests,py38-integration-tests,py38-acceptance-tests
+        TOX_ENV: py38-unit-tests,py38-integration-tests,py38-acceptance-tests,py38-migration-tests
 
     - python: 3.8
       env:
