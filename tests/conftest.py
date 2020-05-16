@@ -1,6 +1,7 @@
+import contextlib
+import functools
 import os
 import signal as stdlib_signal
-from contextlib import closing
 
 import aiopg
 import psycopg2
@@ -18,60 +19,77 @@ for key in os.environ:
         os.environ.pop(key)
 
 
-def _execute(cursor, query, *identifiers):
-    cursor.execute(
-        sql.SQL(query).format(
+def cursor_execute(cursor, query, *identifiers, format=True):
+    if identifiers:
+        query = sql.SQL(query).format(
             *(sql.Identifier(identifier) for identifier in identifiers)
         )
-    )
+    cursor.execute(query)
+
+
+@contextlib.contextmanager
+def db_executor(dbname):
+    with contextlib.closing(psycopg2.connect("", dbname=dbname)) as connection:
+        connection.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+        with connection.cursor() as cursor:
+            yield functools.partial(cursor_execute, cursor)
+
+
+@pytest.fixture
+def db_execute():
+    return db_executor
+
+
+def db_create(dbname, template=None):
+    with db_executor("postgres") as execute:
+        execute("DROP DATABASE IF EXISTS {}", dbname)
+        if template:
+            execute("CREATE DATABASE {} TEMPLATE {}", dbname, template)
+        else:
+            execute("CREATE DATABASE {}", dbname)
+
+
+def db_drop(dbname):
+    with db_executor("postgres") as execute:
+        execute("DROP DATABASE IF EXISTS {}", dbname)
+
+
+@pytest.fixture
+def db_factory():
+    dbs_to_drop = []
+
+    def _(dbname, template=None):
+        db_create(dbname=dbname, template=template)
+        dbs_to_drop.append(dbname)
+
+    yield _
+
+    for dbname in dbs_to_drop:
+        db_drop(dbname=dbname)
 
 
 @pytest.fixture(scope="session")
 def setup_db():
 
-    with closing(psycopg2.connect("", dbname="postgres")) as connection:
-        connection.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
-        with connection.cursor() as cursor:
-            _execute(
-                cursor, "DROP DATABASE IF EXISTS {}", "procrastinate_test_template"
-            )
-            _execute(cursor, "CREATE DATABASE {}", "procrastinate_test_template")
+    dbname = "procrastinate_test_template"
+    db_create(dbname=dbname)
 
-    connector = aiopg_connector.PostgresConnector(dbname="procrastinate_test_template")
+    connector = aiopg_connector.PostgresConnector(dbname=dbname)
     schema_manager = schema.SchemaManager(connector=connector)
     schema_manager.apply_schema()
     # We need to close the psycopg2 underlying connection synchronously
     connector.close()
 
-    with closing(
-        psycopg2.connect("", dbname="procrastinate_test_template")
-    ) as connection:
-        connection.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
-        yield connection
+    yield dbname
 
-    with closing(psycopg2.connect("", dbname="postgres")) as connection:
-        connection.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
-        with connection.cursor() as cursor:
-            _execute(
-                cursor, "DROP DATABASE IF EXISTS {}", "procrastinate_test_template"
-            )
+    db_drop(dbname=dbname)
 
 
 @pytest.fixture
-def connection_params(setup_db):
-    with setup_db.cursor() as cursor:
-        _execute(cursor, "DROP DATABASE IF EXISTS {}", "procrastinate_test")
-        _execute(
-            cursor,
-            "CREATE DATABASE {} TEMPLATE {}",
-            "procrastinate_test",
-            "procrastinate_test_template",
-        )
+def connection_params(setup_db, db_factory):
+    db_factory(dbname="procrastinate_test", template=setup_db)
 
     yield {"dsn": "", "dbname": "procrastinate_test"}
-
-    with setup_db.cursor() as cursor:
-        _execute(cursor, "DROP DATABASE IF EXISTS {}", "procrastinate_test")
 
 
 @pytest.fixture
