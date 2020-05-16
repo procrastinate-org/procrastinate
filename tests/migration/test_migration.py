@@ -43,8 +43,8 @@ def procrastinate_version():
 @pytest.fixture
 def pg_service_file(tmp_path):
     file_path = tmp_path / "pg_service.conf"
-    with open(file_path, "w") as file_:
-        file_.write(PG_SERVICES)
+    with open(file_path, "w") as file:
+        file.write(PG_SERVICES)
     yield file_path
 
 
