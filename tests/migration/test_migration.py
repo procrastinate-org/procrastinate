@@ -49,14 +49,14 @@ def pg_service_file(tmp_path):
 
 
 @pytest.fixture
-def environment(pg_service_file):
+def pg_service_env(pg_service_file):
     env = os.environ.copy()
     env["PGSERVICEFILE"] = pg_service_file
     return env
 
 
 @pytest.fixture
-def setup_databases(procrastinate_version, migrations_directory, environment):
+def setup_databases(procrastinate_version, migrations_directory, pg_service_env):
 
     # create the procrastinate_test1 and procrastinate_test2 databases
     with closing(psycopg2.connect("", dbname="postgres")) as connection:
@@ -78,7 +78,7 @@ def setup_databases(procrastinate_version, migrations_directory, environment):
         "pum baseline -p procrastinate_test1 -t public.pum "
         f"-d {migrations_directory} -b {procrastinate_version}"
     )
-    subprocess.run(cmd.split(), check=True, env=environment)
+    subprocess.run(cmd.split(), check=True, env=pg_service_env)
 
     # apply the baseline schema to procrastinate_test2
     cmd = f"psql -d procrastinate_test2 -f {migrations_directory}/baseline-0.5.0.sql"
@@ -89,7 +89,7 @@ def setup_databases(procrastinate_version, migrations_directory, environment):
         f"pum baseline -p procrastinate_test2 -t public.pum -d {migrations_directory} "
         "-b 0.5.0"
     )
-    subprocess.run(cmd.split(), check=True, env=environment)
+    subprocess.run(cmd.split(), check=True, env=pg_service_env)
 
     yield
 
@@ -100,15 +100,15 @@ def setup_databases(procrastinate_version, migrations_directory, environment):
             _execute_sql(cursor, "DROP DATABASE IF EXISTS {}", "procrastinate_test1")
 
 
-def test_migration(setup_databases, migrations_directory, environment):
+def test_migration(setup_databases, migrations_directory, pg_service_env):
     # apply the migrations on the procrastinate_test2 database
     cmd = f"pum upgrade -p procrastinate_test2 -t public.pum -d {migrations_directory}"
-    subprocess.run(cmd.split(), check=True, env=environment)
+    subprocess.run(cmd.split(), check=True, env=pg_service_env)
 
     # check that the databases procrastinate_test1 and procrastinate_test2 have
     # the same schema
     cmd = "pum check -p1 procrastinate_test1 -p2 procrastinate_test2 -v 2"
-    proc = subprocess.run(cmd.split(), env=environment, stdout=True, stderr=True)
+    proc = subprocess.run(cmd.split(), env=pg_service_env, stdout=True, stderr=True)
 
     # pum check exits with a non-zero return code if the databases don't have
     # the same schema
