@@ -265,6 +265,17 @@ that the ``migrations`` directory already includes a migration script whose seri
 number is ``001`` for that release number. In that case, if you need to add a migration
 script, its name will start with ``delta_1.0.1_002_``.
 
+Migration tests
+^^^^^^^^^^^^^^^
+
+The continuous integration contains tests that will check that the schema and the
+migrations succeed in producing the same database structure. Run these tests locally
+with:
+
+.. code-block:: console
+
+    $ tox -e py38-migration-tests
+
 Try our demo
 ------------
 
