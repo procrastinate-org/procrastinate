@@ -1,114 +1,83 @@
 import os
 import subprocess
-from contextlib import closing
 
-import pkg_resources
-import psycopg2
 import pytest
-from psycopg2 import sql
-from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 
-from procrastinate import __version__, aiopg_connector, schema
+from procrastinate import aiopg_connector, schema
 
-PG_SERVICES = """
-[procrastinate_test1]
-dbname=procrastinate_test1
-[procrastinate_test2]
-dbname=procrastinate_test2
-"""
-
-
-def _execute_sql(cursor, query, *identifiers):
-    cursor.execute(
-        sql.SQL(query).format(
-            *(sql.Identifier(identifier) for identifier in identifiers)
-        )
-    )
+BASELINE = "0.5.0"
 
 
 @pytest.fixture
-def migrations_directory():
-    return pkg_resources.resource_filename("procrastinate", "sql/migrations")
-
-
-@pytest.fixture
-def procrastinate_version():
-    try:
-        idx = __version__.index("+")
-    except ValueError:
-        idx = None
-    return __version__[:idx]
-
-
-@pytest.fixture
-def pg_service_file(tmp_path):
-    file_path = tmp_path / "pg_service.conf"
-    with open(file_path, "w") as file:
-        file.write(PG_SERVICES)
-    yield file_path
-
-
-@pytest.fixture
-def pg_service_env(pg_service_file):
+def pg_service_env():
     env = os.environ.copy()
-    env["PGSERVICEFILE"] = pg_service_file
+    env["PGSERVICEFILE"] = "tests/migration/pgservice.ini"
     return env
 
 
+# Pum config file is currently broken (https://github.com/opengisch/pum/issues/5)
+# When it's fixed, we can add a config file here, and then get rid of omit_table_dir
 @pytest.fixture
-def setup_databases(procrastinate_version, migrations_directory, pg_service_env):
+def pum(pg_service_env):
+    def _(command, args: str, omit_table_dir=False):
+        first_args = ["pum", command]
+        if not omit_table_dir:
+            first_args.extend(
+                ["--table=public.pum", "--dir=procrastinate/sql/migrations"]
+            )
+        return subprocess.run(
+            first_args + args.split(), check=True, env=pg_service_env,
+        )
 
-    # create the procrastinate_test1 and procrastinate_test2 databases
-    with closing(psycopg2.connect("", dbname="postgres")) as connection:
-        connection.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
-        with connection.cursor() as cursor:
-            _execute_sql(cursor, "DROP DATABASE IF EXISTS {}", "procrastinate_test1")
-            _execute_sql(cursor, "CREATE DATABASE {}", "procrastinate_test1")
-            _execute_sql(cursor, "DROP DATABASE IF EXISTS {}", "procrastinate_test2")
-            _execute_sql(cursor, "CREATE DATABASE {}", "procrastinate_test2")
+    return _
 
-    # apply the procrastinate schema to procrastinate_test1
-    connector = aiopg_connector.PostgresConnector(dbname="procrastinate_test1")
+
+@pytest.fixture
+def schema_database(db_factory, pum):
+    dbname = "procrastinate_schema"
+    db_factory(dbname=dbname)
+
+    # apply the current procrastinate schema to procrastinate_schema
+    connector = aiopg_connector.PostgresConnector(dbname=dbname)
     schema_manager = schema.SchemaManager(connector=connector)
     schema_manager.apply_schema()
     connector.close()
 
-    # set the baseline version in procrastinate_test1
-    cmd = (
-        "pum baseline -p procrastinate_test1 -t public.pum "
-        f"-d {migrations_directory} -b {procrastinate_version}"
-    )
-    subprocess.run(cmd.split(), check=True, env=pg_service_env)
+    # set the baseline version in procrastinate_schema
+    # This db is as far as can be.
+    pum("baseline", f"--pg_service {dbname} --baseline 999.999.999")
 
-    # apply the baseline schema to procrastinate_test2
-    cmd = f"psql -d procrastinate_test2 -f {migrations_directory}/baseline-0.5.0.sql"
-    subprocess.run(cmd.split(), check=True)
-
-    # set the baseline version in procrastinate_test2
-    cmd = (
-        f"pum baseline -p procrastinate_test2 -t public.pum -d {migrations_directory} "
-        "-b 0.5.0"
-    )
-    subprocess.run(cmd.split(), check=True, env=pg_service_env)
-
-    yield
-
-    with closing(psycopg2.connect("", dbname="postgres")) as connection:
-        connection.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
-        with connection.cursor() as cursor:
-            _execute_sql(cursor, "DROP DATABASE IF EXISTS {}", "procrastinate_test2")
-            _execute_sql(cursor, "DROP DATABASE IF EXISTS {}", "procrastinate_test1")
+    return dbname
 
 
-def test_migration(setup_databases, migrations_directory, pg_service_env):
-    # apply the migrations on the procrastinate_test2 database
-    cmd = f"pum upgrade -p procrastinate_test2 -t public.pum -d {migrations_directory}"
-    subprocess.run(cmd.split(), check=True, env=pg_service_env)
+@pytest.fixture
+def migrations_database(db_factory, db_execute, pum):
+    dbname = "procrastinate_migrations"
+    db_factory(dbname=dbname)
 
-    # check that the databases procrastinate_test1 and procrastinate_test2 have
+    # apply the baseline schema to procrastinate_migrations
+    with db_execute(dbname) as execute:
+        with open(f"procrastinate/sql/migrations/baseline-{BASELINE}.sql") as file:
+            execute(file.read())
+
+    # set the baseline version in procrastinate_migrations
+    pum("baseline", f"--pg_service {dbname} --baseline {BASELINE}")
+
+    return dbname
+
+
+def test_migration(schema_database, migrations_database, pum):
+    # apply the migrations on the migrations_database database
+    pum("upgrade", f"--pg_service {migrations_database}")
+
+    # check that the schema_database and migrations_database have
     # the same schema
-    cmd = "pum check -p1 procrastinate_test1 -p2 procrastinate_test2 -v 2"
-    proc = subprocess.run(cmd.split(), env=pg_service_env, stdout=True, stderr=True)
+    proc = pum(
+        "check",
+        f"--pg_service1={schema_database} --pg_service2={migrations_database} "
+        "--verbose_level=2",
+        omit_table_dir=True,
+    )
 
     # pum check exits with a non-zero return code if the databases don't have
     # the same schema
