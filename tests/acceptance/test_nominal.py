@@ -47,9 +47,9 @@ def worker(running_worker):
 
 @pytest.fixture
 def running_worker(process_env):
-    def func(*queues):
+    def func(*queues, name="worker"):
         return subprocess.Popen(
-            ["procrastinate", "worker", *queues],
+            ["procrastinate", "-vvv", "worker", f"--name={name}", *queues],
             env=process_env,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
@@ -123,16 +123,18 @@ def test_lock(defer, running_worker):
         write_after="after-2",
     )
     # Run the 2 workers concurrently
-    process1 = running_worker()
-    process2 = running_worker()
+    process1 = running_worker(name="worker1")
+    process2 = running_worker(name="worker2")
     time.sleep(2)
     # And stop them
     process1.send_signal(signal.SIGINT)
     process2.send_signal(signal.SIGINT)
 
     # Gather their stdout
-    stdout1, _ = process1.communicate()
-    stdout2, _ = process2.communicate()
+    stdout1, stderr1 = process1.communicate()
+    print(stderr1)
+    stdout2, stderr2 = process2.communicate()
+    print(stderr2)
     stdout = stdout1 + stdout2
 
     # Sort the interesting lines by timestamp to reconstitute a consistent view
