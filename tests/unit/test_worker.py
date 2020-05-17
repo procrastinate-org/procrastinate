@@ -272,7 +272,7 @@ async def test_run_job_pass_context(app):
 
 
 async def test_wait_for_job_with_job(app, mocker):
-    test_worker = worker.Worker(app, timeout=42)
+    test_worker = worker.Worker(app)
     # notify_event is set to None initially, and we skip run()
     test_worker.notify_event = mocker.Mock()
 
@@ -283,7 +283,7 @@ async def test_wait_for_job_with_job(app, mocker):
 
     mocker.patch("asyncio.wait_for", mock)
 
-    await test_worker.wait_for_job()
+    await test_worker.wait_for_job(timeout=42)
 
     wait_for.assert_called_with(test_worker.notify_event.wait.return_value, timeout=42)
 
@@ -295,7 +295,7 @@ async def test_wait_for_job_with_job(app, mocker):
 
 
 async def test_wait_for_job_without_job(app, mocker):
-    test_worker = worker.Worker(app, timeout=42)
+    test_worker = worker.Worker(app)
     # notify_event is set to None initially, and we skip run()
     test_worker.notify_event = mocker.Mock()
 
@@ -306,7 +306,7 @@ async def test_wait_for_job_without_job(app, mocker):
 
     mocker.patch("asyncio.wait_for", mock)
 
-    await test_worker.wait_for_job()
+    await test_worker.wait_for_job(timeout=42)
 
     wait_for.assert_called_with(test_worker.notify_event.wait.return_value, timeout=42)
 
@@ -324,8 +324,8 @@ async def test_single_worker_no_wait(app, mocker):
         async def process_job(self, job):
             process_job(job=job)
 
-        async def wait_for_job(self):
-            wait_for_job()
+        async def wait_for_job(self, timeout):
+            wait_for_job(timeout)
 
     await TestWorker(app=app, wait=False).single_worker()
 
@@ -344,8 +344,8 @@ async def test_single_worker_stop_during_execution(app, mocker):
             process_job(job=job, worker_id=worker_id)
             self.stop_requested = True
 
-        async def wait_for_job(self):
-            wait_for_job()
+        async def wait_for_job(self, timeout):
+            wait_for_job(timeout=timeout)
 
     await TestWorker(app=app).single_worker()
 
@@ -363,7 +363,7 @@ async def test_single_worker_stop_during_wait(app, mocker):
         async def process_job(self, job, worker_id):
             process_job(job=job, worker_id=worker_id)
 
-        async def wait_for_job(self):
+        async def wait_for_job(self, timeout):
             wait_for_job()
             self.stop_requested = True
 
@@ -371,3 +371,26 @@ async def test_single_worker_stop_during_wait(app, mocker):
 
     process_job.assert_called_once()
     wait_for_job.assert_called_once()
+
+
+async def test_single_worker_spread_wait(app, mocker):
+    process_job = mocker.Mock()
+    wait_for_job = mocker.Mock()
+
+    await app.configure_task("bla").defer_async()
+
+    class TestWorker(worker.Worker):
+        stop = False
+
+        async def process_job(self, job, worker_id):
+            process_job(job=job, worker_id=worker_id)
+
+        async def wait_for_job(self, timeout):
+            wait_for_job(timeout)
+            self.stop_requested = self.stop
+            self.stop = True
+
+    await TestWorker(app=app, timeout=4, concurrency=7).single_worker(worker_id=3)
+
+    process_job.assert_called_once()
+    assert wait_for_job.call_args_list == [mocker.call(4 * (3 + 1)), mocker.call(4 * 7)]

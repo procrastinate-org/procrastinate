@@ -98,7 +98,7 @@ class Worker:
         self.notify_event = None
 
     async def single_worker(self, worker_id: int = 0):
-
+        current_timeout = self.timeout * (worker_id + 1)
         while not self.stop_requested:
             job = await self.job_store.fetch_job(self.queues)
             if job:
@@ -106,9 +106,10 @@ class Worker:
             else:
                 if not self.wait or self.stop_requested:
                     break
-                await self.wait_for_job()
+                await self.wait_for_job(timeout=current_timeout)
+                current_timeout = self.timeout * self.concurrency
 
-    async def wait_for_job(self):
+    async def wait_for_job(self, timeout: float):
         assert self.notify_event
         self.logger.debug(
             f"Waiting for new jobs on queues " f"{self.base_context.queues_display}",
@@ -118,7 +119,7 @@ class Worker:
         )
         self.notify_event.clear()
         try:
-            await asyncio.wait_for(self.notify_event.wait(), timeout=self.timeout)
+            await asyncio.wait_for(self.notify_event.wait(), timeout=timeout)
         except asyncio.TimeoutError:
             pass
         else:
