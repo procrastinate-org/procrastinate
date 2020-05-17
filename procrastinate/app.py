@@ -239,7 +239,7 @@ class App:
             pool, then your workers will likely spend their time waiting for a Postgres
             connection. How exactly you should scale those parameters depend on the
             size of your tasks, and the performance of your Postgres database.
-            See `concurrency`.
+            See `howto/concurrency`.
         name :
             Name of the worker. Will be passed in the `JobContext` and used in the
             logs.

@@ -21,7 +21,7 @@ class JobContext:
         Name of the worker (may be useful for logging)
     worker_queues : ``Optional[Iterable[str]]``
         Queues listened by this worker
-    worker_id : `ìnt```
+    worker_id : ``int```
         In case there are multiple async workers, this is the id of the worker.
     job : `Job`
         Current `Job` instance
