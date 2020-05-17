@@ -48,18 +48,26 @@ class Worker:
         self.stop_requested = False
         self.notify_event: Optional[asyncio.Event] = None
 
-    def context_for_worker(self, worker_id: int) -> job_context.JobContext:
-        return self.current_contexts.setdefault(
-            worker_id, self.base_context.evolve(worker_id=worker_id)
-        )
+    def context_for_worker(
+        self, worker_id: int, reset=False, **kwargs
+    ) -> job_context.JobContext:
+        """
+        Retrieves the context for sub-sworker ``worker_id``. If not found, or ``reset``
+        is True, context is recreated from ``self.base_context``. Additionnal parameters
+        are used to update the context. The resulting context is kept and will be
+        returned for later calls.
+        """
+        if reset or worker_id not in self.current_contexts:
+            context = self.base_context
+            kwargs["worker_id"] = worker_id
+        else:
+            context = self.current_contexts[worker_id]
 
-    def update_context(self, worker_id: int, **kwargs) -> job_context.JobContext:
-        context = self.context_for_worker(worker_id).evolve(**kwargs)
-        self.current_contexts[worker_id] = context
+        if kwargs:
+            context = context.evolve(**kwargs)
+            self.current_contexts[worker_id] = context
+
         return context
-
-    def reset_context(self, worker_id):
-        self.current_contexts.pop(worker_id, None)
 
     @contextlib.contextmanager
     def listener(self):
@@ -126,7 +134,7 @@ class Worker:
             self.notify_event.clear()
 
     async def process_job(self, job: jobs.Job, worker_id: int = 0) -> None:
-        context = self.update_context(worker_id=worker_id, job=job)
+        context = self.context_for_worker(worker_id=worker_id, job=job, reset=True)
 
         self.logger.debug(
             f"Loaded job info, about to start job {job.call_string}",
@@ -191,7 +199,7 @@ class Worker:
 
         task = self.load_task(task_name=task_name, worker_id=worker_id)
 
-        context = self.update_context(worker_id=worker_id, task=task)
+        context = self.context_for_worker(worker_id=worker_id, task=task)
 
         start_time = context.additional_context["start_timestamp"] = time.time()
 

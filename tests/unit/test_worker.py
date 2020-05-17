@@ -394,3 +394,41 @@ async def test_single_worker_spread_wait(app, mocker):
 
     process_job.assert_called_once()
     assert wait_for_job.call_args_list == [mocker.call(4 * (3 + 1)), mocker.call(4 * 7)]
+
+
+def test_context_for_worker(app):
+    test_worker = worker.Worker(app=app, name="foo")
+    expected = job_context.JobContext(app=app, worker_id=3, worker_name="foo")
+
+    context = test_worker.context_for_worker(worker_id=3)
+
+    assert context == expected
+
+
+def test_context_for_worker_kwargs(app):
+    test_worker = worker.Worker(app=app, name="foo")
+    expected = job_context.JobContext(app=app, worker_id=3, worker_name="bar")
+
+    context = test_worker.context_for_worker(worker_id=3, worker_name="bar")
+
+    assert context == expected
+
+
+def test_context_for_worker_value_kept(app):
+    test_worker = worker.Worker(app=app, name="foo")
+    expected = job_context.JobContext(app=app, worker_id=3, worker_name="bar")
+
+    test_worker.context_for_worker(worker_id=3, worker_name="bar")
+    context = test_worker.context_for_worker(worker_id=3)
+
+    assert context == expected
+
+
+def test_context_for_worker_reset(app):
+    test_worker = worker.Worker(app=app, name="foo")
+    expected = job_context.JobContext(app=app, worker_id=3, worker_name="foo")
+
+    test_worker.context_for_worker(worker_id=3, worker_name="bar")
+    context = test_worker.context_for_worker(worker_id=3, reset=True)
+
+    assert context == expected
