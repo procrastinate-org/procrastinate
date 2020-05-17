@@ -1,4 +1,5 @@
 import asyncio
+import logging
 
 import pendulum
 import pytest
@@ -269,6 +270,27 @@ async def test_run_job_pass_context(app):
         context,
         1,
     ]
+
+
+async def test_run_job_concurrency_warning(app, caplog):
+    # Running a sync task with concurrency > 1 should raise a warning
+    result = []
+    caplog.set_level(logging.WARNING)
+
+    @app.task(queue="yay", name="job")
+    def task_func(a):
+        result.append(a)
+
+    job = jobs.Job(
+        id=16, task_kwargs={"a": 1}, lock="sherlock", task_name="job", queue="yay",
+    )
+    test_worker = worker.Worker(app, concurrency=2)
+    await test_worker.run_job(job=job, worker_id=0)
+
+    assert result == [1]
+    assert [(r.action, r.levelname) for r in caplog.records] == [
+        ("concurrent_sync_task", "WARNING")
+    ], caplog.records
 
 
 async def test_wait_for_job_with_job(app, mocker):
