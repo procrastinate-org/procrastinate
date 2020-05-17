@@ -8,26 +8,20 @@ from procrastinate import aiopg_connector, schema
 BASELINE = "0.5.0"
 
 
-@pytest.fixture
-def pg_service_env():
-    env = os.environ.copy()
-    env["PGSERVICEFILE"] = "tests/migration/pgservice.ini"
-    return env
-
-
 # Pum config file is currently broken (https://github.com/opengisch/pum/issues/5)
 # When it's fixed, we can add a config file here, and then get rid of omit_table_dir
 @pytest.fixture
-def pum(pg_service_env):
+def pum():
+
+    env = {**os.environ, "PGSERVICEFILE": "tests/migration/pgservice.ini"}
+
     def _(command, args: str, omit_table_dir=False):
         first_args = ["pum", command]
         if not omit_table_dir:
             first_args.extend(
                 ["--table=public.pum", "--dir=procrastinate/sql/migrations"]
             )
-        return subprocess.run(
-            first_args + args.split(), check=True, env=pg_service_env,
-        )
+        return subprocess.run(first_args + args.split(), check=True, env=env)
 
     return _
 
