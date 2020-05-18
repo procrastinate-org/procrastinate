@@ -33,10 +33,10 @@ We can solve this problem by using locks::
 
 Or simply::
 
-    job_descritption = write_alphabet.configure(lock="/tmp/alphabet.txt")
-    job_descritption.defer(letter="a")
-    job_descritption.defer(letter="b")
-    job_descritption.defer(letter="c")
-    job_descritption.defer(letter="d")
+    job_description = write_alphabet.configure(lock="/tmp/alphabet.txt")
+    job_description.defer(letter="a")
+    job_description.defer(letter="b")
+    job_description.defer(letter="c")
+    job_description.defer(letter="d")
 
 Both ways, we're assured of getting ``abcd`` in our file.
