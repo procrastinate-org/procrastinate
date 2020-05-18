@@ -9,7 +9,7 @@ import click
 import pendulum
 
 import procrastinate
-from procrastinate import connector, exceptions, jobs, types
+from procrastinate import connector, exceptions, jobs, types, utils
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +50,9 @@ def handle_errors():
     try:
         yield
     except exceptions.ProcrastinateException as exc:
-        raise click.ClickException(str(exc))
+        logger.debug("Exception details:", exc_info=exc)
+        messages = [str(e) for e in utils.causes(exc)]
+        raise click.ClickException("\n".join(e for e in messages if e))
     except NotImplementedError:
         raise click.UsageError(
             "Missing app. This most probably happened because procrastinate needs an "
@@ -72,9 +74,9 @@ def handle_errors():
 @click.version_option(
     procrastinate.__version__, "-V", "--version", prog_name=PROGRAM_NAME
 )
-@handle_errors()
 def cli(ctx: click.Context, app: str, **kwargs) -> None:
     """
+@handle_errors()
     Interact with a Procrastinate app. See subcommands for details.
 
     All arguments can be passed by environment variables: PROCRASTINATE_UPPERCASE_NAME
@@ -100,9 +102,9 @@ def close_connection(procrastinate_app: procrastinate.App, *args, **kwargs):
 
 @cli.command()
 @click.pass_obj
-@handle_errors()
 @click.argument("queue", nargs=-1)
 @click.option("--name", help="Name of the worker")
+@handle_errors()
 def worker(app: procrastinate.App, queue: Iterable[str], name: Optional[str]):
     """
     Launch a worker, listening on the given queues (or all queues).
@@ -115,7 +117,6 @@ def worker(app: procrastinate.App, queue: Iterable[str], name: Optional[str]):
 
 @cli.command()
 @click.pass_obj
-@handle_errors()
 @click.argument("task")
 @click.argument("json_args", required=False)
 @click.option(
@@ -130,6 +131,7 @@ def worker(app: procrastinate.App, queue: Iterable[str], name: Optional[str]):
     "--unknown/--no-unknown",
     help="Whether unknown tasks can be deferred (default false)",
 )
+@handle_errors()
 def defer(
     app: procrastinate.App,
     task: str,
@@ -234,7 +236,6 @@ def configure_job(
 
 @cli.command()
 @click.pass_obj
-@handle_errors()
 @click.option(
     "--apply",
     "action",
@@ -251,6 +252,7 @@ def configure_job(
     flag_value="migrations-path",
     help="Output the path to the directory containing the migration scripts",
 )
+@handle_errors()
 def schema(app: procrastinate.App, action: str):
     """
     Apply SQL schema to the empty database. This won't work if the schema has already

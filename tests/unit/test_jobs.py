@@ -23,7 +23,7 @@ def test_job_get_context(scheduled_at, context_scheduled_at):
         attempts=42,
     )
 
-    assert job.get_context() == {
+    assert job.log_context() == {
         "id": 12,
         "queue": "marsupilami",
         "lock": "sher",
@@ -31,7 +31,7 @@ def test_job_get_context(scheduled_at, context_scheduled_at):
         "task_kwargs": {"a": "b"},
         "scheduled_at": context_scheduled_at,
         "attempts": 42,
-        "call_string": "mytask(a=b)",
+        "call_string": "mytask[12](a='b')",
     }
 
 
@@ -95,3 +95,9 @@ def test_job_scheduled_at_naive():
             task_kwargs={"a": "b"},
             scheduled_at=pendulum.naive(2000, 1, 1),
         )
+
+
+def test_call_string(job_factory):
+    job = job_factory(id=12, task_name="mytask", task_kwargs={"a": "b"})
+
+    assert job.call_string == "mytask[12](a='b')"

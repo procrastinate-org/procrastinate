@@ -97,7 +97,7 @@ Try 2
 
     assert stderr.count("Traceback (most recent call last)") == 3
     assert stderr.count("Job error, to retry") == 2
-    waited_log = "Job error - Job tests.acceptance.app.multiple_exception_failures()"
+    waited_log = "Job error - Job tests.acceptance.app.multiple_exception_failures[6]()"
     assert stderr.count(waited_log) == 1
 
 

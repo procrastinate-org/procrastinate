@@ -1,7 +1,9 @@
+import asyncio
+
 import pendulum
 import pytest
 
-from procrastinate import exceptions, jobs, tasks, worker
+from procrastinate import exceptions, job_context, jobs, tasks, worker
 
 pytestmark = pytest.mark.asyncio
 
@@ -9,6 +11,14 @@ pytestmark = pytest.mark.asyncio
 @pytest.fixture
 def test_worker(app):
     return worker.Worker(app, queues=None)
+
+
+@pytest.fixture
+def context(app):
+    def _(job):
+        return job_context.JobContext(app=app, worker_name="worker", job=job)
+
+    return _
 
 
 async def test_run(test_worker, mocker, caplog):
@@ -40,7 +50,7 @@ async def test_run(test_worker, mocker, caplog):
     ],
 )
 async def test_process_job(
-    mocker, test_worker, job_factory, connector, side_effect, status
+    mocker, test_worker, job_factory, connector, side_effect, status, context
 ):
     async def coro(*args, **kwargs):
         pass
@@ -52,13 +62,13 @@ async def test_process_job(
     await test_worker.process_job(job=job)
 
     test_worker.run_job.assert_called_with(
-        job=job, log_context={"job": job.get_context()}
+        job=job, context=context(job=job),
     )
     assert connector.jobs[1]["status"] == status
 
 
 async def test_process_job_retry_failed_job(
-    mocker, test_worker, job_factory, connector
+    mocker, test_worker, job_factory, connector, context
 ):
     async def coro(*args, **kwargs):
         pass
@@ -72,14 +82,12 @@ async def test_process_job_retry_failed_job(
 
     await test_worker.process_job(job=job)
 
-    test_worker.run_job.assert_called_with(
-        job=job, log_context={"job": job.get_context()}
-    )
+    test_worker.run_job.assert_called_with(job=job, context=context(job=job))
     assert connector.jobs[1]["status"] == "todo"
     assert connector.jobs[1]["scheduled_at"] == scheduled_at
 
 
-async def test_run_job(app):
+async def test_run_job(app, context):
     result = []
 
     @app.task(queue="yay", name="task_func")
@@ -94,12 +102,12 @@ async def test_run_job(app):
         queue="yay",
     )
     test_worker = worker.Worker(app, queues=["yay"])
-    await test_worker.run_job(job=job, log_context={"job": job.get_context()})
+    await test_worker.run_job(job=job, context=context(job=job))
 
     assert result == [12]
 
 
-async def test_run_job_async(app):
+async def test_run_job_async(app, context):
     result = []
 
     @app.task(queue="yay", name="task_func")
@@ -114,12 +122,12 @@ async def test_run_job_async(app):
         queue="yay",
     )
     test_worker = worker.Worker(app, queues=["yay"])
-    await test_worker.run_job(job=job, log_context={"job": job.get_context()})
+    await test_worker.run_job(job=job, context=context(job=job))
 
     assert result == [12]
 
 
-async def test_run_job_log_result(caplog, app):
+async def test_run_job_log_result(caplog, app, context):
     caplog.set_level("INFO")
 
     result = []
@@ -141,7 +149,7 @@ async def test_run_job_log_result(caplog, app):
         queue="yay",
     )
     test_worker = worker.Worker(app, queues=["yay"])
-    await test_worker.run_job(job=job, log_context={"job": job.get_context()})
+    await test_worker.run_job(job=job, context=context(job=job))
 
     assert result == [12]
 
@@ -153,7 +161,7 @@ async def test_run_job_log_result(caplog, app):
 
 @pytest.mark.parametrize(
     "worker_name, logger_name, record_worker_name",
-    [(None, "worker", None), ("w1", "worker.w1", "w1")],
+    [(None, "worker", "worker"), ("w1", "worker.w1", "w1")],
 )
 async def test_run_job_log_name(
     caplog, app, worker_name, logger_name, record_worker_name
@@ -174,13 +182,14 @@ async def test_run_job_log_name(
     records = [r for r in caplog.records if "worker" in r.name]
 
     assert len(records)
-    assert all(record.name.endswith(logger_name) for record in records)
-    assert all(
-        getattr(record, "worker_name", None) == record_worker_name for record in records
-    )
+    record_names = [record.name for record in records]
+    assert all([name.endswith(logger_name) for name in record_names])
+
+    worker_names = [getattr(record, "worker", {}).get("name") for record in records]
+    assert all([name == record_worker_name for name in worker_names])
 
 
-async def test_run_job_error(app):
+async def test_run_job_error(app, context):
     def job(a, b):  # pylint: disable=unused-argument
         raise ValueError("nope")
 
@@ -198,10 +207,10 @@ async def test_run_job_error(app):
     )
     test_worker = worker.Worker(app, queues=["yay"])
     with pytest.raises(exceptions.JobError):
-        await test_worker.run_job(job=job, log_context={"job": job.get_context()})
+        await test_worker.run_job(job=job, context=context(job=job))
 
 
-async def test_run_job_retry(app):
+async def test_run_job_retry(app, context):
     def job(a, b):  # pylint: disable=unused-argument
         raise ValueError("nope")
 
@@ -219,10 +228,10 @@ async def test_run_job_retry(app):
     )
     test_worker = worker.Worker(app, queues=["yay"])
     with pytest.raises(exceptions.JobRetry):
-        await test_worker.run_job(job=job, log_context={"job": job.get_context()})
+        await test_worker.run_job(job=job, context=context(job=job))
 
 
-async def test_run_job_not_found(app):
+async def test_run_job_not_found(app, context):
     job = jobs.Job(
         id=16,
         task_kwargs={"a": 9, "b": 3},
@@ -232,7 +241,7 @@ async def test_run_job_not_found(app):
     )
     test_worker = worker.Worker(app, queues=["yay"])
     with pytest.raises(exceptions.TaskNotFound):
-        await test_worker.run_job(job=job, log_context={"job": job.get_context()})
+        await test_worker.run_job(job=job, context=context(job=job))
 
 
 async def test_run_job_pass_context(app):
@@ -246,12 +255,13 @@ async def test_run_job_pass_context(app):
         id=16, task_kwargs={"a": 1}, lock="sherlock", task_name="job", queue="yay",
     )
     test_worker = worker.Worker(app, queues=["yay"], name="my_worker")
-    await test_worker.run_job(job=job, log_context={"job": job.get_context()})
+    context = job_context.JobContext(
+        worker_name="my_worker", worker_queues=["yay"], job=job, task=task_func,
+    )
+    await test_worker.run_job(job=job, context=context)
 
     assert result == [
-        worker.JobContext(
-            worker_name="my_worker", worker_queues=["yay"], job=job, task=task_func,
-        ),
+        context,
         1,
     ]
 
@@ -284,7 +294,7 @@ async def test_wait_for_job_without_job(app, mocker):
     # notify_event is set to None initially, and we skip run()
     test_worker.notify_event = mocker.Mock()
 
-    wait_for = mocker.Mock(side_effect=TimeoutError)
+    wait_for = mocker.Mock(side_effect=asyncio.TimeoutError)
 
     async def mock(coro, timeout):
         wait_for(coro, timeout=timeout)

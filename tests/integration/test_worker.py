@@ -43,7 +43,7 @@ async def test_run(app, running_worker, caplog):
 
     assert [(r.levelname, r.action) for r in caplog.records] == [
         ("DEBUG", "register_queue"),
-        ("DEBUG", "about_to_job_defer"),
+        ("DEBUG", "about_to_defer_job"),
         ("INFO", "job_defer"),
         ("DEBUG", "loaded_job_info"),
         ("INFO", "start_job"),
@@ -71,5 +71,5 @@ async def test_run_log_current_job_when_stopping(app, running_worker, caplog):
     record = next(iter(r for r in caplog.records if r.action == "stopping_worker"))
     assert (
         record.message == "Stop requested, waiting for job to finish: "
-        "tests.integration.test_worker.t()"
+        "tests.integration.test_worker.t[1]()"
     )

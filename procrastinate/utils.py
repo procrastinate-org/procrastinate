@@ -3,7 +3,7 @@ import functools
 import importlib
 import logging
 import types
-from typing import Any, Awaitable, Iterable, Type, TypeVar
+from typing import Any, Awaitable, Iterable, Optional, Type, TypeVar
 
 from procrastinate import exceptions
 
@@ -131,3 +131,13 @@ def sync_await(awaitable: Awaitable[T]) -> T:
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
     return loop.run_until_complete(awaitable)
+
+
+def causes(exc: Optional[BaseException]):
+    """
+    From a single exception with a chain of causes and contexts, make an iterable
+    going through every exception in the chain.
+    """
+    while exc:
+        yield exc
+        exc = exc.__cause__ or exc.__context__

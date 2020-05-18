@@ -1,11 +1,11 @@
-import functools
 from typing import Optional
 
-from procrastinate import store
+from procrastinate import job_context
 
 
 async def remove_old_jobs(
-    job_store: store.JobStore,
+    context: job_context.JobContext,
+    *,
     max_hours: int,
     queue: Optional[str] = None,
     remove_error: Optional[bool] = False,
@@ -25,7 +25,8 @@ async def remove_old_jobs(
         By default only successful jobs will be removed. When this parameter is True
         failed jobs will also be deleted.
     """
-    await job_store.delete_old_jobs(
+    assert context.app
+    await context.app.job_store.delete_old_jobs(
         nb_hours=max_hours, queue=queue, include_error=remove_error
     )
 
@@ -33,7 +34,8 @@ async def remove_old_jobs(
 # Register your builtin tasks here
 def register_builtin_tasks(app) -> None:
     app.builtin_tasks["remove_old_jobs"] = app.task(
-        functools.partial(remove_old_jobs, app.job_store),
+        remove_old_jobs,
         queue="builtin",
         name="procrastinate.builtin_tasks.remove_old_jobs",
+        pass_context=True,
     )

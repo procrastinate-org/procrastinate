@@ -1,4 +1,5 @@
 import datetime
+import functools
 import logging
 from enum import Enum
 from typing import TYPE_CHECKING, Any, Dict, Optional
@@ -14,6 +15,8 @@ logger = logging.getLogger(__name__)
 
 
 DEFAULT_QUEUE = "default"
+
+cached_property = getattr(functools, "cached_property", property)
 
 
 def check_aware(
@@ -77,16 +80,21 @@ class Job:
             attempts=row["attempts"],
         )
 
-    def get_context(self) -> types.JSONDict:
+    def log_context(self) -> types.JSONDict:
         context = attr.asdict(self)
 
         if context["scheduled_at"]:
             context["scheduled_at"] = context["scheduled_at"].isoformat()
-        kwargs_string = ", ".join(
-            f"{key}={value}" for key, value in context["task_kwargs"].items()
-        )
-        context["call_string"] = f"{context['task_name']}({kwargs_string})"
+
+        context["call_string"] = self.call_string
         return context
+
+    @cached_property
+    def call_string(self):
+        kwargs_string = ", ".join(
+            f"{key}={value!r}" for key, value in self.task_kwargs.items()
+        )
+        return f"{self.task_name}[{self.id}]({kwargs_string})"
 
 
 @utils.add_sync_api
@@ -114,15 +122,15 @@ class JobDeferrer:
 
         job = self.make_new_job(**task_kwargs)
 
-        context = job.get_context()
+        context = job.log_context()
         logger.debug(
-            f"About to defer job {context['call_string']}",
-            extra={"action": "about_to_job_defer", "job": context},
+            f"About to defer job {job.call_string}",
+            extra={"action": "about_to_defer_job", "job": context},
         )
         id = await self.job_store.defer_job(job=job)
         context["id"] = id
         logger.info(
-            f"Deferred job {context['call_string']} with id: {id}",
+            f"Deferred job {job.call_string} with id: {id}",
             extra={"action": "job_defer", "job": context},
         )
         return id

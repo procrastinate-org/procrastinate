@@ -2,7 +2,6 @@ import functools
 import logging
 from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, Optional, Set
 
-from procrastinate import builtin_tasks
 from procrastinate import connector as connector_module
 from procrastinate import healthchecks, jobs
 from procrastinate import retry as retry_module
@@ -179,6 +178,8 @@ class App:
             self.queues.add(queue)
 
     def _register_builtin_tasks(self) -> None:
+        from procrastinate import builtin_tasks
+
         builtin_tasks.register_builtin_tasks(self)
 
     def configure_task(self, name: str, **kwargs: Any) -> jobs.JobDeferrer:
