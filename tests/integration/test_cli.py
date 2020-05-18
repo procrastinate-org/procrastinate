@@ -25,8 +25,7 @@ def test_cli(entrypoint):
 def test_version(entrypoint):
     result = entrypoint("--version")
 
-    assert "procrastinate " + __version__ in result.output
-    assert "License: MIT License" in result.output
+    assert "procrastinate, version " + __version__ == result.output.strip()
 
 
 def test_worker(entrypoint, click_app, mocker):
