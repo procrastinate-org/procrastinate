@@ -269,7 +269,7 @@ def test_listen_for_jobs_run(connector):
 
 @pytest.mark.asyncio
 async def test_defer_no_notify(connector):
-    # This test is there to check that if the defered queue doesn't match the
+    # This test is there to check that if the deferred queue doesn't match the
     # listened queue, the testing connector doesn't notify.
     event = asyncio.Event()
     await connector.listen_notify(event=event, channels="some_other_channel")

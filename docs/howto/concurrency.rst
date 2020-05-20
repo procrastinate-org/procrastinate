@@ -8,7 +8,7 @@ process.
 But Procrastinate supports asynchronous tasks, and the main idea behind asynchronous
 code is to have concurrency: while a job is waiting for external I/O (usually network),
 the CPU is free to run other jobs. That is why Procrastinate workers are able to
-launch multiple asynchronous "sub-workers".
+launch multiple asynchronous :term:`sub-workers <Sub-worker>`.
 
 You can do this either from Python::
 

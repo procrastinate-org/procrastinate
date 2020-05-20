@@ -155,18 +155,18 @@ Don't mix sync and async
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 Asynchronous concurrency brings nothing to CPU-bound programs. Also, asynchronous code
-uses cooperative multitasking: it's the task's job to give back control to the main
+uses cooperative multitasking: it's the task's job to give control back to the main
 loop by using the ``await`` keyword (I/O that doesn't call ``await`` is said to be
 "blocking").
 
-Failure to regularily await an IO in your task will block all other jobs running on the
+Failure to regularly await an IO in your task will block all other jobs running on the
 worker. Note that it won't crash or anything, and it probably won't even be worse than
 if everything was blocking. It's just that you won't achieve the speeding potential you
-would hope.
+would hope for.
 
 If you have blocking I/O or CPU-bound tasks, make sure to use a separate queue, and have
 distinct sync workers and async workers. Of course, if your program is not that
-time-sensitive and you have sufficiently few blocking task, it's perfectly ok not to
+time-sensitive and you have sufficiently few blocking tasks, it's perfectly ok not to
 care.
 
 Mind the size of your PostgreSQL pool
@@ -174,7 +174,8 @@ Mind the size of your PostgreSQL pool
 
 You can size the PostgreSQL pool using the ``maxsize`` argument of `PostgresConnector`.
 Procrastinate will use use one connection to listen to server-side ``NOTIFY`` calls (see
-:ref:`discussion-general`). The rest of the pool is used for sub-workers.
+:ref:`discussion-general`). The rest of the pool is used for :term:`sub-workers
+<Sub-worker>`.
 
 The relative sizing of your pool and your sub-workers all depend on the average length
 of your jobs, and especially compared to the time it takes to fetch jobs and register
@@ -185,15 +186,15 @@ many connections as your concurrency (plus one). And vice versa: the longer your
 time, the smaller your pool may be.
 
 Having sub-workers wait for an available connection in the pool is suboptimal. Your
-resources will be better used with less sub-workers or a larger pool, but there are many
-factors to take into account when `sizing your pool`__.
+resources will be better used with fewer sub-workers or a larger pool, but there are
+many factors to take into account when `sizing your pool`__.
 
 .. __: https://wiki.postgresql.org/wiki/Number_Of_Database_Connections
 
 Mind the ``worker_timeout``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Even when the database doesn't notify workers regarding newly defered jobs, idle
+Even when the database doesn't notify workers regarding newly deferred jobs, idle
 workers still poll the database every now and then, just in case.
 There could be previously locked jobs that are now free, or scheduled jobs that have
 reached the ETA. ``worker_timeout`` is the `App.run_worker` parameter (or the
@@ -210,7 +211,7 @@ randomness in job duration could create a situation where there is a long gap be
 polls. If you find this to happen in reality, please open an issue, and lower your
 ``worker_timeout``.
 
-Note that as long as jobs are regularily deferred, or there are enqueued jobs,
+Note that as long as jobs are regularly deferred, or there are enqueued jobs,
 sub-workers will not wait and this will not be an issue. This is only about idle
 workers taking time to notice that a previously unavailable job has become available.
 

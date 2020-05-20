@@ -112,7 +112,7 @@ def close_connection(procrastinate_app: procrastinate.App, *args, **kwargs):
     "-q",
     "--queues",
     default="",
-    help="Comma separated names of the queues to listen "
+    help="Comma-separated names of the queues to listen "
     "to (empty string for all queues)",
 )
 @click.option(

@@ -22,7 +22,7 @@ class JobContext:
     worker_queues : ``Optional[Iterable[str]]``
         Queues listened by this worker
     worker_id : ``int```
-        In case there are multiple async workers, this is the id of the worker.
+        In case there are multiple async sub-workers, this is the id of the sub-worker.
     job : `Job`
         Current `Job` instance
     task : `Task`

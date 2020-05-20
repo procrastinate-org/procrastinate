@@ -134,7 +134,7 @@ class Worker:
             self.notify_event.clear()
 
     async def process_job(self, job: jobs.Job, worker_id: int = 0) -> None:
-        context = self.context_for_worker(worker_id=worker_id, job=job, reset=True)
+        context = self.context_for_worker(worker_id=worker_id, job=job)
 
         self.logger.debug(
             f"Loaded job info, about to start job {job.call_string}",
@@ -165,7 +165,8 @@ class Worker:
                 f"Acknowledged job completion {job.call_string}",
                 extra=context.log_extra(action="finish_task", status=status),
             )
-            self.current_job_context = None
+            # Remove job information from the current context
+            self.context_for_worker(worker_id=worker_id, reset=True)
 
     def load_task(self, task_name: str, worker_id: int) -> tasks.Task:
         if task_name in self.known_missing_tasks:

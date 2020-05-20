@@ -226,32 +226,27 @@ class App:
 
         Parameters
         ----------
-        queues :
-            List of queues to listen to, or None to listen to every queue.
-        wait :
+        queues : ``Optional[Iterable[str]]``
+            List of queues to listen to, or None to listen to every queue (defaults to
+            ``None``).
+        wait : ``bool``
             If False, the worker will terminate as soon as it has caught up with the
             queues. If True, the worker will work until it is stopped by a signal
-            (ctrl+c, SIGINT, SIGTERM).
-        concurrency :
+            (ctrl+c, SIGINT, SIGTERM) (defaults to ``True``).
+        concurrency : ``int``
             Indicates how many asynchronous jobs the worker can run in parallel.
             Do not use concurrency if you have synchronous blocking tasks.
-            If this parameter is set too high compared to the size of your connector
-            pool, then your workers will likely spend their time waiting for a Postgres
-            connection. How exactly you should scale those parameters depend on the
-            size of your tasks, and the performance of your Postgres database.
-            See `howto/concurrency`.
-        name :
+            See `howto/concurrency` (defaults to ``1``).
+        name : ``Optional[str]``
             Name of the worker. Will be passed in the `JobContext` and used in the
-            logs.
-        timeout :
+            logs (defaults to ``None`` which will result in the worker named
+            ``worker``).
+        timeout : ``float``
             Indicates the maximum duration (in seconds) procrastinate
-            workers wait between each database job pull. Job activity will be pushed
-            from the db to the worker, but in case the push mechanism fails somehow,
-            workers will not stay idle longer than the number of seconds indicated by
-            this parameter.
+            workers wait between each database job poll.
             Raising this parameter can lower the rate of workers making queries to the
             database for requesting jobs.
-            This parameter can be overridden when launching the worker.
+            (defaults to 5.0)
         """
         self.perform_import_paths()
         worker = self._worker(**kwargs)
