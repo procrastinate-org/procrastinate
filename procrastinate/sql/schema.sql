@@ -29,9 +29,11 @@ CREATE TABLE procrastinate_jobs (
     args jsonb DEFAULT '{}' NOT NULL,
     status procrastinate_job_status DEFAULT 'todo'::procrastinate_job_status NOT NULL,
     scheduled_at timestamp with time zone NULL,
-    attempts integer DEFAULT 0 NOT NULL,
-    EXCLUDE (defer_lock WITH =, status WITH =) WHERE (status = 'todo')
+    attempts integer DEFAULT 0 NOT NULL
 );
+
+-- this prevents from having several jobs with the same defer lock in the "todo" state
+CREATE UNIQUE INDEX procrastinate_jobs_defer_lock_idx ON procrastinate_jobs (defer_lock) WHERE status = 'todo';
 
 CREATE TABLE procrastinate_events (
     id BIGSERIAL PRIMARY KEY,

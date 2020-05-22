@@ -35,7 +35,7 @@ def test_adapt_pool_args_maxsize():
     "psycopg2_exception, procrastinate_exception",
     [
         (psycopg2.DatabaseError, exceptions.ConnectorException),
-        (psycopg2.errors.ExclusionViolation, exceptions.DeferLockTaken),
+        (psycopg2.errors.UniqueViolation, exceptions.DeferLockTaken),
     ],
 )
 @pytest.mark.asyncio
