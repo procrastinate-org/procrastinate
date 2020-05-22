@@ -25,10 +25,12 @@ CREATE TABLE procrastinate_jobs (
     queue_name character varying(128) NOT NULL,
     task_name character varying(128) NOT NULL,
     lock text,
+    defer_lock text,
     args jsonb DEFAULT '{}' NOT NULL,
     status procrastinate_job_status DEFAULT 'todo'::procrastinate_job_status NOT NULL,
     scheduled_at timestamp with time zone NULL,
-    attempts integer DEFAULT 0 NOT NULL
+    attempts integer DEFAULT 0 NOT NULL,
+    EXCLUDE (defer_lock WITH =, status WITH =) WHERE (status = 'todo')
 );
 
 CREATE TABLE procrastinate_events (
