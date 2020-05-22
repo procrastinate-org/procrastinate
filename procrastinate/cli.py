@@ -161,7 +161,7 @@ def worker_(app: procrastinate.App, queues: str, **kwargs):
 @click.option(
     "--defer-lock",
     help='A defer lock string. The defer operation will trigger a "DeferLockTaken" '
-    'exception if there already is a job in the "todo" state with the same defer lock',
+    "exception if there already is a job waiting in the queue with the same defer lock",
 )
 @click.option(
     "--queue",
