@@ -21,7 +21,7 @@ class JobStore:
             query=sql.queries["defer_job"],
             task_name=job.task_name,
             lock=job.lock,
-            defer_lock=None,
+            defer_lock=job.defer_lock,
             args=job.task_kwargs,
             scheduled_at=job.scheduled_at,
             queue=job.queue,

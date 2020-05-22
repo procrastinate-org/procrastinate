@@ -48,6 +48,9 @@ class Job:
     lock :
         Lock object in database that prevents other jobs with the same lock from running
         concurrently.
+    defer_lock:
+        Defer lock object in database that prevents having several jobs with the same
+        defer lock and in the "todo" state.
     task_name :
         Name of the associated task.
     task_kwargs :
@@ -61,6 +64,7 @@ class Job:
     id: Optional[int] = None
     queue: str
     lock: str
+    defer_lock: Optional[str]
     task_name: str
     task_kwargs: types.JSONDict = attr.ib(factory=dict)
     scheduled_at: Optional[datetime.datetime] = attr.ib(
@@ -73,6 +77,7 @@ class Job:
         return cls(
             id=row["id"],
             lock=row["lock"],
+            defer_lock=row["defer_lock"],
             task_name=row["task_name"],
             task_kwargs=row["args"],
             scheduled_at=row["scheduled_at"],
