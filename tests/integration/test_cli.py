@@ -110,7 +110,9 @@ def test_defer(entrypoint, click_app, connector):
         pass
 
     # No space in the json helps entrypoint() to simply split args
-    result = entrypoint("""-a yay defer --lock=sherlock hello {"a":1}""")
+    result = entrypoint(
+        """-a yay defer --lock=sherlock --defer-lock=houba hello {"a":1}"""
+    )
 
     assert result.output == "Launching a job: hello(a=1)\n"
     assert result.exit_code == 0
@@ -120,7 +122,7 @@ def test_defer(entrypoint, click_app, connector):
             "attempts": 0,
             "id": 1,
             "lock": "sherlock",
-            "defer_lock": None,
+            "defer_lock": "houba",
             "queue_name": "default",
             "scheduled_at": None,
             "status": "todo",
@@ -131,7 +133,9 @@ def test_defer(entrypoint, click_app, connector):
 
 def test_defer_unknown(entrypoint, click_app, connector):
     # No space in the json helps entrypoint() to simply split args
-    result = entrypoint("""-a yay defer --unknown --lock=sherlock hello {"a":1}""")
+    result = entrypoint(
+        """-a yay defer --unknown --lock=sherlock --defer-lock=houba hello {"a":1}"""
+    )
 
     assert result.output == "Launching a job: hello(a=1)\n"
     assert result.exit_code == 0
@@ -141,7 +145,7 @@ def test_defer_unknown(entrypoint, click_app, connector):
             "attempts": 0,
             "id": 1,
             "lock": "sherlock",
-            "defer_lock": None,
+            "defer_lock": "houba",
             "queue_name": "default",
             "scheduled_at": None,
             "status": "todo",
