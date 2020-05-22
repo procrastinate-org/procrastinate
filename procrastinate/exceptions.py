@@ -46,3 +46,12 @@ class ConnectorException(ProcrastinateException):
     """
 
     pass
+
+
+class DeferLockTaken(ProcrastinateException):
+    """
+    Indicates that a job in todo state with the same defer lock
+    already exists in the database.
+    """
+
+    pass

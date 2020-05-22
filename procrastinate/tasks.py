@@ -131,7 +131,9 @@ class Task:
             No two jobs with the same lock string can run simultaneously
         defer_lock :
             No two jobs with the same defer lock can be in the "todo" state in
-            the database
+            the database. `Task.defer` will raise a `DeferLockTaken` exception
+            if the database already has a job in the "todo" state and with the
+            same defer lock
         task_kwargs :
             Arguments for the job task. You can also pass them to `Task.defer`.
             If you pass both, they will be updated (`Task.defer` has priority)

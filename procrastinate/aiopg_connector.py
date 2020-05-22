@@ -5,6 +5,7 @@ from typing import Any, Callable, Coroutine, Dict, Iterable, List, NoReturn, Opt
 
 import aiopg
 import psycopg2
+import psycopg2.errors
 import psycopg2.sql
 from psycopg2.extras import Json, RealDictCursor
 
@@ -27,6 +28,8 @@ def wrap_exceptions(coro: CoroutineFunction) -> CoroutineFunction:
     async def wrapped(*args, **kwargs):
         try:
             return await coro(*args, **kwargs)
+        except psycopg2.errors.ExclusionViolation as exc:
+            raise exceptions.DeferLockTaken from exc
         except psycopg2.Error as exc:
             raise exceptions.ConnectorException from exc
 

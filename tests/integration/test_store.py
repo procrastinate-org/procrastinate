@@ -3,7 +3,7 @@ import datetime
 import pendulum
 import pytest
 
-from procrastinate import jobs, store
+from procrastinate import exceptions, jobs, store
 
 pytestmark = pytest.mark.asyncio
 
@@ -387,7 +387,7 @@ async def test_defer_job(pg_job_store, get_all):
     pk = await pg_job_store.defer_job(job=job)
 
     result = await get_all(
-        "procrastinate_jobs", "id", "args", "status", "lock", "task_name"
+        "procrastinate_jobs", "id", "args", "status", "lock", "defer_lock", "task_name"
     )
     assert result == [
         {
@@ -395,6 +395,31 @@ async def test_defer_job(pg_job_store, get_all):
             "args": {"a": 1, "b": 2},
             "status": "todo",
             "lock": "sher",
+            "defer_lock": "houba",
             "task_name": "bob",
         }
     ]
+
+
+async def test_defer_job_violate_defer_lock(pg_job_store):
+    await pg_job_store.defer_job(
+        jobs.Job(
+            id=1,
+            queue="queue_a",
+            task_name="task_1",
+            lock="lock_1",
+            defer_lock="defer_lock_1",
+            task_kwargs={"a": "b"},
+        )
+    )
+    with pytest.raises(exceptions.DeferLockTaken):
+        await pg_job_store.defer_job(
+            jobs.Job(
+                id=2,
+                queue="queue_a",
+                task_name="task_1",
+                lock="lock_1",
+                defer_lock="defer_lock_1",
+                task_kwargs={"a": "b"},
+            )
+        )
