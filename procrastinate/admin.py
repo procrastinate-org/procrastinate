@@ -1,3 +1,5 @@
+from typing import Any, Dict, Iterable
+
 from procrastinate import connector as connector_module
 from procrastinate import sql, utils
 
@@ -23,8 +25,13 @@ class Admin:
         self.connector = connector
 
     async def list_jobs_async(
-        self, id=None, queue=None, task=None, status=None, lock=None,
-    ):
+        self,
+        id: int = None,
+        queue: str = None,
+        task: str = None,
+        status: str = None,
+        lock: str = None,
+    ) -> Iterable[Dict[str, Any]]:
         """
         List all procrastinate jobs given query filters.
 
@@ -69,8 +76,8 @@ class Admin:
         ]
 
     async def list_queues_async(
-        self, queue=None, task=None, status=None, lock=None,
-    ):
+        self, queue: str = None, task: str = None, status: str = None, lock: str = None,
+    ) -> Iterable[Dict[str, Any]]:
         """
         List all queues and number of jobs per status for each queue.
 
@@ -110,8 +117,8 @@ class Admin:
         ]
 
     async def list_tasks_async(
-        self, queue=None, task=None, status=None, lock=None,
-    ):
+        self, queue: str = None, task: str = None, status: str = None, lock: str = None,
+    ) -> Iterable[Dict[str, Any]]:
         """
         List all tasks and number of jobs per status for each task.
 
@@ -150,7 +157,7 @@ class Admin:
             )
         ]
 
-    async def set_job_status_async(self, id, status):
+    async def set_job_status_async(self, id: int, status: str) -> Dict[str, Any]:
         """
         Set/reset the status of a specific job.
 
