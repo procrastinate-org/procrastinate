@@ -58,3 +58,88 @@ SELECT TRUE as check;
 -- count_jobs_status --
 -- Count the number of jobs per status
 SELECT count(*) AS count, status FROM procrastinate_jobs GROUP BY status;
+
+-- list_jobs --
+-- Get list of jobs
+SELECT id,
+       queue_name,
+       task_name,
+       lock,
+       args,
+       status,
+       scheduled_at,
+       attempts
+  FROM procrastinate_jobs
+ WHERE (%(id)s IS NULL OR id = %(id)s)
+   AND (%(queue_name)s IS NULL OR queue_name = %(queue_name)s)
+   AND (%(task_name)s IS NULL OR task_name = %(task_name)s)
+   AND (%(status)s IS NULL OR status = %(status)s)
+   AND (%(lock)s IS NULL OR lock = %(lock)s)
+ ORDER BY id ASC;
+
+-- list_queues --
+-- Get list of queues and number of jobs per queue
+WITH jobs AS (
+   SELECT id,
+          queue_name,
+          task_name,
+          lock,
+          args,
+          status,
+          scheduled_at,
+          attempts
+     FROM procrastinate_jobs
+    WHERE (%(queue_name)s IS NULL OR queue_name = %(queue_name)s)
+      AND (%(task_name)s IS NULL OR task_name = %(task_name)s)
+      AND (%(status)s IS NULL OR status = %(status)s)
+      AND (%(lock)s IS NULL OR lock = %(lock)s)
+)
+SELECT queue_name AS name,
+       COUNT(id) AS jobs_count,
+       (WITH stats AS (
+           SELECT status,
+                  COUNT(*) AS jobs_count
+             FROM jobs
+            WHERE queue_name = j.queue_name
+            GROUP BY status
+           )
+           SELECT json_object_agg(status, jobs_count) FROM stats
+       ) AS stats
+  FROM jobs AS j
+ GROUP BY name;
+
+-- list_tasks --
+-- Get list of tasks and number of jobs per task
+WITH jobs AS (
+   SELECT id,
+          queue_name,
+          task_name,
+          lock,
+          args,
+          status,
+          scheduled_at,
+          attempts
+     FROM procrastinate_jobs
+    WHERE (%(queue_name)s IS NULL OR queue_name = %(queue_name)s)
+      AND (%(task_name)s IS NULL OR task_name = %(task_name)s)
+      AND (%(status)s IS NULL OR status = %(status)s)
+      AND (%(lock)s IS NULL OR lock = %(lock)s)
+)
+SELECT task_name AS name,
+       COUNT(id) AS jobs_count,
+       (WITH stats AS (
+           SELECT status,
+                  COUNT(*) AS jobs_count
+             FROM jobs
+            WHERE task_name = j.task_name
+            GROUP BY status
+           )
+           SELECT json_object_agg(status, jobs_count) FROM stats
+       ) AS stats
+  FROM jobs AS j
+ GROUP BY name;
+
+-- set_job_status --
+UPDATE procrastinate_jobs
+   SET status = %(status)s
+ WHERE id = %(id)s
