@@ -17,6 +17,7 @@ async def test_store_defer(job_store, job_factory, connector):
             "attempts": 0,
             "id": 1,
             "lock": None,
+            "defer_lock": None,
             "queue_name": "queue",
             "scheduled_at": None,
             "status": "todo",

@@ -31,6 +31,7 @@ async def test_task_defer_async(app, connector):
             "queue_name": "queue",
             "task_name": "tests.unit.test_tasks.task_func",
             "lock": lock,
+            "defer_lock": None,
             "args": {"c": 3},
             "status": "todo",
             "scheduled_at": None,

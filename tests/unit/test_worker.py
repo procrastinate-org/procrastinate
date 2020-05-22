@@ -99,6 +99,7 @@ async def test_run_job(app):
         id=16,
         task_kwargs={"a": 9, "b": 3},
         lock="sherlock",
+        defer_lock="houba",
         task_name="task_func",
         queue="yay",
     )
@@ -119,6 +120,7 @@ async def test_run_job_async(app):
         id=16,
         task_kwargs={"a": 9, "b": 3},
         lock="sherlock",
+        defer_lock="houba",
         task_name="task_func",
         queue="yay",
     )
@@ -146,6 +148,7 @@ async def test_run_job_log_result(caplog, app):
         id=16,
         task_kwargs={"a": 9, "b": 3},
         lock="sherlock",
+        defer_lock="houba",
         task_name="task_func",
         queue="yay",
     )
@@ -203,6 +206,7 @@ async def test_run_job_error(app):
         id=16,
         task_kwargs={"a": 9, "b": 3},
         lock="sherlock",
+        defer_lock="houba",
         task_name="job",
         queue="yay",
     )
@@ -225,6 +229,7 @@ async def test_run_job_retry(app):
         task_kwargs={"a": 9, "b": 3},
         lock="sherlock",
         task_name="job",
+        defer_lock="houba",
         queue="yay",
     )
     test_worker = worker.Worker(app, queues=["yay"])
@@ -237,6 +242,7 @@ async def test_run_job_not_found(app):
         id=16,
         task_kwargs={"a": 9, "b": 3},
         lock="sherlock",
+        defer_lock="houba",
         task_name="job",
         queue="yay",
     )
@@ -253,7 +259,12 @@ async def test_run_job_pass_context(app):
         result.extend([test_context, a])
 
     job = jobs.Job(
-        id=16, task_kwargs={"a": 1}, lock="sherlock", task_name="job", queue="yay",
+        id=16,
+        task_kwargs={"a": 1},
+        lock="sherlock",
+        defer_lock="houba",
+        task_name="job",
+        queue="yay",
     )
     test_worker = worker.Worker(app, queues=["yay"], name="my_worker")
     context = job_context.JobContext(
