@@ -10,6 +10,7 @@ How to...
     howto/defer
     howto/worker
     howto/command_line
+    howto/shell
     howto/locks
     howto/concurrency
     howto/schedule
