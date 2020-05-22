@@ -5,8 +5,8 @@
 
 -- defer_job --
 -- Create and enqueue a job
-INSERT INTO procrastinate_jobs (queue_name, task_name, lock, args, scheduled_at)
-VALUES (%(queue)s, %(task_name)s, %(lock)s, %(args)s, %(scheduled_at)s)
+INSERT INTO procrastinate_jobs (queue_name, task_name, lock, defer_lock, args, scheduled_at)
+VALUES (%(queue)s, %(task_name)s, %(lock)s, %(defer_lock)s, %(args)s, %(scheduled_at)s)
 RETURNING id;
 
 -- fetch_job --
