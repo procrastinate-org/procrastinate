@@ -4,12 +4,49 @@ from procrastinate import sql, utils
 
 @utils.add_sync_api
 class Admin:
+    """
+    The Admin is used to overview and administrate procrastinate jobs.
+
+    You should never need to instanciate an Admin object as it is
+    already available as `App.admin`.
+    """
+
     def __init__(self, connector: connector_module.BaseConnector):
+        """
+        Parameters
+        ----------
+        connector :
+            Instance of a subclass of :py:class:`procrastinate.connector.BaseConnector`,
+            typically `PostgresConnector`. It will be responsible for all communications
+            with the database. Mandatory.
+        """
         self.connector = connector
 
     async def list_jobs_async(
         self, id=None, queue=None, task=None, status=None, lock=None,
     ):
+        """
+        List all procrastinate jobs given query filters.
+
+        Parameters
+        ----------
+        id : ``int``
+            Filter by job ID
+        queue : ``str``
+            Filter by job queue name
+        task : ``str``
+            Filter by job task name
+        status : ``str``
+            Filter by job status (*todo*/*doing*/*succeeded*/*failed*)
+        lock : ``str``
+            Filter by job lock
+
+        Returns
+        -------
+        ``List[Dict[str, Any]]``
+            A list of dictionnaries representing jobs (``id``, ``queue``, ``task``,
+            ``lock``, ``args``, ``status``, ``scheduled_at``, ``attempts``).
+        """
         return [
             {
                 "id": row["id"],
@@ -34,6 +71,26 @@ class Admin:
     async def list_queues_async(
         self, queue=None, task=None, status=None, lock=None,
     ):
+        """
+        List all queues and number of jobs per status for each queue.
+
+        Parameters
+        ----------
+        queue : ``str``
+            Filter by job queue name
+        task : ``str``
+            Filter by job task name
+        status : ``str``
+            Filter by job status (*todo*/*doing*/*succeeded*/*failed*)
+        lock : ``str``
+            Filter by job lock
+
+        Returns
+        -------
+        ``List[Dict[str, Any]]``
+            A list of dictionnaries representing queues stats (``name``, ``jobs_count``,
+            ``todo``, ``doing``, ``succeeded``, ``failed``).
+        """
         return [
             {
                 "name": row["name"],
@@ -55,6 +112,26 @@ class Admin:
     async def list_tasks_async(
         self, queue=None, task=None, status=None, lock=None,
     ):
+        """
+        List all tasks and number of jobs per status for each task.
+
+        Parameters
+        ----------
+        queue : ``str``
+            Filter by job queue name
+        task : ``str``
+            Filter by job task name
+        status : ``str``
+            Filter by job status (*todo*/*doing*/*succeeded*/*failed*)
+        lock : ``str``
+            Filter by job lock
+
+        Returns
+        -------
+        ``List[Dict[str, Any]]``
+            A list of dictionnaries representing tasks stats (``name``, ``jobs_count``,
+            ``todo``, ``doing``, ``succeeded``, ``failed``).
+        """
         return [
             {
                 "name": row["name"],
@@ -74,6 +151,22 @@ class Admin:
         ]
 
     async def set_job_status_async(self, id, status):
+        """
+        Set/reset the status of a specific job.
+
+        Parameters
+        ----------
+        id : ``int``
+            Job ID
+        status : ``str``
+            New job status (*todo*/*doing*/*succeeded*/*failed*)
+
+        Returns
+        -------
+        ``Dict[str, Any]``
+            A dictionnary representing the job (``id``, ``queue``, ``task``,
+            ``lock``, ``args``, ``status``, ``scheduled_at``, ``attempts``).
+        """
         await self.connector.execute_query(
             query=sql.queries["set_job_status"], id=id, status=status,
         )

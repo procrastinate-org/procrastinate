@@ -59,3 +59,10 @@ Exceptions
 .. automodule:: procrastinate.exceptions
     :members: ProcrastinateException, PoolAlreadySet, LoadFromPathError,
               ConnectorException
+
+Administration
+--------------
+
+.. autoclass:: procrastinate.admin.Admin
+    :members: list_jobs, list_jobs_async, list_queues, list_queues_async,
+              list_tasks, list_tasks_async, set_job_status, set_job_status_async
