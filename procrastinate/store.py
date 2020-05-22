@@ -2,7 +2,9 @@ import asyncio
 import datetime
 from typing import Iterable, Optional
 
-from procrastinate import connector, jobs, sql
+import psycopg2.errors
+
+from procrastinate import connector, exceptions, jobs, sql
 
 
 def get_channel_for_queues(queues: Optional[Iterable[str]] = None) -> Iterable[str]:
@@ -17,15 +19,24 @@ class JobStore:
         self.connector = connector
 
     async def defer_job(self, job: jobs.Job) -> int:
-        result = await self.connector.execute_query_one(
-            query=sql.queries["defer_job"],
-            task_name=job.task_name,
-            lock=job.lock,
-            defer_lock=job.defer_lock,
-            args=job.task_kwargs,
-            scheduled_at=job.scheduled_at,
-            queue=job.queue,
-        )
+        try:
+            result = await self.connector.execute_query_one(
+                query=sql.queries["defer_job"],
+                task_name=job.task_name,
+                lock=job.lock,
+                defer_lock=job.defer_lock,
+                args=job.task_kwargs,
+                scheduled_at=job.scheduled_at,
+                queue=job.queue,
+            )
+        except exceptions.ConnectorException as exc:
+            cause = exc.__cause__
+            if (
+                isinstance(cause, psycopg2.errors.UniqueViolation)
+                and cause.diag.constraint_name == "procrastinate_jobs_defer_lock_idx"
+            ):
+                raise exceptions.DeferLockTaken from exc.__cause__
+            raise
         return result["id"]
 
     async def fetch_job(self, queues: Optional[Iterable[str]]) -> Optional[jobs.Job]:

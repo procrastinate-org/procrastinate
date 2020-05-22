@@ -31,22 +31,15 @@ def test_adapt_pool_args_maxsize():
     assert args["maxsize"] == 2
 
 
-@pytest.mark.parametrize(
-    "psycopg2_exception, procrastinate_exception",
-    [
-        (psycopg2.DatabaseError, exceptions.ConnectorException),
-        (psycopg2.errors.UniqueViolation, exceptions.DeferLockTaken),
-    ],
-)
 @pytest.mark.asyncio
-async def test_wrap_exceptions_wraps(psycopg2_exception, procrastinate_exception):
+async def test_wrap_exceptions_wraps():
     @aiopg_connector.wrap_exceptions
     async def corofunc():
-        raise psycopg2_exception
+        raise psycopg2.DatabaseError
 
     coro = corofunc()
 
-    with pytest.raises(procrastinate_exception):
+    with pytest.raises(exceptions.ConnectorException):
         await coro
 
 

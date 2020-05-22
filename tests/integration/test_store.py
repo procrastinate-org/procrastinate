@@ -1,6 +1,7 @@
 import datetime
 
 import pendulum
+import psycopg2.errors
 import pytest
 
 from procrastinate import exceptions, jobs, store
@@ -412,7 +413,7 @@ async def test_defer_job_violate_defer_lock(pg_job_store):
             task_kwargs={"a": "b"},
         )
     )
-    with pytest.raises(exceptions.DeferLockTaken):
+    with pytest.raises(exceptions.DeferLockTaken) as excinfo:
         await pg_job_store.defer_job(
             jobs.Job(
                 id=2,
@@ -422,4 +423,9 @@ async def test_defer_job_violate_defer_lock(pg_job_store):
                 defer_lock="defer_lock_1",
                 task_kwargs={"a": "b"},
             )
+        )
+        assert isinstance(excinfo.value.__cause__, psycopg2.errors.UniqueViolation)
+        assert (
+            excinfo.value.__cause__.diag.constraint_name
+            == "procrastinate_jobs_defer_lock_idx"
         )
