@@ -1,6 +1,6 @@
 import asyncio
 import datetime
-from typing import Iterable, Optional
+from typing import Iterable, Optional, Type
 
 import psycopg2.errors
 
@@ -15,6 +15,8 @@ def get_channel_for_queues(queues: Optional[Iterable[str]] = None) -> Iterable[s
 
 
 class JobStore:
+    UniqueViolation: Type = psycopg2.errors.UniqueViolation
+
     def __init__(self, connector: connector.BaseConnector):
         self.connector = connector
 
@@ -32,7 +34,7 @@ class JobStore:
         except exceptions.ConnectorException as exc:
             cause = exc.__cause__
             if (
-                isinstance(cause, psycopg2.errors.UniqueViolation)
+                isinstance(cause, self.UniqueViolation)
                 and cause.diag.constraint_name == "procrastinate_jobs_defer_lock_idx"
             ):
                 raise exceptions.DeferLockTaken from exc.__cause__

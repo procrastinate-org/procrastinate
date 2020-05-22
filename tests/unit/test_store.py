@@ -1,12 +1,12 @@
 import pendulum
 import pytest
 
-from procrastinate import jobs
+from procrastinate import exceptions, jobs, store
 
 pytestmark = pytest.mark.asyncio
 
 
-async def test_store_defer(job_store, job_factory, connector):
+async def test_store_defer_job(job_store, job_factory, connector):
     job_row = await job_store.defer_job(job=job_factory(task_kwargs={"a": "b"}))
 
     assert job_row == 1
@@ -24,6 +24,36 @@ async def test_store_defer(job_store, job_factory, connector):
             "task_name": "bla",
         }
     }
+
+
+async def test_store_defer_job_connector_exception(
+    mocker, job_store, job_factory, connector
+):
+    connector.execute_query_one = mocker.Mock(side_effect=exceptions.ConnectorException)
+
+    with pytest.raises(exceptions.ConnectorException):
+        await job_store.defer_job(job=job_factory(task_kwargs={"a": "b"}))
+
+
+async def test_store_defer_job_unique_violation_exception(
+    mocker, job_store, job_factory, connector
+):
+    class UniqueViolation(Exception):
+        pass
+
+    exc = exceptions.ConnectorException()
+    exc.__cause__ = UniqueViolation()
+    exc.__cause__.diag = mocker.Mock(
+        constraint_name="procrastinate_jobs_defer_lock_idx"
+    )
+
+    connector.execute_query_one = mocker.Mock(side_effect=exc)
+    mocker.patch.object(store.JobStore, "UniqueViolation", UniqueViolation)
+
+    with pytest.raises(exceptions.DeferLockTaken) as excinfo:
+        await job_store.defer_job(job=job_factory(task_kwargs={"a": "b"}))
+
+        assert excinfo.value.__cause__ is exc.__cause__
 
 
 async def test_fetch_job_no_suitable_job(job_store):
