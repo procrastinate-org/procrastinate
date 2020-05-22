@@ -31,6 +31,7 @@ def get_all(pg_connector):
             queue="queue_a",
             task_name="task_2",
             lock="lock_2",
+            defer_lock="defer_lock_2",
             task_kwargs={"c": "d"},
         ),
         jobs.Job(
@@ -38,6 +39,7 @@ def get_all(pg_connector):
             queue="queue_a",
             task_name="task_3",
             lock="lock_3",
+            defer_lock="defer_lock_3",
             task_kwargs={"i": "j"},
             scheduled_at=pendulum.datetime(2000, 1, 1),
         ),
@@ -51,6 +53,7 @@ async def test_fetch_job(pg_job_store, job):
             queue="queue_a",
             task_name="task_1",
             lock="lock_1",
+            defer_lock="defer_lock_1",
             task_kwargs={"a": "b"},
         )
     )
@@ -71,6 +74,7 @@ async def test_fetch_job(pg_job_store, job):
             queue="queue_a",
             task_name="task_2",
             lock="lock_1",
+            defer_lock="defer_lock_1",
             task_kwargs={"e": "f"},
         ),
         # We won't see this one because of the queue
@@ -79,6 +83,7 @@ async def test_fetch_job(pg_job_store, job):
             queue="queue_b",
             task_name="task_3",
             lock="lock_3",
+            defer_lock="defer_lock_3",
             task_kwargs={"i": "j"},
         ),
         # We won't see this one because of the scheduled date
@@ -87,6 +92,7 @@ async def test_fetch_job(pg_job_store, job):
             queue="queue_a",
             task_name="task_4",
             lock="lock_4",
+            defer_lock="defer_lock_4",
             task_kwargs={"i": "j"},
             scheduled_at=pendulum.datetime(2100, 1, 1),
         ),
@@ -100,6 +106,7 @@ async def test_get_job_no_result(pg_job_store, job):
             queue="queue_a",
             task_name="task_1",
             lock="lock_1",
+            defer_lock="defer_lock_1",
             task_kwargs={"a": "b"},
         )
     )
@@ -118,6 +125,7 @@ async def test_get_stalled_jobs(get_all, pg_job_store, pg_connector):
             queue="queue_a",
             task_name="task_1",
             lock="lock_1",
+            defer_lock="defer_lock_1",
             task_kwargs={"a": "b"},
         )
     )
@@ -159,6 +167,7 @@ async def test_delete_old_jobs_job_is_not_finished(get_all, pg_job_store, pg_con
             queue="queue_a",
             task_name="task_1",
             lock="lock_1",
+            defer_lock="defer_lock_1",
             task_kwargs={"a": "b"},
         )
     )
@@ -187,6 +196,7 @@ async def test_delete_old_jobs_multiple_jobs(get_all, pg_job_store, pg_connector
             queue="queue_a",
             task_name="task_1",
             lock="lock_1",
+            defer_lock="defer_lock_1",
             task_kwargs={"a": "b"},
         )
     )
@@ -196,6 +206,7 @@ async def test_delete_old_jobs_multiple_jobs(get_all, pg_job_store, pg_connector
             queue="queue_b",
             task_name="task_2",
             lock="lock_2",
+            defer_lock="defer_lock_2",
             task_kwargs={"a": "b"},
         )
     )
@@ -226,6 +237,7 @@ async def test_delete_old_job_filter_on_end_date(get_all, pg_job_store, pg_conne
             queue="queue_a",
             task_name="task_1",
             lock="lock_1",
+            defer_lock="defer_lock_1",
             task_kwargs={"a": "b"},
         )
     )
@@ -277,6 +289,7 @@ async def test_delete_old_jobs_parameters(
             queue="queue_a",
             task_name="task_1",
             lock="lock_1",
+            defer_lock="defer_lock_1",
             task_kwargs={"a": "b"},
         )
     )
@@ -308,6 +321,7 @@ async def test_finish_job(get_all, pg_job_store):
             queue="queue_a",
             task_name="task_1",
             lock="lock_1",
+            defer_lock="defer_lock_1",
             task_kwargs={"a": "b"},
         )
     )
@@ -333,6 +347,7 @@ async def test_finish_job_retry(get_all, pg_job_store):
             queue="queue_a",
             task_name="task_1",
             lock="lock_1",
+            defer_lock="defer_lock_1",
             task_kwargs={"a": "b"},
         )
     )
@@ -362,7 +377,12 @@ async def test_enum_synced(pg_connector):
 async def test_defer_job(pg_job_store, get_all):
     queue = "marsupilami"
     job = jobs.Job(
-        id=0, queue=queue, task_name="bob", lock="sher", task_kwargs={"a": 1, "b": 2}
+        id=0,
+        queue=queue,
+        task_name="bob",
+        lock="sher",
+        defer_lock="houba",
+        task_kwargs={"a": 1, "b": 2},
     )
     pk = await pg_job_store.defer_job(job=job)
 

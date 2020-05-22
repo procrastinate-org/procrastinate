@@ -17,6 +17,7 @@ def test_job_get_context(scheduled_at, context_scheduled_at):
         id=12,
         queue="marsupilami",
         lock="sher",
+        defer_lock="houba",
         task_name="mytask",
         task_kwargs={"a": "b"},
         scheduled_at=scheduled_at,
@@ -27,6 +28,7 @@ def test_job_get_context(scheduled_at, context_scheduled_at):
         "id": 12,
         "queue": "marsupilami",
         "lock": "sher",
+        "defer_lock": "houba",
         "task_name": "mytask",
         "task_kwargs": {"a": "b"},
         "scheduled_at": context_scheduled_at,
@@ -38,7 +40,11 @@ def test_job_get_context(scheduled_at, context_scheduled_at):
 def test_job_deferrer_defer(job_store, connector):
 
     job = jobs.Job(
-        queue="marsupilami", lock="sher", task_name="mytask", task_kwargs={"a": "b"}
+        queue="marsupilami",
+        lock="sher",
+        defer_lock="houba",
+        task_name="mytask",
+        task_kwargs={"a": "b"},
     )
 
     id = jobs.JobDeferrer(job=job, job_store=job_store).defer(c=3)
@@ -51,7 +57,7 @@ def test_job_deferrer_defer(job_store, connector):
             "attempts": 0,
             "id": 1,
             "lock": "sher",
-            "defer_lock": None,
+            "defer_lock": "houba",
             "queue_name": "marsupilami",
             "scheduled_at": None,
             "status": "todo",
@@ -64,7 +70,11 @@ def test_job_deferrer_defer(job_store, connector):
 async def test_job_deferrer_defer_async(job_store, connector):
 
     job = jobs.Job(
-        queue="marsupilami", lock="sher", task_name="mytask", task_kwargs={"a": "b"}
+        queue="marsupilami",
+        lock="sher",
+        defer_lock="houba",
+        task_name="mytask",
+        task_kwargs={"a": "b"},
     )
 
     deferrer = jobs.JobDeferrer(job=job, job_store=job_store)
@@ -78,7 +88,7 @@ async def test_job_deferrer_defer_async(job_store, connector):
             "attempts": 0,
             "id": 1,
             "lock": "sher",
-            "defer_lock": None,
+            "defer_lock": "houba",
             "queue_name": "marsupilami",
             "scheduled_at": None,
             "status": "todo",
@@ -93,6 +103,7 @@ def test_job_scheduled_at_naive():
             id=12,
             queue="marsupilami",
             lock="sher",
+            defer_lock="houba",
             task_name="mytask",
             task_kwargs={"a": "b"},
             scheduled_at=pendulum.naive(2000, 1, 1),

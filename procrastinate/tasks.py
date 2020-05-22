@@ -44,6 +44,7 @@ def configure_task(
         job=jobs.Job(
             id=None,
             lock=lock,
+            defer_lock=defer_lock,
             task_name=name,
             queue=queue,
             task_kwargs=task_kwargs,
