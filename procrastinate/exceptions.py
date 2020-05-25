@@ -55,3 +55,17 @@ class AlreadyEnqueued(ProcrastinateException):
     """
 
     pass
+
+
+class UniqueViolation(ConnectorException):
+    """
+    A unique constraint is violated. The constraint name is availabe in
+    ``exception.constraint_name``.
+    This is an internal exception.
+    """
+
+    def __init__(self, *args, constraint_name: str):
+        super().__init__(*args)
+        self.constraint_name = constraint_name
+
+    pass

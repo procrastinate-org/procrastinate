@@ -1,8 +1,6 @@
 import asyncio
 import datetime
-from typing import Iterable, Optional, Type
-
-import psycopg2.errors
+from typing import Iterable, Optional
 
 from procrastinate import connector, exceptions, jobs, sql
 
@@ -15,8 +13,6 @@ def get_channel_for_queues(queues: Optional[Iterable[str]] = None) -> Iterable[s
 
 
 class JobStore:
-    UniqueViolation: Type = psycopg2.errors.UniqueViolation
-
     def __init__(self, connector: connector.BaseConnector):
         self.connector = connector
 
@@ -31,14 +27,14 @@ class JobStore:
                 scheduled_at=job.scheduled_at,
                 queue=job.queue,
             )
-        except exceptions.ConnectorException as exc:
-            cause = exc.__cause__
-            if (
-                isinstance(cause, self.UniqueViolation)
-                and cause.diag.constraint_name == "procrastinate_jobs_queueing_lock_idx"
-            ):
-                raise exceptions.AlreadyEnqueued from exc.__cause__
+        except exceptions.UniqueViolation as exc:
+            if exc.constraint_name == connector.QUEUEING_LOCK_CONSTRAINT:
+                raise exceptions.AlreadyEnqueued(
+                    "Job cannot be enqueued: there is already a job in the queue "
+                    f"with the lock {job.queueing_lock}"
+                ) from exc
             raise
+
         return result["id"]
 
     async def fetch_job(self, queues: Optional[Iterable[str]]) -> Optional[jobs.Job]:

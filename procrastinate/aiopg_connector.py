@@ -28,6 +28,8 @@ def wrap_exceptions(coro: CoroutineFunction) -> CoroutineFunction:
     async def wrapped(*args, **kwargs):
         try:
             return await coro(*args, **kwargs)
+        except psycopg2.errors.UniqueViolation as exc:
+            raise exceptions.UniqueViolation(constraint_name=exc.diag.constraint_name)
         except psycopg2.Error as exc:
             raise exceptions.ConnectorException from exc
 
