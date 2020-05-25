@@ -159,9 +159,10 @@ def worker_(app: procrastinate.App, queues: str, **kwargs):
     "--lock", help="A lock string. Jobs sharing the same lock will not run concurrently"
 )
 @click.option(
-    "--defer-lock",
-    help='A defer lock string. The defer operation will trigger a "DeferLockTaken" '
-    "exception if there already is a job waiting in the queue with the same defer lock",
+    "--queueing-lock",
+    help="A queueing lock string. The defer operation will trigger an "
+    '"AlreadyEnqueued" exception if there already is a job waiting in '
+    'the queue with the same queueing "lock',
 )
 @click.option(
     "--queue",
@@ -181,7 +182,7 @@ def defer(
     task: str,
     json_args: str,
     lock: Optional[str],
-    defer_lock: Optional[str],
+    queueing_lock: Optional[str],
     queue: Optional[str],
     at: Optional[str],
     in_: Optional[int],
@@ -206,7 +207,7 @@ def defer(
     # Build kwargs. Remove all None kwargs to use their default values.
     configure_kwargs = {
         "lock": lock,
-        "defer_lock": defer_lock,
+        "queueing_lock": queueing_lock,
         "schedule_at": schedule_at,
         "schedule_in": schedule_in,
         "queue": queue,

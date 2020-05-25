@@ -17,7 +17,7 @@ async def test_store_defer_job(job_store, job_factory, connector):
             "attempts": 0,
             "id": 1,
             "lock": None,
-            "defer_lock": None,
+            "queueing_lock": None,
             "queue_name": "queue",
             "scheduled_at": None,
             "status": "todo",
@@ -44,13 +44,13 @@ async def test_store_defer_job_unique_violation_exception(
     exc = exceptions.ConnectorException()
     exc.__cause__ = UniqueViolation()
     exc.__cause__.diag = mocker.Mock(
-        constraint_name="procrastinate_jobs_defer_lock_idx"
+        constraint_name="procrastinate_jobs_queueing_lock_idx"
     )
 
     connector.execute_query_one = mocker.Mock(side_effect=exc)
     mocker.patch.object(store.JobStore, "UniqueViolation", UniqueViolation)
 
-    with pytest.raises(exceptions.DeferLockTaken) as excinfo:
+    with pytest.raises(exceptions.AlreadyEnqueued) as excinfo:
         await job_store.defer_job(job=job_factory(task_kwargs={"a": "b"}))
 
         assert excinfo.value.__cause__ is exc.__cause__

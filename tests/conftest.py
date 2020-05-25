@@ -135,7 +135,7 @@ def job_factory():
         "task_name": "bla",
         "task_kwargs": {},
         "lock": None,
-        "defer_lock": None,
+        "queueing_lock": None,
         "queue": "queue",
     }
 

@@ -48,9 +48,9 @@ class ConnectorException(ProcrastinateException):
     pass
 
 
-class DeferLockTaken(ProcrastinateException):
+class AlreadyEnqueued(ProcrastinateException):
     """
-    Indicates that a job in todo state with the same defer lock
+    Indicates that a job in todo state with the same queueing lock
     already exists in the database.
     """
 

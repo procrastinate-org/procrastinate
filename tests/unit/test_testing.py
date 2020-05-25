@@ -59,7 +59,7 @@ def test_defer_job_one(connector):
     job = connector.defer_job_one(
         task_name="mytask",
         lock="sher",
-        defer_lock="houba",
+        queueing_lock="houba",
         args={"a": "b"},
         scheduled_at=None,
         queue="marsupilami",
@@ -71,7 +71,7 @@ def test_defer_job_one(connector):
             "queue_name": "marsupilami",
             "task_name": "mytask",
             "lock": "sher",
-            "defer_lock": "houba",
+            "queueing_lock": "houba",
             "args": {"a": "b"},
             "status": "todo",
             "scheduled_at": None,
@@ -191,7 +191,7 @@ def test_fetch_job_one(connector):
         queue="marsupilami",
         scheduled_at=None,
         lock="a",
-        defer_lock="a",
+        queueing_lock="a",
     )
 
     # This one because it's the wrong queue
@@ -201,7 +201,7 @@ def test_fetch_job_one(connector):
         queue="other_queue",
         scheduled_at=None,
         lock="b",
-        defer_lock="b",
+        queueing_lock="b",
     )
     # This one because of the scheduled_at
     connector.defer_job_one(
@@ -210,7 +210,7 @@ def test_fetch_job_one(connector):
         queue="marsupilami",
         scheduled_at=pendulum.datetime(2100, 1, 1),
         lock="c",
-        defer_lock="c",
+        queueing_lock="c",
     )
     # This one because of the lock
     connector.defer_job_one(
@@ -219,7 +219,7 @@ def test_fetch_job_one(connector):
         queue="marsupilami",
         scheduled_at=None,
         lock="a",
-        defer_lock="d",
+        queueing_lock="d",
     )
     # We're taking this one.
     connector.defer_job_one(
@@ -228,7 +228,7 @@ def test_fetch_job_one(connector):
         queue="marsupilami",
         scheduled_at=None,
         lock="e",
-        defer_lock="e",
+        queueing_lock="e",
     )
 
     assert connector.fetch_job_one(queues=["marsupilami"])["id"] == 1
@@ -242,7 +242,7 @@ def test_finish_job_run(connector):
         queue="marsupilami",
         scheduled_at=None,
         lock="sher",
-        defer_lock="houba",
+        queueing_lock="houba",
     )
     job_row = connector.fetch_job_one(queues=None)
     id = job_row["id"]
@@ -261,7 +261,7 @@ def test_finish_job_run_retry(connector):
         queue="marsupilami",
         scheduled_at=None,
         lock="sher",
-        defer_lock="houba",
+        queueing_lock="houba",
     )
     job_row = connector.fetch_job_one(queues=None)
     id = job_row["id"]
@@ -282,7 +282,7 @@ def test_finish_job_run_retry_no_schedule(connector):
         queue="marsupilami",
         scheduled_at=None,
         lock="sher",
-        defer_lock="houba",
+        queueing_lock="houba",
     )
     job_row = connector.fetch_job_one(queues=None)
     id = job_row["id"]
@@ -317,7 +317,7 @@ async def test_defer_no_notify(connector):
         args={},
         scheduled_at=None,
         queue="baz",
-        defer_lock="houba",
+        queueing_lock="houba",
     )
 
     assert not event.is_set()

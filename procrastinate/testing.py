@@ -76,7 +76,7 @@ class InMemoryConnector(connector.BaseConnector):
     # End of BaseConnector methods
 
     def defer_job_one(
-        self, task_name, lock, defer_lock, args, scheduled_at, queue
+        self, task_name, lock, queueing_lock, args, scheduled_at, queue
     ) -> JobRow:
         id = next(self.job_counter)
 
@@ -85,7 +85,7 @@ class InMemoryConnector(connector.BaseConnector):
             "queue_name": queue,
             "task_name": task_name,
             "lock": lock,
-            "defer_lock": defer_lock,
+            "queueing_lock": queueing_lock,
             "args": args,
             "status": "todo",
             "scheduled_at": scheduled_at,
