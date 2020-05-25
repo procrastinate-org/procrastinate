@@ -17,9 +17,9 @@ def shell(process_env):
 
 def test_shell(shell, defer):
     defer("sum_task", a=5, b=7)
-    defer("sum_task", a=3, b=8, lock="lock")
-    defer("sum_task", a=1, b=2, queue="other", lock="lock")
-    defer("increment_task", a=5)
+    defer("sum_task", ["--lock=lock"], a=3, b=8)
+    defer("sum_task", ["--queue=other", "--lock=lock"], a=1, b=2)
+    defer("increment_task", [], a=5)
 
     print("cancel 2", file=shell.stdin)
     print("cancel 3", file=shell.stdin)

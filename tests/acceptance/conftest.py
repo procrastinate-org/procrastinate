@@ -21,19 +21,10 @@ def process_env(connection_params):
 def defer(process_env):
     from .app import json_dumps
 
-    def func(task_name, lock=None, queue=None, **kwargs):
-        lock_args = ["--lock", lock] if lock else []
-        queue_args = ["--queue", queue] if queue else []
+    def func(task_name, args, **kwargs):
         full_task_name = f"tests.acceptance.app.{task_name}"
         subprocess.check_output(
-            [
-                "procrastinate",
-                "defer",
-                full_task_name,
-                *lock_args,
-                *queue_args,
-                json_dumps(kwargs),
-            ],
+            ["procrastinate", "defer", full_task_name, *args, json_dumps(kwargs)],
             env=process_env,
         )
 

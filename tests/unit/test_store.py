@@ -38,22 +38,25 @@ async def test_store_defer_job_connector_exception(
 async def test_store_defer_job_unique_violation_exception(
     mocker, job_store, job_factory, connector
 ):
-    class UniqueViolation(Exception):
-        pass
-
-    exc = exceptions.ConnectorException()
-    exc.__cause__ = UniqueViolation()
-    exc.__cause__.diag = mocker.Mock(
-        constraint_name="procrastinate_jobs_queueing_lock_idx"
+    connector.execute_query_one = mocker.Mock(
+        side_effect=exceptions.UniqueViolation(
+            constraint_name="procrastinate_jobs_queueing_lock_idx"
+        )
     )
 
-    connector.execute_query_one = mocker.Mock(side_effect=exc)
-    mocker.patch.object(store.JobStore, "UniqueViolation", UniqueViolation)
-
-    with pytest.raises(exceptions.AlreadyEnqueued) as excinfo:
+    with pytest.raises(exceptions.AlreadyEnqueued):
         await job_store.defer_job(job=job_factory(task_kwargs={"a": "b"}))
 
-        assert excinfo.value.__cause__ is exc.__cause__
+
+async def test_store_defer_job_unique_violation_exception_other_constraint(
+    mocker, job_store, job_factory, connector
+):
+    connector.execute_query_one = mocker.Mock(
+        side_effect=exceptions.UniqueViolation(constraint_name="some_other_constraint")
+    )
+
+    with pytest.raises(exceptions.ConnectorException):
+        await job_store.defer_job(job=job_factory(task_kwargs={"a": "b"}))
 
 
 async def test_fetch_job_no_suitable_job(job_store):
