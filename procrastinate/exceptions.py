@@ -50,8 +50,8 @@ class ConnectorException(ProcrastinateException):
 
 class AlreadyEnqueued(ProcrastinateException):
     """
-    Indicates that a job in todo state with the same queueing lock
-    already exists in the database.
+    Indicates that there already is job waiting in the queue with the same queueing
+    lock.
     """
 
     pass
@@ -59,9 +59,8 @@ class AlreadyEnqueued(ProcrastinateException):
 
 class UniqueViolation(ConnectorException):
     """
-    A unique constraint is violated. The constraint name is availabe in
-    ``exception.constraint_name``.
-    This is an internal exception.
+    A unique constraint is violated. The constraint name is available in
+    ``exception.constraint_name``. This is an internal exception.
     """
 
     def __init__(self, *args, constraint_name: str):

@@ -49,8 +49,8 @@ class Job:
         Lock object in database that prevents other jobs with the same lock from running
         concurrently.
     queueing_lock:
-        Queueing lock object in database that prevents having several jobs with the same
-        queueing lock and in the "todo" state.
+        Lock object in database that prevents having several jobs waiting in the queue
+        with the same queueing lock.
     task_name :
         Name of the associated task.
     task_kwargs :

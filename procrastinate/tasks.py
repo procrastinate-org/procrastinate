@@ -130,10 +130,9 @@ class Task:
         lock :
             No two jobs with the same lock string can run simultaneously
         queueing_lock :
-            No two jobs with the same queueing lock can be in the "todo" state in
-            the database. `Task.defer` will raise an `AlreadyEnqueued` exception
-            if the database already has a job in the "todo" state and with the
-            same queueing lock
+            No two jobs with the same queueing lock can be waiting in the queue.
+            `Task.defer` will raise an `AlreadyEnqueued` exception if there already
+            is a job waiting in the queue with same queueing lock.
         task_kwargs :
             Arguments for the job task. You can also pass them to `Task.defer`.
             If you pass both, they will be updated (`Task.defer` has priority)
