@@ -6,7 +6,7 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 import pendulum
 
-from procrastinate import connector, schema, sql, exceptions
+from procrastinate import connector, exceptions, schema, sql
 
 JobRow = Dict[str, Any]
 EventRow = Dict[str, Any]
