@@ -21,7 +21,8 @@ def process_env(connection_params):
 def defer(process_env):
     from .app import json_dumps
 
-    def func(task_name, args, **kwargs):
+    def func(task_name, args=None, **kwargs):
+        args = args or []
         full_task_name = f"tests.acceptance.app.{task_name}"
         subprocess.check_output(
             ["procrastinate", "defer", full_task_name, *args, json_dumps(kwargs)],

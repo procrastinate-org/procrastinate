@@ -40,16 +40,16 @@ def running_worker(process_env):
 def test_nominal(defer, worker):
     from .param import Param
 
-    defer("sum_task", [], a=5, b=7)
-    defer("sum_task_param", [], p1=Param(3), p2=Param(4))
-    defer("increment_task", [], a=3)
+    defer("sum_task", a=5, b=7)
+    defer("sum_task_param", p1=Param(3), p2=Param(4))
+    defer("increment_task", a=3)
 
     stdout, stderr = worker()
 
     assert stdout.splitlines() == ["Launching a worker on all queues", "12", "7", "4"]
     assert stderr.startswith("INFO:procrastinate.")
 
-    defer("product_task", [], a=5, b=4)
+    defer("product_task", a=5, b=4)
 
     stdout, stderr = worker("default")
     assert "20" not in stdout
@@ -57,12 +57,12 @@ def test_nominal(defer, worker):
     stdout, stderr = worker("product_queue")
     assert stdout.splitlines() == ["Launching a worker on product_queue", "20"]
 
-    defer("two_fails", [])
+    defer("two_fails")
     stdout, stderr = worker()
     assert "Print something to stdout" in stdout
     assert stderr.count("Exception: This should fail") == 2
 
-    defer("multiple_exception_failures", [])
+    defer("multiple_exception_failures")
     stdout, stderr = worker()
     assert (
         stdout
