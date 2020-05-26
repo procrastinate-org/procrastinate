@@ -138,9 +138,7 @@ def test_defer_queueing_lock(entrypoint, click_app, connector):
 
     click_app.configure_task(name="hello", queueing_lock="houba").defer(a=1)
 
-    result = entrypoint(
-        """-a yay defer --lock=sherlock --queueing-lock=houba hello {"a":2}"""
-    )
+    result = entrypoint("""-a yay defer --queueing-lock=houba hello {"a":2}""")
 
     assert result.exit_code > 0
     assert "there is already a job in the queue with the lock houba" in result.output
@@ -155,8 +153,7 @@ def test_defer_queueing_lock_ignore(entrypoint, click_app, connector):
     click_app.configure_task(name="hello", queueing_lock="houba").defer(a=1)
 
     result = entrypoint(
-        """-a yay defer --lock=sherlock --queueing-lock=houba """
-        """--ignore-already-enqueued hello {"a":2}"""
+        """-a yay defer --queueing-lock=houba --ignore-already-enqueued hello {"a":2}"""
     )
 
     assert result.exit_code == 0
