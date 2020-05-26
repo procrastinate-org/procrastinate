@@ -89,7 +89,7 @@ class PostgresConnector(connector.BaseConnector):
             this.
         maxsize : ``int``
             Passed to aiopg. Cannot be lower than 2, otherwise worker won't be
-            functionning normally (one connection for listen/notify, one for executing
+            functioning normally (one connection for listen/notify, one for executing
             tasks).
         minsize : ``int``
             Passed to aiopg. Initial connections are not opened when the connector
