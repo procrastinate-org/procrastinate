@@ -1,7 +1,7 @@
 import pendulum
 import pytest
 
-from procrastinate import exceptions, jobs, store
+from procrastinate import exceptions, jobs
 
 pytestmark = pytest.mark.asyncio
 
