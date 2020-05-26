@@ -415,7 +415,7 @@ async def test_defer_job_violate_queueing_lock(pg_job_store):
             queue="queue_a",
             task_name="task_1",
             lock="lock_1",
-            queueing_lock="queueing_lock_1",
+            queueing_lock="queueing_lock",
             task_kwargs={"a": "b"},
         )
     )
@@ -424,10 +424,10 @@ async def test_defer_job_violate_queueing_lock(pg_job_store):
             jobs.Job(
                 id=2,
                 queue="queue_a",
-                task_name="task_1",
-                lock="lock_1",
-                queueing_lock="queueing_lock_1",
-                task_kwargs={"a": "b"},
+                task_name="task_2",
+                lock="lock_2",
+                queueing_lock="queueing_lock",
+                task_kwargs={"c": "d"},
             )
         )
         assert isinstance(excinfo.value.__cause__, psycopg2.errors.UniqueViolation)
