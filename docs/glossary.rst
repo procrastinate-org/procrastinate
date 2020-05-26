@@ -61,4 +61,10 @@ Let's go through a few words and their meaning.
         are namespaces for objects of the database. See the `PostgreSQL Schema
         documentation`_ for more detail.
 
+    Lock
+        When configuring a job using `Task.configure` you can attach a lock to the job.
+        Jobs with the same lock are guaranteed to be executed in defer order, and in a
+        sequential manner. No two jobs with the same lock can run simultaneously. See
+        the `howto-locks` section for more information.
+
 .. _PostgreSQL Schema documentation: https://www.postgresql.org/docs/current/ddl-schemas.html
