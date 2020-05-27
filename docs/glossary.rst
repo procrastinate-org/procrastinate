@@ -70,7 +70,5 @@ Let's go through a few words and their meaning.
     Queueing Lock
         When configuring a job using `Task.configure` you can attach a queueing lock to
         the job. No two jobs with the same queueing lock can be waiting in the queue.
-        And `Task.defer` will raise an `AlreadyEnqueued` exception if there already is
-        a job waiting in the queue with the same queueing lock.
 
 .. _PostgreSQL Schema documentation: https://www.postgresql.org/docs/current/ddl-schemas.html
