@@ -50,7 +50,7 @@ class ConnectorException(ProcrastinateException):
 
 class AlreadyEnqueued(ProcrastinateException):
     """
-    Indicates that there already is job waiting in the queue with the same queueing
+    Indicates that there already is a job waiting in the queue with the same queueing
     lock.
     """
 
