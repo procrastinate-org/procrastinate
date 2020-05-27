@@ -46,11 +46,9 @@ class Job:
     queue :
         Queue name the job will be run in.
     lock :
-        Lock object in database that prevents other jobs with the same lock from running
-        concurrently.
-    queueing_lock:
-        Lock object in database that prevents having several jobs waiting in the queue
-        with the same queueing lock.
+        No two jobs with the same lock string can run simultaneously
+    queueing_lock :
+        No two jobs with the same queueing lock can be waiting in the queue.
     task_name :
         Name of the associated task.
     task_kwargs :
