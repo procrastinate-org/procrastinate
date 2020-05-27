@@ -36,7 +36,7 @@ In Python code
 You can access the builtin task through `App.builtin_tasks`.
 The parameters are the same than when accessing the task through the CLI.
 
-For example, to use a :term:`queueing lock`:
+For example, to use a queueing lock:
 
 .. code-block:: python
 
