@@ -16,7 +16,7 @@ already has, in the form of `unix cron`_ and `systemd timers`_, to name just two
 That being said, Procrastinate tries to ease the use of these solutions by providing
 a means to easily schedule jobs from the command line.
 
-It also features :term:`queueing lock` to avoid accumulating jobs in the queue when the
+It also features :term:`queueing locks <queueing lock>` to avoid accumulating jobs in the queue when the
 Procrastinate workers are down or too busy, and preventing bursts of job executions when
 workers are up again.
 

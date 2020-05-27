@@ -16,7 +16,7 @@ For more information about this task's parameter,
 see :py:func:`~procrastinate.builtin_tasks.remove_old_jobs`
 
 If you launch ``remove_old_jobs`` from a cron you may want to avoid inserting a new job
-when there is one already waiting in the queue. You can rely on a :term:`queueing lock`
+when there is one already waiting in the queue. You can rely on a :term:`queueing locks <queueing lock>`
 for that:
 
 .. code-block:: console
