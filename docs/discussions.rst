@@ -177,7 +177,7 @@ Procrastinate will use use one connection to listen to server-side ``NOTIFY`` ca
 :ref:`discussion-general`). The rest of the pool is used for :term:`sub-workers
 <Sub-worker>`.
 
-The relative sizing of your pool and your sub-workers all depend on the average length
+The relative sizing of your pool and your sub-workers all depends on the average length
 of your jobs, and especially compared to the time it takes to fetch jobs and register
 job completion.
 

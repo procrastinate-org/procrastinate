@@ -20,5 +20,5 @@ Or from the command line:
 
     $ procrastinate worker --concurrency=30
 
-The discussion section contains a few important advice regarding asynchronous
+The discussion section contains a few important guidelines regarding asynchronous
 concurrency (see `discussion-async`).
