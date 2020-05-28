@@ -72,7 +72,7 @@ def test_app_register_queue_already_exists(app):
 def test_app_worker(app, mocker):
     Worker = mocker.patch("procrastinate.worker.Worker")
 
-    app.worker_timeout = 12
+    app.worker_defaults["timeout"] = 12
     app._worker(queues=["yay"], name="w1", wait=False)
 
     Worker.assert_called_once_with(

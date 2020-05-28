@@ -12,8 +12,6 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-WORKER_TIMEOUT = 5.0  # seconds
-
 
 @utils.add_sync_api
 class App:
@@ -54,16 +52,16 @@ class App:
         *,
         connector: connector_module.BaseConnector,
         import_paths: Optional[Iterable[str]] = None,
-        worker_timeout: float = WORKER_TIMEOUT,
+        worker_defaults: Optional[Dict] = None,
     ):
         """
         Parameters
         ----------
-        connector:
+        connector :
             Instance of a subclass of :py:class:`procrastinate.connector.BaseConnector`,
             typically `PostgresConnector`. It will be responsible for all communications
             with the database. Mandatory.
-        import_paths:
+        import_paths :
             List of python dotted paths of modules to import, to make sure
             that the workers know about all possible tasks.
             If you fail to add a path here and a worker encounters
@@ -74,21 +72,16 @@ class App:
             A `App.task` that has a custom "name" parameter, that is not
             imported and whose module path is not in this list will
             fail to run.
-        worker_timeout:
-            This parameter indicates the maximum duration (in seconds) procrastinate
-            workers wait between each database job pull. Job activity will be pushed
-            from the db to the worker, but in case the push mechanism fails somehow,
-            workers will not stay idle longer than the number of seconds indicated by
-            this parameter.
-            Raising this parameter can lower the rate of workers making queries to the
-            database for requesting jobs.
+        worker_defaults :
+            All the values passed here will override the default values sent when
+            launching a worker. See `App.run_worker` for details.
         """
         self.connector = connector
         self.tasks: Dict[str, "tasks.Task"] = {}
         self.builtin_tasks: Dict[str, "tasks.Task"] = {}
         self.queues: Set[str] = set()
         self.import_paths = import_paths or []
-        self.worker_timeout = worker_timeout
+        self.worker_defaults = worker_defaults or {}
 
         self.job_store = store.JobStore(connector=self.connector)
 
@@ -204,14 +197,12 @@ class App:
 
         return tasks.configure_task(name=name, job_store=self.job_store, **kwargs)
 
-    def _worker(
-        self, queues: Optional[Iterable[str]], name: Optional[str], wait: bool
-    ) -> "worker.Worker":
+    def _worker(self, **kwargs) -> "worker.Worker":
         from procrastinate import worker
 
-        return worker.Worker(
-            app=self, queues=queues, name=name, timeout=self.worker_timeout, wait=wait
-        )
+        final_kwargs = {**self.worker_defaults, **kwargs}
+
+        return worker.Worker(app=self, **final_kwargs)
 
     @functools.lru_cache(maxsize=1)
     def perform_import_paths(self):
@@ -225,25 +216,40 @@ class App:
             extra={"action": "imported_tasks", "tasks": list(self.tasks)},
         )
 
-    async def run_worker_async(
-        self,
-        queues: Optional[Iterable[str]] = None,
-        name: Optional[str] = None,
-        wait: bool = True,
-    ) -> None:
+    async def run_worker_async(self, **kwargs) -> None:
         """
-        Run a worker. This worker will run in the foreground and the function will not
+        Run a worker. This worker will run in the foreground and execute the jobs in the
+        provided queues. If wait is True, the function will not
         return until the worker stops (most probably when it receives a stop signal).
+        The default values of all parameters presented here can be overriden at the
+        `App` level.
 
         Parameters
         ----------
-        queues:
-            List of queues to listen to, or None to listen to every queue.
-        wait:
-            If False, worker will terminate as soon as it has caught up with the queues.
+        queues : ``Optional[Iterable[str]]``
+            List of queues to listen to, or None to listen to every queue (defaults to
+            ``None``).
+        wait : ``bool``
+            If False, the worker will terminate as soon as it has caught up with the
+            queues. If True, the worker will work until it is stopped by a signal
+            (ctrl+c, SIGINT, SIGTERM) (defaults to ``True``).
+        concurrency : ``int``
+            Indicates how many asynchronous jobs the worker can run in parallel.
+            Do not use concurrency if you have synchronous blocking tasks.
+            See `howto/concurrency` (defaults to ``1``).
+        name : ``Optional[str]``
+            Name of the worker. Will be passed in the `JobContext` and used in the
+            logs (defaults to ``None`` which will result in the worker named
+            ``worker``).
+        timeout : ``float``
+            Indicates the maximum duration (in seconds) procrastinate
+            workers wait between each database job poll.
+            Raising this parameter can lower the rate of workers making queries to the
+            database for requesting jobs.
+            (defaults to 5.0)
         """
         self.perform_import_paths()
-        worker = self._worker(queues=queues, name=name, wait=wait)
+        worker = self._worker(**kwargs)
         await worker.run()
 
     @property

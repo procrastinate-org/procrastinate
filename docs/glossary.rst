@@ -35,6 +35,11 @@ Let's go through a few words and their meaning.
         A process responsible for processing one or more queues: taking tasks one
         by one and executing them, and then wait for the queue to fill again.
 
+    Sub-worker
+        In case of asynchronous concurrency (see `howto/concurrency`), there are
+        sub-workers, acting like the :term:`Worker`, except there are multiple of them.
+        They are orchestrated by the worker itself.
+
     App
     Application
         This is meant to be the main entry point of Procrastinate. The app knows

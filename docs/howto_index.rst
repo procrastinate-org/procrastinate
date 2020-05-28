@@ -11,6 +11,7 @@ How to...
     howto/worker
     howto/command_line
     howto/locks
+    howto/concurrency
     howto/schedule
     howto/cron
     howto/retry

@@ -14,7 +14,7 @@ async def test_wait_for_activity(pg_connector):
     pg_app = app.App(connector=pg_connector)
     worker = worker_module.Worker(app=pg_app, timeout=2)
     worker.notify_event = asyncio.Event()
-    task = asyncio.ensure_future(worker.single_worker())
+    task = asyncio.ensure_future(worker.single_worker(worker_id=0))
     await asyncio.sleep(0.2)  # should be enough so that we're waiting
 
     worker.stop_requested = True
@@ -34,7 +34,7 @@ async def test_wait_for_activity_timeout(pg_connector):
     pg_app = app.App(connector=pg_connector)
     worker = worker_module.Worker(app=pg_app, timeout=2)
     worker.notify_event = asyncio.Event()
-    task = asyncio.ensure_future(worker.single_worker())
+    task = asyncio.ensure_future(worker.single_worker(worker_id=0))
     try:
         await asyncio.sleep(0.2)  # should be enough so that we're waiting
 
