@@ -349,7 +349,7 @@ async def test_single_worker_no_wait(app, mocker):
         async def wait_for_job(self, timeout):
             wait_for_job(timeout)
 
-    await TestWorker(app=app, wait=False).single_worker()
+    await TestWorker(app=app, wait=False).single_worker(worker_id=0)
 
     assert process_job.called is False
     assert wait_for_job.called is False
@@ -369,7 +369,7 @@ async def test_single_worker_stop_during_execution(app, mocker):
         async def wait_for_job(self, timeout):
             wait_for_job(timeout=timeout)
 
-    await TestWorker(app=app).single_worker()
+    await TestWorker(app=app).single_worker(worker_id=0)
 
     assert wait_for_job.called is False
     process_job.assert_called_once()
@@ -389,7 +389,7 @@ async def test_single_worker_stop_during_wait(app, mocker):
             wait_for_job()
             self.stop_requested = True
 
-    await TestWorker(app=app).single_worker()
+    await TestWorker(app=app).single_worker(worker_id=0)
 
     process_job.assert_called_once()
     wait_for_job.assert_called_once()

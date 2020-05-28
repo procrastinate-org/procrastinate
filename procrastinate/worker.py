@@ -105,7 +105,7 @@ class Worker:
         )
         self.notify_event = None
 
-    async def single_worker(self, worker_id: int = 0):
+    async def single_worker(self, worker_id: int):
         current_timeout = self.timeout * (worker_id + 1)
         while not self.stop_requested:
             job = await self.job_store.fetch_job(self.queues)
