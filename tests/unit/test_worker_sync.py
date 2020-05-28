@@ -76,7 +76,7 @@ def test_stop_log_job(test_worker, caplog, context, job_factory):
     caplog.set_level("INFO")
     test_worker.notify_event = asyncio.Event()
     job = job_factory(id=42)
-    ctx = context.evolve(job=job)
+    ctx = context.evolve(job=job, worker_id=0)
     test_worker.current_contexts[0] = ctx
 
     test_worker.stop()

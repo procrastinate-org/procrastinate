@@ -32,7 +32,7 @@ class JobContext:
     app: Optional[app_module.App] = None
     worker_name: Optional[str] = None
     worker_queues: Optional[Iterable[str]] = None
-    worker_id: int = 0
+    worker_id: Optional[int] = None
     job: Optional[jobs.Job] = None
     task: Optional[tasks.Task] = None
     additional_context: Dict = attr.ib(factory=dict)
