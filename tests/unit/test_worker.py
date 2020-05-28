@@ -293,7 +293,12 @@ async def test_run_job_concurrency_warning(app, caplog):
         result.append(a)
 
     job = jobs.Job(
-        id=16, task_kwargs={"a": 1}, lock="sherlock", task_name="job", queue="yay",
+        id=16,
+        task_kwargs={"a": 1},
+        lock="sherlock",
+        queueing_lock="houba",
+        task_name="job",
+        queue="yay",
     )
     test_worker = worker.Worker(app, concurrency=2)
     await test_worker.run_job(job=job, worker_id=0)
