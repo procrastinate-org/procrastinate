@@ -54,26 +54,29 @@ class Admin:
             A list of dictionnaries representing jobs (``id``, ``queue``, ``task``,
             ``lock``, ``args``, ``status``, ``scheduled_at``, ``attempts``).
         """
-        return [
-            {
-                "id": row["id"],
-                "queue": row["queue_name"],
-                "task": row["task_name"],
-                "lock": row["lock"],
-                "args": row["args"],
-                "status": row["status"],
-                "scheduled_at": row["scheduled_at"],
-                "attempts": row["attempts"],
-            }
-            for row in await self.connector.execute_query_all(
-                query=sql.queries["list_jobs"],
-                id=id,
-                queue_name=queue,
-                task_name=task,
-                status=status,
-                lock=lock,
-            )
-        ]
+        return sorted(
+            [
+                {
+                    "id": row["id"],
+                    "queue": row["queue_name"],
+                    "task": row["task_name"],
+                    "lock": row["lock"],
+                    "args": row["args"],
+                    "status": row["status"],
+                    "scheduled_at": row["scheduled_at"],
+                    "attempts": row["attempts"],
+                }
+                for row in await self.connector.execute_query_all(
+                    query=sql.queries["list_jobs"],
+                    id=id,
+                    queue_name=queue,
+                    task_name=task,
+                    status=status,
+                    lock=lock,
+                )
+            ],
+            key=lambda x: x["id"],
+        )
 
     async def list_queues_async(
         self, queue: str = None, task: str = None, status: str = None, lock: str = None,
@@ -98,23 +101,26 @@ class Admin:
             A list of dictionnaries representing queues stats (``name``, ``jobs_count``,
             ``todo``, ``doing``, ``succeeded``, ``failed``).
         """
-        return [
-            {
-                "name": row["name"],
-                "jobs_count": row["jobs_count"],
-                "todo": row["stats"].get("todo", 0),
-                "doing": row["stats"].get("doing", 0),
-                "succeeded": row["stats"].get("succeeded", 0),
-                "failed": row["stats"].get("failed", 0),
-            }
-            for row in await self.connector.execute_query_all(
-                query=sql.queries["list_queues"],
-                queue_name=queue,
-                task_name=task,
-                status=status,
-                lock=lock,
-            )
-        ]
+        return sorted(
+            [
+                {
+                    "name": row["name"],
+                    "jobs_count": row["jobs_count"],
+                    "todo": row["stats"].get("todo", 0),
+                    "doing": row["stats"].get("doing", 0),
+                    "succeeded": row["stats"].get("succeeded", 0),
+                    "failed": row["stats"].get("failed", 0),
+                }
+                for row in await self.connector.execute_query_all(
+                    query=sql.queries["list_queues"],
+                    queue_name=queue,
+                    task_name=task,
+                    status=status,
+                    lock=lock,
+                )
+            ],
+            key=lambda x: x["name"],
+        )
 
     async def list_tasks_async(
         self, queue: str = None, task: str = None, status: str = None, lock: str = None,
@@ -139,23 +145,26 @@ class Admin:
             A list of dictionnaries representing tasks stats (``name``, ``jobs_count``,
             ``todo``, ``doing``, ``succeeded``, ``failed``).
         """
-        return [
-            {
-                "name": row["name"],
-                "jobs_count": row["jobs_count"],
-                "todo": row["stats"].get("todo", 0),
-                "doing": row["stats"].get("doing", 0),
-                "succeeded": row["stats"].get("succeeded", 0),
-                "failed": row["stats"].get("failed", 0),
-            }
-            for row in await self.connector.execute_query_all(
-                query=sql.queries["list_tasks"],
-                queue_name=queue,
-                task_name=task,
-                status=status,
-                lock=lock,
-            )
-        ]
+        return sorted(
+            [
+                {
+                    "name": row["name"],
+                    "jobs_count": row["jobs_count"],
+                    "todo": row["stats"].get("todo", 0),
+                    "doing": row["stats"].get("doing", 0),
+                    "succeeded": row["stats"].get("succeeded", 0),
+                    "failed": row["stats"].get("failed", 0),
+                }
+                for row in await self.connector.execute_query_all(
+                    query=sql.queries["list_tasks"],
+                    queue_name=queue,
+                    task_name=task,
+                    status=status,
+                    lock=lock,
+                )
+            ],
+            key=lambda x: x["name"],
+        )
 
     async def set_job_status_async(self, id: int, status: str) -> Dict[str, Any]:
         """
