@@ -25,11 +25,15 @@ CREATE TABLE procrastinate_jobs (
     queue_name character varying(128) NOT NULL,
     task_name character varying(128) NOT NULL,
     lock text,
+    queueing_lock text,
     args jsonb DEFAULT '{}' NOT NULL,
     status procrastinate_job_status DEFAULT 'todo'::procrastinate_job_status NOT NULL,
     scheduled_at timestamp with time zone NULL,
     attempts integer DEFAULT 0 NOT NULL
 );
+
+-- this prevents from having several jobs with the same queueing lock in the "todo" state
+CREATE UNIQUE INDEX procrastinate_jobs_queueing_lock_idx ON procrastinate_jobs (queueing_lock) WHERE status = 'todo';
 
 CREATE TABLE procrastinate_events (
     id BIGSERIAL PRIMARY KEY,

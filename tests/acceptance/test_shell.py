@@ -17,9 +17,9 @@ def shell(process_env):
 
 def test_shell(shell, defer):
     defer("sum_task", a=5, b=7)
-    defer("sum_task", a=3, b=8, lock="lock")
-    defer("sum_task", a=1, b=2, queue="other", lock="lock")
-    defer("increment_task", a=5)
+    defer("sum_task", ["--lock=lock"], a=3, b=8)
+    defer("sum_task", ["--queue=other", "--lock=lock"], a=1, b=2)
+    defer("increment_task", [], a=5)
 
     print("cancel 2", file=shell.stdin)
     print("cancel 3", file=shell.stdin)
@@ -54,10 +54,9 @@ def test_shell(shell, defer):
         "procrastinate> default: 3 jobs (todo: 1, succeeded: 0, failed: 2)\n",
         "other: 1 jobs (todo: 1, succeeded: 0, failed: 0)\n",
         # list_tasks
-        "procrastinate> tests.acceptance.app.sum_task: 3 jobs "
-        "(todo: 2, succeeded: 0, failed: 1)\n",
-        "tests.acceptance.app.increment_task: 1 jobs "
+        "procrastinate> tests.acceptance.app.increment_task: 1 jobs "
         "(todo: 0, succeeded: 0, failed: 1)\n",
+        "tests.acceptance.app.sum_task: 3 jobs " "(todo: 2, succeeded: 0, failed: 1)\n",
         #
         "procrastinate> ",
     ]

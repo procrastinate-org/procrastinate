@@ -26,6 +26,7 @@ def configure_task(
     name: str,
     job_store: store.JobStore,
     lock: Optional[str] = None,
+    queueing_lock: Optional[str] = None,
     task_kwargs: Optional[types.JSONDict] = None,
     schedule_at: Optional[datetime.datetime] = None,
     schedule_in: Optional[Dict[str, int]] = None,
@@ -43,6 +44,7 @@ def configure_task(
         job=jobs.Job(
             id=None,
             lock=lock,
+            queueing_lock=queueing_lock,
             task_name=name,
             queue=queue,
             task_kwargs=task_kwargs,
@@ -110,6 +112,7 @@ class Task:
         self,
         *,
         lock: Optional[str] = None,
+        queueing_lock: Optional[str] = None,
         task_kwargs: Optional[types.JSONDict] = None,
         schedule_at: Optional[datetime.datetime] = None,
         schedule_in: Optional[Dict[str, int]] = None,
@@ -126,6 +129,10 @@ class Task:
         ----------
         lock :
             No two jobs with the same lock string can run simultaneously
+        queueing_lock :
+            No two jobs with the same queueing lock can be waiting in the queue.
+            `Task.defer` will raise an `AlreadyEnqueued` exception if there already
+            is a job waiting in the queue with same queueing lock.
         task_kwargs :
             Arguments for the job task. You can also pass them to `Task.defer`.
             If you pass both, they will be updated (`Task.defer` has priority)
@@ -155,6 +162,7 @@ class Task:
             name=self.name,
             job_store=self.app.job_store,
             lock=lock,
+            queueing_lock=queueing_lock,
             task_kwargs=task_kwargs,
             schedule_at=schedule_at,
             schedule_in=schedule_in,

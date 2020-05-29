@@ -46,8 +46,9 @@ class Job:
     queue :
         Queue name the job will be run in.
     lock :
-        Lock object in database that prevents other jobs with the same lock from running
-        concurrently.
+        No two jobs with the same lock string can run simultaneously
+    queueing_lock :
+        No two jobs with the same queueing lock can be waiting in the queue.
     task_name :
         Name of the associated task.
     task_kwargs :
@@ -61,6 +62,7 @@ class Job:
     id: Optional[int] = None
     queue: str
     lock: str
+    queueing_lock: Optional[str]
     task_name: str
     task_kwargs: types.JSONDict = attr.ib(factory=dict)
     scheduled_at: Optional[datetime.datetime] = attr.ib(
@@ -73,6 +75,7 @@ class Job:
         return cls(
             id=row["id"],
             lock=row["lock"],
+            queueing_lock=row["queueing_lock"],
             task_name=row["task_name"],
             task_kwargs=row["args"],
             scheduled_at=row["scheduled_at"],

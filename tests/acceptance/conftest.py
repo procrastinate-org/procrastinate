@@ -11,6 +11,7 @@ def process_env(connection_params):
         {
             "PROCRASTINATE_APP": "tests.acceptance.app.app",
             "PROCRASTINATE_VERBOSE": "3",
+            "PROCRASTINATE_DEFER_UNKNOWN": "True",
             "PGDATABASE": connection_params["dbname"],
         }
     )
@@ -21,19 +22,11 @@ def process_env(connection_params):
 def defer(process_env):
     from .app import json_dumps
 
-    def func(task_name, lock=None, queue=None, **kwargs):
-        lock_args = ["--lock", lock] if lock else []
-        queue_args = ["--queue", queue] if queue else []
+    def func(task_name, args=None, **kwargs):
+        args = args or []
         full_task_name = f"tests.acceptance.app.{task_name}"
         subprocess.check_output(
-            [
-                "procrastinate",
-                "defer",
-                full_task_name,
-                *lock_args,
-                *queue_args,
-                json_dumps(kwargs),
-            ],
+            ["procrastinate", "defer", full_task_name, *args, json_dumps(kwargs)],
             env=process_env,
         )
 

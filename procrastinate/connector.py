@@ -1,6 +1,8 @@
 import asyncio
 from typing import Any, Callable, Dict, Iterable, List, Optional
 
+QUEUEING_LOCK_CONSTRAINT = "procrastinate_jobs_queueing_lock_idx"
+
 
 class BaseConnector:
     json_dumps: Optional[Callable] = None

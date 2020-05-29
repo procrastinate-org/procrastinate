@@ -1,3 +1,5 @@
+.. _howto-locks:
+
 Ensure jobs run sequentially and in order
 -----------------------------------------
 

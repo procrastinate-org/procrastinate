@@ -7,7 +7,7 @@ busy. Should it accumulate or discard jobs when it's too late and it couldn't
 launch the jobs in time? How to define properly a unit of time, given there's
 time zones, and leap years and such?
 
-Procrastinate doesn't aim at answering these questions, but mature stable software
+Procrastinate doesn't aim at answering all these questions, but mature stable software
 already has, in the form of `unix cron`_ and `systemd timers`_, to name just two.
 
 .. _`unix cron`: https://en.wikipedia.org/wiki/Cron
@@ -16,14 +16,22 @@ already has, in the form of `unix cron`_ and `systemd timers`_, to name just two
 That being said, Procrastinate tries to ease the use of these solutions by providing
 a means to easily schedule jobs from the command line.
 
+It also features :term:`queueing locks <queueing lock>` to avoid accumulating jobs in
+the queue when the Procrastinate workers are down or too busy, and preventing bursts of
+job executions when workers are up again.
+
 Whether you then decide to schedule multiple crons/timers, or a single one that will
 in turn schedule the appropriate jobs is up to you, following your own constraints.
 
 Launching a job from cron every 15 minutes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Here's how to use cron to launch a job every 15 minutes, without launching a new
+job when one (with the same queueing lock) is already waiting in the queue:
+
 .. highlight:: none
 
 ::
 
-    */15 * * * * /path/to/env/bin/procrastinate \
-                    --app=dotted.path.to.app defer my.maintenance.task
+    */15 * * * * /path/to/env/bin/procrastinate --app=dotted.path.to.app defer \
+            --queueing-lock=maintenance --ignore-already-enqueued my.maintenance.task

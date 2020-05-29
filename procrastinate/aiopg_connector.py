@@ -5,6 +5,7 @@ from typing import Any, Callable, Coroutine, Dict, Iterable, List, NoReturn, Opt
 
 import aiopg
 import psycopg2
+import psycopg2.errors
 import psycopg2.sql
 from psycopg2.extras import Json, RealDictCursor
 
@@ -27,6 +28,8 @@ def wrap_exceptions(coro: CoroutineFunction) -> CoroutineFunction:
     async def wrapped(*args, **kwargs):
         try:
             return await coro(*args, **kwargs)
+        except psycopg2.errors.UniqueViolation as exc:
+            raise exceptions.UniqueViolation(constraint_name=exc.diag.constraint_name)
         except psycopg2.Error as exc:
             raise exceptions.ConnectorException from exc
 
@@ -86,7 +89,7 @@ class PostgresConnector(connector.BaseConnector):
             this.
         maxsize : ``int``
             Passed to aiopg. Cannot be lower than 2, otherwise worker won't be
-            functionning normally (one connection for listen/notify, one for executing
+            functioning normally (one connection for listen/notify, one for executing
             tasks).
         minsize : ``int``
             Passed to aiopg. Initial connections are not opened when the connector

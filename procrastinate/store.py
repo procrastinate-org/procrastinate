@@ -2,7 +2,7 @@ import asyncio
 import datetime
 from typing import Iterable, Optional
 
-from procrastinate import connector, jobs, sql
+from procrastinate import connector, exceptions, jobs, sql
 
 
 def get_channel_for_queues(queues: Optional[Iterable[str]] = None) -> Iterable[str]:
@@ -17,14 +17,24 @@ class JobStore:
         self.connector = connector
 
     async def defer_job(self, job: jobs.Job) -> int:
-        result = await self.connector.execute_query_one(
-            query=sql.queries["defer_job"],
-            task_name=job.task_name,
-            lock=job.lock,
-            args=job.task_kwargs,
-            scheduled_at=job.scheduled_at,
-            queue=job.queue,
-        )
+        try:
+            result = await self.connector.execute_query_one(
+                query=sql.queries["defer_job"],
+                task_name=job.task_name,
+                lock=job.lock,
+                queueing_lock=job.queueing_lock,
+                args=job.task_kwargs,
+                scheduled_at=job.scheduled_at,
+                queue=job.queue,
+            )
+        except exceptions.UniqueViolation as exc:
+            if exc.constraint_name == connector.QUEUEING_LOCK_CONSTRAINT:
+                raise exceptions.AlreadyEnqueued(
+                    "Job cannot be enqueued: there is already a job in the queue "
+                    f"with the lock {job.queueing_lock}"
+                ) from exc
+            raise
+
         return result["id"]
 
     async def fetch_job(self, queues: Optional[Iterable[str]]) -> Optional[jobs.Job]:

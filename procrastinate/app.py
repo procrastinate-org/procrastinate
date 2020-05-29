@@ -30,8 +30,8 @@ class App:
         The mapping of all tasks known by the app. Only procrastinate is expected to
         make changes to this mapping.
     builtin_tasks : ``Dict[str, tasks.Task]``
-        The mapping of builtin tasks. Use it to programatically access builtin tasks, to
-        defer them.
+        The mapping of builtin tasks. Use it to programmatically access builtin tasks,
+        to defer them.
     admin : ``admin.Admin``
         The administration interface linked to the application.
     """

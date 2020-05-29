@@ -58,7 +58,7 @@ Exceptions
 
 .. automodule:: procrastinate.exceptions
     :members: ProcrastinateException, PoolAlreadySet, LoadFromPathError,
-              ConnectorException
+              ConnectorException, AlreadyEnqueued
 
 Administration
 --------------

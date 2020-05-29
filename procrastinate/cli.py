@@ -156,11 +156,22 @@ def worker_(app: procrastinate.App, queues: str, **kwargs):
 @click.argument("task")
 @click.argument("json_args", required=False)
 @click.option(
+    "--queue", help="The queue for deferring. Defaults to the task's default queue"
+)
+@click.option(
     "--lock", help="A lock string. Jobs sharing the same lock will not run concurrently"
 )
 @click.option(
-    "--queue",
-    help="The queue for deferring. If not set, task's default queue will be used",
+    "--queueing-lock",
+    help="A string value. The defer operation will fail if there already is a job "
+    "waiting in the queue with the same queueing lock",
+)
+@click.option(
+    "-i",
+    "--ignore-already-enqueued/--no-ignore-already-enqueued",
+    default=False,
+    help="Exit with code 0 even if the queueing lock is already taken, while still "
+    "displaying an error (default false)",
 )
 @click.option("--at", help="ISO-8601 localized datetime after which to launch the job")
 @click.option(
@@ -176,6 +187,8 @@ def defer(
     task: str,
     json_args: str,
     lock: Optional[str],
+    queueing_lock: Optional[str],
+    ignore_already_enqueued: bool,
     queue: Optional[str],
     at: Optional[str],
     in_: Optional[int],
@@ -200,6 +213,7 @@ def defer(
     # Build kwargs. Remove all None kwargs to use their default values.
     configure_kwargs = {
         "lock": lock,
+        "queueing_lock": queueing_lock,
         "schedule_at": schedule_at,
         "schedule_in": schedule_in,
         "queue": queue,
@@ -216,7 +230,12 @@ def defer(
     click.echo(f"Launching a job: {task}({str_kwargs})")
 
     # And launching the job
-    job_deferrer.defer(**args)  # type: ignore
+    try:
+        job_deferrer.defer(**args)  # type: ignore
+    except exceptions.AlreadyEnqueued as exc:
+        if not ignore_already_enqueued:
+            raise
+        click.echo(f"{exc} (ignored)")
 
 
 def filter_none(dictionnary: Dict) -> Dict:

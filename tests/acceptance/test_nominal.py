@@ -88,14 +88,14 @@ def test_lock(defer, running_worker):
 
     defer(
         "sleep_and_write",
-        lock="a",
+        ["--lock", "a"],
         sleep=0.5,
         write_before="before-1",
         write_after="after-1",
     )
     defer(
         "sleep_and_write",
-        lock="a",
+        ["--lock", "a"],
         sleep=0.001,
         write_before="before-2",
         write_after="after-2",
@@ -125,3 +125,16 @@ def test_lock(defer, running_worker):
     assert lines == ["before-1", "after-1", "before-2", "after-2"]
     # If locks didnt work, we would have
     # ["before-1", "before-2", "after-2", "after-1"]
+
+
+def test_queueing_lock(defer, running_worker):
+    defer("sometask", ["--queueing-lock", "a"])
+    defer("sometask", ["--queueing-lock", "b"])
+
+    with pytest.raises(subprocess.CalledProcessError) as excinfo:
+        defer("sometask", ["--queueing-lock", "a"])
+
+    assert excinfo.value.returncode == 1
+
+    # This one doesn't raise
+    defer("sometask", ["--queueing-lock", "a", "--ignore-already-enqueued"])

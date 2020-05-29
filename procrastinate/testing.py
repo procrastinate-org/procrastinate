@@ -6,7 +6,7 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 import pendulum
 
-from procrastinate import connector, schema, sql
+from procrastinate import connector, exceptions, schema, sql
 
 JobRow = Dict[str, Any]
 EventRow = Dict[str, Any]
@@ -75,7 +75,16 @@ class InMemoryConnector(connector.BaseConnector):
 
     # End of BaseConnector methods
 
-    def defer_job_one(self, task_name, lock, args, scheduled_at, queue) -> JobRow:
+    def defer_job_one(
+        self, task_name, lock, queueing_lock, args, scheduled_at, queue
+    ) -> JobRow:
+        if any(
+            job for job in self.jobs.values() if job["queueing_lock"] == queueing_lock
+        ):
+            raise exceptions.UniqueViolation(
+                constraint_name=connector.QUEUEING_LOCK_CONSTRAINT
+            )
+
         id = next(self.job_counter)
 
         self.jobs[id] = job_row = {
@@ -83,6 +92,7 @@ class InMemoryConnector(connector.BaseConnector):
             "queue_name": queue,
             "task_name": task_name,
             "lock": lock,
+            "queueing_lock": queueing_lock,
             "args": args,
             "status": "todo",
             "scheduled_at": scheduled_at,

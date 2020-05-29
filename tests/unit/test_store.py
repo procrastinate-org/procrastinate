@@ -1,12 +1,12 @@
 import pendulum
 import pytest
 
-from procrastinate import jobs
+from procrastinate import exceptions, jobs
 
 pytestmark = pytest.mark.asyncio
 
 
-async def test_store_defer(job_store, job_factory, connector):
+async def test_store_defer_job(job_store, job_factory, connector):
     job_row = await job_store.defer_job(job=job_factory(task_kwargs={"a": "b"}))
 
     assert job_row == 1
@@ -17,12 +17,46 @@ async def test_store_defer(job_store, job_factory, connector):
             "attempts": 0,
             "id": 1,
             "lock": None,
+            "queueing_lock": None,
             "queue_name": "queue",
             "scheduled_at": None,
             "status": "todo",
             "task_name": "bla",
         }
     }
+
+
+async def test_store_defer_job_connector_exception(
+    mocker, job_store, job_factory, connector
+):
+    connector.execute_query_one = mocker.Mock(side_effect=exceptions.ConnectorException)
+
+    with pytest.raises(exceptions.ConnectorException):
+        await job_store.defer_job(job=job_factory(task_kwargs={"a": "b"}))
+
+
+async def test_store_defer_job_unique_violation_exception(
+    mocker, job_store, job_factory, connector
+):
+    connector.execute_query_one = mocker.Mock(
+        side_effect=exceptions.UniqueViolation(
+            constraint_name="procrastinate_jobs_queueing_lock_idx"
+        )
+    )
+
+    with pytest.raises(exceptions.AlreadyEnqueued):
+        await job_store.defer_job(job=job_factory(task_kwargs={"a": "b"}))
+
+
+async def test_store_defer_job_unique_violation_exception_other_constraint(
+    mocker, job_store, job_factory, connector
+):
+    connector.execute_query_one = mocker.Mock(
+        side_effect=exceptions.UniqueViolation(constraint_name="some_other_constraint")
+    )
+
+    with pytest.raises(exceptions.ConnectorException):
+        await job_store.defer_job(job=job_factory(task_kwargs={"a": "b"}))
 
 
 async def test_fetch_job_no_suitable_job(job_store):

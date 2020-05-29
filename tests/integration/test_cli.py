@@ -42,7 +42,7 @@ def test_worker(entrypoint, click_app, mocker):
     )
 
 
-def test_schema_apply(entrypoint, click_app, mocker, job_store):
+def test_schema_apply(entrypoint, click_app, mocker):
     apply_schema = mocker.patch("procrastinate.schema.SchemaManager.apply_schema")
     result = entrypoint("-a yay schema --apply")
 
@@ -110,7 +110,9 @@ def test_defer(entrypoint, click_app, connector):
         pass
 
     # No space in the json helps entrypoint() to simply split args
-    result = entrypoint("""-a yay defer --lock=sherlock hello {"a":1}""")
+    result = entrypoint(
+        """-a yay defer --lock=sherlock --queueing-lock=houba hello {"a":1}"""
+    )
 
     assert result.output == "Launching a job: hello(a=1)\n"
     assert result.exit_code == 0
@@ -120,6 +122,7 @@ def test_defer(entrypoint, click_app, connector):
             "attempts": 0,
             "id": 1,
             "lock": "sherlock",
+            "queueing_lock": "houba",
             "queue_name": "default",
             "scheduled_at": None,
             "status": "todo",
@@ -128,9 +131,44 @@ def test_defer(entrypoint, click_app, connector):
     }
 
 
+def test_defer_queueing_lock(entrypoint, click_app, connector):
+    @click_app.task(name="hello")
+    def mytask(a):
+        pass
+
+    click_app.configure_task(name="hello", queueing_lock="houba").defer(a=1)
+
+    result = entrypoint("""-a yay defer --queueing-lock=houba hello {"a":2}""")
+
+    assert result.exit_code > 0
+    assert "there is already a job in the queue with the lock houba" in result.output
+    assert len(connector.jobs) == 1
+
+
+def test_defer_queueing_lock_ignore(entrypoint, click_app, connector):
+    @click_app.task(name="hello")
+    def mytask(a):
+        pass
+
+    click_app.configure_task(name="hello", queueing_lock="houba").defer(a=1)
+
+    result = entrypoint(
+        """-a yay defer --queueing-lock=houba --ignore-already-enqueued hello {"a":2}"""
+    )
+
+    assert result.exit_code == 0
+    assert (
+        "there is already a job in the queue with the lock houba (ignored)"
+        in result.output
+    )
+    assert len(connector.jobs) == 1
+
+
 def test_defer_unknown(entrypoint, click_app, connector):
     # No space in the json helps entrypoint() to simply split args
-    result = entrypoint("""-a yay defer --unknown --lock=sherlock hello {"a":1}""")
+    result = entrypoint(
+        """-a yay defer --unknown --lock=sherlock --queueing-lock=houba hello {"a":1}"""
+    )
 
     assert result.output == "Launching a job: hello(a=1)\n"
     assert result.exit_code == 0
@@ -140,6 +178,7 @@ def test_defer_unknown(entrypoint, click_app, connector):
             "attempts": 0,
             "id": 1,
             "lock": "sherlock",
+            "queueing_lock": "houba",
             "queue_name": "default",
             "scheduled_at": None,
             "status": "todo",

@@ -46,3 +46,25 @@ class ConnectorException(ProcrastinateException):
     """
 
     pass
+
+
+class AlreadyEnqueued(ProcrastinateException):
+    """
+    Indicates that there already is a job waiting in the queue with the same queueing
+    lock.
+    """
+
+    pass
+
+
+class UniqueViolation(ConnectorException):
+    """
+    A unique constraint is violated. The constraint name is available in
+    ``exception.constraint_name``. This is an internal exception.
+    """
+
+    def __init__(self, *args, constraint_name: str):
+        super().__init__(*args)
+        self.constraint_name = constraint_name
+
+    pass
