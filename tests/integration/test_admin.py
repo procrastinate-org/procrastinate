@@ -59,6 +59,7 @@ async def test_list_jobs_dict(fixture_jobs, admin, pg_job_store):
         "queue": j1.queue,
         "task": j1.task_name,
         "lock": j1.lock,
+        "queueing_lock": j1.queueing_lock,
         "args": j1.task_kwargs,
         "scheduled_at": j1.scheduled_at,
         "attempts": j1.attempts,
@@ -73,6 +74,7 @@ async def test_list_jobs_dict(fixture_jobs, admin, pg_job_store):
         ({"lock": "lock3"}, [3]),
         ({"queue": "q1", "task": "task_foo"}, [1]),
         ({"status": "failed"}, [2]),
+        ({"queueing_lock": "queueing_lock2"}, [2]),
     ],
 )
 async def test_list_jobs(fixture_jobs, admin, kwargs, expected):

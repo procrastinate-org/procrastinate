@@ -65,6 +65,7 @@ SELECT id,
        queue_name,
        task_name,
        lock,
+       queueing_lock,
        args,
        status,
        scheduled_at,
@@ -75,6 +76,7 @@ SELECT id,
    AND (%(task_name)s IS NULL OR task_name = %(task_name)s)
    AND (%(status)s IS NULL OR status = %(status)s)
    AND (%(lock)s IS NULL OR lock = %(lock)s)
+   AND (%(queueing_lock)s IS NULL OR queueing_lock = %(queueing_lock)s)
  ORDER BY id ASC;
 
 -- list_queues --

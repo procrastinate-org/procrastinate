@@ -48,6 +48,8 @@ class Admin:
             Filter by job status (*todo*/*doing*/*succeeded*/*failed*)
         lock : ``str``
             Filter by job lock
+        queueing_lock : ``str``
+            Filter by job queueing_lock
 
         Returns
         -------
@@ -61,6 +63,7 @@ class Admin:
                 "queue": row["queue_name"],
                 "task": row["task_name"],
                 "lock": row["lock"],
+                "queueing_lock": row["queueing_lock"],
                 "args": row["args"],
                 "status": row["status"],
                 "scheduled_at": row["scheduled_at"],
@@ -73,6 +76,7 @@ class Admin:
                 task_name=task,
                 status=status,
                 lock=lock,
+                queueing_lock=queueing_lock,
             )
         ]
 

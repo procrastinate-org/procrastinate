@@ -38,7 +38,7 @@ class ProcrastinateShell(cmd.Cmd):
         """
         List procrastinate jobs.
         Usage: list_jobs [id=ID] [queue=QUEUE_NAME] [task=TASK_NAME] [status=STATUS]
-                         [lock=LOCK] [details]
+                         [lock=LOCK] [queueing_lock=QUEUEING_LOCK] [details]
 
         Jobs can be filtered by id, queue name, task name, status and lock.
         Use the details argument to get more info about jobs.
