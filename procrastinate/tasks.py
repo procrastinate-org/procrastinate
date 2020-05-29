@@ -1,6 +1,5 @@
 import datetime
 import logging
-import uuid
 from typing import Any, Callable, Dict, Optional
 
 import pendulum
@@ -38,7 +37,6 @@ def configure_task(
     if schedule_in is not None:
         schedule_at = pendulum.now("UTC").add(**schedule_in)
 
-    lock = lock or str(uuid.uuid4())
     task_kwargs = task_kwargs or {}
     return jobs.JobDeferrer(
         job=jobs.Job(

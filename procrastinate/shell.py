@@ -5,8 +5,8 @@ from procrastinate import admin
 
 
 def parse_argument(arg: str) -> Dict[str, str]:
-    splitted_args = (item.split("=", 1) for item in arg.split())
-    return {key: value for key, value in splitted_args}
+    splitted_args = (item.partition("=") for item in arg.split())
+    return {key: value for key, _, value in splitted_args}
 
 
 def print_job(job: Dict[str, Any], details: bool = False) -> None:

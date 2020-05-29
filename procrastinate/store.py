@@ -1,5 +1,6 @@
 import asyncio
 import datetime
+import uuid
 from typing import Iterable, Optional
 
 from procrastinate import connector, exceptions, jobs, sql
@@ -21,7 +22,7 @@ class JobStore:
             result = await self.connector.execute_query_one(
                 query=sql.queries["defer_job"],
                 task_name=job.task_name,
-                lock=job.lock,
+                lock=job.lock or str(uuid.uuid4()),
                 queueing_lock=job.queueing_lock,
                 args=job.task_kwargs,
                 scheduled_at=job.scheduled_at,

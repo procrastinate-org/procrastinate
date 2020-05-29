@@ -61,7 +61,7 @@ class Job:
 
     id: Optional[int] = None
     queue: str
-    lock: str
+    lock: Optional[str]
     queueing_lock: Optional[str]
     task_name: str
     task_kwargs: types.JSONDict = attr.ib(factory=dict)
