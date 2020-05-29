@@ -106,7 +106,8 @@ SELECT queue_name AS name,
            SELECT json_object_agg(status, jobs_count) FROM stats
        ) AS stats
   FROM jobs AS j
- GROUP BY name;
+ GROUP BY name
+ ORDER BY name;
 
 -- list_tasks --
 -- Get list of tasks and number of jobs per task
@@ -137,7 +138,8 @@ SELECT task_name AS name,
            SELECT json_object_agg(status, jobs_count) FROM stats
        ) AS stats
   FROM jobs AS j
- GROUP BY name;
+ GROUP BY name
+ ORDER BY name;
 
 -- set_job_status --
 UPDATE procrastinate_jobs
