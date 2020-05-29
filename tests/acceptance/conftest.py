@@ -11,6 +11,7 @@ def process_env(connection_params):
         {
             "PROCRASTINATE_APP": "tests.acceptance.app.app",
             "PROCRASTINATE_VERBOSE": "3",
+            "PROCRASTINATE_DEFER_UNKNOWN": "True",
             "PGDATABASE": connection_params["dbname"],
         }
     )
