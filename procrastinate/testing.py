@@ -1,5 +1,6 @@
 import asyncio
 import datetime
+from collections import Counter
 from itertools import count
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
@@ -175,3 +176,31 @@ class InMemoryConnector(connector.BaseConnector):
 
     def apply_schema_run(self) -> None:
         pass
+
+    def list_jobs_all(self, **kwargs):
+        for job in self.jobs.values():
+            if all(
+                expected is None or str(job[key]) == str(expected)
+                for key, expected in kwargs.items()
+            ):
+                yield job
+
+    def list_queues_all(self, **kwargs):
+        jobs = list(self.list_jobs_all(**kwargs))
+        queues = sorted({job["queue_name"] for job in jobs})
+        for queue in queues:
+            queue_jobs = [job for job in jobs if job["queue_name"] == queue]
+            stats = Counter(job["status"] for job in queue_jobs)
+            yield {"name": queue, "jobs_count": len(queue_jobs), "stats": stats}
+
+    def list_tasks_all(self, **kwargs):
+        jobs = list(self.list_jobs_all(**kwargs))
+        tasks = sorted({job["task_name"] for job in jobs})
+        for task in tasks:
+            task_jobs = [job for job in jobs if job["task_name"] == task]
+            stats = Counter(job["status"] for job in task_jobs)
+            yield {"name": task, "jobs_count": len(task_jobs), "stats": stats}
+
+    def set_job_status_run(self, id, status):
+        id = int(id)
+        self.jobs[id]["status"] = status

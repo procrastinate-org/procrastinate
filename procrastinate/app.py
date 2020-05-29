@@ -2,6 +2,7 @@ import functools
 import logging
 from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, Optional, Set
 
+from procrastinate import admin
 from procrastinate import connector as connector_module
 from procrastinate import healthchecks, jobs
 from procrastinate import retry as retry_module
@@ -31,6 +32,8 @@ class App:
     builtin_tasks : ``Dict[str, tasks.Task]``
         The mapping of builtin tasks. Use it to programatically access builtin tasks, to
         defer them.
+    admin : ``admin.Admin``
+        The administration interface linked to the application.
     """
 
     @classmethod
@@ -259,3 +262,7 @@ class App:
     @property
     def health_check_runner(self) -> healthchecks.HealthCheckRunner:
         return healthchecks.HealthCheckRunner(connector=self.connector)
+
+    @property
+    def admin(self) -> admin.Admin:
+        return admin.Admin(connector=self.connector)

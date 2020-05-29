@@ -164,3 +164,11 @@ def test_defer_unknown(entrypoint, click_app, connector):
 def test_defer_error(entrypoint, input):
     result = entrypoint(input)
     assert result.exit_code != 0
+
+
+def test_shell(entrypoint, click_app, mocker):
+    shell = mocker.patch("procrastinate.shell.ProcrastinateShell")
+
+    result = entrypoint("shell")
+    shell.return_value.cmdloop.assert_called_once_with()
+    assert result.exit_code == 0
