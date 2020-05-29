@@ -56,8 +56,7 @@ def test_shell(shell, defer):
         # list_tasks
         "procrastinate> tests.acceptance.app.increment_task: 1 jobs "
         "(todo: 0, succeeded: 0, failed: 1)\n",
-        "tests.acceptance.app.sum_task: 3 jobs "
-        "(todo: 2, succeeded: 0, failed: 1)\n",
+        "tests.acceptance.app.sum_task: 3 jobs " "(todo: 2, succeeded: 0, failed: 1)\n",
         #
         "procrastinate> ",
     ]
