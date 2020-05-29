@@ -1,14 +1,15 @@
 import cmd
+from typing import Any, Dict
 
 from procrastinate import admin
 
 
-def parse_argument(arg):
-    splitted_args = (item.partition("=") for item in arg.split())
-    return {key: value for key, _, value in splitted_args}
+def parse_argument(arg: str) -> Dict[str, str]:
+    splitted_args = (item.split("=", 1) for item in arg.split())
+    return {key: value for key, value in splitted_args}
 
 
-def print_job(job, details=False):
+def print_job(job: Dict[str, Any], details: bool = False) -> None:
     msg = f"#{job['id']} {job['task']} on {job['queue']} - [{job['status']}]"
     if details:
         msg += (
@@ -27,13 +28,13 @@ class ProcrastinateShell(cmd.Cmd):
         super().__init__()
         self.admin = admin
 
-    def do_EOF(self, _):
+    def do_EOF(self, _) -> bool:
         "Exit procrastinate shell."
         return True
 
     do_exit = do_EOF
 
-    def do_list_jobs(self, arg):
+    def do_list_jobs(self, arg: str) -> None:
         """
         List procrastinate jobs.
         Usage: list_jobs [id=ID] [queue=QUEUE_NAME] [task=TASK_NAME] [status=STATUS]
@@ -46,10 +47,10 @@ class ProcrastinateShell(cmd.Cmd):
         """
         kwargs = parse_argument(arg)
         details = kwargs.pop("details", None) is not None
-        for job in self.admin.list_jobs(**kwargs):
+        for job in self.admin.list_jobs(**kwargs):  # type: ignore
             print_job(job, details=details)
 
-    def do_list_queues(self, arg):
+    def do_list_queues(self, arg: str) -> None:
         """
         List procrastinate queues: get queues names and number of jobs per queue.
         Usage: list_queues [queue=QUEUE_NAME] [task=TASK_NAME] [status=STATUS]
@@ -60,7 +61,7 @@ class ProcrastinateShell(cmd.Cmd):
         Example: list_queues task=sums status=failed
         """
         kwargs = parse_argument(arg)
-        for queue in self.admin.list_queues(**kwargs):
+        for queue in self.admin.list_queues(**kwargs):  # type: ignore
             print(
                 f"{queue['name']}: {queue['jobs_count']} jobs ("
                 f"todo: {queue['todo']}, "
@@ -68,7 +69,7 @@ class ProcrastinateShell(cmd.Cmd):
                 f"failed: {queue['failed']})"
             )
 
-    def do_list_tasks(self, arg):
+    def do_list_tasks(self, arg: str) -> None:
         """
         List procrastinate tasks: get tasks names and number of jobs per task.
         Usage: list_tasks [queue=QUEUE_NAME] [task=TASK_NAME] [status=STATUS]
@@ -79,7 +80,7 @@ class ProcrastinateShell(cmd.Cmd):
         Example: list_queues queue=default status=failed
         """
         kwargs = parse_argument(arg)
-        for task in self.admin.list_tasks(**kwargs):
+        for task in self.admin.list_tasks(**kwargs):  # type: ignore
             print(
                 f"{task['name']}: {task['jobs_count']} jobs ("
                 f"todo: {task['todo']}, "
@@ -87,7 +88,7 @@ class ProcrastinateShell(cmd.Cmd):
                 f"failed: {task['failed']})"
             )
 
-    def do_retry(self, arg):
+    def do_retry(self, arg: str) -> None:
         """
         Retry a specific job (reset its status to todo).
         Usage: retry JOB_ID
@@ -96,9 +97,9 @@ class ProcrastinateShell(cmd.Cmd):
 
         Example: retry 2
         """
-        print_job(self.admin.set_job_status(arg, status="todo"))
+        print_job(self.admin.set_job_status(arg, status="todo"))  # type: ignore
 
-    def do_cancel(self, arg):
+    def do_cancel(self, arg: str) -> None:
         """
         Cancel a specific job (set its status to failed).
         Usage: cancel JOB_ID
@@ -107,4 +108,4 @@ class ProcrastinateShell(cmd.Cmd):
 
         Example: cancel 3
         """
-        print_job(self.admin.set_job_status(arg, status="failed"))
+        print_job(self.admin.set_job_status(arg, status="failed"))  # type: ignore
