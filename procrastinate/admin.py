@@ -1,4 +1,4 @@
-from typing import Any, Dict, Iterable
+from typing import Any, Dict, Iterable, Optional
 
 from procrastinate import connector as connector_module
 from procrastinate import sql, utils
@@ -26,11 +26,12 @@ class Admin:
 
     async def list_jobs_async(
         self,
-        id: int = None,
-        queue: str = None,
-        task: str = None,
-        status: str = None,
-        lock: str = None,
+        id: Optional[int] = None,
+        queue: Optional[str] = None,
+        task: Optional[str] = None,
+        status: Optional[str] = None,
+        lock: Optional[str] = None,
+        queueing_lock: Optional[str] = None,
     ) -> Iterable[Dict[str, Any]]:
         """
         List all procrastinate jobs given query filters.
@@ -76,7 +77,11 @@ class Admin:
         ]
 
     async def list_queues_async(
-        self, queue: str = None, task: str = None, status: str = None, lock: str = None,
+        self,
+        queue: Optional[str] = None,
+        task: Optional[str] = None,
+        status: Optional[str] = None,
+        lock: Optional[str] = None,
     ) -> Iterable[Dict[str, Any]]:
         """
         List all queues and number of jobs per status for each queue.
@@ -117,7 +122,11 @@ class Admin:
         ]
 
     async def list_tasks_async(
-        self, queue: str = None, task: str = None, status: str = None, lock: str = None,
+        self,
+        queue: Optional[str] = None,
+        task: Optional[str] = None,
+        status: Optional[str] = None,
+        lock: Optional[str] = None,
     ) -> Iterable[Dict[str, Any]]:
         """
         List all tasks and number of jobs per status for each task.
