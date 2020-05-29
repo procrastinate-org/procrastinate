@@ -49,15 +49,16 @@ DECLARE
 	found_jobs procrastinate_jobs;
 BEGIN
 	WITH potential_job AS (
-		SELECT procrastinate_jobs.*
-			FROM procrastinate_jobs
-			LEFT JOIN procrastinate_job_locks ON procrastinate_job_locks.object = procrastinate_jobs.lock
-			WHERE (target_queue_names IS NULL OR queue_name = ANY( target_queue_names ))
-			  AND procrastinate_job_locks.object IS NULL
-			  AND status = 'todo'
-			  AND (scheduled_at IS NULL OR scheduled_at <= now())
-            ORDER BY id ASC
-			FOR UPDATE OF procrastinate_jobs SKIP LOCKED LIMIT 1
+        SELECT * FROM (
+            SELECT procrastinate_jobs.*
+                FROM procrastinate_jobs
+                LEFT JOIN procrastinate_job_locks ON procrastinate_job_locks.object = procrastinate_jobs.lock
+                WHERE (target_queue_names IS NULL OR queue_name = ANY( target_queue_names ))
+                  AND procrastinate_job_locks.object IS NULL
+                  AND status = 'todo'
+                  AND (scheduled_at IS NULL OR scheduled_at <= now())
+                FOR UPDATE OF procrastinate_jobs SKIP LOCKED
+            ) t ORDER BY id ASC LIMIT 1
 	), lock_object AS (
 		INSERT INTO procrastinate_job_locks
 			SELECT lock FROM potential_job
