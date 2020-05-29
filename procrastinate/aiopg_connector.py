@@ -40,7 +40,7 @@ def wrap_exceptions(coro: CoroutineFunction) -> CoroutineFunction:
 
 
 @utils.add_sync_api
-class PostgresConnector(connector.BaseConnector):
+class AiopgConnector(connector.BaseConnector):
     def __init__(
         self,
         *,
@@ -49,9 +49,9 @@ class PostgresConnector(connector.BaseConnector):
         **kwargs: Any,
     ):
         """
-        Create a PostgreSQL connector. The connector uses an ``aiopg.Pool``,
+        Create a PostgreSQL connector using aiopg. The connector uses an ``aiopg.Pool``,
         which is either created automatically upon first use, or set through the
-        `PostgresConnector.set_pool` method.
+        `AiopgConnector.set_pool` method.
 
         All other arguments than ``json_dumps`` and ``json_loads`` are passed to
         :py:func:`aiopg.create_pool` (see aiopg documentation__), with default values
@@ -69,7 +69,7 @@ class PostgresConnector(connector.BaseConnector):
             The JSON loads function to use for deserializing job arguments. Defaults
             to the function used by psycopg2. See the `psycopg2 doc`_. Unused if the
             pool is externally created and set into the connector through the
-            `PostgresConnector.set_pool` method.
+            `AiopgConnector.set_pool` method.
         dsn : ``Optional[str]``
             Passed to aiopg. Default is "" instead of None, which means if no argument
             is passed, it will connect to localhost:5432 instead of a Unix-domain

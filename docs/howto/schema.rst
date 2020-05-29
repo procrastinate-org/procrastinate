@@ -10,10 +10,10 @@ By default Procrastinate uses the ``public`` schema, which is PostgreSQL's defau
 schema, i.e. the schema that every new database contains.
 
 To have Procrastinate use another schema than ``public``, change the *schema search
-path* when creating the `PostgresConnector`::
+path* when creating the `AiopgConnector`::
 
     app = procrastinate.App(
-        connector=procrastinate.PostgresConnector(
+        connector=procrastinate.AiopgConnector(
             host="localhost",
             options="-c search_path=myschema"
         )

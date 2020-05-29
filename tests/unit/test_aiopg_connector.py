@@ -11,7 +11,7 @@ async def test_adapt_pool_args_on_connect(mocker):
     async def on_connect(connection):
         called.append(connection)
 
-    args = aiopg_connector.PostgresConnector._adapt_pool_args(
+    args = aiopg_connector.AiopgConnector._adapt_pool_args(
         pool_args={"on_connect": on_connect}, json_loads=None
     )
 
@@ -24,7 +24,7 @@ async def test_adapt_pool_args_on_connect(mocker):
 
 
 def test_adapt_pool_args_maxsize():
-    args = aiopg_connector.PostgresConnector._adapt_pool_args(
+    args = aiopg_connector.AiopgConnector._adapt_pool_args(
         pool_args={"maxsize": 1}, json_loads=None
     )
 
@@ -66,13 +66,13 @@ async def test_wrap_exceptions_success():
     ],
 )
 def test_wrap_exceptions_applied(method_name):
-    connector = aiopg_connector.PostgresConnector()
+    connector = aiopg_connector.AiopgConnector()
     assert getattr(connector, method_name)._exceptions_wrapped is True
 
 
 def test_set_pool(mocker):
     pool = mocker.Mock()
-    connector = aiopg_connector.PostgresConnector()
+    connector = aiopg_connector.AiopgConnector()
 
     connector.set_pool(pool)
 
@@ -81,7 +81,7 @@ def test_set_pool(mocker):
 
 def test_set_pool_already_set(mocker):
     pool = mocker.Mock()
-    connector = aiopg_connector.PostgresConnector()
+    connector = aiopg_connector.AiopgConnector()
     connector.set_pool(pool)
 
     with pytest.raises(exceptions.PoolAlreadySet):

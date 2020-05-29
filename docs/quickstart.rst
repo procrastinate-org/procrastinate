@@ -46,9 +46,9 @@ Create a Procrastinate application object
 
 We'll do this in a single file. Start an empty file named ``tutorial.py``::
 
-    from procrastinate import App, PostgresConnector
+    from procrastinate import App, AiopgConnector
 
-    app = App(connector=PostgresConnector(host="localhost", user="postgres"))
+    app = App(connector=AiopgConnector(host="localhost", user="postgres"))
 
 The application will be the entry point for both:
 
@@ -158,9 +158,9 @@ Your final file
     import random
     import sys
 
-    from procrastinate import App, PostgresConnector
+    from procrastinate import App, AiopgConnector
 
-    app = App(connector=PostgresConnector(host="localhost", user="postgres"))
+    app = App(connector=AiopgConnector(host="localhost", user="postgres"))
 
     @app.task
     def sum(a, b):

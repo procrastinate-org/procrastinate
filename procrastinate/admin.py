@@ -19,7 +19,7 @@ class Admin:
         ----------
         connector :
             Instance of a subclass of :py:class:`procrastinate.connector.BaseConnector`,
-            typically `PostgresConnector`. It will be responsible for all communications
+            typically `AiopgConnector`. It will be responsible for all communications
             with the database. Mandatory.
         """
         self.connector = connector

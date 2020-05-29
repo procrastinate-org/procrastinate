@@ -10,7 +10,7 @@ App
 Connectors
 ----------
 
-.. autoclass:: procrastinate.PostgresConnector
+.. autoclass:: procrastinate.AiopgConnector
     :members: set_pool, close, close_async
 
 .. autoclass:: procrastinate.testing.InMemoryConnector
