@@ -62,7 +62,6 @@ jobs:
         TOX_ENV: docs
 
     - stage: deploy
-      if: branch = master AND tag IS present
       python: 3.8
       before_install: true
       script: true
@@ -70,6 +69,8 @@ jobs:
       after_success: true
       deploy:
         provider: pypi
+        on:
+          tags: true
         username: __token__
         password:
           secure: "hqUrw49Q2jdZ9cYWvI6/1pL9lGGnbHIxGdQtFRFSDLS7DhvI48FwuPD4swxALJIDnCnz99NdpZ5hRDcn95TUhTnhNGCDBOqHkFnu17H1TMZGgq21vZpGABgBpJ26RezmIIL463VcGbwbI88uNR815hKUw1hA/AUGdT4cKseqk/icsMTFfZYijxfJO/sItprFxF63VXNIj8Xv4BAof94Lw1gJII+VzCBZ51eA3jisttjXxKufuhdqPcnSFLh3YQ1JvXoPv5W1V+yIMcAa4Sm+UaEPsY/UMMAixJSBFEUJtEaiOHE4IxJb2GZauLa5mDzQKS7pULBcAi1moBthxkK35DDzXwaM1FVM1pFeoCSeHy9sTUEGnayKMaHMeqrrq0qg1G8H7EUI/4l9TMJdQif/joLM8QS80F3Wdk9hUzCTU5fkn6xcZYdynAoFc3IYXBbAUkcVTlLX+FGFWFfXoNx/sUFRxM+vElPxGNNG7Es+rHCGjTXhAYm+7sMvcD/UWKyWWvwdQkHOhmLhrKwbb99Kescfy0Z4b3NxlERo1IgtzWQwTGgM6FwxMUQS89hHcCZm2Q0vSKiFJMHLMqoxSqCPcDTegF6HtjWSdHFtUArbe3nWOu5GBEz6kNOjdRBh8Czh6bcbHFqnsP42QNfH6mCTYJKCU/zTdLusJnVCUAh+v8Q="
