@@ -62,6 +62,7 @@ jobs:
         TOX_ENV: docs
 
     - stage: deploy
+      if: tag IS present
       python: 3.8
       before_install: true
       script: true
