@@ -71,6 +71,7 @@ jobs:
       deploy:
         provider: pypi
         on:
+          repo: peopledoc/procrastinate
           tags: true
         username: __token__
         password:
