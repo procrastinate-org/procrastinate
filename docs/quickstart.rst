@@ -14,7 +14,7 @@ parameters. Otherwise, we'll create one together with Docker_:
 
 .. code-block:: console
 
-    $ docker run --detach --rm -p 5432:5432 postgres
+    $ docker run --detach --rm -p 5432:5432 -e POSTGRES_PASSWORD=password postgres
 
 .. note::
 
@@ -48,7 +48,7 @@ We'll do this in a single file. Start an empty file named ``tutorial.py``::
 
     from procrastinate import App, AiopgConnector
 
-    app = App(connector=AiopgConnector(host="localhost", user="postgres"))
+    app = App(connector=AiopgConnector(host="localhost", user="postgres", password="password"))
 
 The application will be the entry point for both:
 
@@ -160,7 +160,7 @@ Your final file
 
     from procrastinate import App, AiopgConnector
 
-    app = App(connector=AiopgConnector(host="localhost", user="postgres"))
+    app = App(connector=AiopgConnector(host="localhost", user="postgres", password="password"))
 
     @app.task
     def sum(a, b):
