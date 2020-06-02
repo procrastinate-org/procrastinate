@@ -18,7 +18,7 @@ async def pg_connector_factory(connection_params):
         json_dumps = kwargs.pop("json_dumps", None)
         json_loads = kwargs.pop("json_loads", None)
         connection_params.update(kwargs)
-        connector = aiopg_connector.PostgresConnector(
+        connector = aiopg_connector.AiopgConnector(
             json_dumps=json_dumps, json_loads=json_loads, **connection_params
         )
         connectors.append(connector)
@@ -30,7 +30,7 @@ async def pg_connector_factory(connection_params):
 
 
 async def test_create_pool(connection_params):
-    pool = await aiopg_connector.PostgresConnector._create_pool(connection_params)
+    pool = await aiopg_connector.AiopgConnector._create_pool(connection_params)
     async with pool:
         async with pool.acquire() as connection:
             assert connection.dsn == "dbname=" + connection_params["dbname"]
@@ -42,7 +42,7 @@ async def test_adapt_pool_args_on_connect(mocker):
     async def on_connect(connection):
         called.append(connection)
 
-    args = aiopg_connector.PostgresConnector._adapt_pool_args(
+    args = aiopg_connector.AiopgConnector._adapt_pool_args(
         pool_args={"on_connect": on_connect}, json_loads=None
     )
 

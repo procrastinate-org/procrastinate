@@ -32,7 +32,7 @@ def schema_database(db_factory, pum):
     db_factory(dbname=dbname)
 
     # apply the current procrastinate schema to procrastinate_schema
-    connector = aiopg_connector.PostgresConnector(dbname=dbname)
+    connector = aiopg_connector.AiopgConnector(dbname=dbname)
     schema_manager = schema.SchemaManager(connector=connector)
     schema_manager.apply_schema()
     connector.close()

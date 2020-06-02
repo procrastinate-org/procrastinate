@@ -172,7 +172,7 @@ care.
 Mind the size of your PostgreSQL pool
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-You can size the PostgreSQL pool using the ``maxsize`` argument of `PostgresConnector`.
+You can size the PostgreSQL pool using the ``maxsize`` argument of `AiopgConnector`.
 Procrastinate will use use one connection to listen to server-side ``NOTIFY`` calls (see
 :ref:`discussion-general`). The rest of the pool is used for :term:`sub-workers
 <Sub-worker>`.

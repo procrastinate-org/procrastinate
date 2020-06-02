@@ -41,7 +41,7 @@ Here's an example
     # mycode.py
 
     # Make an app in your code
-    app = procrastinate.App(connector=procrastinate.PostgresConnector())
+    app = procrastinate.App(connector=procrastinate.AiopgConnector())
 
     # Then define tasks
     @app.task(queue="sums")
