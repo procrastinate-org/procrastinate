@@ -59,7 +59,7 @@ BEGIN
     ),
     candidate AS (
         SELECT jobs.*
-            FROM procrastinate_jobs jobs JOIN candidates ON jobs.id = candidates.id
+            FROM procrastinate_jobs AS jobs JOIN candidates ON jobs.id = candidates.id
             WHERE
                 status = 'todo'
                 AND (target_queue_names IS NULL OR queue_name = ANY( target_queue_names ))
