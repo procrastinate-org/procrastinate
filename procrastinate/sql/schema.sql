@@ -46,32 +46,34 @@ CREATE FUNCTION procrastinate_fetch_job(target_queue_names character varying[]) 
     LANGUAGE plpgsql
     AS $$
 DECLARE
-  found_jobs procrastinate_jobs;
+    found_job procrastinate_jobs;
 BEGIN
-  WITH locked_jobs AS (
-    SELECT DISTINCT ON (lock)
-      id, lock from procrastinate_jobs
-    WHERE "status" IN ('todo', 'doing')
-    ORDER BY lock, id ASC
-  ),
-  potential_job AS (
-    SELECT procrastinate_jobs.*
-      FROM procrastinate_jobs
-      LEFT JOIN locked_jobs ON procrastinate_jobs.lock = locked_jobs.lock
-      WHERE
-        status = 'todo'
-        AND (locked_jobs.id IS NULL OR locked_jobs.id = procrastinate_jobs.id)
-        AND (target_queue_names IS NULL OR queue_name = ANY( target_queue_names ))
-        AND (scheduled_at IS NULL OR scheduled_at <= now())
-      ORDER BY id ASC LIMIT 1
-      FOR UPDATE OF procrastinate_jobs SKIP LOCKED
-  )
-  UPDATE procrastinate_jobs
-    SET status = 'doing'
-    FROM potential_job
-    WHERE procrastinate_jobs.id = potential_job.id
-    RETURNING procrastinate_jobs.* INTO found_jobs;
-  RETURN found_jobs;
+    WITH
+    candidates AS (
+        SELECT DISTINCT ON (lock)
+            id,
+            lock
+        FROM procrastinate_jobs
+        WHERE status IN ('todo', 'doing')
+        ORDER BY lock, id ASC
+    ),
+    candidate AS (
+        SELECT jobs.*
+            FROM procrastinate_jobs jobs JOIN candidates ON jobs.id = candidates.id
+            WHERE
+                status = 'todo'
+                AND (target_queue_names IS NULL OR queue_name = ANY( target_queue_names ))
+                AND (scheduled_at IS NULL OR scheduled_at <= now())
+            ORDER BY jobs.id ASC LIMIT 1
+            FOR UPDATE OF jobs SKIP LOCKED
+    )
+    UPDATE procrastinate_jobs
+        SET status = 'doing'
+        FROM candidate
+        WHERE procrastinate_jobs.id = candidate.id
+        RETURNING procrastinate_jobs.* INTO found_job;
+
+    RETURN found_job;
 END;
 $$;
 
@@ -91,9 +93,9 @@ CREATE FUNCTION procrastinate_notify_queue() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
 BEGIN
-  PERFORM pg_notify('procrastinate_queue#' || NEW.queue_name, NEW.task_name);
-  PERFORM pg_notify('procrastinate_any_queue', NEW.task_name);
-  RETURN NEW;
+	PERFORM pg_notify('procrastinate_queue#' || NEW.queue_name, NEW.task_name);
+	PERFORM pg_notify('procrastinate_any_queue', NEW.task_name);
+	RETURN NEW;
 END;
 $$;
 
@@ -103,7 +105,7 @@ CREATE FUNCTION procrastinate_trigger_status_events_procedure_insert() RETURNS t
 BEGIN
     INSERT INTO procrastinate_events(job_id, type)
         VALUES (NEW.id, 'deferred'::procrastinate_job_event_type);
-  RETURN NEW;
+	RETURN NEW;
 END;
 $$;
 
@@ -138,7 +140,7 @@ BEGIN
         SELECT NEW.id, t.event_type
         FROM t
         WHERE t.event_type IS NOT NULL;
-  RETURN NEW;
+	RETURN NEW;
 END;
 $$;
 
@@ -149,7 +151,7 @@ BEGIN
     INSERT INTO procrastinate_events(job_id, type, at)
         VALUES (NEW.id, 'scheduled'::procrastinate_job_event_type, NEW.scheduled_at);
 
-  RETURN NEW;
+	RETURN NEW;
 END;
 $$;
 
