@@ -50,9 +50,7 @@ DECLARE
 BEGIN
     WITH
     candidates AS (
-        SELECT DISTINCT ON (lock)
-            id,
-            lock
+        SELECT DISTINCT ON (lock) id
         FROM procrastinate_jobs
         WHERE status IN ('todo', 'doing')
         ORDER BY lock, id ASC
