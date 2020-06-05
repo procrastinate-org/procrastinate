@@ -38,27 +38,15 @@ def test_job_get_context(job_factory, scheduled_at, context_scheduled_at):
 
 
 def test_job_evolve(job_factory):
-
-    job = job_factory(
-        id=12,
-        task_name="mytask",
-        lock="sher",
-        queue="marsupilami",
-    )
-
-    expected = job_factory(
-        id=13,
-        task_name="mytask",
-        lock="bu",
-        queue="marsupilami",
-    )
+    job = job_factory(id=12, task_name="mytask", lock="sher", queue="marsupilami")
+    expected = job_factory(id=13, task_name="mytask", lock="bu", queue="marsupilami")
 
     assert job.evolve(id=13, lock="bu") == expected
 
 
-def test_job_deferrer_defer(job_store, connector):
+def test_job_deferrer_defer(job_factory, job_store, connector):
 
-    job = jobs.Job(
+    job = job_factory(
         queue="marsupilami",
         lock="sher",
         queueing_lock="houba",
@@ -86,9 +74,9 @@ def test_job_deferrer_defer(job_store, connector):
 
 
 @pytest.mark.asyncio
-async def test_job_deferrer_defer_async(job_store, connector):
+async def test_job_deferrer_defer_async(job_factory, job_store, connector):
 
-    job = jobs.Job(
+    job = job_factory(
         queue="marsupilami",
         lock="sher",
         queueing_lock="houba",
@@ -116,15 +104,9 @@ async def test_job_deferrer_defer_async(job_store, connector):
     }
 
 
-def test_job_scheduled_at_naive():
+def test_job_scheduled_at_naive(job_factory):
     with pytest.raises(ValueError):
-        jobs.Job(
-            id=12,
-            queue="marsupilami",
-            lock="sher",
-            queueing_lock="houba",
-            task_name="mytask",
-            task_kwargs={"a": "b"},
+        job_factory(
             scheduled_at=pendulum.naive(2000, 1, 1),
         )
 
