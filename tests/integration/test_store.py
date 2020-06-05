@@ -25,39 +25,16 @@ def get_all(pg_connector):
 
 
 @pytest.mark.parametrize(
-    "job",
+    "job_kwargs",
     [
-        jobs.Job(
-            id=2,
-            queue="queue_a",
-            task_name="task_2",
-            lock="lock_2",
-            queueing_lock="queueing_lock_2",
-            task_kwargs={"c": "d"},
-        ),
-        jobs.Job(
-            id=2,
-            queue="queue_a",
-            task_name="task_3",
-            lock="lock_3",
-            queueing_lock="queueing_lock_3",
-            task_kwargs={"i": "j"},
-            scheduled_at=pendulum.datetime(2000, 1, 1),
-        ),
+        {"queue": "queue_a"},
+        {"queue": "queue_a", "scheduled_at": pendulum.datetime(2000, 1, 1)},
     ],
 )
-async def test_fetch_job(pg_job_store, job):
+async def test_fetch_job(pg_job_store, job_factory, job_kwargs):
     # Add a first started job
-    await pg_job_store.defer_job(
-        jobs.Job(
-            id=1,
-            queue="queue_a",
-            task_name="task_1",
-            lock="lock_1",
-            queueing_lock="queueing_lock_1",
-            task_kwargs={"a": "b"},
-        )
-    )
+    job = job_factory(id=2, **job_kwargs)
+    await pg_job_store.defer_job(job_factory(queue="queue_a"))
     await pg_job_store.fetch_job(queues=None)
 
     # Now add the job we're testing
@@ -67,50 +44,21 @@ async def test_fetch_job(pg_job_store, job):
 
 
 @pytest.mark.parametrize(
-    "job",
+    "job_kwargs",
     [
         # We won't see this one because of the lock
-        jobs.Job(
-            id=2,
-            queue="queue_a",
-            task_name="task_2",
-            lock="lock_1",
-            queueing_lock="queueing_lock_1",
-            task_kwargs={"e": "f"},
-        ),
+        {"queue": "queue_a", "lock": "lock_1"},
         # We won't see this one because of the queue
-        jobs.Job(
-            id=2,
-            queue="queue_b",
-            task_name="task_3",
-            lock="lock_3",
-            queueing_lock="queueing_lock_3",
-            task_kwargs={"i": "j"},
-        ),
+        {"queue": "queue_b"},
         # We won't see this one because of the scheduled date
-        jobs.Job(
-            id=2,
-            queue="queue_a",
-            task_name="task_4",
-            lock="lock_4",
-            queueing_lock="queueing_lock_4",
-            task_kwargs={"i": "j"},
-            scheduled_at=pendulum.datetime(2100, 1, 1),
-        ),
+        {"queue": "queue_a", "scheduled_at": pendulum.datetime(2100, 1, 1)},
     ],
 )
-async def test_get_job_no_result(pg_job_store, job):
+async def test_get_job_no_result(pg_job_store, job_factory, job_kwargs):
+    job = job_factory(**job_kwargs)
+
     # Add a first started job
-    await pg_job_store.defer_job(
-        jobs.Job(
-            id=1,
-            queue="queue_a",
-            task_name="task_1",
-            lock="lock_1",
-            queueing_lock="queueing_lock_1",
-            task_kwargs={"a": "b"},
-        )
-    )
+    await pg_job_store.defer_job(job_factory(lock="lock_1"))
     await pg_job_store.fetch_job(queues=None)
 
     # Now add the job we're testing
@@ -119,17 +67,8 @@ async def test_get_job_no_result(pg_job_store, job):
     assert await pg_job_store.fetch_job(queues=["queue_a"]) is None
 
 
-async def test_get_stalled_jobs(get_all, pg_job_store, pg_connector):
-    await pg_job_store.defer_job(
-        jobs.Job(
-            id=0,
-            queue="queue_a",
-            task_name="task_1",
-            lock="lock_1",
-            queueing_lock="queueing_lock_1",
-            task_kwargs={"a": "b"},
-        )
-    )
+async def test_get_stalled_jobs(get_all, pg_job_store, pg_connector, job_factory):
+    await pg_job_store.defer_job(job_factory(queue="queue_a", task_name="task_1"))
     job_id = (await get_all("procrastinate_jobs", "id"))[0]["id"]
 
     # No started job
@@ -161,17 +100,10 @@ async def test_get_stalled_jobs(get_all, pg_job_store, pg_connector):
     )
 
 
-async def test_delete_old_jobs_job_is_not_finished(get_all, pg_job_store, pg_connector):
-    await pg_job_store.defer_job(
-        jobs.Job(
-            id=0,
-            queue="queue_a",
-            task_name="task_1",
-            lock="lock_1",
-            queueing_lock="queueing_lock_1",
-            task_kwargs={"a": "b"},
-        )
-    )
+async def test_delete_old_jobs_job_is_not_finished(
+    get_all, pg_job_store, pg_connector, job_factory
+):
+    await pg_job_store.defer_job(job_factory(queue="queue_a"))
 
     # No started job
     await pg_job_store.delete_old_jobs(nb_hours=0)
@@ -190,27 +122,11 @@ async def test_delete_old_jobs_job_is_not_finished(get_all, pg_job_store, pg_con
     assert len(await get_all("procrastinate_jobs", "id")) == 1
 
 
-async def test_delete_old_jobs_multiple_jobs(get_all, pg_job_store, pg_connector):
-    await pg_job_store.defer_job(
-        jobs.Job(
-            id=0,
-            queue="queue_a",
-            task_name="task_1",
-            lock="lock_1",
-            queueing_lock="queueing_lock_1",
-            task_kwargs={"a": "b"},
-        )
-    )
-    await pg_job_store.defer_job(
-        jobs.Job(
-            id=0,
-            queue="queue_b",
-            task_name="task_2",
-            lock="lock_2",
-            queueing_lock="queueing_lock_2",
-            task_kwargs={"a": "b"},
-        )
-    )
+async def test_delete_old_jobs_multiple_jobs(
+    get_all, pg_job_store, pg_connector, job_factory
+):
+    await pg_job_store.defer_job(job_factory(queue="queue_a"))
+    await pg_job_store.defer_job(job_factory(queue="queue_b"))
 
     # We start both jobs
     job_a = await pg_job_store.fetch_job(queues=["queue_a"])
@@ -231,17 +147,10 @@ async def test_delete_old_jobs_multiple_jobs(get_all, pg_job_store, pg_connector
     assert rows[0]["id"] == job_b.id
 
 
-async def test_delete_old_job_filter_on_end_date(get_all, pg_job_store, pg_connector):
-    await pg_job_store.defer_job(
-        jobs.Job(
-            id=0,
-            queue="queue_a",
-            task_name="task_1",
-            lock="lock_1",
-            queueing_lock="queueing_lock_1",
-            task_kwargs={"a": "b"},
-        )
-    )
+async def test_delete_old_job_filter_on_end_date(
+    get_all, pg_job_store, pg_connector, job_factory
+):
+    await pg_job_store.defer_job(job_factory(queue="queue_a"))
     # We start the job
     job = await pg_job_store.fetch_job(queues=["queue_a"])
     # We finish the job
@@ -283,17 +192,9 @@ async def test_delete_old_jobs_parameters(
     queue,
     include_error,
     should_delete,
+    job_factory,
 ):
-    await pg_job_store.defer_job(
-        jobs.Job(
-            id=0,
-            queue="queue_a",
-            task_name="task_1",
-            lock="lock_1",
-            queueing_lock="queueing_lock_1",
-            task_kwargs={"a": "b"},
-        )
-    )
+    await pg_job_store.defer_job(job_factory(queue="queue_a"))
 
     # We start a job
     job = await pg_job_store.fetch_job(queues=["queue_a"])
@@ -315,17 +216,8 @@ async def test_delete_old_jobs_parameters(
         assert nb_jobs == 1
 
 
-async def test_finish_job(get_all, pg_job_store):
-    await pg_job_store.defer_job(
-        jobs.Job(
-            id=0,
-            queue="queue_a",
-            task_name="task_1",
-            lock="lock_1",
-            queueing_lock="queueing_lock_1",
-            task_kwargs={"a": "b"},
-        )
-    )
+async def test_finish_job(get_all, pg_job_store, job_factory):
+    await pg_job_store.defer_job(job_factory(queue="queue_a"))
     job = await pg_job_store.fetch_job(queues=["queue_a"])
 
     assert await get_all("procrastinate_jobs", "status") == [{"status": "doing"}]
@@ -341,17 +233,8 @@ async def test_finish_job(get_all, pg_job_store):
     assert await get_all("procrastinate_jobs", "status", "attempts") == expected
 
 
-async def test_finish_job_retry(get_all, pg_job_store):
-    await pg_job_store.defer_job(
-        jobs.Job(
-            id=0,
-            queue="queue_a",
-            task_name="task_1",
-            lock="lock_1",
-            queueing_lock="queueing_lock_1",
-            task_kwargs={"a": "b"},
-        )
-    )
+async def test_finish_job_retry(get_all, pg_job_store, job_factory):
+    await pg_job_store.defer_job(job_factory())
     job1 = await pg_job_store.fetch_job(queues=None)
     await pg_job_store.finish_job(job=job1, status=jobs.Status.TODO)
 
@@ -375,9 +258,9 @@ async def test_enum_synced(pg_connector):
     assert pg_values == python_values
 
 
-async def test_defer_job(pg_job_store, get_all):
+async def test_defer_job(pg_job_store, get_all, job_factory):
     queue = "marsupilami"
-    job = jobs.Job(
+    job = job_factory(
         id=0,
         queue=queue,
         task_name="bob",
@@ -408,9 +291,9 @@ async def test_defer_job(pg_job_store, get_all):
     ]
 
 
-async def test_defer_job_violate_queueing_lock(pg_job_store):
+async def test_defer_job_violate_queueing_lock(pg_job_store, job_factory):
     await pg_job_store.defer_job(
-        jobs.Job(
+        job_factory(
             id=1,
             queue="queue_a",
             task_name="task_1",
@@ -421,7 +304,7 @@ async def test_defer_job_violate_queueing_lock(pg_job_store):
     )
     with pytest.raises(exceptions.AlreadyEnqueued) as excinfo:
         await pg_job_store.defer_job(
-            jobs.Job(
+            job_factory(
                 id=2,
                 queue="queue_a",
                 task_name="task_2",

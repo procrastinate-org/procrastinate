@@ -1,7 +1,11 @@
 import contextlib
 import functools
+import itertools
 import os
+import random
 import signal as stdlib_signal
+import string
+import uuid
 
 import aiopg
 import psycopg2
@@ -129,17 +133,29 @@ def job_store(app):
 
 
 @pytest.fixture
-def job_factory():
-    defaults = {
-        "id": 42,
-        "task_name": "bla",
-        "task_kwargs": {},
-        "lock": None,
-        "queueing_lock": None,
-        "queue": "queue",
-    }
+def serial():
+    return itertools.count(1)
 
+
+@pytest.fixture
+def random_str():
+    def _(length=8):
+        return "".join(random.choice(string.ascii_lowercase) for _ in range(length))
+
+    return _
+
+
+@pytest.fixture
+def job_factory(serial, random_str):
     def factory(**kwargs):
+        defaults = {
+            "id": next(serial),
+            "task_name": f"task_{random_str()}",
+            "task_kwargs": {},
+            "lock": str(uuid.uuid4()),
+            "queueing_lock": None,
+            "queue": f"queue_{random_str()}",
+        }
         final_kwargs = defaults.copy()
         final_kwargs.update(kwargs)
         return jobs.Job(**final_kwargs)

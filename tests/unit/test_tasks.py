@@ -1,5 +1,3 @@
-import uuid
-
 import pendulum
 import pytest
 
@@ -47,12 +45,6 @@ def test_configure_task(job_store):
 
     assert job.lock == "sher"
     assert job.task_kwargs == {"yay": "ho"}
-
-
-def test_configure_task_no_lock(job_store):
-    job = tasks.configure_task(name="my_name", job_store=job_store).job
-
-    assert uuid.UUID(job.lock)
 
 
 def test_configure_task_schedule_at(job_store):

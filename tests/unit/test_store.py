@@ -1,3 +1,5 @@
+import uuid
+
 import pendulum
 import pytest
 
@@ -7,7 +9,11 @@ pytestmark = pytest.mark.asyncio
 
 
 async def test_store_defer_job(job_store, job_factory, connector):
-    job_row = await job_store.defer_job(job=job_factory(task_kwargs={"a": "b"}))
+    job_row = await job_store.defer_job(
+        job=job_factory(
+            task_kwargs={"a": "b"}, queue="marsupilami", task_name="bla", lock="sher"
+        )
+    )
 
     assert job_row == 1
 
@@ -16,14 +22,20 @@ async def test_store_defer_job(job_store, job_factory, connector):
             "args": {"a": "b"},
             "attempts": 0,
             "id": 1,
-            "lock": None,
+            "lock": "sher",
             "queueing_lock": None,
-            "queue_name": "queue",
+            "queue_name": "marsupilami",
             "scheduled_at": None,
             "status": "todo",
             "task_name": "bla",
         }
     }
+
+
+async def test_store_defer_job_no_lock(job_store, job_factory, connector):
+    await job_store.defer_job(job=job_factory())
+
+    assert uuid.UUID(connector.jobs[1]["lock"])
 
 
 async def test_store_defer_job_connector_exception(
