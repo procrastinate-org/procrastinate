@@ -44,35 +44,6 @@ def test_job_evolve(job_factory):
     assert job.evolve(id=13, lock="bu") == expected
 
 
-def test_job_deferrer_defer(job_factory, job_store, connector):
-
-    job = job_factory(
-        queue="marsupilami",
-        lock="sher",
-        queueing_lock="houba",
-        task_name="mytask",
-        task_kwargs={"a": "b"},
-    )
-
-    id = jobs.JobDeferrer(job=job, job_store=job_store).defer(c=3)
-
-    assert id == 1
-
-    assert connector.jobs == {
-        1: {
-            "args": {"a": "b", "c": 3},
-            "attempts": 0,
-            "id": 1,
-            "lock": "sher",
-            "queueing_lock": "houba",
-            "queue_name": "marsupilami",
-            "scheduled_at": None,
-            "status": "todo",
-            "task_name": "mytask",
-        }
-    }
-
-
 @pytest.mark.asyncio
 async def test_job_deferrer_defer_async(job_factory, job_store, connector):
 
@@ -106,9 +77,7 @@ async def test_job_deferrer_defer_async(job_factory, job_store, connector):
 
 def test_job_scheduled_at_naive(job_factory):
     with pytest.raises(ValueError):
-        job_factory(
-            scheduled_at=pendulum.naive(2000, 1, 1),
-        )
+        job_factory(scheduled_at=pendulum.naive(2000, 1, 1),)
 
 
 def test_call_string(job_factory):
