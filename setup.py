@@ -21,7 +21,7 @@ def ensure_version():
     # If running from the git repository
     try:
         version = (
-            subprocess.check_output(["git", "describe"])
+            subprocess.check_output(["git", "describe", "--tags"])
             .decode("utf-8")
             .strip()
             .replace("-", "+", 1)
