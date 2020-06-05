@@ -65,7 +65,7 @@ async def test_run_log_current_job_when_stopping(app, running_worker, caplog):
     try:
         await asyncio.wait_for(running_worker.task, timeout=0.5)
     except asyncio.TimeoutError:
-        pytest.fail("Failed to launch task withing .5s")
+        pytest.fail("Failed to launch task within .5s")
 
     # We want to make sure that the log that names the current running task fired.
     assert {
