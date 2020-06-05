@@ -11,12 +11,14 @@ BEGIN
     WITH candidate AS (
         SELECT jobs.*
             FROM procrastinate_jobs AS jobs
-            LEFT JOIN procrastinate_jobs AS earlier_jobs
-            ON (earlier_jobs.lock = jobs.lock
-                AND earlier_jobs.status IN ('todo', 'doing')
-                AND earlier_jobs.id < jobs.id)
             WHERE
-                earlier_jobs.id IS NULL  -- reject jobs that have earlier jobs with the same lock
+                -- reject the job if its lock has earlier jobs
+                NOT EXISTS (
+                    SELECT 1
+                        FROM procrastinate_jobs AS earlier_jobs
+                        WHERE earlier_jobs.lock = jobs.lock
+                            AND earlier_jobs.status IN ('todo', 'doing')
+                            AND earlier_jobs.id < jobs.id)
                 AND jobs.status = 'todo'
                 AND (target_queue_names IS NULL OR jobs.queue_name = ANY( target_queue_names ))
                 AND (jobs.scheduled_at IS NULL OR jobs.scheduled_at <= now())
