@@ -92,6 +92,9 @@ class Job:
         context["call_string"] = self.call_string
         return context
 
+    def evolve(self, **kwargs: Any) -> "Job":
+        return attr.evolve(self, **kwargs)
+
     @cached_property
     def call_string(self):
         kwargs_string = ", ".join(
@@ -125,15 +128,14 @@ class JobDeferrer:
 
         job = self.make_new_job(**task_kwargs)
 
-        context = job.log_context()
         logger.debug(
             f"About to defer job {job.call_string}",
-            extra={"action": "about_to_defer_job", "job": context},
+            extra={"action": "about_to_defer_job", "job": job.log_context()},
         )
         id = await self.job_store.defer_job(job=job)
-        context["id"] = id
+        job = job.evolve(id=id)
         logger.info(
-            f"Deferred job {job.call_string} with id: {id}",
-            extra={"action": "job_defer", "job": context},
+            f"Deferred job {job.call_string}",
+            extra={"action": "job_defer", "job": job.log_context()},
         )
         return id

@@ -11,9 +11,9 @@ from procrastinate import jobs
         (None, None),
     ],
 )
-def test_job_get_context(scheduled_at, context_scheduled_at):
+def test_job_get_context(job_factory, scheduled_at, context_scheduled_at):
 
-    job = jobs.Job(
+    job = job_factory(
         id=12,
         queue="marsupilami",
         lock="sher",
@@ -35,6 +35,25 @@ def test_job_get_context(scheduled_at, context_scheduled_at):
         "attempts": 42,
         "call_string": "mytask[12](a='b')",
     }
+
+
+def test_job_evolve(job_factory):
+
+    job = job_factory(
+        id=12,
+        task_name="mytask",
+        lock="sher",
+        queue="marsupilami",
+    )
+
+    expected = job_factory(
+        id=13,
+        task_name="mytask",
+        lock="bu",
+        queue="marsupilami",
+    )
+
+    assert job.evolve(id=13, lock="bu") == expected
 
 
 def test_job_deferrer_defer(job_store, connector):
