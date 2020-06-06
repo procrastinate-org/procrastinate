@@ -1,4 +1,4 @@
-Create your job store, and connect to a PostgreSQL database
+Create your connector, and connect to a PostgreSQL database
 -----------------------------------------------------------
 
 There are three ways you can specify the connection parameters:
