@@ -19,6 +19,7 @@ How to...
     howto/middleware
     howto/events
     howto/async
+    howto/sync_defer
     howto/logging
     howto/testing
     howto/deployment

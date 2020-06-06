@@ -9,7 +9,7 @@ import psycopg2.errors
 import psycopg2.sql
 from psycopg2.extras import Json, RealDictCursor
 
-from procrastinate import connector, exceptions, sql
+from procrastinate import connector, exceptions, psycopg2_connector, sql
 
 logger = logging.getLogger(__name__)
 
@@ -70,6 +70,13 @@ class AiopgConnector(connector.BaseConnector):
             to the function used by psycopg2. See the `psycopg2 doc`_. Unused if the
             pool is externally created and set into the connector through the
             `AiopgConnector.set_pool` method.
+        real_sync_defer :
+            If a synchronous call to a defer operation is issued, whether to call a
+            really synchronous psycopg2 implementation (``True``) which will use its own
+            connection pool, or a synchronous wrapper around this asynchronous
+            connector, which may not play as nicely with multithreaded programs but will
+            use connections from this connector's pool (``False``)(see
+            `discussion-sync-defer`).
         dsn : ``Optional[str]``
             Passed to aiopg. Default is "" instead of None, which means if no argument
             is passed, it will connect to localhost:5432 instead of a Unix-domain

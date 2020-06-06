@@ -155,6 +155,40 @@ either serial or parallel (see `howto/async`, `howto/concurrency`).
 
 The rest of this section will discuss the specifics of asynchronous parallel workers.
 
+.. _discussion-sync-defer:
+
+Synchronous deferring
+^^^^^^^^^^^^^^^^^^^^^
+
+Procrastinate gets to be called in two very different contexts:
+
+- When deferring a task, in **your** process, where Procrastinate is being used as a
+  library
+- When running a worker, where Procrastinate itself controls the process.
+
+Workers will always be asynchronous, and will support both synchronous and asynchronous
+jobs. When deferring a task, on the other hand, Procrastinate needs to play nice with
+your program.
+
+The real question revolves around deferring tasks.
+
+Procrastinate supports two ways of doing synchronous I/O:
+
+- "classic" synchronous I/O (using synchronous database drivers such as Psycopg2).
+  This mode is necessary in multi-threaded cases.
+- "mixed" I/O (synchronously launching an event loop, and have asynchronous coroutine
+  run under the hood).
+  This mode will use less connections when used within another job.
+
+If you use an `AiopgConnector`, then, by default, you will use the "mixed" mode. You can
+request the ``AiopgConnector`` to use the "classic" mode by passing
+``real_sync_defer=True`` when creating the ``AiopgConnector``. You can also have the
+classic mode by using a `Psycopg2Connector` as your App's connector. You will be
+restricted to a few operations, including deferring tasks and applying the schema.
+This is recommended for synchronous multi-threaded apps that defer jobs.
+
+See `howto/sync_defer`.
+
 Don't mix sync and async
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
