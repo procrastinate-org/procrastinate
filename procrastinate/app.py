@@ -61,8 +61,7 @@ class App:
         Parameters
         ----------
         connector :
-            Instance of a subclass of :py:class:`procrastinate.connector.BaseConnector`,
-            typically `AiopgConnector`. It will be responsible for all communications
+            Typically an `AiopgConnector`. It will be responsible for all communications
             with the database. Mandatory.
         import_paths :
             List of python dotted paths of modules to import, to make sure

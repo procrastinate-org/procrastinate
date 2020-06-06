@@ -45,6 +45,7 @@ class AiopgConnector(connector.BaseConnector):
         *,
         json_dumps: Optional[Callable] = None,
         json_loads: Optional[Callable] = None,
+        real_sync_defer: bool = False,
         **kwargs: Any,
     ):
         """
@@ -99,6 +100,8 @@ class AiopgConnector(connector.BaseConnector):
         self.json_loads = json_loads
         self._pool_args = self._adapt_pool_args(kwargs, json_loads)
         self._lock: Optional[asyncio.Lock] = None
+        self._sync_connector: Optional[psycopg2_connector.Psycopg2Connector] = None
+        self.real_sync_defer = real_sync_defer
 
     @staticmethod
     def _adapt_pool_args(
@@ -139,6 +142,9 @@ class AiopgConnector(connector.BaseConnector):
             self._pool.close()
             await self._pool.wait_closed()
             self._pool = None
+        if self._sync_connector:
+            # This is not an async call but hopefully at this point, it's ok.
+            self._sync_connector.close()
 
     def _wrap_json(self, arguments: Dict[str, Any]):
         return {
@@ -259,3 +265,22 @@ class AiopgConnector(connector.BaseConnector):
                 continue
 
             event.set()
+
+    def get_sync_connector(self) -> connector.BaseSyncConnector:
+        if not self.real_sync_defer:
+            return super().get_sync_connector()
+
+        if self._sync_connector:
+            return self._sync_connector
+
+        pool_args = self._pool_args.copy()
+        pool_args["minconn"] = pool_args.pop("minsize", 1)
+        pool_args["maxconn"] = pool_args.pop("maxsize", 10)
+        pool_args.pop("enable_json", None)
+        pool_args.pop("enable_hstore", None)
+        pool_args.pop("enable_uuid", None)
+        pool_args.pop("on_connect", None)
+        self._sync_connector = psycopg2_connector.Psycopg2Connector(
+            json_dumps=self.json_dumps, **pool_args
+        )
+        return self._sync_connector

@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any, Dict, Optional
 
 import attr
 
-from procrastinate import types, utils
+from procrastinate import types
 
 if TYPE_CHECKING:
     from procrastinate import store  # noqa
@@ -103,7 +103,6 @@ class Job:
         return f"{self.task_name}[{self.id}]({kwargs_string})"
 
 
-@utils.add_sync_api
 class JobDeferrer:
     """
     The main purpose of ``JobDeferrer`` is to get a hold of the job_store and the job,
@@ -121,21 +120,34 @@ class JobDeferrer:
 
         return attr.evolve(self.job, task_kwargs=final_kwargs)
 
-    async def defer_async(self, **task_kwargs: types.JSONValue) -> int:
-        """
-        See `Task.defer` for details.
-        """
-
-        job = self.make_new_job(**task_kwargs)
-
+    def _log_before_defer_job(self, job: Job) -> None:
         logger.debug(
             f"About to defer job {job.call_string}",
             extra={"action": "about_to_defer_job", "job": job.log_context()},
         )
-        id = await self.job_store.defer_job(job=job)
-        job = job.evolve(id=id)
+
+    def _log_after_defer_job(self, job: Job) -> None:
+
         logger.info(
             f"Deferred job {job.call_string}",
             extra={"action": "job_defer", "job": job.log_context()},
         )
+
+    async def defer_async(self, **task_kwargs: types.JSONValue) -> int:
+        """
+        See `Task.defer` for details.
+        """
+        # Make sure this code stays synchronized with .defer()
+        job = self.make_new_job(**task_kwargs)
+        self._log_before_defer_job(job=job)
+        id = await self.job_store.defer_job_async(job=job)
+        self._log_after_defer_job(job=job.evolve(id=id))
+        return id
+
+    def defer(self, **task_kwargs: types.JSONValue) -> int:
+        # Make sure this code stays synchronized with .defer_async()
+        job = self.make_new_job(**task_kwargs)
+        self._log_before_defer_job(job=job)
+        id = self.job_store.defer_job(job=job)
+        self._log_after_defer_job(job=job.evolve(id=id))
         return id

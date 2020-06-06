@@ -41,3 +41,6 @@ class BaseConnector(BaseSyncConnector):
         self, event: asyncio.Event, channels: Iterable[str]
     ) -> None:
         raise NotImplementedError
+
+    def get_sync_connector(self) -> "BaseSyncConnector":
+        return self

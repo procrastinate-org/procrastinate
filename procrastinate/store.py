@@ -1,9 +1,9 @@
 import asyncio
 import datetime
 import uuid
-from typing import Iterable, Optional
+from typing import Any, Dict, Iterable, Optional
 
-from procrastinate import connector, exceptions, jobs, sql
+from procrastinate import connector, exceptions, jobs, sql, utils
 
 
 def get_channel_for_queues(queues: Optional[Iterable[str]] = None) -> Iterable[str]:
@@ -14,29 +14,53 @@ def get_channel_for_queues(queues: Optional[Iterable[str]] = None) -> Iterable[s
 
 
 class JobStore:
-    def __init__(self, connector: connector.BaseConnector):
+    def __init__(
+        self, connector: connector.BaseConnector,
+    ):
         self.connector = connector
 
-    async def defer_job(self, job: jobs.Job) -> int:
+    async def defer_job_async(self, job: jobs.Job) -> int:
+        # Make sure this code stays synchronized with .defer_job()
         try:
             result = await self.connector.execute_query_one_async(
-                query=sql.queries["defer_job"],
-                task_name=job.task_name,
-                lock=job.lock or str(uuid.uuid4()),
-                queueing_lock=job.queueing_lock,
-                args=job.task_kwargs,
-                scheduled_at=job.scheduled_at,
-                queue=job.queue,
+                **self._defer_job_query_kwargs(job=job)
             )
         except exceptions.UniqueViolation as exc:
-            if exc.constraint_name == connector.QUEUEING_LOCK_CONSTRAINT:
-                raise exceptions.AlreadyEnqueued(
-                    "Job cannot be enqueued: there is already a job in the queue "
-                    f"with the lock {job.queueing_lock}"
-                ) from exc
-            raise
+            self._raise_already_enqueued(exc=exc, job=job)
 
         return result["id"]
+
+    def defer_job(self, job: jobs.Job) -> int:
+        connector = self.connector.get_sync_connector()
+
+        try:
+            result = connector.execute_query_one(
+                **self._defer_job_query_kwargs(job=job)
+            )
+        except exceptions.UniqueViolation as exc:
+            self._raise_already_enqueued(exc=exc, job=job)
+
+        return result["id"]
+
+    def _defer_job_query_kwargs(self, job: jobs.Job) -> Dict[str, Any]:
+
+        return {
+            "query": sql.queries["defer_job"],
+            "task_name": job.task_name,
+            "lock": job.lock or str(uuid.uuid4()),
+            "queueing_lock": job.queueing_lock,
+            "args": job.task_kwargs,
+            "scheduled_at": job.scheduled_at,
+            "queue": job.queue,
+        }
+
+    def _raise_already_enqueued(self, exc: exceptions.UniqueViolation, job: jobs.Job):
+        if exc.constraint_name == connector.QUEUEING_LOCK_CONSTRAINT:
+            raise exceptions.AlreadyEnqueued(
+                "Job cannot be enqueued: there is already a job in the queue "
+                f"with the lock {job.queueing_lock}"
+            ) from exc
+        raise exc
 
     async def fetch_job(self, queues: Optional[Iterable[str]]) -> Optional[jobs.Job]:
 
