@@ -7,6 +7,11 @@
 -- Create and enqueue a job
 SELECT procrastinate_defer_job(%(queue)s, %(task_name)s, %(lock)s, %(queueing_lock)s, %(args)s, %(scheduled_at)s) AS id;
 
+-- defer_periodic_job --
+-- Create a periodic job if it doesn't already exist, and delete periodic metadata
+-- for previous jobs in the same task.
+SELECT procrastinate_defer_periodic_job(%(queue)s, %(task_name)s, %(schedule_timestamp)s) AS id;
+
 -- fetch_job --
 -- Get the first awaiting job
 SELECT id, task_name, lock, queueing_lock, args, scheduled_at, queue_name, attempts

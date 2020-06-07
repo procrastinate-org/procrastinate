@@ -35,6 +35,14 @@ CREATE TABLE procrastinate_jobs (
     attempts integer DEFAULT 0 NOT NULL
 );
 
+CREATE TABLE procrastinate_schedules (
+    id bigserial PRIMARY KEY,
+    task_name character varying(128) NOT NULL,
+    schedule_timestamp bigint,
+    job_id bigint REFERENCES procrastinate_jobs(id) NULL,
+    UNIQUE (task_name, schedule_timestamp)
+);
+
 CREATE TABLE procrastinate_events (
     id BIGSERIAL PRIMARY KEY,
     job_id integer NOT NULL REFERENCES procrastinate_jobs ON DELETE CASCADE,
@@ -54,7 +62,14 @@ CREATE INDEX procrastinate_events_job_id_fkey ON procrastinate_events(job_id);
 
 -- Functions
 
-CREATE FUNCTION procrastinate_defer_job(queue_name character varying, task_name character varying, lock text, queueing_lock text, args json, scheduled_at timestamp with time zone) RETURNS bigint
+CREATE FUNCTION procrastinate_defer_job(
+    queue_name character varying,
+    task_name character varying,
+    lock text,
+    queueing_lock text,
+    args jsonb,
+    scheduled_at timestamp with time zone
+) RETURNS bigint
     LANGUAGE plpgsql
     AS $$
 DECLARE
@@ -65,6 +80,51 @@ BEGIN
     RETURNING id INTO job_id;
 
     RETURN job_id;
+END;
+$$;
+
+CREATE FUNCTION procrastinate_defer_periodic_job(
+    _queue_name character varying,
+    _task_name character varying,
+    _schedule_timestamp bigint
+) RETURNS bigint
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+	periodic_job_id bigint;
+	schedule_id bigint;
+BEGIN
+
+    INSERT
+        INTO procrastinate_schedules (task_name, schedule_timestamp)
+        VALUES (_task_name, _schedule_timestamp)
+        ON CONFLICT DO NOTHING
+        RETURNING id into schedule_id;
+
+    IF schedule_id IS NULL THEN
+        RETURN NULL;
+    END IF;
+
+    UPDATE procrastinate_schedules
+        SET job_id = procrastinate_defer_job(
+                _queue_name,
+                _task_name,
+                NULL,
+                NULL,
+                ('{"timestamp": ' || _schedule_timestamp || '}')::jsonb,
+                NULL
+            )
+        WHERE id = schedule_id
+        RETURNING job_id INTO periodic_job_id;
+
+    DELETE
+        FROM procrastinate_schedules
+        WHERE
+            periodic_job_id IS NOT NULL
+            AND procrastinate_schedules.task_name = _task_name
+            AND procrastinate_schedules.schedule_timestamp < _schedule_timestamp;
+
+    RETURN periodic_job_id;
 END;
 $$;
 
