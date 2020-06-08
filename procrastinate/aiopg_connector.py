@@ -99,7 +99,7 @@ class AiopgConnector(connector.BaseConnector):
         self.json_dumps = json_dumps
         self.json_loads = json_loads
         self._pool_args = self._adapt_pool_args(kwargs, json_loads)
-        self._lock = asyncio.Lock()
+        self._lock: Optional[asyncio.Lock] = None
 
     @staticmethod
     def _adapt_pool_args(
@@ -165,6 +165,8 @@ class AiopgConnector(connector.BaseConnector):
     async def _get_pool(self) -> aiopg.Pool:
         if self._pool:
             return self._pool
+        if not self._lock:
+            self._lock = asyncio.Lock()
         async with self._lock:
             if not self._pool:
                 self.set_pool(await self._create_pool(self._pool_args))
