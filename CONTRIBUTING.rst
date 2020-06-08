@@ -403,15 +403,30 @@ section. If you need information on how to work with asynchronous Python, check 
 - The official documentation: https://docs.python.org/3/library/asyncio.html
 - A more accessible guide by Brad Solomon: https://realpython.com/async-io-python/
 
+Core contributor additional documentation
+-----------------------------------------
+
+Issues
+^^^^^^
+
+Please remember to tag Issues with appropriate labels.
+
+Pull Requests
+^^^^^^^^^^^^^
+
+PR labels help ``release-drafter`` pre-fill the next release draft. They're not
+mandatory, but releasing will be easier if they're present.
 
 Release a new version
----------------------
+^^^^^^^^^^^^^^^^^^^^^
 
-Prepare a changelog in a drafted GitHub release, and then release it, with a tag.
-That's it.
+There should be an active Release Draft with the changelog in GitHub releases. Make
+relevant editions to the changelog, including listing the migrations for the release.
+Release it with the tag corresponding to the desired version. That's it.
 
-The tag will be seen by Travis, that will then create a release (using the tag as
+The new tag will be seen by Travis, which will then create a release (using the tag as
 version number, thanks to our ``setup.py``), and push it to PyPI (using the new API
-tokens and an environment variable). That build should also trigger a ReadTheDocs
-build, which will read GitHub releases (thanks to our ``changelog`` extension) and
-write a proper changelog in the published documentation.
+tokens and an environment variable). That tag should also trigger a ReadTheDocs build,
+which will read GitHub releases (thanks to our ``changelog`` extension) and write the
+changelog in the published documentation (transformed from ``Markdown`` to
+``RestructuredText``).
