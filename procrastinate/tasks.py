@@ -1,6 +1,6 @@
 import datetime
 import logging
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 import pendulum
 
@@ -64,6 +64,8 @@ class Task:
         Default queue to send deferred jobs to.
     name : ``str``
         Name of the task, usually the dotted path of the decorated function.
+    aliases : ``List[str]``
+        Additional names for the task.
     retry_strategy : `RetryStrategy`
         Value indicating the retry conditions in case of
         :py:class:`procrastinate.jobs.Job` error.
@@ -79,12 +81,14 @@ class Task:
         app: app.App,
         queue: str,
         name: Optional[str] = None,
+        aliases: Optional[List[str]] = None,
         retry: retry_module.RetryValue = False,
         pass_context: bool = False,
     ):
         self.queue = queue
         self.app = app
         self.func: Callable = func
+        self.aliases = aliases if aliases else []
         self.retry_strategy = retry_module.get_retry_strategy(retry)
         self.name: str = name if name else self.full_path
         self.pass_context = pass_context
