@@ -1,0 +1,30 @@
+name-template: '$RESOLVED_VERSION: Version title TODO change me'
+tag-template: '$RESOLVED_VERSION'
+categories:
+  - title: 'Breaking changes'
+    label: 'PR:breaking'
+  - title: 'Features'
+    label: 'PR:feature'
+  - title: 'Bug Fixes'
+    label: 'PR:bugfix'
+  - title: 'Miscellaneous'
+    label: 'PR:miscellaneous'
+change-template: '- $TITLE (#$NUMBER)'
+version-resolver:
+  default: minor
+  major:
+    label: 'PR:major'
+  minor:
+    label: 'PR:minor'
+  patch:
+    label: 'PR:incremental'
+exclude-labels:
+- 'PR:skip-changelog'
+template: |
+  ## Migrations:
+
+  $CHANGES
+
+  ## Kudos:
+
+  $CONTRIBUTORS
