@@ -1,27 +1,31 @@
-name-template: '$RESOLVED_VERSION: Version title TODO change me'
+name-template: '$RESOLVED_VERSION: Version title (TODO: set meaningful title)'
 tag-template: '$RESOLVED_VERSION'
 categories:
   - title: 'Breaking changes'
-    label: 'PR:breaking'
+    label: 'PR type: breaking'
   - title: 'Features'
-    label: 'PR:feature'
+    label: 'PR type: feature'
   - title: 'Bug Fixes'
-    label: 'PR:bugfix'
+    label: 'PR type: bugfix'
   - title: 'Miscellaneous'
-    label: 'PR:miscellaneous'
+    label: 'PR type: miscellaneous'
 change-template: '- $TITLE (#$NUMBER)'
 version-resolver:
   default: minor
   major:
-    label: 'PR:major'
+    label: 'PR scope: major'
   minor:
-    label: 'PR:minor'
+    label: 'PR scope: minor'
   patch:
-    label: 'PR:incremental'
+    label: 'PR scope: incremental'
 exclude-labels:
-- 'PR:skip-changelog'
+- 'PR: Skip changelog'
 template: |
-  ## Migrations:
+  ## Migrations
+
+  None (TODO: replace if there are migrations)
+
+  ## Uncategorized (TODO: please categorize)
 
   $CHANGES
 

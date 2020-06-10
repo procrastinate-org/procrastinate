@@ -8,3 +8,4 @@ Closes #<ticket number>
 - [ ] Documentation
   - [ ] (not applicable?)
 - [ ] Had a good time contributing?
+- [ ] (Maintainers: add PR labels)
