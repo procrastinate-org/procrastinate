@@ -421,7 +421,7 @@ Release a new version
 ^^^^^^^^^^^^^^^^^^^^^
 
 There should be an active Release Draft with the changelog in GitHub releases. Make
-relevant editions to the changelog, including listing the migrations for the release.
+relevant edits to the changelog, including listing the migrations for the release.
 Release it with the tag corresponding to the desired version. That's it.
 
 The new tag will be seen by Travis, which will then create a release (using the tag as
