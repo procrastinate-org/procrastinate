@@ -57,10 +57,10 @@ async def test_wrap_exceptions_success():
     [
         "close_async",
         "_create_pool",
-        "execute_query",
+        "execute_query_async",
         "_execute_query_connection",
-        "execute_query_one",
-        "execute_query_all",
+        "execute_query_one_async",
+        "execute_query_all_async",
         "listen_notify",
         "_loop_notify",
     ],

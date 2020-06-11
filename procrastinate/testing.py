@@ -56,13 +56,15 @@ class InMemoryConnector(connector.BaseConnector):
     def make_dynamic_query(self, query, **identifiers: str) -> str:
         return query.format(**identifiers)
 
-    async def execute_query(self, query: str, **arguments: Any) -> None:
+    async def execute_query_async(self, query: str, **arguments: Any) -> None:
         self.generic_execute(query, "run", **arguments)
 
-    async def execute_query_one(self, query: str, **arguments: Any) -> Dict[str, Any]:
+    async def execute_query_one_async(
+        self, query: str, **arguments: Any
+    ) -> Dict[str, Any]:
         return self.generic_execute(query, "one", **arguments)
 
-    async def execute_query_all(
+    async def execute_query_all_async(
         self, query: str, **arguments: Any
     ) -> List[Dict[str, Any]]:
         return self.generic_execute(query, "all", **arguments)

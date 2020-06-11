@@ -24,4 +24,4 @@ class SchemaManager:
 
     async def apply_schema_async(self) -> None:
         queries = self.get_schema()
-        await self.connector.execute_query(query=queries)
+        await self.connector.execute_query_async(query=queries)

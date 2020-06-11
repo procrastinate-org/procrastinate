@@ -57,8 +57,8 @@ async def test_adapt_pool_args_on_connect(mocker):
 @pytest.mark.parametrize(
     "method_name, expected",
     [
-        ("execute_query_one", {"json": {"a": "a", "b": "foo"}}),
-        ("execute_query_all", [{"json": {"a": "a", "b": "foo"}}]),
+        ("execute_query_one_async", {"json": {"a": "a", "b": "foo"}}),
+        ("execute_query_all_async", [{"json": {"a": "a", "b": "foo"}}]),
     ],
 )
 async def test_execute_query_json_dumps(
@@ -98,23 +98,23 @@ async def test_json_loads(pg_connector_factory, mocker):
     arg = {"a": 1, "b": 2}
     connector = pg_connector_factory(json_loads=json_loads)
 
-    result = await connector.execute_query_one(query, arg=arg)
+    result = await connector.execute_query_one_async(query, arg=arg)
     assert result["json"] == {"a": 1, "b": Param(p=2)}
 
 
 async def test_execute_query(pg_connector):
     assert (
-        await pg_connector.execute_query(
+        await pg_connector.execute_query_async(
             "COMMENT ON TABLE \"procrastinate_jobs\" IS 'foo' "
         )
         is None
     )
-    result = await pg_connector.execute_query_one(
+    result = await pg_connector.execute_query_one_async(
         "SELECT obj_description('public.procrastinate_jobs'::regclass)"
     )
     assert result == {"obj_description": "foo"}
 
-    result = await pg_connector.execute_query_all(
+    result = await pg_connector.execute_query_all_async(
         "SELECT obj_description('public.procrastinate_jobs'::regclass)"
     )
     assert result == [{"obj_description": "foo"}]
@@ -122,12 +122,12 @@ async def test_execute_query(pg_connector):
 
 @pytest.mark.filterwarnings("error::ResourceWarning")
 async def test_execute_query_simultaneous(pg_connector):
-    # two coroutines doing execute_query simulteneously
+    # two coroutines doing execute_query_async simulteneously
     #
     # the test may fail if the connector fails to properly parallelize connections
 
     async def query():
-        await pg_connector.execute_query("SELECT 1")
+        await pg_connector.execute_query_async("SELECT 1")
 
     try:
         await asyncio.gather(query(), query())
@@ -136,7 +136,7 @@ async def test_execute_query_simultaneous(pg_connector):
 
 
 async def test_close_async(pg_connector):
-    await pg_connector.execute_query("SELECT 1")
+    await pg_connector.execute_query_async("SELECT 1")
     pool = pg_connector._pool
     await pg_connector.close_async()
     assert pool.closed is True
@@ -162,7 +162,7 @@ async def test_listen_notify(pg_connector):
     try:
         await event.wait()
         event.clear()
-        await pg_connector.execute_query(f"""NOTIFY "{channel}" """)
+        await pg_connector.execute_query_async(f"""NOTIFY "{channel}" """)
         await asyncio.wait_for(event.wait(), timeout=1)
     except asyncio.TimeoutError:
         pytest.fail("Notify not received within 1 sec")

@@ -9,7 +9,7 @@ import psycopg2.errors
 import psycopg2.sql
 from psycopg2.extras import Json, RealDictCursor
 
-from procrastinate import connector, exceptions, sql, utils
+from procrastinate import connector, exceptions, sql
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +39,6 @@ def wrap_exceptions(coro: CoroutineFunction) -> CoroutineFunction:
     return wrapped
 
 
-@utils.add_sync_api
 class AiopgConnector(connector.BaseConnector):
     def __init__(
         self,
@@ -179,7 +178,7 @@ class AiopgConnector(connector.BaseConnector):
     # a pool or from a connection
 
     @wrap_exceptions
-    async def execute_query(self, query: str, **arguments: Any) -> None:
+    async def execute_query_async(self, query: str, **arguments: Any) -> None:
         pool = await self._get_pool()
         with await pool.cursor() as cursor:
             await cursor.execute(query, self._wrap_json(arguments))
@@ -192,7 +191,9 @@ class AiopgConnector(connector.BaseConnector):
             await cursor.execute(query, self._wrap_json(arguments))
 
     @wrap_exceptions
-    async def execute_query_one(self, query: str, **arguments: Any) -> Dict[str, Any]:
+    async def execute_query_one_async(
+        self, query: str, **arguments: Any
+    ) -> Dict[str, Any]:
         pool = await self._get_pool()
         with await pool.cursor() as cursor:
             await cursor.execute(query, self._wrap_json(arguments))
@@ -200,7 +201,7 @@ class AiopgConnector(connector.BaseConnector):
             return await cursor.fetchone()
 
     @wrap_exceptions
-    async def execute_query_all(
+    async def execute_query_all_async(
         self, query: str, **arguments: Any
     ) -> List[Dict[str, Any]]:
         pool = await self._get_pool()

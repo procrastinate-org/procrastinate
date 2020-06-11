@@ -19,7 +19,7 @@ class JobStore:
 
     async def defer_job(self, job: jobs.Job) -> int:
         try:
-            result = await self.connector.execute_query_one(
+            result = await self.connector.execute_query_one_async(
                 query=sql.queries["defer_job"],
                 task_name=job.task_name,
                 lock=job.lock or str(uuid.uuid4()),
@@ -40,7 +40,7 @@ class JobStore:
 
     async def fetch_job(self, queues: Optional[Iterable[str]]) -> Optional[jobs.Job]:
 
-        row = await self.connector.execute_query_one(
+        row = await self.connector.execute_query_one_async(
             query=sql.queries["fetch_job"], queues=queues
         )
 
@@ -58,7 +58,7 @@ class JobStore:
         task_name: Optional[str] = None,
     ) -> Iterable[jobs.Job]:
 
-        rows = await self.connector.execute_query_all(
+        rows = await self.connector.execute_query_all_async(
             query=sql.queries["select_stalled_jobs"],
             nb_seconds=nb_seconds,
             queue=queue,
@@ -78,7 +78,7 @@ class JobStore:
         else:
             statuses = [jobs.Status.SUCCEEDED.value, jobs.Status.FAILED.value]
 
-        await self.connector.execute_query(
+        await self.connector.execute_query_async(
             query=sql.queries["delete_old_jobs"],
             nb_hours=nb_hours,
             queue=queue,
@@ -92,7 +92,7 @@ class JobStore:
         scheduled_at: Optional[datetime.datetime] = None,
     ) -> None:
         assert job.id  # TODO remove this
-        await self.connector.execute_query(
+        await self.connector.execute_query_async(
             query=sql.queries["finish_job"],
             job_id=job.id,
             status=status.value,

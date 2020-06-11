@@ -41,7 +41,9 @@ async def test_store_defer_job_no_lock(job_store, job_factory, connector):
 async def test_store_defer_job_connector_exception(
     mocker, job_store, job_factory, connector
 ):
-    connector.execute_query_one = mocker.Mock(side_effect=exceptions.ConnectorException)
+    connector.execute_query_one_async = mocker.Mock(
+        side_effect=exceptions.ConnectorException
+    )
 
     with pytest.raises(exceptions.ConnectorException):
         await job_store.defer_job(job=job_factory(task_kwargs={"a": "b"}))
@@ -50,7 +52,7 @@ async def test_store_defer_job_connector_exception(
 async def test_store_defer_job_unique_violation_exception(
     mocker, job_store, job_factory, connector
 ):
-    connector.execute_query_one = mocker.Mock(
+    connector.execute_query_one_async = mocker.Mock(
         side_effect=exceptions.UniqueViolation(
             constraint_name="procrastinate_jobs_queueing_lock_idx"
         )
@@ -63,7 +65,7 @@ async def test_store_defer_job_unique_violation_exception(
 async def test_store_defer_job_unique_violation_exception_other_constraint(
     mocker, job_store, job_factory, connector
 ):
-    connector.execute_query_one = mocker.Mock(
+    connector.execute_query_one_async = mocker.Mock(
         side_effect=exceptions.UniqueViolation(constraint_name="some_other_constraint")
     )
 

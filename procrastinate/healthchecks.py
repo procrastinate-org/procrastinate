@@ -10,13 +10,13 @@ class HealthCheckRunner:
         self.connector = connector
 
     async def check_connection_async(self) -> bool:
-        result = await self.connector.execute_query_one(
+        result = await self.connector.execute_query_one_async(
             query=sql.queries["check_connection"],
         )
         return result["check"]
 
     async def get_status_count_async(self) -> Dict[jobs.Status, int]:
-        result = await self.connector.execute_query_all(
+        result = await self.connector.execute_query_all_async(
             query=sql.queries["count_jobs_status"],
         )
         result_dict = {r["status"]: int(r["count"]) for r in result}

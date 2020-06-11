@@ -17,7 +17,7 @@ def pg_job_store(pg_connector):
 @pytest.fixture
 def get_all(pg_connector):
     async def f(table, *fields):
-        return await pg_connector.execute_query_all(
+        return await pg_connector.execute_query_all_async(
             f"SELECT {', '.join(fields)} FROM {table}"
         )
 
@@ -76,7 +76,7 @@ async def test_get_stalled_jobs(get_all, pg_job_store, pg_connector, job_factory
 
     # We start a job and fake its `started` state in the database
     job = await pg_job_store.fetch_job(queues=["queue_a"])
-    await pg_connector.execute_query(
+    await pg_connector.execute_query_async(
         "INSERT INTO procrastinate_events(job_id, type, at) VALUES "
         "(%(job_id)s, 'started', NOW() - INTERVAL '30 minutes')",
         job_id=job_id,
@@ -112,7 +112,7 @@ async def test_delete_old_jobs_job_is_not_finished(
     # We start a job
     job = await pg_job_store.fetch_job(queues=["queue_a"])
     # We back date the started event
-    await pg_connector.execute_query(
+    await pg_connector.execute_query_async(
         f"UPDATE procrastinate_events SET at=at - INTERVAL '2 hours'"
         f"WHERE job_id={job.id}"
     )
@@ -135,7 +135,7 @@ async def test_delete_old_jobs_multiple_jobs(
     await pg_job_store.finish_job(job_a, status=jobs.Status.SUCCEEDED)
     await pg_job_store.finish_job(job_b, status=jobs.Status.SUCCEEDED)
     # We back date the events for job_a
-    await pg_connector.execute_query(
+    await pg_connector.execute_query_async(
         f"UPDATE procrastinate_events SET at=at - INTERVAL '2 hours'"
         f"WHERE job_id={job_a.id}"
     )
@@ -156,7 +156,7 @@ async def test_delete_old_job_filter_on_end_date(
     # We finish the job
     await pg_job_store.finish_job(job, status=jobs.Status.SUCCEEDED)
     # We back date only the start event
-    await pg_connector.execute_query(
+    await pg_connector.execute_query_async(
         f"UPDATE procrastinate_events SET at=at - INTERVAL '2 hours'"
         f"WHERE job_id={job.id} AND TYPE='started'"
     )
@@ -201,7 +201,7 @@ async def test_delete_old_jobs_parameters(
     # We finish the job
     await pg_job_store.finish_job(job, status=status)
     # We back date its events
-    await pg_connector.execute_query(
+    await pg_connector.execute_query_async(
         f"UPDATE procrastinate_events SET at=at - INTERVAL '2 hours'"
         f"WHERE job_id={job.id}"
     )
@@ -247,7 +247,7 @@ async def test_finish_job_retry(get_all, pg_job_store, job_factory):
 async def test_enum_synced(pg_connector):
     # If this test breaks, it means you've changed either the task_status PG enum
     # or the python procrastinate.jobs.Status Enum without updating the other.
-    pg_enum_rows = await pg_connector.execute_query_all(
+    pg_enum_rows = await pg_connector.execute_query_all_async(
         """SELECT e.enumlabel FROM pg_enum e
                JOIN pg_type t ON e.enumtypid = t.oid WHERE t.typname = %(type_name)s""",
         type_name="procrastinate_job_status",

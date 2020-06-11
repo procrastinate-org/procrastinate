@@ -69,7 +69,7 @@ class Admin:
                 "scheduled_at": row["scheduled_at"],
                 "attempts": row["attempts"],
             }
-            for row in await self.connector.execute_query_all(
+            for row in await self.connector.execute_query_all_async(
                 query=sql.queries["list_jobs"],
                 id=id,
                 queue_name=queue,
@@ -116,7 +116,7 @@ class Admin:
                 "succeeded": row["stats"].get("succeeded", 0),
                 "failed": row["stats"].get("failed", 0),
             }
-            for row in await self.connector.execute_query_all(
+            for row in await self.connector.execute_query_all_async(
                 query=sql.queries["list_queues"],
                 queue_name=queue,
                 task_name=task,
@@ -161,7 +161,7 @@ class Admin:
                 "succeeded": row["stats"].get("succeeded", 0),
                 "failed": row["stats"].get("failed", 0),
             }
-            for row in await self.connector.execute_query_all(
+            for row in await self.connector.execute_query_all_async(
                 query=sql.queries["list_tasks"],
                 queue_name=queue,
                 task_name=task,
@@ -187,7 +187,7 @@ class Admin:
             A dictionnary representing the job (``id``, ``queue``, ``task``,
             ``lock``, ``args``, ``status``, ``scheduled_at``, ``attempts``).
         """
-        await self.connector.execute_query(
+        await self.connector.execute_query_async(
             query=sql.queries["set_job_status"], id=id, status=status,
         )
         (result,) = await self.list_jobs_async(id=id)
