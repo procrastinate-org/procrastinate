@@ -23,6 +23,7 @@ class Worker:
         concurrency: int = 1,
         wait: bool = True,
         timeout: float = WORKER_TIMEOUT,
+        listen_notify: bool = True,
     ):
         self.app = app
         self.queues = queues
@@ -31,6 +32,7 @@ class Worker:
 
         self.timeout = timeout
         self.wait = wait
+        self.listen_notify = listen_notify
 
         # Handling the info about the currently running task.
         self.known_missing_tasks: Set[str] = set()
@@ -91,7 +93,12 @@ class Worker:
             ),
         )
 
-        with self.listener(), signals.on_stop(self.stop):
+        with contextlib.ExitStack() as stack:
+            if self.wait and self.listen_notify:
+                stack.enter_context(self.listener())
+
+            stack.enter_context(signals.on_stop(self.stop))
+
             await asyncio.gather(
                 *(
                     self.single_worker(worker_id=worker_id)

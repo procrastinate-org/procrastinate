@@ -249,6 +249,10 @@ class App:
             Raising this parameter can lower the rate of workers making queries to the
             database for requesting jobs.
             (defaults to 5.0)
+        listen_notify : ``bool``
+            If ``True``, worker will dedicate a connection from the pool to listening
+            for database event, notifying of newly available jobs. If ``False``, workers
+            will just poll the database regularily (see ``timeout``). (defaults to True)
         """
         self.perform_import_paths()
         worker = self._worker(**kwargs)
