@@ -3,7 +3,7 @@ import datetime
 import uuid
 from typing import Any, Dict, Iterable, Optional
 
-from procrastinate import connector, exceptions, jobs, sql, utils
+from procrastinate import connector, exceptions, jobs, sql
 
 
 def get_channel_for_queues(queues: Optional[Iterable[str]] = None) -> Iterable[str]:
