@@ -68,3 +68,10 @@ class UniqueViolation(ConnectorException):
         self.constraint_name = constraint_name
 
     pass
+
+
+class MissingApp(ProcrastinateException):
+    """
+    Procrastinate CLI is used without an app configured, for a usage that necessitates
+    an app.
+    """

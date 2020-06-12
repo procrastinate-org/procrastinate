@@ -1,7 +1,7 @@
 import asyncio
 from typing import Any, Callable, Dict, Iterable, List, Optional
 
-from procrastinate import utils
+from procrastinate import exceptions, utils
 
 QUEUEING_LOCK_CONSTRAINT = "procrastinate_jobs_queueing_lock_idx"
 
@@ -44,3 +44,26 @@ class BaseConnector(BaseSyncConnector):
 
     def get_sync_connector(self) -> "BaseSyncConnector":
         return self
+
+
+class MissingAppConnector(BaseConnector):
+    def execute_query_one(self, query: str, **arguments: Any) -> Dict[str, Any]:
+        raise exceptions.MissingApp
+
+    async def execute_query_async(self, query: str, **arguments: Any) -> None:
+        raise exceptions.MissingApp
+
+    async def execute_query_one_async(
+        self, query: str, **arguments: Any
+    ) -> Dict[str, Any]:
+        raise exceptions.MissingApp
+
+    async def execute_query_all_async(
+        self, query: str, **arguments: Any
+    ) -> List[Dict[str, Any]]:
+        raise exceptions.MissingApp
+
+    async def listen_notify(
+        self, event: asyncio.Event, channels: Iterable[str]
+    ) -> None:
+        raise exceptions.MissingApp

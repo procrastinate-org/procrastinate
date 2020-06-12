@@ -49,15 +49,15 @@ def set_verbosity(verbosity: int) -> None:
 def handle_errors():
     try:
         yield
-    except exceptions.ProcrastinateException as exc:
-        logger.debug("Exception details:", exc_info=exc)
-        messages = [str(e) for e in utils.causes(exc)]
-        raise click.ClickException("\n".join(e for e in messages if e))
-    except NotImplementedError:
+    except exceptions.MissingApp:
         raise click.UsageError(
             "Missing app. This most probably happened because procrastinate needs an "
             "app via --app or the PROCRASTINATE_APP environment variable"
         )
+    except exceptions.ProcrastinateException as exc:
+        logger.debug("Exception details:", exc_info=exc)
+        messages = [str(e) for e in utils.causes(exc)]
+        raise click.ClickException("\n".join(e for e in messages if e))
 
 
 @click.group(context_settings=CONTEXT_SETTINGS)
@@ -87,8 +87,8 @@ def cli(ctx: click.Context, app: str, **kwargs) -> None:
         app_obj = procrastinate.App.from_path(dotted_path=app)
     else:
         # If we don't provide an app, initialize a default one that will fail if it
-        # needs its job store.
-        app_obj = procrastinate.App(connector=connector.BaseConnector())
+        # needs a connector.
+        app_obj = procrastinate.App(connector=connector.MissingAppConnector())
     ctx.obj = app_obj
 
     worker_defaults = app_obj.worker_defaults.copy()
