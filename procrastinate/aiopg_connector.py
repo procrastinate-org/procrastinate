@@ -39,7 +39,7 @@ def wrap_exceptions(coro: CoroutineFunction) -> CoroutineFunction:
     return wrapped
 
 
-class AiopgConnector(connector.BaseConnector):
+class AiopgConnector(connector.BaseAsyncConnector):
     def __init__(
         self,
         *,
@@ -273,7 +273,7 @@ class AiopgConnector(connector.BaseConnector):
 
             event.set()
 
-    def get_sync_connector(self) -> connector.BaseSyncConnector:
+    def get_sync_connector(self) -> connector.BaseConnector:
         if not self.real_sync_defer:
             return super().get_sync_connector()
 

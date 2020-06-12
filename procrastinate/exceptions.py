@@ -75,3 +75,11 @@ class MissingApp(ProcrastinateException):
     Procrastinate CLI is used without an app configured, for a usage that necessitates
     an app.
     """
+
+
+class SyncConnectorConfigurationError(ProcrastinateException):
+    """
+    A synchronous connector (probably Psycopg2Connector) was used, but the operation
+    needs an asynchronous connector (AiopgConnector). Please check your App
+    configuration.
+    """

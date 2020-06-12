@@ -22,6 +22,6 @@ class SchemaManager:
     def get_migrations_path() -> str:
         return str(migrations_path)
 
-    async def apply_schema_async(self) -> None:
+    def apply_schema(self) -> None:
         queries = self.get_schema()
-        await self.connector.execute_query_async(query=queries)
+        self.connector.execute_query(query=queries)

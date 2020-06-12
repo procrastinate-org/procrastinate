@@ -60,6 +60,26 @@ def handle_errors():
         raise click.ClickException("\n".join(e for e in messages if e))
 
 
+class MissingAppConnector(connector.BaseConnector):
+    def close(self, *args, **kwargs):
+        pass
+
+    def execute_query_one(self, *args, **kwargs):
+        raise exceptions.MissingApp
+
+    async def execute_query_async(self, *args, **kwargs):
+        raise exceptions.MissingApp
+
+    async def execute_query_one_async(self, *args, **kwargs):
+        raise exceptions.MissingApp
+
+    async def execute_query_all_async(self, *args, **kwargs):
+        raise exceptions.MissingApp
+
+    async def listen_notify(self, *args, **kwargs):
+        raise exceptions.MissingApp
+
+
 @click.group(context_settings=CONTEXT_SETTINGS)
 @click.pass_context
 @click.option("--app", "-a", help="Dotted path to the Procrastinate app")
@@ -88,7 +108,7 @@ def cli(ctx: click.Context, app: str, **kwargs) -> None:
     else:
         # If we don't provide an app, initialize a default one that will fail if it
         # needs a connector.
-        app_obj = procrastinate.App(connector=connector.MissingAppConnector())
+        app_obj = procrastinate.App(connector=MissingAppConnector())
     ctx.obj = app_obj
 
     worker_defaults = app_obj.worker_defaults.copy()

@@ -1,4 +1,3 @@
-import asyncio
 import contextlib
 import functools
 import logging
@@ -35,9 +34,15 @@ def wrap_exceptions(func: Callable) -> Callable:
     return wrapped
 
 
-class Psycopg2Connector(connector.BaseSyncConnector):
+class Psycopg2Connector(connector.BaseConnector):
+    @wrap_exceptions
     def __init__(
-        self, *, json_dumps: Optional[Callable] = None, **kwargs: Any,
+        self,
+        *,
+        json_dumps: Optional[Callable] = None,
+        json_loads: Optional[Callable] = None,
+        pool: Optional[psycopg2.pool.ThreadedConnectionPool] = None,
+        **kwargs: Any,
     ):
         """
         Synchronous connector based on a ``psycopg2.pool.ThreadedConnectionPool``.
@@ -58,13 +63,21 @@ class Psycopg2Connector(connector.BaseSyncConnector):
 
         Parameters
         ----------
-        minconn : int
-            Mandatory, passed to psycopg2.
-        maxconn : int
-            Mandatory, passed to psycopg2.
         json_dumps :
             The JSON dumps function to use for serializing job arguments. Defaults to
             the function used by psycopg2. See the `psycopg2 doc`_.
+        json_loads :
+            The JSON loads function to use for deserializing job arguments. Defaults
+            to the function used by psycopg2. See the `psycopg2 doc`_. Unused if the
+            pool is externally created and set into the connector through the
+            `AiopgConnector.set_pool` method.
+        pool :
+            Optional pool. Procrastinate can use an existing pool. Additional parameters
+            will be ignored.
+        minconn : int
+            Passed to psycopg2, default set to 1 (same as aiopg).
+        maxconn : int
+            Passed to psycopg2, default set to 10 (same as aiopg).
         dsn : ``Optional[str]``
             Passed to psycopg2. Default is "" instead of None, which means if no
             argument is passed, it will connect to localhost:5432 instead of a
@@ -75,9 +88,9 @@ class Psycopg2Connector(connector.BaseSyncConnector):
             this.
         """
         self.json_dumps = json_dumps
+        self.json_loads = json_loads
         pool_args = self._adapt_pool_args(kwargs)
-        self._pool = psycopg2.pool.ThreadedConnectionPool(**pool_args)
-        self._lock = asyncio.Lock()
+        self._pool = pool or psycopg2.pool.ThreadedConnectionPool(**pool_args)
 
     @staticmethod
     def _adapt_pool_args(pool_args: Dict[str, Any]) -> Dict[str, Any]:
@@ -85,6 +98,8 @@ class Psycopg2Connector(connector.BaseSyncConnector):
         Adapt the pool args for ``psycopg2``, using sensible defaults for Procrastinate.
         """
         final_args = {
+            "minconn": 1,
+            "maxconn": 10,
             "dsn": "",
             "cursor_factory": RealDictCursor,
         }
@@ -96,8 +111,7 @@ class Psycopg2Connector(connector.BaseSyncConnector):
         """
         Close the pool
         """
-        if self._pool:
-            self._pool.closeall()
+        self._pool.closeall()
 
     def _wrap_json(self, arguments: Dict[str, Any]):
         return {
@@ -114,6 +128,12 @@ class Psycopg2Connector(connector.BaseSyncConnector):
                 yield connection
         finally:
             self._pool.putconn(connection)
+
+    @wrap_exceptions
+    def execute_query(self, query: str, **arguments: Any) -> None:
+        with self._connection() as connection:
+            with connection.cursor() as cursor:
+                cursor.execute(query, self._wrap_json(arguments))
 
     @wrap_exceptions
     def execute_query_one(self, query: str, **arguments: Any) -> Dict[str, Any]:

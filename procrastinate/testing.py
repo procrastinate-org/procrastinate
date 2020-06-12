@@ -12,7 +12,7 @@ JobRow = Dict[str, Any]
 EventRow = Dict[str, Any]
 
 
-class InMemoryConnector(connector.BaseConnector):
+class InMemoryConnector(connector.BaseAsyncConnector):
     """
     An InMemoryConnector may be used for testing only. Tasks are not
     persisted and will be lost when the process ends.
