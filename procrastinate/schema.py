@@ -3,12 +3,10 @@ import pathlib
 from importlib_resources import read_text
 
 from procrastinate import connector as connector_module
-from procrastinate import utils
 
 migrations_path = pathlib.Path(__file__).parent / "sql" / "migrations"
 
 
-@utils.add_sync_api
 class SchemaManager:
     def __init__(self, connector: connector_module.BaseConnector):
 
@@ -24,4 +22,4 @@ class SchemaManager:
 
     def apply_schema(self) -> None:
         queries = self.get_schema()
-        self.connector.execute_query(query=queries)
+        self.connector.execute_query_one(query=queries)

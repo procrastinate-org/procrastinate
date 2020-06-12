@@ -11,8 +11,7 @@ Procrastinate is based on several things:
 - PostgreSQL's top notch ability to manage locks, thanks to its ACID_ properties.
   This ensures that when a worker starts executing a :term:`job`, it's the only one.
   Procrastinate does this by executing a ``SELECT FOR UPDATE`` that will lock the
-  jobs table. This might not scale to billions of simultaneous tables, but we don't
-  expect to reach that level.
+  impacted rows, and ensure no other process can edit the same row.
 - PostgreSQL's LISTEN_ allows us to be notified whenever a task is available.
 
 .. _ACID: https://en.wikipedia.org/wiki/ACID
@@ -68,7 +67,6 @@ some projects that really stand out, to name a few:
   same time as we started Procrastinate, and the paradigm it uses makes it hard to
   integrate a few of the feature we really wanted to use Procrastinate for, namely
   locks.
-
 
 .. _Celery: https://docs.celeryproject.org
 .. _Dramatiq: https://dramatiq.io/
@@ -138,12 +136,11 @@ asynchronous for it to work.
 Procrastinate aims at being compatible with both sync and async codebases.
 
 There are two distinct parts in procrastinate that are relevant for asynchronous work:
-:term:`deferring <Defer>` a :term:`job`, and executing it. As a rule of thumb, only use
-the asynchronous interface when you need it.
+:term:`deferring <Defer>` a :term:`job`, and executing it.
 
 If you have, for example, an async web application, you will need to defer jobs
-asynchronously. You can't afford blocking the whole event loop while you connect to
-the database and send your job.
+asynchronously. It might prove problematic to block the whole event loop while you
+connect to the database and send your job.
 
 There are mainly two use-cases where you may want to _execute_ your jobs asynchronously.
 Either they do long I/O calls that you would like to run in parallel, or you plan to
@@ -152,8 +149,6 @@ and you don't want to have to maintain their equivalent using a synchronous inte
 
 Procrastinate supports asynchronous job deferring, and asynchronous job execution,
 either serial or parallel (see `howto/async`, `howto/concurrency`).
-
-The rest of this section will discuss the specifics of asynchronous parallel workers.
 
 .. _discussion-sync-defer:
 
@@ -167,10 +162,10 @@ Procrastinate gets to be called in two very different contexts:
 - When running a worker, where Procrastinate itself controls the process.
 
 Workers will always be asynchronous, and will support both synchronous and asynchronous
-jobs. When deferring a task, on the other hand, Procrastinate needs to play nice with
-your program.
+jobs.
 
-The real question revolves around deferring tasks.
+When deferring a task, on the other hand, Procrastinate needs to play nice with
+your program. This is where there are choices to make.
 
 Procrastinate supports two ways of doing synchronous I/O:
 
@@ -183,9 +178,9 @@ Procrastinate supports two ways of doing synchronous I/O:
 If you use an `AiopgConnector`, then, by default, you will use the "mixed" mode. You can
 request the ``AiopgConnector`` to use the "classic" mode by passing
 ``real_sync_defer=True`` when creating the ``AiopgConnector``. You can also have the
-classic mode by using a `Psycopg2Connector` as your App's connector. You will be
-restricted to a few operations, including deferring tasks and applying the schema.
-This is recommended for synchronous multi-threaded apps that defer jobs.
+classic mode by using a `Psycopg2Connector` as your App's connector. In that case, you
+will be restricted to a few operations, including deferring tasks and applying the
+schema. This is recommended for synchronous multi-threaded apps that defer jobs.
 
 See `howto/sync_defer`.
 
@@ -299,11 +294,15 @@ this? Here are a few resources:
   with sync **and** async callers: "Just add await" from Andrew Godwin:
   https://www.youtube.com/watch?v=oMHrDy62kgE
 
+That being said, synchronous defers (see `discussion-sync-defer`) rely on a few
+specific methods that have been duplicated by hand (one async and one sync version).
+
 How stable is Procrastinate?
 ----------------------------
 
 More and more stable. There are still a few things we would like to do before we start
-advertising the project, and it's about to be used in production at our place.
+advertising the project, and it's now used in production in non-critical projects in
+our company (see `peopledoc`).
 
 We'd love if you were to try out Procrastinate in a non-production non-critical
 project of yours and provide us with feedback.
@@ -318,12 +317,16 @@ procrastinating and wanted to register it, it had been taken. Given this project
 is all about "launching jobs in an undetermined moment in the future", the new
 name felt quite adapted too. Also, now you know why the project is named this way.
 
+.. _peopledoc:
+
 Thanks PeopleDoc
 ----------------
 
 This project was almost entirely created by PeopleDoc employees on their
 working time. Let's take this opportunity to thank PeopleDoc for funding
-an Open Source projects like this!
+`Open Source projects`__ like this!
+
+.. __: https://github.com/peopledoc/
 
 If this makes you want to know more about this company, check our website_
 or our `job offerings`_ !

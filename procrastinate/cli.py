@@ -49,12 +49,7 @@ def set_verbosity(verbosity: int) -> None:
 def handle_errors():
     try:
         yield
-    except exceptions.MissingApp:
-        raise click.UsageError(
-            "Missing app. This most probably happened because procrastinate needs an "
-            "app via --app or the PROCRASTINATE_APP environment variable"
-        )
-    except exceptions.ProcrastinateException as exc:
+    except Exception as exc:
         logger.debug("Exception details:", exc_info=exc)
         messages = [str(e) for e in utils.causes(exc)]
         raise click.ClickException("\n".join(e for e in messages if e))
@@ -94,9 +89,9 @@ class MissingAppConnector(connector.BaseConnector):
 @click.version_option(
     procrastinate.__version__, "-V", "--version", prog_name=PROGRAM_NAME
 )
+@handle_errors()
 def cli(ctx: click.Context, app: str, **kwargs) -> None:
     """
-@handle_errors()
     Interact with a Procrastinate app. See subcommands for details.
 
     All arguments can be passed by environment variables: PROCRASTINATE_UPPERCASE_NAME
