@@ -169,7 +169,7 @@ your program. This is where there are choices to make.
 
 Procrastinate supports two ways of doing synchronous I/O:
 
-- "classic" synchronous I/O (using synchronous database drivers such as Psycopg2).
+- "classic" synchronous I/O (using synchronous database drivers such as ``Psycopg2``).
   This mode is necessary in multi-threaded cases.
 - "mixed" I/O (synchronously launching an event loop, and have asynchronous coroutine
   run under the hood).
@@ -199,7 +199,7 @@ would hope for.
 
 If you have blocking I/O or CPU-bound tasks, make sure to use a separate queue, and have
 distinct sync workers and async workers. Of course, if your program is not that
-time-sensitive and you have sufficiently few blocking tasks, it's perfectly ok not to
+time-sensitive and you have sufficiently few blocking tasks, it's perfectly OK not to
 care.
 
 Mind the size of your PostgreSQL pool
@@ -239,7 +239,7 @@ seconds. On a concurrent worker, sub-workers poll the database every
 between each database poll is still ``<worker_timeout>`` seconds.
 
 The initial timeout for the first loop of each sub-worker is modified so that the
-workers are initially spread accross all the total length of the timeout, but the
+workers are initially spread across all the total length of the timeout, but the
 randomness in job duration could create a situation where there is a long gap between
 polls. If you find this to happen in reality, please open an issue, and lower your
 ``worker_timeout``.

@@ -47,9 +47,9 @@ class Psycopg2Connector(connector.BaseConnector):
         """
         Synchronous connector based on a ``psycopg2.pool.ThreadedConnectionPool``.
 
-        This is used if you want your ``.defer()`` calls to be pureley synchronous, not
+        This is used if you want your ``.defer()`` calls to be purely synchronous, not
         asynchronous with a sync wrapper. You may need this if your program is
-        multithreaded and doesn't handle async loops well
+        multi-threaded and doesn't handle async loops well
         (see `discussion-sync-defer`).
 
         All other arguments than ``json_dumps`` are passed to

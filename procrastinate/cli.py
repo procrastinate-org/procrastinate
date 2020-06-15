@@ -218,7 +218,7 @@ def defer(
     """
     Create a job from the given task, to be executed by a worker.
     TASK should be the name or dotted path to a task.
-    JSON_ARGS should be a json object (a.k.a dictionnary) with the job parameters
+    JSON_ARGS should be a json object (a.k.a dictionary) with the job parameters
     """
     # Loading json args
     args = load_json_args(
@@ -259,8 +259,8 @@ def defer(
         click.echo(f"{exc} (ignored)")
 
 
-def filter_none(dictionnary: Dict) -> Dict:
-    return {key: value for key, value in dictionnary.items() if value is not None}
+def filter_none(dictionary: Dict) -> Dict:
+    return {key: value for key, value in dictionary.items() if value is not None}
 
 
 def load_json_args(json_args: str, json_loads: Callable) -> types.JSONDict:

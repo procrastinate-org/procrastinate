@@ -9,7 +9,7 @@ class Admin:
     """
     The Admin is used to overview and administrate procrastinate jobs.
 
-    You should never need to instanciate an Admin object as it is
+    You should never need to instantiate an Admin object as it is
     already available as `App.admin`.
     """
 
@@ -54,7 +54,7 @@ class Admin:
         Returns
         -------
         ``List[Dict[str, Any]]``
-            A list of dictionnaries representing jobs (``id``, ``queue``, ``task``,
+            A list of dictionaries representing jobs (``id``, ``queue``, ``task``,
             ``lock``, ``args``, ``status``, ``scheduled_at``, ``attempts``).
         """
         return [
@@ -104,7 +104,7 @@ class Admin:
         Returns
         -------
         ``List[Dict[str, Any]]``
-            A list of dictionnaries representing queues stats (``name``, ``jobs_count``,
+            A list of dictionaries representing queues stats (``name``, ``jobs_count``,
             ``todo``, ``doing``, ``succeeded``, ``failed``).
         """
         return [
@@ -149,7 +149,7 @@ class Admin:
         Returns
         -------
         ``List[Dict[str, Any]]``
-            A list of dictionnaries representing tasks stats (``name``, ``jobs_count``,
+            A list of dictionaries representing tasks stats (``name``, ``jobs_count``,
             ``todo``, ``doing``, ``succeeded``, ``failed``).
         """
         return [
@@ -184,7 +184,7 @@ class Admin:
         Returns
         -------
         ``Dict[str, Any]``
-            A dictionnary representing the job (``id``, ``queue``, ``task``,
+            A dictionary representing the job (``id``, ``queue``, ``task``,
             ``lock``, ``args``, ``status``, ``scheduled_at``, ``attempts``).
         """
         await self.connector.execute_query_async(

@@ -430,4 +430,4 @@ wheel (using the tag as version number, thanks to our ``setup.py``), and push it
 to PyPI (using the new API tokens). That tag should also trigger a ReadTheDocs
 build, which will read GitHub releases (thanks to our ``changelog`` extension)
 which will  write the changelog in the published documentation (transformed from
-``Markdown`` to``RestructuredText``).
+``Markdown`` to ``RestructuredText``).
