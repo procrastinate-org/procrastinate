@@ -6,7 +6,7 @@ app = procrastinate.App(
     connector=procrastinate.AiopgConnector(), import_paths=import_paths
 )
 
-real_sync_async_app = procrastinate.App(
+real_sync_app = procrastinate.App(
     connector=procrastinate.AiopgConnector(real_sync_defer=True),
     import_paths=import_paths,
 )

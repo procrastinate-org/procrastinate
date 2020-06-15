@@ -22,4 +22,4 @@ class SchemaManager:
 
     def apply_schema(self) -> None:
         queries = self.get_schema()
-        self.connector.execute_query_one(query=queries)
+        self.connector.execute_query(query=queries)

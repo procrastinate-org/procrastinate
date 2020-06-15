@@ -59,7 +59,13 @@ class MissingAppConnector(connector.BaseConnector):
     def close(self, *args, **kwargs):
         pass
 
+    def execute_query(self, *args, **kwargs):
+        raise exceptions.MissingApp
+
     def execute_query_one(self, *args, **kwargs):
+        raise exceptions.MissingApp
+
+    def execute_query_all(self, *args, **kwargs):
         raise exceptions.MissingApp
 
     async def execute_query_async(self, *args, **kwargs):

@@ -13,7 +13,13 @@ class BaseConnector:
     def close(self) -> None:
         raise NotImplementedError
 
+    def execute_query(self, query: str, **arguments: Any) -> None:
+        raise NotImplementedError
+
     def execute_query_one(self, query: str, **arguments: Any) -> Dict[str, Any]:
+        raise NotImplementedError
+
+    def execute_query_all(self, query: str, **arguments: Any) -> List[Dict[str, Any]]:
         raise NotImplementedError
 
     def get_sync_connector(self) -> "BaseConnector":

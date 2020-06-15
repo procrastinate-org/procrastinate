@@ -274,6 +274,8 @@ class AiopgConnector(connector.BaseAsyncConnector):
             event.set()
 
     def get_sync_connector(self) -> connector.BaseConnector:
+        # Warning: this can do synchronous I/O work,
+        # only call in synchronous contexts.
         if not self.real_sync_defer:
             return super().get_sync_connector()
 
@@ -288,6 +290,6 @@ class AiopgConnector(connector.BaseAsyncConnector):
         pool_args.pop("enable_uuid", None)
         pool_args.pop("on_connect", None)
         self._sync_connector = psycopg2_connector.Psycopg2Connector(
-            json_dumps=self.json_dumps, **pool_args
+            json_dumps=self.json_dumps, json_loads=self.json_loads, **pool_args
         )
         return self._sync_connector

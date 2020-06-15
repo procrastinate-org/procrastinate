@@ -122,10 +122,8 @@ def wrap_one(cls: Type, attribute_name: str):
         final_wrapper = wrapper
     elif method_type == "classmethod":
         final_wrapper = classmethod(wrapper)
-    elif method_type == "staticmethod":
-        final_wrapper = staticmethod(wrapper)
     else:
-        raise ValueError(f"Invalid object of type {type(attribute)}")
+        final_wrapper = staticmethod(wrapper)
 
     # Save this new method on the class
     wrapper.__name__ = sync_name

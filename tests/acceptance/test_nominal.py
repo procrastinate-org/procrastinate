@@ -136,5 +136,11 @@ def test_queueing_lock(defer, running_worker):
 
     assert excinfo.value.returncode == 1
 
+    with pytest.raises(subprocess.CalledProcessError) as excinfo:
+        defer("sometask", ["--queueing-lock", "a"], app="real_sync_app")
+
+    with pytest.raises(subprocess.CalledProcessError) as excinfo:
+        defer("sometask", ["--queueing-lock", "a"], app="psycopg2_app")
+
     # This one doesn't raise
     defer("sometask", ["--queueing-lock", "a", "--ignore-already-enqueued"])

@@ -111,7 +111,8 @@ class Psycopg2Connector(connector.BaseConnector):
         """
         Close the pool
         """
-        self._pool.closeall()
+        if not self._pool.closed:
+            self._pool.closeall()
 
     def _wrap_json(self, arguments: Dict[str, Any]):
         return {
@@ -141,3 +142,10 @@ class Psycopg2Connector(connector.BaseConnector):
             with connection.cursor() as cursor:
                 cursor.execute(query, self._wrap_json(arguments))
                 return cursor.fetchone()
+
+    @wrap_exceptions
+    def execute_query_all(self, query: str, **arguments: Any) -> Dict[str, Any]:
+        with self._connection() as connection:
+            with connection.cursor() as cursor:
+                cursor.execute(query, self._wrap_json(arguments))
+                return cursor.fetchall()

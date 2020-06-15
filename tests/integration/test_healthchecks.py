@@ -7,8 +7,8 @@ pytestmark = pytest.mark.asyncio
 
 
 @pytest.fixture
-def checker(pg_connector):
-    return HealthCheckRunner(connector=pg_connector)
+def checker(aiopg_connector):
+    return HealthCheckRunner(connector=aiopg_connector)
 
 
 async def test_check_connection(checker):

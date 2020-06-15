@@ -5,13 +5,13 @@ import json
 import attr
 import pytest
 
-from procrastinate import aiopg_connector
+from procrastinate import aiopg_connector, psycopg2_connector
 
 pytestmark = pytest.mark.asyncio
 
 
 @pytest.fixture
-async def pg_connector_factory(connection_params):
+async def aiopg_connector_factory(connection_params):
     connectors = []
 
     def _(**kwargs):
@@ -62,7 +62,7 @@ async def test_adapt_pool_args_on_connect(mocker):
     ],
 )
 async def test_execute_query_json_dumps(
-    pg_connector_factory, mocker, method_name, expected
+    aiopg_connector_factory, mocker, method_name, expected
 ):
     class NotJSONSerializableByDefault:
         pass
@@ -75,14 +75,14 @@ async def test_execute_query_json_dumps(
     query = "SELECT %(arg)s::jsonb as json"
     arg = {"a": "a", "b": NotJSONSerializableByDefault()}
     json_dumps = functools.partial(json.dumps, default=encode)
-    connector = pg_connector_factory(json_dumps=json_dumps)
+    connector = aiopg_connector_factory(json_dumps=json_dumps)
     method = getattr(connector, method_name)
 
     result = await method(query, arg=arg)
     assert result == expected
 
 
-async def test_json_loads(pg_connector_factory, mocker):
+async def test_json_loads(aiopg_connector_factory, mocker):
     @attr.dataclass
     class Param:
         p: int
@@ -96,38 +96,38 @@ async def test_json_loads(pg_connector_factory, mocker):
 
     query = "SELECT %(arg)s::jsonb as json"
     arg = {"a": 1, "b": 2}
-    connector = pg_connector_factory(json_loads=json_loads)
+    connector = aiopg_connector_factory(json_loads=json_loads)
 
     result = await connector.execute_query_one_async(query, arg=arg)
     assert result["json"] == {"a": 1, "b": Param(p=2)}
 
 
-async def test_execute_query(pg_connector):
+async def test_execute_query(aiopg_connector):
     assert (
-        await pg_connector.execute_query_async(
+        await aiopg_connector.execute_query_async(
             "COMMENT ON TABLE \"procrastinate_jobs\" IS 'foo' "
         )
         is None
     )
-    result = await pg_connector.execute_query_one_async(
+    result = await aiopg_connector.execute_query_one_async(
         "SELECT obj_description('public.procrastinate_jobs'::regclass)"
     )
     assert result == {"obj_description": "foo"}
 
-    result = await pg_connector.execute_query_all_async(
+    result = await aiopg_connector.execute_query_all_async(
         "SELECT obj_description('public.procrastinate_jobs'::regclass)"
     )
     assert result == [{"obj_description": "foo"}]
 
 
 @pytest.mark.filterwarnings("error::ResourceWarning")
-async def test_execute_query_simultaneous(pg_connector):
+async def test_execute_query_simultaneous(aiopg_connector):
     # two coroutines doing execute_query_async simulteneously
     #
     # the test may fail if the connector fails to properly parallelize connections
 
     async def query():
-        await pg_connector.execute_query_async("SELECT 1")
+        await aiopg_connector.execute_query_async("SELECT 1")
 
     try:
         await asyncio.gather(query(), query())
@@ -135,34 +135,34 @@ async def test_execute_query_simultaneous(pg_connector):
         pytest.fail("ResourceWarning")
 
 
-async def test_close_async(pg_connector):
-    await pg_connector.execute_query_async("SELECT 1")
-    pool = pg_connector._pool
-    await pg_connector.close_async()
+async def test_close_async(aiopg_connector):
+    await aiopg_connector.execute_query_async("SELECT 1")
+    pool = aiopg_connector._pool
+    await aiopg_connector.close_async()
     assert pool.closed is True
-    assert pg_connector._pool is None
+    assert aiopg_connector._pool is None
 
 
 async def test_get_connection_no_psycopg2_adapter_registration(
-    pg_connector_factory, mocker
+    aiopg_connector_factory, mocker
 ):
     register_adapter = mocker.patch("psycopg2.extensions.register_adapter")
-    connector = pg_connector_factory()
+    connector = aiopg_connector_factory()
     await connector._get_pool()
     assert not register_adapter.called
 
 
-async def test_listen_notify(pg_connector):
+async def test_listen_notify(aiopg_connector):
     channel = "somechannel"
     event = asyncio.Event()
 
     task = asyncio.ensure_future(
-        pg_connector.listen_notify(channels=[channel], event=event)
+        aiopg_connector.listen_notify(channels=[channel], event=event)
     )
     try:
         await event.wait()
         event.clear()
-        await pg_connector.execute_query_async(f"""NOTIFY "{channel}" """)
+        await aiopg_connector.execute_query_async(f"""NOTIFY "{channel}" """)
         await asyncio.wait_for(event.wait(), timeout=1)
     except asyncio.TimeoutError:
         pytest.fail("Notify not received within 1 sec")
@@ -170,12 +170,12 @@ async def test_listen_notify(pg_connector):
         task.cancel()
 
 
-async def test_loop_notify_stop_when_connection_closed(pg_connector):
+async def test_loop_notify_stop_when_connection_closed(aiopg_connector):
     # We want to make sure that the when the connection is closed, the loop end.
     event = asyncio.Event()
-    pool = await pg_connector._get_pool()
+    pool = await aiopg_connector._get_pool()
     async with pool.acquire() as connection:
-        coro = pg_connector._loop_notify(event=event, connection=connection)
+        coro = aiopg_connector._loop_notify(event=event, connection=connection)
         await asyncio.sleep(0.1)
         # Currently, the the connection closes, the notifies queue is not
         # awaken. This test validates the "normal" stopping condition, there is
@@ -188,14 +188,16 @@ async def test_loop_notify_stop_when_connection_closed(pg_connector):
             pytest.fail("Failed to detect that connection was closed and stop")
 
 
-async def test_loop_notify_timeout(pg_connector):
+async def test_loop_notify_timeout(aiopg_connector):
     # We want to make sure that when the listen starts, we don't listen forever. If the
     # connection closes, we eventually finish the coroutine.
     event = asyncio.Event()
-    pool = await pg_connector._get_pool()
+    pool = await aiopg_connector._get_pool()
     async with pool.acquire() as connection:
         task = asyncio.ensure_future(
-            pg_connector._loop_notify(event=event, connection=connection, timeout=0.01)
+            aiopg_connector._loop_notify(
+                event=event, connection=connection, timeout=0.01
+            )
         )
         await asyncio.sleep(0.1)
         assert not task.done()
@@ -206,3 +208,56 @@ async def test_loop_notify_timeout(pg_connector):
             pytest.fail("Failed to detect that connection was closed and stop")
 
     assert not event.is_set()
+
+
+async def test_get_sync_connector_mixed(aiopg_connector_factory):
+    connector = aiopg_connector_factory(real_sync_defer=False)
+
+    assert connector.get_sync_connector() is connector
+
+
+async def test_get_sync_connector_classic(aiopg_connector_factory):
+    def json_loads():
+        pass
+
+    def json_dumps():
+        pass
+
+    connector = aiopg_connector_factory(
+        real_sync_defer=True,
+        minsize=2,
+        maxsize=4,
+        enable_json=False,
+        enable_hstore=False,
+        enable_uuid=False,
+        on_connect="something",
+        json_loads=json_loads,
+        json_dumps=json_dumps,
+    )
+
+    sync_connector = connector.get_sync_connector()
+
+    assert isinstance(sync_connector, psycopg2_connector.Psycopg2Connector)
+    assert sync_connector.json_loads is json_loads
+    assert sync_connector.json_dumps is json_dumps
+    assert sync_connector._pool.minconn == 2
+    assert sync_connector._pool.maxconn == 4
+
+
+async def test_get_sync_connector_classic_twice(aiopg_connector_factory):
+    connector = aiopg_connector_factory(real_sync_defer=True)
+
+    sync_connector1 = connector.get_sync_connector()
+    sync_connector2 = connector.get_sync_connector()
+
+    assert sync_connector1 is sync_connector2
+
+
+async def test_get_sync_connector_classic_close(aiopg_connector_factory):
+    connector = aiopg_connector_factory(real_sync_defer=True)
+    sync_connector = connector.get_sync_connector()
+    assert not sync_connector._pool.closed
+
+    await connector.close_async()
+
+    assert sync_connector._pool.closed
