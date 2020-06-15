@@ -2,6 +2,7 @@
 
 CREATE EXTENSION IF NOT EXISTS plpgsql WITH SCHEMA pg_catalog;
 
+-- Enums
 
 CREATE TYPE procrastinate_job_status AS ENUM (
     'todo',  -- The job is queued
@@ -20,6 +21,8 @@ CREATE TYPE procrastinate_job_event_type AS ENUM (
     'scheduled' -- not an event transition, but recording when a task is scheduled for
 );
 
+-- Tables
+
 CREATE TABLE procrastinate_jobs (
     id bigserial PRIMARY KEY,
     queue_name character varying(128) NOT NULL,
@@ -32,20 +35,38 @@ CREATE TABLE procrastinate_jobs (
     attempts integer DEFAULT 0 NOT NULL
 );
 
--- this prevents from having several jobs with the same queueing lock in the "todo" state
-CREATE UNIQUE INDEX procrastinate_jobs_queueing_lock_idx ON procrastinate_jobs (queueing_lock) WHERE status = 'todo';
-
--- this prevents from having several jobs with the same lock in the "doing" state
-CREATE UNIQUE INDEX procrastinate_jobs_lock_idx ON procrastinate_jobs (lock) WHERE status = 'doing';
-
-CREATE INDEX ON procrastinate_jobs(queue_name);
-
 CREATE TABLE procrastinate_events (
     id BIGSERIAL PRIMARY KEY,
     job_id integer NOT NULL REFERENCES procrastinate_jobs ON DELETE CASCADE,
     type procrastinate_job_event_type,
     at timestamp with time zone DEFAULT NOW() NULL
 );
+
+-- Contraints & Indices
+
+-- this prevents from having several jobs with the same queueing lock in the "todo" state
+CREATE UNIQUE INDEX procrastinate_jobs_queueing_lock_idx ON procrastinate_jobs (queueing_lock) WHERE status = 'todo';
+-- this prevents from having several jobs with the same lock in the "doing" state
+CREATE UNIQUE INDEX procrastinate_jobs_lock_idx ON procrastinate_jobs (lock) WHERE status = 'doing';
+
+CREATE INDEX procrastinate_jobs_queue_name_idx ON procrastinate_jobs(queue_name);
+CREATE INDEX procrastinate_events_job_id_fkey ON procrastinate_events(job_id);
+
+-- Functions
+
+CREATE FUNCTION procrastinate_defer_job(queue_name character varying, task_name character varying, lock text, queueing_lock text, args json, scheduled_at timestamp with time zone) RETURNS bigint
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+	job_id bigint;
+BEGIN
+    INSERT INTO procrastinate_jobs (queue_name, task_name, lock, queueing_lock, args, scheduled_at)
+    VALUES (queue_name, task_name, lock, queueing_lock, args, scheduled_at)
+    RETURNING id INTO job_id;
+
+    RETURN job_id;
+END;
+$$;
 
 CREATE FUNCTION procrastinate_fetch_job(target_queue_names character varying[]) RETURNS procrastinate_jobs
     LANGUAGE plpgsql
@@ -158,6 +179,8 @@ BEGIN
 END;
 $$;
 
+-- Triggers
+
 CREATE TRIGGER procrastinate_jobs_notify_queue
     AFTER INSERT ON procrastinate_jobs
     FOR EACH ROW WHEN ((new.status = 'todo'::procrastinate_job_status))
@@ -177,5 +200,3 @@ CREATE TRIGGER procrastinate_trigger_scheduled_events
     AFTER UPDATE OR INSERT ON procrastinate_jobs
     FOR EACH ROW WHEN ((new.scheduled_at IS NOT NULL AND new.status = 'todo'::procrastinate_job_status))
     EXECUTE PROCEDURE procrastinate_trigger_scheduled_events_procedure();
-
-CREATE INDEX procrastinate_events_job_id_fkey ON procrastinate_events(job_id);
