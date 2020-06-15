@@ -80,10 +80,10 @@ About locks
 -----------
 
 Let's say we have a :term:`task` that writes a character at the end of a file after
-waiting for a random amount of time. This represents a real world problem where tasks
+waiting for a random amount of time. This represents a real world problem where jobs
 take an unforeseeable amount of time and share resources like a database.
 
-We launch 4 tasks respectively writing ``a``, ``b``, ``c`` and ``d``. We would expect
+We launch 4 jobs respectively writing ``a``, ``b``, ``c`` and ``d``. We would expect
 the file to contain ``abcd``, but it's not the case, for example maybe it's ``badc``.
 The jobs were taken from the queue in order, but because we have several workers, the
 jobs were launched in parallel and because their duration is random, the final result
@@ -91,33 +91,37 @@ pretty much is too.
 
 We can solve this problem by using locks. Procrastinate gives us two guarantees:
 
-- Tasks are consumed in creation order. When a worker requests a task, it will always
-  receive the oldest available task. Unavailable tasks, either locked, scheduled for the
-  future or in a queue that the worker doesn't listen to, will be ignored.
-- If a group of tasks share the same lock, then only one can be executed at a time.
+- Jobs are consumed in creation order. When a worker requests a job, it can recieve
+  a job with a lock, or a job without a lock. If there is a lock, then the received
+  job will be the oldest one with that lock. If the oldest job awaiting execution is
+  not available for this worker (either it's on a queue that this worker doesn't
+  listen to, or it's scheduled in the future), then jobs with this lock will not be
+  considered.
+- If a group of jobs share the same lock, then only one can be executed at a time.
 
-These two facts allow us to draw the following conclusion for our 4 letter tasks from
-above. If our 4 tasks share the same lock (for example, the name of the file we're
+These two facts allow us to draw the following conclusion for our 4 letter jobs from
+above. If our 4 jobs share the same lock (for example, the name of the file we're
 writing to):
 
-- The 4 tasks will be started in order;
-- A task will not start before the previous one is finished.
+- The 4 jobs will be started in order;
+- A job will not start before the previous one is finished.
 
 This says we can safely expect the file to contain ``abcd``.
 
 Note that Procrastinate will use PostgreSQL to search the jobs table for suitable jobs.
-Even if the database contains a high proportion of locked tasks, this will barely affect
-Procrastinates's capacity to quickly find the free tasks.
+Even if the database contains a high proportion of locked jobs, this will barely affect
+Procrastinates's capacity to quickly find the free jobs.
 
 A good string identifier for the lock is a string identifier of the shared resource,
 UUIDs are well suited for this. If multiple resources are implicated, a combination of
 their identifiers could be used (there's no hard limit on the length of a lock string,
 but stay reasonable).
 
-A task can only take a single lock so there's no dead-lock scenario possible where two
-running tasks are waiting one another. That being said, if a worker dies with a lock, it
-will be up to you to free it. If the task fails but the worker survives though, the
-lock will be freed.
+A job can only take a single lock so there's no dead-lock scenario possible where two
+running jobs are waiting for one another. If a worker is killed without ending its job,
+following jobs with the same lock will not run until the interrupted job is either
+manually set to "failed" or "succeeded". If a job simply fails, following jobs with the
+same locks may run.
 
 For a more practical approach, see `howto/locks`.
 
@@ -228,21 +232,6 @@ For critical requests, we tend to using PostgreSQL procedures where we could do 
 thing directly with queries. This is so that the database is solely responsible for
 consistency, and would allow us to have the same behavior if someone were to write
 a procrastinate compatible client, in Python or in another language altogether.
-
-The ``procrastinate_job_locks`` table
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-We could have used PostgreSQL's `advisory locks`_, and we choose to kinda "reimplement
-the wheel" with a dedicated table. This is because we made the choice that if a worker
-dies holding a lock, we'd rather have a human examine the situation and manually free
-the lock than having the lock been automatically freed, and fail our locks consistency
-guarantee.
-
-.. _`advisory locks`: https://www.postgresql.org/docs/10/explicit-locking.html#ADVISORY-LOCKS
-
-So far, Procrastinate implements async job :term:`deferring <defer>`, and async job
-executing but not in parallel, meaning it can run jobs written as a coroutine, but it
-will only execute one job at a time.
 
 Why is Procrastinate asynchronous at core?
 ------------------------------------------
