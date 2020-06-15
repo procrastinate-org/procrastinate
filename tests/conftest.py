@@ -14,9 +14,10 @@ from psycopg2 import sql
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 
 from procrastinate import aiopg_connector as aiopg_connector_module
-from procrastinate import psycopg2_connector as psycopg2_connector_module
 from procrastinate import app as app_module
-from procrastinate import jobs, schema, testing
+from procrastinate import jobs
+from procrastinate import psycopg2_connector as psycopg2_connector_module
+from procrastinate import schema, testing
 
 # Just ensuring the tests are not polluted by environment
 for key in os.environ:

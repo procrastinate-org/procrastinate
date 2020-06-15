@@ -1,7 +1,7 @@
 import psycopg2
 import pytest
 
-from procrastinate import psycopg2_connector, exceptions
+from procrastinate import exceptions, psycopg2_connector
 
 
 @pytest.mark.asyncio

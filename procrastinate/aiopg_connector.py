@@ -74,8 +74,8 @@ class AiopgConnector(connector.BaseAsyncConnector):
             If a synchronous call to a defer operation is issued, whether to call a
             really synchronous psycopg2 implementation (``True``) which will use its own
             connection pool, or a synchronous wrapper around this asynchronous
-            connector, which may not play as nicely with multi-threaded programs but will
-            use connections from this connector's pool (``False``)(see
+            connector, which may not play as nicely with multi-threaded programs but
+            will use connections from this connector's pool (``False``)(see
             `discussion-sync-defer`).
         dsn : ``Optional[str]``
             Passed to aiopg. Default is "" instead of None, which means if no argument
