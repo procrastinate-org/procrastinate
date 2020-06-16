@@ -172,15 +172,13 @@ Procrastinate supports two ways of doing synchronous I/O:
 - "classic" synchronous I/O (using synchronous database drivers such as ``Psycopg2``).
   This mode is necessary in multi-threaded cases.
 - "mixed" I/O (synchronously launching an event loop, and have asynchronous coroutine
-  run under the hood).
-  This mode will use less connections when used within another job.
+  run under the hood). This mode is adapted for synchronously deferring jobs from other
+  jobs, from within the workers.
 
-If you use an `AiopgConnector`, then, by default, you will use the "mixed" mode. You can
-request the ``AiopgConnector`` to use the "classic" mode by passing
-``real_sync_defer=True`` when creating the ``AiopgConnector``. You can also have the
+If you use an `AiopgConnector`, then you will use the "mixed" mode. You can have the
 classic mode by using a `Psycopg2Connector` as your App's connector. In that case, you
 will be restricted to a few operations, including deferring tasks and applying the
-schema. This is recommended for synchronous multi-threaded apps that defer jobs.
+schema. This is recommended for synchronous multi-threaded apps only that defer jobs.
 
 See `howto/sync_defer`.
 
@@ -249,13 +247,8 @@ sub-workers will not wait and this will not be an issue. This is only about idle
 workers taking time to notice that a previously unavailable job has become available.
 
 
-Procrastinate's database interactions
--------------------------------------
-
-A few things are worth noting in our PostgreSQL usage.
-
-Using procedures
-^^^^^^^^^^^^^^^^
+Procrastinate's usage of PostgreSQL functions and procedures
+------------------------------------------------------------
 
 For critical requests, we tend to using PostgreSQL procedures where we could do the same
 thing directly with queries. This is so that the database is solely responsible for
@@ -294,8 +287,9 @@ this? Here are a few resources:
   with sync **and** async callers: "Just add await" from Andrew Godwin:
   https://www.youtube.com/watch?v=oMHrDy62kgE
 
-That being said, synchronous defers (see `discussion-sync-defer`) rely on a few
-specific methods that have been duplicated by hand (one async and one sync version).
+That being said, synchronous defers (see `discussion-sync-defer`) rely on a few specific
+methods that have been written identically twice (one async and one sync version) and
+have to be maintained in parallel.
 
 How stable is Procrastinate?
 ----------------------------

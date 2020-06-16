@@ -22,9 +22,6 @@ class BaseConnector:
     def execute_query_all(self, query: str, **arguments: Any) -> List[Dict[str, Any]]:
         raise NotImplementedError
 
-    def get_sync_connector(self) -> "BaseConnector":
-        return self
-
     async def close_async(self) -> None:
         raise exceptions.SyncConnectorConfigurationError
 

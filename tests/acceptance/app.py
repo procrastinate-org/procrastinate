@@ -28,13 +28,7 @@ app = procrastinate.App(
     connector=procrastinate.AiopgConnector(json_dumps=json_dumps, json_loads=json_loads)
 )
 
-real_sync_app = procrastinate.App(
-    connector=procrastinate.AiopgConnector(
-        json_dumps=json_dumps, json_loads=json_loads, real_sync_defer=True
-    )
-)
-
-psycopg2_app = procrastinate.App(
+sync_app = procrastinate.App(
     connector=procrastinate.Psycopg2Connector(
         json_dumps=json_dumps, json_loads=json_loads
     )

@@ -9,7 +9,7 @@ import psycopg2.errors
 import psycopg2.sql
 from psycopg2.extras import Json, RealDictCursor
 
-from procrastinate import connector, exceptions, psycopg2_connector, sql
+from procrastinate import connector, exceptions, sql
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +45,6 @@ class AiopgConnector(connector.BaseAsyncConnector):
         *,
         json_dumps: Optional[Callable] = None,
         json_loads: Optional[Callable] = None,
-        real_sync_defer: bool = False,
         **kwargs: Any,
     ):
         """
@@ -70,13 +69,6 @@ class AiopgConnector(connector.BaseAsyncConnector):
             to the function used by psycopg2. See the `psycopg2 doc`_. Unused if the
             pool is externally created and set into the connector through the
             `AiopgConnector.set_pool` method.
-        real_sync_defer :
-            If a synchronous call to a defer operation is issued, whether to call a
-            really synchronous psycopg2 implementation (``True``) which will use its own
-            connection pool, or a synchronous wrapper around this asynchronous
-            connector, which may not play as nicely with multi-threaded programs but
-            will use connections from this connector's pool (``False``)(see
-            `discussion-sync-defer`).
         dsn : ``Optional[str]``
             Passed to aiopg. Default is "" instead of None, which means if no argument
             is passed, it will connect to localhost:5432 instead of a Unix-domain
@@ -107,8 +99,6 @@ class AiopgConnector(connector.BaseAsyncConnector):
         self.json_loads = json_loads
         self._pool_args = self._adapt_pool_args(kwargs, json_loads)
         self._lock: Optional[asyncio.Lock] = None
-        self._sync_connector: Optional[psycopg2_connector.Psycopg2Connector] = None
-        self.real_sync_defer = real_sync_defer
 
     @staticmethod
     def _adapt_pool_args(
@@ -149,9 +139,6 @@ class AiopgConnector(connector.BaseAsyncConnector):
             self._pool.close()
             await self._pool.wait_closed()
             self._pool = None
-        if self._sync_connector:
-            # This is not an async call but hopefully at this point, it's ok.
-            self._sync_connector.close()
 
     def _wrap_json(self, arguments: Dict[str, Any]):
         return {
@@ -272,24 +259,3 @@ class AiopgConnector(connector.BaseAsyncConnector):
                 continue
 
             event.set()
-
-    def get_sync_connector(self) -> connector.BaseConnector:
-        # Warning: this can do synchronous I/O work,
-        # only call in synchronous contexts.
-        if not self.real_sync_defer:
-            return super().get_sync_connector()
-
-        if self._sync_connector:
-            return self._sync_connector
-
-        pool_args = self._pool_args.copy()
-        pool_args["minconn"] = pool_args.pop("minsize", 1)
-        pool_args["maxconn"] = pool_args.pop("maxsize", 10)
-        pool_args.pop("enable_json", None)
-        pool_args.pop("enable_hstore", None)
-        pool_args.pop("enable_uuid", None)
-        pool_args.pop("on_connect", None)
-        self._sync_connector = psycopg2_connector.Psycopg2Connector(
-            json_dumps=self.json_dumps, json_loads=self.json_loads, **pool_args
-        )
-        return self._sync_connector

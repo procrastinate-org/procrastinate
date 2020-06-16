@@ -5,7 +5,7 @@ import json
 import attr
 import pytest
 
-from procrastinate import aiopg_connector, psycopg2_connector
+from procrastinate import aiopg_connector
 
 pytestmark = pytest.mark.asyncio
 
@@ -208,56 +208,3 @@ async def test_loop_notify_timeout(aiopg_connector):
             pytest.fail("Failed to detect that connection was closed and stop")
 
     assert not event.is_set()
-
-
-async def test_get_sync_connector_mixed(aiopg_connector_factory):
-    connector = aiopg_connector_factory(real_sync_defer=False)
-
-    assert connector.get_sync_connector() is connector
-
-
-async def test_get_sync_connector_classic(aiopg_connector_factory):
-    def json_loads():
-        pass
-
-    def json_dumps():
-        pass
-
-    connector = aiopg_connector_factory(
-        real_sync_defer=True,
-        minsize=2,
-        maxsize=4,
-        enable_json=False,
-        enable_hstore=False,
-        enable_uuid=False,
-        on_connect="something",
-        json_loads=json_loads,
-        json_dumps=json_dumps,
-    )
-
-    sync_connector = connector.get_sync_connector()
-
-    assert isinstance(sync_connector, psycopg2_connector.Psycopg2Connector)
-    assert sync_connector.json_loads is json_loads
-    assert sync_connector.json_dumps is json_dumps
-    assert sync_connector._pool.minconn == 2
-    assert sync_connector._pool.maxconn == 4
-
-
-async def test_get_sync_connector_classic_twice(aiopg_connector_factory):
-    connector = aiopg_connector_factory(real_sync_defer=True)
-
-    sync_connector1 = connector.get_sync_connector()
-    sync_connector2 = connector.get_sync_connector()
-
-    assert sync_connector1 is sync_connector2
-
-
-async def test_get_sync_connector_classic_close(aiopg_connector_factory):
-    connector = aiopg_connector_factory(real_sync_defer=True)
-    sync_connector = connector.get_sync_connector()
-    assert not sync_connector._pool.closed
-
-    await connector.close_async()
-
-    assert sync_connector._pool.closed

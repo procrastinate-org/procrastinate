@@ -31,10 +31,8 @@ class JobStore:
         return result["id"]
 
     def defer_job(self, job: jobs.Job) -> int:
-        connector = self.connector.get_sync_connector()
-
         try:
-            result = connector.execute_query_one(
+            result = self.connector.execute_query_one(
                 **self._defer_job_query_kwargs(job=job)
             )
         except exceptions.UniqueViolation as exc:
