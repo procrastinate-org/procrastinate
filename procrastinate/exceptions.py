@@ -3,68 +3,85 @@ import datetime
 
 class ProcrastinateException(Exception):
     """
-    Base type for all Procrastinate exceptions
+    Unexpected Procrastinate error.
     """
 
-    pass
+    def __init__(self, message=None):
+        if not message:
+            message = self.__doc__
+        super().__init__(message)
 
 
 class TaskNotFound(ProcrastinateException):
-    pass
+    """
+    Task cannot be imported.
+    """
 
 
 class JobError(ProcrastinateException):
-    pass
+    """
+    Job ended with an exception.
+    """
 
 
 class LoadFromPathError(ImportError, ProcrastinateException):
     """
-    Raised when calling :py:func:`procrastinate.App.from_path`
-    when the app is not found or the object is not an App.
+    App was not found at the provided path, or the loaded object is not an App.
     """
 
 
 class JobRetry(ProcrastinateException):
+    """
+    Job should be retried.
+    """
+
     def __init__(self, scheduled_at: datetime.datetime):
         self.scheduled_at = scheduled_at
+        super().__init__()
 
 
 class PoolAlreadySet(ProcrastinateException):
     """
-    Indicates a call on connector.set_pool() was done but the
-    pool already had a set. Changing the pool of a connector is not
-    permitted.
+    connector.set_pool() was called but the pool already had a set.
+    Changing the pool of a connector is not permitted.
     """
-
-    pass
 
 
 class ConnectorException(ProcrastinateException):
     """
-    Any kind of database error will be raised as this type.
-    The precise error can be seen with ``exception.__cause__``
+    Database error.
     """
 
-    pass
+    # The precise error can be seen with ``exception.__cause__``.
 
 
 class AlreadyEnqueued(ProcrastinateException):
     """
-    Indicates that there already is a job waiting in the queue with the same queueing
-    lock.
+    There is already a job waiting in the queue with the same queueing lock.
     """
-
-    pass
 
 
 class UniqueViolation(ConnectorException):
     """
     A unique constraint is violated. The constraint name is available in
-    ``exception.constraint_name``. This is an internal exception.
+    ``exception.constraint_name``.
     """
 
     def __init__(self, *args, constraint_name: str):
         super().__init__(*args)
         self.constraint_name = constraint_name
 
-    pass
+
+class MissingApp(ProcrastinateException):
+    """
+    Missing app. This most probably happened because procrastinate needs an
+    app via --app or the PROCRASTINATE_APP environment variable.
+    """
+
+
+class SyncConnectorConfigurationError(ProcrastinateException):
+    """
+    A synchronous connector (probably Psycopg2Connector) was used, but the operation
+    needs an asynchronous connector (AiopgConnector). Please check your App
+    configuration.
+    """

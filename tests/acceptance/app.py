@@ -28,6 +28,12 @@ app = procrastinate.App(
     connector=procrastinate.AiopgConnector(json_dumps=json_dumps, json_loads=json_loads)
 )
 
+sync_app = procrastinate.App(
+    connector=procrastinate.Psycopg2Connector(
+        json_dumps=json_dumps, json_loads=json_loads
+    )
+)
+
 
 @app.task(queue="default")
 def sum_task(a, b):

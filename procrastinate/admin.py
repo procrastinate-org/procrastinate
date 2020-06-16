@@ -9,7 +9,7 @@ class Admin:
     """
     The Admin is used to overview and administrate procrastinate jobs.
 
-    You should never need to instanciate an Admin object as it is
+    You should never need to instantiate an Admin object as it is
     already available as `App.admin`.
     """
 
@@ -54,7 +54,7 @@ class Admin:
         Returns
         -------
         ``List[Dict[str, Any]]``
-            A list of dictionnaries representing jobs (``id``, ``queue``, ``task``,
+            A list of dictionaries representing jobs (``id``, ``queue``, ``task``,
             ``lock``, ``args``, ``status``, ``scheduled_at``, ``attempts``).
         """
         return [
@@ -69,7 +69,7 @@ class Admin:
                 "scheduled_at": row["scheduled_at"],
                 "attempts": row["attempts"],
             }
-            for row in await self.connector.execute_query_all(
+            for row in await self.connector.execute_query_all_async(
                 query=sql.queries["list_jobs"],
                 id=id,
                 queue_name=queue,
@@ -104,7 +104,7 @@ class Admin:
         Returns
         -------
         ``List[Dict[str, Any]]``
-            A list of dictionnaries representing queues stats (``name``, ``jobs_count``,
+            A list of dictionaries representing queues stats (``name``, ``jobs_count``,
             ``todo``, ``doing``, ``succeeded``, ``failed``).
         """
         return [
@@ -116,7 +116,7 @@ class Admin:
                 "succeeded": row["stats"].get("succeeded", 0),
                 "failed": row["stats"].get("failed", 0),
             }
-            for row in await self.connector.execute_query_all(
+            for row in await self.connector.execute_query_all_async(
                 query=sql.queries["list_queues"],
                 queue_name=queue,
                 task_name=task,
@@ -149,7 +149,7 @@ class Admin:
         Returns
         -------
         ``List[Dict[str, Any]]``
-            A list of dictionnaries representing tasks stats (``name``, ``jobs_count``,
+            A list of dictionaries representing tasks stats (``name``, ``jobs_count``,
             ``todo``, ``doing``, ``succeeded``, ``failed``).
         """
         return [
@@ -161,7 +161,7 @@ class Admin:
                 "succeeded": row["stats"].get("succeeded", 0),
                 "failed": row["stats"].get("failed", 0),
             }
-            for row in await self.connector.execute_query_all(
+            for row in await self.connector.execute_query_all_async(
                 query=sql.queries["list_tasks"],
                 queue_name=queue,
                 task_name=task,
@@ -184,10 +184,10 @@ class Admin:
         Returns
         -------
         ``Dict[str, Any]``
-            A dictionnary representing the job (``id``, ``queue``, ``task``,
+            A dictionary representing the job (``id``, ``queue``, ``task``,
             ``lock``, ``args``, ``status``, ``scheduled_at``, ``attempts``).
         """
-        await self.connector.execute_query(
+        await self.connector.execute_query_async(
             query=sql.queries["set_job_status"], id=id, status=status,
         )
         (result,) = await self.list_jobs_async(id=id)

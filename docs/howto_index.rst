@@ -5,7 +5,7 @@ How to...
     :maxdepth: 1
 
     howto/app
-    howto/job_store_connect
+    howto/connector
     howto/tasks
     howto/defer
     howto/worker
@@ -19,6 +19,7 @@ How to...
     howto/middleware
     howto/events
     howto/async
+    howto/sync_defer
     howto/logging
     howto/testing
     howto/deployment

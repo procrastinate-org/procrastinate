@@ -27,7 +27,7 @@ def test_generic_execute(connector):
 @pytest.mark.asyncio
 async def test_execute_query(connector, mocker):
     connector.generic_execute = mocker.Mock()
-    await connector.execute_query("a", b="c")
+    await connector.execute_query_async("a", b="c")
     connector.generic_execute.assert_called_with("a", "run", b="c")
 
 
@@ -35,17 +35,17 @@ async def test_execute_query(connector, mocker):
 async def test_execute_query_one(connector, mocker):
     connector.generic_execute = mocker.Mock()
     assert (
-        await connector.execute_query_one("a", b="c")
+        await connector.execute_query_one_async("a", b="c")
         == connector.generic_execute.return_value
     )
     connector.generic_execute.assert_called_with("a", "one", b="c")
 
 
 @pytest.mark.asyncio
-async def test_execute_query_all(connector, mocker):
+async def test_execute_query_all_async(connector, mocker):
     connector.generic_execute = mocker.Mock()
     assert (
-        await connector.execute_query_all("a", b="c")
+        await connector.execute_query_all_async("a", b="c")
         == connector.generic_execute.return_value
     )
     connector.generic_execute.assert_called_with("a", "all", b="c")

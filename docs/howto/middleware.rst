@@ -10,9 +10,11 @@ It might look like this::
     def task(*args, **kwargs):
         def wrap(func):
             def new_func(*job_args, **job_kwargs):
+                # This is the custom part
                 log_something()
-                return func(*job_args, **job_kwargs)
+                result = func(*job_args, **job_kwargs)
                 log_something_else()
+                return result
 
             return app.task(*args, **kwargs)(new_func)
         return wrap

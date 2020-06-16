@@ -61,8 +61,7 @@ class App:
         Parameters
         ----------
         connector :
-            Instance of a subclass of :py:class:`procrastinate.connector.BaseConnector`,
-            typically `AiopgConnector`. It will be responsible for all communications
+            Typically an `AiopgConnector`. It will be responsible for all communications
             with the database. Mandatory.
         import_paths :
             List of python dotted paths of modules to import, to make sure
@@ -224,7 +223,7 @@ class App:
         Run a worker. This worker will run in the foreground and execute the jobs in the
         provided queues. If wait is True, the function will not
         return until the worker stops (most probably when it receives a stop signal).
-        The default values of all parameters presented here can be overriden at the
+        The default values of all parameters presented here can be overridden at the
         `App` level.
 
         Parameters
@@ -235,7 +234,7 @@ class App:
         wait : ``bool``
             If False, the worker will terminate as soon as it has caught up with the
             queues. If True, the worker will work until it is stopped by a signal
-            (ctrl+c, SIGINT, SIGTERM) (defaults to ``True``).
+            (``ctrl+c``, ``SIGINT``, ``SIGTERM``) (defaults to ``True``).
         concurrency : ``int``
             Indicates how many asynchronous jobs the worker can run in parallel.
             Do not use concurrency if you have synchronous blocking tasks.

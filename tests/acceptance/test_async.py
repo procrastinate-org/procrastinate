@@ -6,8 +6,8 @@ pytestmark = pytest.mark.asyncio
 
 
 @pytest.fixture
-def pg_app(pg_connector):
-    return procrastinate.App(connector=pg_connector)
+def pg_app(aiopg_connector):
+    return procrastinate.App(connector=aiopg_connector)
 
 
 async def test_defer(pg_app):

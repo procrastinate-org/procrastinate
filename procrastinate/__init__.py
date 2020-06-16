@@ -2,6 +2,7 @@ from procrastinate import metadata as _metadata_module
 from procrastinate.aiopg_connector import AiopgConnector
 from procrastinate.app import App
 from procrastinate.job_context import JobContext
+from procrastinate.psycopg2_connector import Psycopg2Connector
 from procrastinate.retry import BaseRetryStrategy, RetryStrategy
 
 __all__ = [
@@ -9,6 +10,7 @@ __all__ = [
     "JobContext",
     "BaseRetryStrategy",
     "AiopgConnector",
+    "Psycopg2Connector",
     "RetryStrategy",
 ]
 

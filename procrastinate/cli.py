@@ -49,15 +49,36 @@ def set_verbosity(verbosity: int) -> None:
 def handle_errors():
     try:
         yield
-    except exceptions.ProcrastinateException as exc:
+    except Exception as exc:
         logger.debug("Exception details:", exc_info=exc)
         messages = [str(e) for e in utils.causes(exc)]
         raise click.ClickException("\n".join(e for e in messages if e))
-    except NotImplementedError:
-        raise click.UsageError(
-            "Missing app. This most probably happened because procrastinate needs an "
-            "app via --app or the PROCRASTINATE_APP environment variable"
-        )
+
+
+class MissingAppConnector(connector.BaseConnector):
+    def close(self, *args, **kwargs):
+        pass
+
+    def execute_query(self, *args, **kwargs):
+        raise exceptions.MissingApp
+
+    def execute_query_one(self, *args, **kwargs):
+        raise exceptions.MissingApp
+
+    def execute_query_all(self, *args, **kwargs):
+        raise exceptions.MissingApp
+
+    async def execute_query_async(self, *args, **kwargs):
+        raise exceptions.MissingApp
+
+    async def execute_query_one_async(self, *args, **kwargs):
+        raise exceptions.MissingApp
+
+    async def execute_query_all_async(self, *args, **kwargs):
+        raise exceptions.MissingApp
+
+    async def listen_notify(self, *args, **kwargs):
+        raise exceptions.MissingApp
 
 
 @click.group(context_settings=CONTEXT_SETTINGS)
@@ -74,9 +95,9 @@ def handle_errors():
 @click.version_option(
     procrastinate.__version__, "-V", "--version", prog_name=PROGRAM_NAME
 )
+@handle_errors()
 def cli(ctx: click.Context, app: str, **kwargs) -> None:
     """
-@handle_errors()
     Interact with a Procrastinate app. See subcommands for details.
 
     All arguments can be passed by environment variables: PROCRASTINATE_UPPERCASE_NAME
@@ -87,8 +108,8 @@ def cli(ctx: click.Context, app: str, **kwargs) -> None:
         app_obj = procrastinate.App.from_path(dotted_path=app)
     else:
         # If we don't provide an app, initialize a default one that will fail if it
-        # needs its job store.
-        app_obj = procrastinate.App(connector=connector.BaseConnector())
+        # needs a connector.
+        app_obj = procrastinate.App(connector=MissingAppConnector())
     ctx.obj = app_obj
 
     worker_defaults = app_obj.worker_defaults.copy()
@@ -197,7 +218,7 @@ def defer(
     """
     Create a job from the given task, to be executed by a worker.
     TASK should be the name or dotted path to a task.
-    JSON_ARGS should be a json object (a.k.a dictionnary) with the job parameters
+    JSON_ARGS should be a json object (a.k.a dictionary) with the job parameters
     """
     # Loading json args
     args = load_json_args(
@@ -238,8 +259,8 @@ def defer(
         click.echo(f"{exc} (ignored)")
 
 
-def filter_none(dictionnary: Dict) -> Dict:
-    return {key: value for key, value in dictionnary.items() if value is not None}
+def filter_none(dictionary: Dict) -> Dict:
+    return {key: value for key, value in dictionary.items() if value is not None}
 
 
 def load_json_args(json_args: str, json_loads: Callable) -> types.JSONDict:

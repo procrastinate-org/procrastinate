@@ -1,5 +1,5 @@
-Create your job store, and connect to a PostgreSQL database
------------------------------------------------------------
+Create your connector, and connect to a PostgreSQL database
+===========================================================
 
 There are three ways you can specify the connection parameters:
 
@@ -32,3 +32,14 @@ There are three ways you can specify the connection parameters:
 
 .. _`aiopg connection arguments`: https://aiopg.readthedocs.io/en/stable/core.html#aiopg.connect
 .. _`psycopg2 connection arguments`: http://initd.org/psycopg/docs/module.html#psycopg2.connect
+
+
+What kind of Connector should I use?
+------------------------------------
+
+Procrastinate currently provides 2 connectors:
+
+- `AiopgConnector`: Generic multipurpose connector. This should be the default.
+- `Psycopg2Connector`: This connector is specialized for synchronous calls only, and
+  should only be used to configure your app for synchronous multi-threaded applications
+  that need to :term:`defer` tasks synchronously (see `discussion-sync-defer`).

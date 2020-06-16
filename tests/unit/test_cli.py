@@ -126,3 +126,23 @@ def test_test_configure_job_error(app):
 
 def test_filter_none():
     assert cli.filter_none({"a": "b", "c": None}) == {"a": "b"}
+
+
+@pytest.mark.parametrize(
+    "method_name",
+    [
+        "execute_query",
+        "execute_query_one",
+        "execute_query_all",
+        "execute_query_async",
+        "execute_query_one_async",
+        "execute_query_all_async",
+        "listen_notify",
+    ],
+)
+@pytest.mark.asyncio
+async def test_missing_app_async(method_name):
+    with pytest.raises(exceptions.MissingApp):
+        # Some of this methods are not async but they'll raise
+        # before the await is reached.
+        await getattr(cli.MissingAppConnector(), method_name)()

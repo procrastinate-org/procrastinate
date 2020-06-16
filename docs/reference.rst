@@ -13,6 +13,9 @@ Connectors
 .. autoclass:: procrastinate.AiopgConnector
     :members: set_pool, close, close_async
 
+.. autoclass:: procrastinate.Psycopg2Connector
+    :members: close
+
 .. autoclass:: procrastinate.testing.InMemoryConnector
     :members: reset
 

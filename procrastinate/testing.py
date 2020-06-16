@@ -12,7 +12,7 @@ JobRow = Dict[str, Any]
 EventRow = Dict[str, Any]
 
 
-class InMemoryConnector(connector.BaseConnector):
+class InMemoryConnector(connector.BaseAsyncConnector):
     """
     An InMemoryConnector may be used for testing only. Tasks are not
     persisted and will be lost when the process ends.
@@ -56,13 +56,15 @@ class InMemoryConnector(connector.BaseConnector):
     def make_dynamic_query(self, query, **identifiers: str) -> str:
         return query.format(**identifiers)
 
-    async def execute_query(self, query: str, **arguments: Any) -> None:
+    async def execute_query_async(self, query: str, **arguments: Any) -> None:
         self.generic_execute(query, "run", **arguments)
 
-    async def execute_query_one(self, query: str, **arguments: Any) -> Dict[str, Any]:
+    async def execute_query_one_async(
+        self, query: str, **arguments: Any
+    ) -> Dict[str, Any]:
         return self.generic_execute(query, "one", **arguments)
 
-    async def execute_query_all(
+    async def execute_query_all_async(
         self, query: str, **arguments: Any
     ) -> List[Dict[str, Any]]:
         return self.generic_execute(query, "all", **arguments)
@@ -72,6 +74,12 @@ class InMemoryConnector(connector.BaseConnector):
     ) -> None:
         self.notify_event = event
         self.notify_channels = channels
+
+    def close(self) -> None:
+        pass
+
+    async def close_async(self) -> None:
+        pass
 
     # End of BaseConnector methods
 

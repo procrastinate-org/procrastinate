@@ -9,7 +9,7 @@ pytestmark = pytest.mark.asyncio
 
 
 async def test_store_defer_job(job_store, job_factory, connector):
-    job_row = await job_store.defer_job(
+    job_row = await job_store.defer_job_async(
         job=job_factory(
             task_kwargs={"a": "b"}, queue="marsupilami", task_name="bla", lock="sher"
         )
@@ -33,7 +33,7 @@ async def test_store_defer_job(job_store, job_factory, connector):
 
 
 async def test_store_defer_job_no_lock(job_store, job_factory, connector):
-    await job_store.defer_job(job=job_factory())
+    await job_store.defer_job_async(job=job_factory())
 
     assert uuid.UUID(connector.jobs[1]["lock"])
 
@@ -41,34 +41,36 @@ async def test_store_defer_job_no_lock(job_store, job_factory, connector):
 async def test_store_defer_job_connector_exception(
     mocker, job_store, job_factory, connector
 ):
-    connector.execute_query_one = mocker.Mock(side_effect=exceptions.ConnectorException)
+    connector.execute_query_one_async = mocker.Mock(
+        side_effect=exceptions.ConnectorException
+    )
 
     with pytest.raises(exceptions.ConnectorException):
-        await job_store.defer_job(job=job_factory(task_kwargs={"a": "b"}))
+        await job_store.defer_job_async(job=job_factory(task_kwargs={"a": "b"}))
 
 
 async def test_store_defer_job_unique_violation_exception(
     mocker, job_store, job_factory, connector
 ):
-    connector.execute_query_one = mocker.Mock(
+    connector.execute_query_one_async = mocker.Mock(
         side_effect=exceptions.UniqueViolation(
             constraint_name="procrastinate_jobs_queueing_lock_idx"
         )
     )
 
     with pytest.raises(exceptions.AlreadyEnqueued):
-        await job_store.defer_job(job=job_factory(task_kwargs={"a": "b"}))
+        await job_store.defer_job_async(job=job_factory(task_kwargs={"a": "b"}))
 
 
 async def test_store_defer_job_unique_violation_exception_other_constraint(
     mocker, job_store, job_factory, connector
 ):
-    connector.execute_query_one = mocker.Mock(
+    connector.execute_query_one_async = mocker.Mock(
         side_effect=exceptions.UniqueViolation(constraint_name="some_other_constraint")
     )
 
     with pytest.raises(exceptions.ConnectorException):
-        await job_store.defer_job(job=job_factory(task_kwargs={"a": "b"}))
+        await job_store.defer_job_async(job=job_factory(task_kwargs={"a": "b"}))
 
 
 async def test_fetch_job_no_suitable_job(job_store):
@@ -77,19 +79,19 @@ async def test_fetch_job_no_suitable_job(job_store):
 
 async def test_fetch_job(job_store, job_factory):
     job = job_factory(id=1)
-    await job_store.defer_job(job=job)
+    await job_store.defer_job_async(job=job)
     assert await job_store.fetch_job(queues=None) == job
 
 
 async def test_get_stalled_jobs_not_stalled(job_store, job_factory):
     job = job_factory(id=1)
-    await job_store.defer_job(job=job)
+    await job_store.defer_job_async(job=job)
     assert await job_store.get_stalled_jobs(nb_seconds=1000) == []
 
 
 async def test_get_stalled_jobs_stalled(job_store, job_factory, connector):
     job = job_factory(id=1)
-    await job_store.defer_job(job=job)
+    await job_store.defer_job_async(job=job)
     await job_store.fetch_job(queues=None)
     connector.events[1][-1]["at"] = pendulum.datetime(2000, 1, 1)
     assert await job_store.get_stalled_jobs(nb_seconds=1000) == [job]
@@ -116,7 +118,7 @@ async def test_delete_old_jobs(
 
 async def test_finish_job(job_store, job_factory, connector):
     job = job_factory(id=1)
-    await job_store.defer_job(job=job)
+    await job_store.defer_job_async(job=job)
     retry_at = pendulum.datetime(2000, 1, 1)
 
     await job_store.finish_job(job=job, status=jobs.Status.TODO, scheduled_at=retry_at)

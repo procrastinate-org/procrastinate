@@ -13,9 +13,11 @@ import pytest
 from psycopg2 import sql
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 
-from procrastinate import aiopg_connector
+from procrastinate import aiopg_connector as aiopg_connector_module
 from procrastinate import app as app_module
-from procrastinate import jobs, schema, testing
+from procrastinate import jobs
+from procrastinate import psycopg2_connector as psycopg2_connector_module
+from procrastinate import schema, testing
 
 # Just ensuring the tests are not polluted by environment
 for key in os.environ:
@@ -78,7 +80,7 @@ def setup_db():
     dbname = "procrastinate_test_template"
     db_create(dbname=dbname)
 
-    connector = aiopg_connector.AiopgConnector(dbname=dbname)
+    connector = aiopg_connector_module.AiopgConnector(dbname=dbname)
     schema_manager = schema.SchemaManager(connector=connector)
     schema_manager.apply_schema()
     # We need to close the psycopg2 underlying connection synchronously
@@ -103,10 +105,17 @@ async def connection(connection_params):
 
 
 @pytest.fixture
-async def pg_connector(connection_params):
-    connector = aiopg_connector.AiopgConnector(**connection_params)
+async def aiopg_connector(connection_params):
+    connector = aiopg_connector_module.AiopgConnector(**connection_params)
     yield connector
     await connector.close_async()
+
+
+@pytest.fixture
+def psycopg2_connector(connection_params):
+    connector = psycopg2_connector_module.Psycopg2Connector(**connection_params)
+    yield connector
+    connector.close()
 
 
 @pytest.fixture
