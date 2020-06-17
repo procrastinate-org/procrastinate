@@ -20,8 +20,9 @@ CoroutineFunction = Callable[..., Coroutine]
 
 def wrap_exceptions(coro: CoroutineFunction) -> CoroutineFunction:
     """
-    Wrap psycopg2 and aiopg errors as connector exceptions
-    This decorator is expected to be used on coroutine functions only
+    Wrap psycopg2 and aiopg errors as connector exceptions.
+
+    This decorator is expected to be used on coroutine functions only.
     """
 
     @functools.wraps(coro)
@@ -32,6 +33,45 @@ def wrap_exceptions(coro: CoroutineFunction) -> CoroutineFunction:
             raise exceptions.UniqueViolation(constraint_name=exc.diag.constraint_name)
         except psycopg2.Error as exc:
             raise exceptions.ConnectorException from exc
+
+    # Attaching a custom attribute to ease testability and make the
+    # decorator more introspectable
+    wrapped._exceptions_wrapped = True  # type: ignore
+    return wrapped
+
+
+def wrap_query_exceptions(coro: CoroutineFunction) -> CoroutineFunction:
+    """
+    Detect aiopg OperationalError's with a "server closed the connection unexpectedly"
+    message and retry a number of times.
+
+    This is to handle the case where the database connection (obtained from the pool)
+    was actually closed by the server. In this case, aiopg raises an OperationalError
+    with a "server closed the connection unexpectedly" message (and no pgcode) when the
+    connection is used for issuing a query. What we do is retry when an OperationalError
+    is raised, and until max_tries is reached.
+
+    max_tries is set to the max pool size + 1 (maxsize + 1) to handle the case where all
+    the connections we have in the pool were closed by the server.
+    """
+
+    @functools.wraps(coro)
+    async def wrapped(*args, **kwargs):
+        final_exc = None
+        max_tries = (
+            args[0]._pool.maxsize + 1 if args and getattr(args[0], "_pool", None) else 1
+        )
+        for _ in range(max_tries):
+            try:
+                return await coro(*args, **kwargs)
+            except psycopg2.errors.OperationalError as exc:
+                if "server closed the connection unexpectedly" in str(exc):
+                    final_exc = exc
+                    continue
+                raise exc
+        raise exceptions.ConnectorException(
+            "Could not get a valid connection after {} tries".format(max_tries)
+        ) from final_exc
 
     # Attaching a custom attribute to ease testability and make the
     # decorator more introspectable
@@ -178,12 +218,14 @@ class AiopgConnector(connector.BaseAsyncConnector):
     # a pool or from a connection
 
     @wrap_exceptions
+    @wrap_query_exceptions
     async def execute_query_async(self, query: str, **arguments: Any) -> None:
         pool = await self._get_pool()
         with await pool.cursor() as cursor:
             await cursor.execute(query, self._wrap_json(arguments))
 
     @wrap_exceptions
+    @wrap_query_exceptions
     async def _execute_query_connection(
         self, query: str, connection: aiopg.Connection, **arguments: Any,
     ) -> None:
@@ -191,6 +233,7 @@ class AiopgConnector(connector.BaseAsyncConnector):
             await cursor.execute(query, self._wrap_json(arguments))
 
     @wrap_exceptions
+    @wrap_query_exceptions
     async def execute_query_one_async(
         self, query: str, **arguments: Any
     ) -> Dict[str, Any]:
@@ -201,6 +244,7 @@ class AiopgConnector(connector.BaseAsyncConnector):
             return await cursor.fetchone()
 
     @wrap_exceptions
+    @wrap_query_exceptions
     async def execute_query_all_async(
         self, query: str, **arguments: Any
     ) -> List[Dict[str, Any]]:
