@@ -74,9 +74,11 @@ Try 2
     )
 
     assert stderr.count("Traceback (most recent call last)") == 3
-    assert stderr.count("Job error, to retry") == 2
-    waited_log = "Job error - Job tests.acceptance.app.multiple_exception_failures[6]()"
-    assert stderr.count(waited_log) == 1
+    assert stderr.count("status: Error, to retry") == 2
+    expected_log = "[6]() ended with status: Error"
+    assert stderr.count(expected_log) == 3
+    expected_log = "[6]() ended with status: Error, to retry"
+    assert stderr.count(expected_log) == 2
 
 
 def test_lock(defer, running_worker):

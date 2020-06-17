@@ -225,20 +225,20 @@ class Worker:
 
         except Exception as e:
             task_result = None
-            log_title = "Job error"
+            log_title = "Error"
             log_action = "job_error"
             log_level = logging.ERROR
             exc_info = e
 
             retry_exception = task.get_retry_exception(exception=e, job=job)
             if retry_exception:
-                log_title = "Job error, to retry"
+                log_title = "Error, to retry"
                 log_action = "job_error_retry"
                 raise retry_exception from e
             raise exceptions.JobError() from e
 
         else:
-            log_title = "Job success"
+            log_title = "Success"
             log_action = "job_success"
             log_level = logging.INFO
             exc_info = False
@@ -255,7 +255,12 @@ class Worker:
 
             extra = context.log_extra(action=log_action)
 
-            text = f"{log_title} - Job {job.call_string} " f"in {duration:.3f} s"
+            text = (
+                f"Job {job.call_string} ended with status: {log_title}, "
+                f"lasted {duration:.3f} s"
+            )
+            if task_result:
+                text += f" - Result: {task_result}"[:250]
             self.logger.log(log_level, text, extra=extra, exc_info=exc_info)
 
     def stop(self):
