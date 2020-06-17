@@ -26,5 +26,6 @@ How to...
     howto/pum
     howto/monitoring
     howto/remove_old_jobs
+    howto/connections
     howto/custom_json_encoder_decoder
     howto/schema
