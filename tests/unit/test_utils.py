@@ -183,3 +183,49 @@ def test_causes():
         result = list(utils.causes(exc2))
 
     assert result == [e1, e2, e3]
+
+
+def test_get_module_name_path1():
+    # Calling the function on itself
+    assert utils._get_module_name(utils._get_module_name) == "procrastinate.utils"
+
+
+def test_get_module_name_path2():
+    def yay():
+        pass
+
+    yay.__module__ = "__main__"
+    # We're probably doing strange things to the pytest binary
+    # but it's probably harmless
+    del sys.modules["__main__"].__file__
+
+    # Calling the function on itself
+    assert utils._get_module_name(yay) == "__main__"
+
+
+def test_get_module_name_path3():
+    def yay():
+        pass
+
+    yay.__module__ = "__main__"
+    sys.modules["__main__"].__file__ = "/home"
+
+    # Calling the function on itself
+    assert utils._get_module_name(yay) == "__main__"
+
+
+def test_get_module_name_path4():
+    def yay():
+        pass
+
+    yay.__module__ = "__main__"
+    sys.modules["__main__"].__file__ = "a/b.py"
+
+    # Calling the function on itself
+    assert utils._get_module_name(yay) == "a.b"
+
+
+def test_get_full_path():
+    path = "procrastinate.utils.get_full_path"
+    # Calling the function on itself
+    assert utils.get_full_path(utils.get_full_path) == path

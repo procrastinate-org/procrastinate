@@ -1,7 +1,9 @@
 import asyncio
 import functools
 import importlib
+import inspect
 import logging
+import pathlib
 import types
 from typing import Any, Awaitable, Iterable, Optional, Type, TypeVar
 
@@ -173,3 +175,29 @@ def causes(exc: Optional[BaseException]):
     while exc:
         yield exc
         exc = exc.__cause__ or exc.__context__
+
+
+def _get_module_name(obj: Any) -> str:
+    module_name = obj.__module__
+    if module_name != "__main__":
+        return module_name
+
+    module = inspect.getmodule(obj)
+    # obj could be None, or has no __file__ if in an interactive shell
+    # in which case, there's not a lot we can do.
+    if not module or not hasattr(module, "__file__"):
+        return module_name
+
+    path = pathlib.Path(module.__file__)
+    # If the path is absolute, it probably means __main__ is an executable from an
+    # installed package
+    if path.is_absolute():
+        return module_name
+
+    # Creating the dotted path from the path
+    return ".".join([*path.parts[:-1], path.stem])
+
+
+def get_full_path(obj: Any) -> str:
+
+    return f"{_get_module_name(obj)}.{obj.__name__}"
