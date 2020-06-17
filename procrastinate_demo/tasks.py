@@ -5,7 +5,7 @@ from procrastinate_demo.app import app
 
 @app.task(queue="sums")
 def sum(a, b):
-    print(a + b)
+    return a + b
 
 
 @app.task(queue="sleep")
@@ -17,7 +17,7 @@ async def sleep(i):
 
 @app.task(queue="sums")
 def sum_plus_one(a, b):
-    print(a + b + 1)
+    return a + b + 1
 
 
 @app.task(queue="retry", retry=100)

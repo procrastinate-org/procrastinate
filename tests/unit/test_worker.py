@@ -161,6 +161,7 @@ async def test_run_job_log_result(caplog, app):
     assert len(records) == 1
     record = records[0]
     assert record.result == 12
+    assert "Result: 12" in record.message
 
 
 @pytest.mark.parametrize(
