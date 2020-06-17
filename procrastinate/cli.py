@@ -157,6 +157,12 @@ def close_connection(procrastinate_app: procrastinate.App, *args, **kwargs):
     help="When all jobs have been processed, whether to "
     "terminate or to wait for new jobs",
 )
+@click.option(
+    "-w",
+    "--listen-notify/--no-listen-notify",
+    default=True,
+    help="Whether to actively listen for new jobs or periodically poll",
+)
 @handle_errors()
 def worker_(app: procrastinate.App, queues: str, **kwargs):
     """
