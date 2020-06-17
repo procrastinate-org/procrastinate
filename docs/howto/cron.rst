@@ -1,37 +1,59 @@
 Launch a task periodically
---------------------------
+==========================
 
-Launching anything periodically (every X units of time) is a really complicated
-problem, mainly because of how the system is supposed to react when it's off or too
-busy. Should it accumulate or discard jobs when it's too late and it couldn't
-launch the jobs in time? How to define properly a unit of time, given there's
-time zones, and leap years and such?
+Procrastinate offers a way to schedule periodic deferring of tasks. It uses the
+`Unix cron`_ syntax::
 
-Procrastinate doesn't aim at answering all these questions, but mature stable software
-already has, in the form of `unix cron`_ and `systemd timers`_, to name just two.
+    # scheduled at the 0th minute of each hour
+    @app.schedule(cron="0 * * * *")
+    @app.task
+    def cleanup_foobar(timestamp: int):
+        ...
 
-.. _`unix cron`: https://en.wikipedia.org/wiki/Cron
-.. _`systemd timers`: https://www.freedesktop.org/software/systemd/man/systemd.timer.html
+    # scheduled every 5 minutes
+    @app.schedule(cron="*/5 * * * *")
+    @app.task
+    def run_healthchecks(timestamp: int):
+        ...
 
-That being said, Procrastinate tries to ease the use of these solutions by providing
-a means to easily schedule jobs from the command line.
+.. _`Unix cron`: https://en.wikipedia.org/wiki/Cron
 
-It also features :term:`queueing locks <queueing lock>` to avoid accumulating jobs in
-the queue when the Procrastinate workers are down or too busy, and preventing bursts of
-job executions when workers are up again.
+Internally, each worker is responsible for ensuring that each periodic task is deferred
+in time, and the database is responsible for making sure deferring only happens once per
+period, even with multiple workers. This means that you can have high availability
+periodic scheduling: as long as at least one worker is up, the tasks will be deferred.
 
-Whether you then decide to schedule multiple crons/timers, or a single one that will
-in turn schedule the appropriate jobs is up to you, following your own constraints.
+.. warning::
 
-Launching a job from cron every 15 minutes
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    The workers will defer the task at the requested period, but the corresponding
+    jobs may be executed later, depending on how busy the workers are.
+
+The cron syntax is on 5 columns (minute, hour, day, month, day of week). Here, an
+optional 6th column is supported for seconds with the same syntax, allowing you to make
+a periodic task as frequent as "1 per second".
+
+Periodic task arguments
+-----------------------
+
+Periodic tasks receive a single integer argument, named ``timestamp``. it represents the
+`Unix timestamp`__ of the date/time it was scheduled for.
+
+.. __: https://en.wikipedia.org/wiki/Unix_time
+
+Using cron
+----------
+
+It's also perfectly valid to leverage cron or `systemd timers`_ to periodically
+defer jobs, and queuing locks to keep them from accumulating in case of a slowdown in
+processing.
 
 Here's how to use cron to launch a job every 15 minutes, without launching a new
 job when one (with the same queueing lock) is already waiting in the queue:
 
-.. highlight:: none
-
-::
+.. code-block:: console
 
     */15 * * * * /path/to/env/bin/procrastinate --app=dotted.path.to.app defer \
             --queueing-lock=maintenance --ignore-already-enqueued my.maintenance.task
+
+
+.. _`systemd timers`: https://www.freedesktop.org/software/systemd/man/systemd.timer.html

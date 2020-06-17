@@ -1,44 +1,30 @@
-.. _howto-locks:
-
 Ensure jobs run sequentially and in order
------------------------------------------
+=========================================
 
 In this section, we'll see **how** to setup locks. If you want to know
 more about the locking feature (mainly the **why**), head to the Discussions
 section (see `discussion-locks`).
 
-Let's take our example from the section linked above. In a environment with at least 2
-workers, we're writing individual letters to the end of a file and want the letters to
-be written in the same order that we ran the tasks::
+When defering a job, we can provide a lock string to the ``configure`` method::
 
-    @app.task
-    def write_alphabet(letter):
-        time.sleep(random.random() * 5)
-        with open("/tmp/alphabet.txt", "a") as f:
-            f.write(letter)
+    my_task.configure(lock=customer.id).defer(a=1)
+    my_other_task.configure(lock=customer.id).defer(b=2)
 
-If we defer the tasks without locks::
+Or if we're defering the same task with the same lock multiple times, we can call
+configure just once::
 
-    write_alphabet.defer(letter="a")
-    write_alphabet.defer(letter="b")
-    write_alphabet.defer(letter="c")
-    write_alphabet.defer(letter="d")
+    job_description = my_task.configure(lock=customer.id)
+    my_task.defer(a=1)
+    my_task.defer(a=2)
 
-The result will most probably be unordered, say ``dabc``.
+In both case, this will ensure that the second task cannot run before the first one
+has ended (succesfully or not).
 
-We can solve this problem by using locks::
+.. warning::
 
-    write_alphabet.configure(lock="/tmp/alphabet.txt").defer(letter="a")
-    write_alphabet.configure(lock="/tmp/alphabet.txt").defer(letter="b")
-    write_alphabet.configure(lock="/tmp/alphabet.txt").defer(letter="c")
-    write_alphabet.configure(lock="/tmp/alphabet.txt").defer(letter="d")
+    If a task is deferred with a lock and it has a ``scheduled_at`` arguments, then
+    following tasks will still not run until after the task has been processed, which
+    may be arbitrary far in the future.
 
-Or simply::
-
-    job_description = write_alphabet.configure(lock="/tmp/alphabet.txt")
-    job_description.defer(letter="a")
-    job_description.defer(letter="b")
-    job_description.defer(letter="c")
-    job_description.defer(letter="d")
-
-Both ways, we're assured of getting ``abcd`` in our file.
+    Similarily, if the oldest task of a lock is in a queue that no worker consumes, the
+    other tasks will be blocked.

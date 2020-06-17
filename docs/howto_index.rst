@@ -12,8 +12,9 @@ How to...
     howto/command_line
     howto/shell
     howto/locks
-    howto/concurrency
     howto/schedule
+    howto/queueing_locks
+    howto/concurrency
     howto/cron
     howto/retry
     howto/middleware

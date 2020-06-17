@@ -162,6 +162,18 @@ class App:
 
         return _wrap(_func)  # Called as @app.task
 
+    def schedule(self, *, cron: str):
+        """
+        Task decorator, marks task as being scheduled for periodic deferring (see
+        `howto/cron`).
+
+        Parameters
+        ----------
+        cron :
+            Cron-like string. Optionally add a 6th column for seconds.
+        """
+        pass
+
     def _register(self, task: "tasks.Task") -> None:
         self.tasks[task.name] = task
         queue = task.queue
