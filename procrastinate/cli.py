@@ -39,7 +39,7 @@ def set_verbosity(verbosity: int) -> None:
     level = get_log_level(verbosity=verbosity)
     logging.basicConfig(level=level)
     level_name = logging.getLevelName(level)
-    logger.info(
+    logger.debug(
         f"Log level set to {level_name}",
         extra={"action": "set_log_level", "value": level_name},
     )

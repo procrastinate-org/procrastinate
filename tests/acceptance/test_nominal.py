@@ -47,7 +47,7 @@ def test_nominal(defer, worker):
     stdout, stderr = worker()
 
     assert stdout.splitlines() == ["Launching a worker on all queues", "12", "7", "4"]
-    assert stderr.startswith("INFO:procrastinate.")
+    assert stderr.startswith("DEBUG:procrastinate.")
 
     defer("product_task", a=5, b=4)
 
