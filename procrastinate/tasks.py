@@ -52,7 +52,6 @@ def configure_task(
     )
 
 
-@utils.add_sync_api
 class Task:
     """
     A task is a function that should be executed later. It is linked to a
@@ -102,9 +101,15 @@ class Task:
         The job will be created with default parameters, if you want to better
         specify when and how to launch this job, see `Task.configure`.
         """
-        job_id = await self.configure().defer_async(**task_kwargs)
+        return await self.configure().defer_async(**task_kwargs)
 
-        return job_id
+    def defer(self, **task_kwargs: types.JSONValue) -> int:
+        """
+        Create a job from this task and the given arguments.
+        The job will be created with default parameters, if you want to better
+        specify when and how to launch this job, see `Task.configure`.
+        """
+        return self.configure().defer(**task_kwargs)
 
     def configure(
         self,
