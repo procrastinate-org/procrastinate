@@ -1,7 +1,7 @@
 import asyncio
 import functools
 import logging
-from typing import Any, Callable, Coroutine, Dict, Iterable, List, NoReturn, Optional
+from typing import Any, Callable, Coroutine, Dict, Iterable, List, Optional
 
 import aiopg
 import psycopg2
@@ -87,9 +87,8 @@ class AiopgConnector(connector.BaseAsyncConnector):
             instead of standard cursor. There is no identified use case for changing
             this.
         maxsize : ``int``
-            Passed to aiopg. Cannot be lower than 2, otherwise worker won't be
-            functioning normally (one connection for listen/notify, one for executing
-            tasks).
+            Passed to aiopg. If value is 1, then listen/notify feature will be
+            deactivated.
         minsize : ``int``
             Passed to aiopg. Initial connections are not opened when the connector
             is created, but at first use of the pool.
@@ -124,8 +123,6 @@ class AiopgConnector(connector.BaseAsyncConnector):
             "on_connect": on_connect,
             "cursor_factory": RealDictCursor,
         }
-        if "maxsize" in pool_args:
-            pool_args["maxsize"] = max(2, pool_args["maxsize"])
 
         final_args.update(pool_args)
         return final_args
@@ -221,10 +218,18 @@ class AiopgConnector(connector.BaseAsyncConnector):
     @wrap_exceptions
     async def listen_notify(
         self, event: asyncio.Event, channels: Iterable[str]
-    ) -> NoReturn:
+    ) -> None:
         pool = await self._get_pool()
         # We need to acquire a dedicated connection, and use the listen
         # query
+        if pool.maxsize == 1:
+            logger.warning(
+                "Listen/Notify capabilities disabled because maximum pull size"
+                "is set to 1",
+                extra={"action": "listen_pool_too_small"},
+            )
+            return
+
         while True:
             async with pool.acquire() as connection:
                 for channel_name in channels:
