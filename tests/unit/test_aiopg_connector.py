@@ -54,8 +54,11 @@ async def test_wrap_exceptions_success():
 
 @pytest.mark.asyncio
 async def test_wrap_query_exceptions_reached_max_tries(mocker):
+    called = []
+
     @aiopg_connector.wrap_query_exceptions
     async def corofunc(connector):
+        called.append(True)
         raise psycopg2.errors.OperationalError(
             "server closed the connection unexpectedly"
         )
@@ -66,14 +69,20 @@ async def test_wrap_query_exceptions_reached_max_tries(mocker):
     with pytest.raises(exceptions.ConnectorException) as excinfo:
         await coro
 
+    assert len(called) == 6
     assert str(excinfo.value) == "Could not get a valid connection after 6 tries"
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("exception_class", [Exception, psycopg2.errors.InterfaceError])
+@pytest.mark.parametrize(
+    "exception_class", [Exception, psycopg2.errors.OperationalError]
+)
 async def test_wrap_query_exceptions_unhandled_exception(mocker, exception_class):
+    called = []
+
     @aiopg_connector.wrap_query_exceptions
     async def corofunc(connector):
+        called.append(True)
         raise exception_class("foo")
 
     connector = mocker.Mock(_pool=mocker.Mock(maxsize=5))
@@ -82,23 +91,26 @@ async def test_wrap_query_exceptions_unhandled_exception(mocker, exception_class
     with pytest.raises(exception_class):
         await coro
 
+    assert len(called) == 1
+
 
 @pytest.mark.asyncio
 async def test_wrap_query_exceptions_success(mocker):
-    cnt = 0
+    called = []
 
     @aiopg_connector.wrap_query_exceptions
     async def corofunc(connector, a, b):
-        nonlocal cnt
-        if cnt < 2:
-            cnt += 1
+        if len(called) < 2:
+            called.append(True)
             raise psycopg2.errors.OperationalError(
                 "server closed the connection unexpectedly"
             )
         return a, b
 
     connector = mocker.Mock(_pool=mocker.Mock(maxsize=5))
+
     assert await corofunc(connector, 1, 2) == (1, 2)
+    assert len(called) == 2
 
 
 @pytest.mark.parametrize(

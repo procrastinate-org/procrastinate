@@ -22,8 +22,11 @@ def test_wrap_exceptions_success():
 
 
 def test_wrap_query_exceptions_reached_max_tries(mocker):
+    called = []
+
     @psycopg2_connector.wrap_query_exceptions
     def func(connector):
+        called.append(True)
         raise psycopg2.errors.InterfaceError("connection already closed")
 
     connector = mocker.Mock(_pool=mocker.Mock(maxconn=5))
@@ -31,13 +34,17 @@ def test_wrap_query_exceptions_reached_max_tries(mocker):
     with pytest.raises(exceptions.ConnectorException) as excinfo:
         func(connector)
 
+    assert len(called) == 6
     assert str(excinfo.value) == "Could not get a valid connection after 6 tries"
 
 
 @pytest.mark.parametrize("exception_class", [Exception, psycopg2.errors.InterfaceError])
 def test_wrap_query_exceptions_unhandled_exception(mocker, exception_class):
+    called = []
+
     @psycopg2_connector.wrap_query_exceptions
     def func(connector):
+        called.append(True)
         raise exception_class("foo")
 
     connector = mocker.Mock(_pool=mocker.Mock(maxconn=5))
@@ -45,20 +52,22 @@ def test_wrap_query_exceptions_unhandled_exception(mocker, exception_class):
     with pytest.raises(exception_class):
         func(connector)
 
+    assert len(called) == 1
+
 
 def test_wrap_query_exceptions_success(mocker):
-    cnt = 0
+    called = []
 
     @psycopg2_connector.wrap_query_exceptions
     def func(connector, a, b):
-        nonlocal cnt
-        if cnt < 2:
-            cnt += 1
+        if len(called) < 2:
+            called.append(True)
             raise psycopg2.errors.InterfaceError("connection already closed")
         return a, b
 
     connector = mocker.Mock(_pool=mocker.Mock(maxconn=5))
     assert func(connector, 1, 2) == (1, 2)
+    assert len(called) == 2
 
 
 @pytest.mark.parametrize(
