@@ -1,6 +1,7 @@
 import functools
 import json
 
+import psycopg2.errors
 import pytest
 
 from procrastinate import psycopg2_connector
@@ -30,6 +31,15 @@ def test_connection(psycopg2_connector_factory, connection_params):
     connector = psycopg2_connector_factory()
     with connector._connection() as connection:
         assert connection.dsn == "dbname=" + connection_params["dbname"]
+
+
+@pytest.mark.parametrize("exception", [Exception, psycopg2.errors.AdminShutdown])
+def test_connection_exception(psycopg2_connector_factory, connection_params, exception):
+
+    connector = psycopg2_connector_factory()
+    with pytest.raises(exception):
+        with connector._connection():
+            raise exception
 
 
 @pytest.mark.parametrize(

@@ -36,14 +36,12 @@ def wrap_exceptions(func: Callable) -> Callable:
 
 def wrap_query_exceptions(func: Callable) -> Callable:
     """
-    Detect psycopg2 InterfaceError's with a "connection already closed" message and
-    retry a number of times.
+    Detect "admin shutdown" errors and retry a number of times.
 
     This is to handle the case where the database connection (obtained from the pool)
-    was actually closed by the server. In this case, pyscopg2 raises an InterfaceError
-    with a "connection already closed" message (and no pgcode) when the connection is
-    used for issuing a query. What we do is retry when an InterfaceError is raised, and
-    until max_tries is reached.
+    was actually closed by the server. In this case, pyscopg2 raises an AdminShutdown
+    exception when the connection is used for issuing a query. What we do is retry when
+    an AdminShutdown is raised, and until max_tries is reached.
 
     max_tries is set to the max pool size + 1 (maxconn + 1) to handle the case where
     all the connections we have in the pool were closed by the server.
@@ -58,11 +56,8 @@ def wrap_query_exceptions(func: Callable) -> Callable:
         for _ in range(max_tries):
             try:
                 return func(*args, **kwargs)
-            except psycopg2.errors.InterfaceError as exc:
-                if "connection already closed" in str(exc):
-                    final_exc = exc
-                    continue
-                raise exc
+            except psycopg2.errors.AdminShutdown:
+                continue
         raise exceptions.ConnectorException(
             "Could not get a valid connection after {} tries".format(max_tries)
         ) from final_exc
@@ -160,10 +155,23 @@ class Psycopg2Connector(connector.BaseConnector):
 
     @contextlib.contextmanager
     def _connection(self) -> psycopg2.extensions.connection:
+        # in case of an admin shutdown (Postgres error code 57P01) we do not
+        # rollback the connection or put the connection back to the pool as
+        # this will cause a psycopg2.InterfaceError exception
         try:
-            with self._pool.getconn() as connection:
+            connection = self._pool.getconn()
+            try:
                 yield connection
-        finally:
+            except psycopg2.errors.AdminShutdown:
+                raise
+            except Exception:
+                connection.rollback()
+                raise
+            else:
+                connection.commit()
+        except psycopg2.errors.AdminShutdown:
+            raise
+        else:
             self._pool.putconn(connection)
 
     @wrap_exceptions
