@@ -73,9 +73,6 @@ def wrap_query_exceptions(coro: CoroutineFunction) -> CoroutineFunction:
             "Could not get a valid connection after {} tries".format(max_tries)
         ) from final_exc
 
-    # Attaching a custom attribute to ease testability and make the
-    # decorator more introspectable
-    wrapped._exceptions_wrapped = True  # type: ignore
     return wrapped
 
 
