@@ -41,10 +41,10 @@ def wrap_query_exceptions(func: Callable) -> Callable:
     This is to handle the case where the database connection (obtained from the pool)
     was actually closed by the server. In this case, pyscopg2 raises an AdminShutdown
     exception when the connection is used for issuing a query. What we do is retry when
-    an AdminShutdown is raised, and until max_tries is reached.
+    an AdminShutdown is raised, and until the maximum number of retries is reached.
 
-    max_tries is set to the max pool size + 1 (maxconn + 1) to handle the case where
-    all the connections we have in the pool were closed by the server.
+    The number of retries is set to the pool maximum size plus one, to handle the case
+    where the connections we have in the pool were all closed on the server side.
     """
 
     @functools.wraps(func)
