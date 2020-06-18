@@ -23,6 +23,36 @@ async def test_wrap_exceptions_success():
     assert func(1, 2) == (1, 2)
 
 
+@pytest.mark.asyncio
+async def test_wrap_query_exceptions(mocker):
+    @psycopg2_connector.wrap_query_exceptions
+    def func(connector):
+        raise psycopg2.errors.InterfaceError("connection already closed")
+
+    connector = mocker.Mock(_pool=mocker.Mock(maxconn=5))
+
+    with pytest.raises(exceptions.ConnectorException) as excinfo:
+        func(connector)
+
+    assert str(excinfo.value) == "Could not get a valid connection after 6 tries"
+
+
+@pytest.mark.asyncio
+async def test_wrap_query_exceptions_success(mocker):
+    cnt = 0
+
+    @psycopg2_connector.wrap_query_exceptions
+    def func(connector, a, b):
+        nonlocal cnt
+        if cnt < 2:
+            cnt += 1
+            raise psycopg2.errors.InterfaceError("connection already closed")
+        return a, b
+
+    connector = mocker.Mock(_pool=mocker.Mock(maxconn=5))
+    assert func(connector, 1, 2) == (1, 2)
+
+
 @pytest.mark.parametrize(
     "method_name",
     ["__init__", "close", "execute_query", "execute_query_one", "execute_query_all"],

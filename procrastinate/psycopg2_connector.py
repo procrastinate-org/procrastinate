@@ -34,6 +34,45 @@ def wrap_exceptions(func: Callable) -> Callable:
     return wrapped
 
 
+def wrap_query_exceptions(func: Callable) -> Callable:
+    """
+    Detect psycopg2 InterfaceError's with a "connection already closed" message and
+    retry a number of times.
+
+    This is to handle the case where the database connection (obtained from the pool)
+    was actually closed by the server. In this case, pyscopg2 raises an InterfaceError
+    with a "connection already closed" message (and no pgcode) when the connection is
+    used for issuing a query. What we do is retry when an InterfaceError is raised, and
+    until max_tries is reached.
+
+    max_tries is set to the max pool size + 1 (maxconn + 1) to handle the case where
+    all the connections we have in the pool were closed by the server.
+    """
+
+    @functools.wraps(func)
+    def wrapped(*args, **kwargs):
+        final_exc = None
+        max_tries = (
+            args[0]._pool.maxconn + 1 if args and getattr(args[0], "_pool", None) else 1
+        )
+        for _ in range(max_tries):
+            try:
+                return func(*args, **kwargs)
+            except psycopg2.errors.InterfaceError as exc:
+                if "connection already closed" in str(exc):
+                    final_exc = exc
+                    continue
+                raise exc
+        raise exceptions.ConnectorException(
+            "Could not get a valid connection after {} tries".format(max_tries)
+        ) from final_exc
+
+    # Attaching a custom attribute to ease testability and make the
+    # decorator more introspectable
+    wrapped._exceptions_wrapped = True  # type: ignore
+    return wrapped
+
+
 class Psycopg2Connector(connector.BaseConnector):
     @wrap_exceptions
     def __init__(
@@ -131,12 +170,14 @@ class Psycopg2Connector(connector.BaseConnector):
             self._pool.putconn(connection)
 
     @wrap_exceptions
+    @wrap_query_exceptions
     def execute_query(self, query: str, **arguments: Any) -> None:
         with self._connection() as connection:
             with connection.cursor() as cursor:
                 cursor.execute(query, self._wrap_json(arguments))
 
     @wrap_exceptions
+    @wrap_query_exceptions
     def execute_query_one(self, query: str, **arguments: Any) -> Dict[str, Any]:
         with self._connection() as connection:
             with connection.cursor() as cursor:
@@ -144,6 +185,7 @@ class Psycopg2Connector(connector.BaseConnector):
                 return cursor.fetchone()
 
     @wrap_exceptions
+    @wrap_query_exceptions
     def execute_query_all(self, query: str, **arguments: Any) -> Dict[str, Any]:
         with self._connection() as connection:
             with connection.cursor() as cursor:
