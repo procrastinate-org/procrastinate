@@ -200,6 +200,8 @@ distinct sync workers and async workers. Of course, if your program is not that
 time-sensitive and you have sufficiently few blocking tasks, it's perfectly OK not to
 care.
 
+.. _discussions-pool-size:
+
 Mind the size of your PostgreSQL pool
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -207,6 +209,15 @@ You can size the PostgreSQL pool using the ``maxsize`` argument of `AiopgConnect
 Procrastinate will use use one connection to listen to server-side ``NOTIFY`` calls (see
 :ref:`discussion-general`). The rest of the pool is used for :term:`sub-workers
 <Sub-worker>`.
+
+.. warning::
+
+    Be careful not setting ``maxsize`` to ``0``: apart from disabling the maximum this
+    will likely trigger bugs__. Setting it to ``1`` will work, but the ``LISTEN/NOTIFY``
+    feature will be disabled. Disabling this feature independently of your pool size is
+    possible with ``listen_notify=False``, see `howto/connections`.
+
+    .. __: https://github.com/aio-libs/aiopg/issues/311
 
 The relative sizing of your pool and your sub-workers all depends on the average length
 of your jobs, and especially compared to the time it takes to fetch jobs and register

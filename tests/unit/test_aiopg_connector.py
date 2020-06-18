@@ -23,14 +23,6 @@ async def test_adapt_pool_args_on_connect(mocker):
     assert called == [connection]
 
 
-def test_adapt_pool_args_maxsize():
-    args = aiopg_connector.AiopgConnector._adapt_pool_args(
-        pool_args={"maxsize": 1}, json_loads=None
-    )
-
-    assert args["maxsize"] == 2
-
-
 @pytest.mark.asyncio
 async def test_wrap_exceptions_wraps():
     @aiopg_connector.wrap_exceptions
@@ -86,3 +78,15 @@ def test_set_pool_already_set(mocker):
 
     with pytest.raises(exceptions.PoolAlreadySet):
         connector.set_pool(pool)
+
+
+@pytest.mark.asyncio
+async def test_listen_notify_pool_one_connection(mocker, caplog):
+    pool = mocker.Mock(maxsize=1)
+    connector = aiopg_connector.AiopgConnector()
+    connector.set_pool(pool)
+    caplog.clear()
+
+    await connector.listen_notify(None, None)
+
+    assert {e.action for e in caplog.records} == {"listen_notify_disabled"}
