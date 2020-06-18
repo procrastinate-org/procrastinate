@@ -4,7 +4,6 @@ import pytest
 from procrastinate import exceptions, psycopg2_connector
 
 
-@pytest.mark.asyncio
 def test_wrap_exceptions_wraps():
     @psycopg2_connector.wrap_exceptions
     def func():
@@ -14,8 +13,7 @@ def test_wrap_exceptions_wraps():
         func()
 
 
-@pytest.mark.asyncio
-async def test_wrap_exceptions_success():
+def test_wrap_exceptions_success():
     @psycopg2_connector.wrap_exceptions
     def func(a, b):
         return a, b
@@ -23,8 +21,7 @@ async def test_wrap_exceptions_success():
     assert func(1, 2) == (1, 2)
 
 
-@pytest.mark.asyncio
-async def test_wrap_query_exceptions(mocker):
+def test_wrap_query_exceptions(mocker):
     @psycopg2_connector.wrap_query_exceptions
     def func(connector):
         raise psycopg2.errors.InterfaceError("connection already closed")
@@ -37,8 +34,7 @@ async def test_wrap_query_exceptions(mocker):
     assert str(excinfo.value) == "Could not get a valid connection after 6 tries"
 
 
-@pytest.mark.asyncio
-async def test_wrap_query_exceptions_success(mocker):
+def test_wrap_query_exceptions_success(mocker):
     cnt = 0
 
     @psycopg2_connector.wrap_query_exceptions
