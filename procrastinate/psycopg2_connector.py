@@ -159,20 +159,17 @@ class Psycopg2Connector(connector.BaseConnector):
         # in case of an admin shutdown (Postgres error code 57P01) we do not
         # rollback the connection or put the connection back to the pool as
         # this will cause a psycopg2.InterfaceError exception
+        connection = self._pool.getconn()
         try:
-            connection = self._pool.getconn()
-            try:
-                yield connection
-            except psycopg2.errors.AdminShutdown:
-                raise
-            except Exception:
-                connection.rollback()
-                raise
-            else:
-                connection.commit()
+            yield connection
         except psycopg2.errors.AdminShutdown:
             raise
+        except Exception:
+            connection.rollback()
+            self._pool.putconn(connection)
+            raise
         else:
+            connection.commit()
             self._pool.putconn(connection)
 
     @wrap_exceptions
