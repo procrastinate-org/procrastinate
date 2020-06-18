@@ -11,7 +11,7 @@ Disabling the ``LISTEN/NOTIFY`` feature (see `discussion-general`) will use one 
 connection per worker::
 
     app = procrastinate.App(worker_defaults={"listen_notify": False})
-    # or when launchin a worker:
+    # or when launching a worker:
     app.run_worker(listen_notify=False)
 
 This works from the command line too:

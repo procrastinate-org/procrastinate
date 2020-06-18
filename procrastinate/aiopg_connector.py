@@ -224,9 +224,9 @@ class AiopgConnector(connector.BaseAsyncConnector):
         # query
         if pool.maxsize == 1:
             logger.warning(
-                "Listen/Notify capabilities disabled because maximum pull size"
+                "Listen/Notify capabilities disabled because maximum pool size"
                 "is set to 1",
-                extra={"action": "listen_pool_too_small"},
+                extra={"action": "listen_notify_disabled"},
             )
             return
 

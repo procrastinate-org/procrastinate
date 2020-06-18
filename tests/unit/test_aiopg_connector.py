@@ -89,4 +89,4 @@ async def test_listen_notify_pool_one_connection(mocker, caplog):
 
     await connector.listen_notify(None, None)
 
-    assert {e.action for e in caplog.records} == {"listen_pool_too_small"}
+    assert {e.action for e in caplog.records} == {"listen_notify_disabled"}

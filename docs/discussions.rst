@@ -212,10 +212,12 @@ Procrastinate will use use one connection to listen to server-side ``NOTIFY`` ca
 
 .. warning::
 
-    Setting ``maxsize`` to ``0`` will actually disable the maximum. Setting it to
-    ``1`` will work, but the ``LISTEN/NOTIFY`` feature will be disabled.
-    Disabling this feature independently of your pool size is possible with
-    ``listen_notify=False``, see `howto/connections`.
+    Be careful not setting ``maxsize`` to ``0``: apart from disabling the maximum this
+    will likely trigger bugs__. Setting it to ``1`` will work, but the ``LISTEN/NOTIFY``
+    feature will be disabled. Disabling this feature independently of your pool size is
+    possible with ``listen_notify=False``, see `howto/connections`.
+
+    .. __: https://github.com/aio-libs/aiopg/issues/311
 
 The relative sizing of your pool and your sub-workers all depends on the average length
 of your jobs, and especially compared to the time it takes to fetch jobs and register
