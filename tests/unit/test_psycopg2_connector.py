@@ -21,7 +21,8 @@ def test_wrap_exceptions_success():
     assert func(1, 2) == (1, 2)
 
 
-def test_wrap_query_exceptions_reached_max_tries(mocker):
+@pytest.mark.parametrize("pool_args, called_count", [({"maxconn": 5}, 6), ({}, 1)])
+def test_wrap_query_exceptions_reached_max_tries(mocker, pool_args, called_count):
     called = []
 
     @psycopg2_connector.wrap_query_exceptions
@@ -29,13 +30,15 @@ def test_wrap_query_exceptions_reached_max_tries(mocker):
         called.append(True)
         raise psycopg2.errors.AdminShutdown()
 
-    connector = mocker.Mock(_pool=mocker.Mock(maxconn=5))
+    connector = mocker.Mock(_pool=mocker.Mock(**pool_args))
 
     with pytest.raises(exceptions.ConnectorException) as excinfo:
         func(connector)
 
-    assert len(called) == 6
-    assert str(excinfo.value) == "Could not get a valid connection after 6 tries"
+    assert len(called) == called_count
+    assert str(
+        excinfo.value
+    ) == "Could not get a valid connection after {} tries".format(called_count)
 
 
 def test_wrap_query_exceptions_unhandled_exception(mocker):
