@@ -50,9 +50,10 @@ def wrap_query_exceptions(func: Callable) -> Callable:
     @functools.wraps(func)
     def wrapped(*args, **kwargs):
         final_exc = None
-        max_tries = (
-            args[0]._pool.maxconn + 1 if args and getattr(args[0], "_pool", None) else 1
-        )
+        try:
+            max_tries = args[0]._pool.maxconn + 1
+        except Exception:
+            max_tries = 1
         for _ in range(max_tries):
             try:
                 return func(*args, **kwargs)

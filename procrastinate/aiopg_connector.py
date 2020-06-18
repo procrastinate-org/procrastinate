@@ -58,9 +58,10 @@ def wrap_query_exceptions(coro: CoroutineFunction) -> CoroutineFunction:
     @functools.wraps(coro)
     async def wrapped(*args, **kwargs):
         final_exc = None
-        max_tries = (
-            args[0]._pool.maxsize + 1 if args and getattr(args[0], "_pool", None) else 1
-        )
+        try:
+            max_tries = args[0]._pool.maxsize + 1
+        except Exception:
+            max_tries = 1
         for _ in range(max_tries):
             try:
                 return await coro(*args, **kwargs)
