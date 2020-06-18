@@ -53,7 +53,7 @@ async def test_wrap_exceptions_success():
 
 
 @pytest.mark.asyncio
-async def test_wrap_query_exceptions(mocker):
+async def test_wrap_query_exceptions_reached_max_tries(mocker):
     @aiopg_connector.wrap_query_exceptions
     async def corofunc(connector):
         raise psycopg2.errors.OperationalError(
@@ -67,6 +67,20 @@ async def test_wrap_query_exceptions(mocker):
         await coro
 
     assert str(excinfo.value) == "Could not get a valid connection after 6 tries"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("exception_class", [Exception, psycopg2.errors.InterfaceError])
+async def test_wrap_query_exceptions_unhandled_exception(mocker, exception_class):
+    @aiopg_connector.wrap_query_exceptions
+    async def corofunc(connector):
+        raise exception_class("foo")
+
+    connector = mocker.Mock(_pool=mocker.Mock(maxsize=5))
+    coro = corofunc(connector)
+
+    with pytest.raises(exception_class):
+        await coro
 
 
 @pytest.mark.asyncio
