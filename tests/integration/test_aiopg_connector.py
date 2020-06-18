@@ -48,7 +48,7 @@ async def test_adapt_pool_args_on_connect(mocker):
 
     assert args["on_connect"] is not on_connect
 
-    connection = mocker.Mock()
+    connection = mocker.Mock(_pool=None)
     await args["on_connect"](connection)
 
     assert called == [connection]

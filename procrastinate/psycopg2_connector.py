@@ -34,6 +34,38 @@ def wrap_exceptions(func: Callable) -> Callable:
     return wrapped
 
 
+def wrap_query_exceptions(func: Callable) -> Callable:
+    """
+    Detect "admin shutdown" errors and retry a number of times.
+
+    This is to handle the case where the database connection (obtained from the pool)
+    was actually closed by the server. In this case, pyscopg2 raises an AdminShutdown
+    exception when the connection is used for issuing a query. What we do is retry when
+    an AdminShutdown is raised, and until max_tries is reached.
+
+    max_tries is set to the max pool size + 1 (maxconn + 1) to handle the case where
+    all the connections we have in the pool were closed by the server.
+    """
+
+    @functools.wraps(func)
+    def wrapped(*args, **kwargs):
+        final_exc = None
+        try:
+            max_tries = args[0]._pool.maxconn + 1
+        except Exception:
+            max_tries = 1
+        for _ in range(max_tries):
+            try:
+                return func(*args, **kwargs)
+            except psycopg2.errors.AdminShutdown:
+                continue
+        raise exceptions.ConnectorException(
+            "Could not get a valid connection after {} tries".format(max_tries)
+        ) from final_exc
+
+    return wrapped
+
+
 class Psycopg2Connector(connector.BaseConnector):
     @wrap_exceptions
     def __init__(
@@ -124,19 +156,31 @@ class Psycopg2Connector(connector.BaseConnector):
 
     @contextlib.contextmanager
     def _connection(self) -> psycopg2.extensions.connection:
+        # in case of an admin shutdown (Postgres error code 57P01) we do not
+        # rollback the connection or put the connection back to the pool as
+        # this will cause a psycopg2.InterfaceError exception
+        connection = self._pool.getconn()
         try:
-            with self._pool.getconn() as connection:
-                yield connection
-        finally:
+            yield connection
+        except psycopg2.errors.AdminShutdown:
+            raise
+        except Exception:
+            connection.rollback()
+            self._pool.putconn(connection)
+            raise
+        else:
+            connection.commit()
             self._pool.putconn(connection)
 
     @wrap_exceptions
+    @wrap_query_exceptions
     def execute_query(self, query: str, **arguments: Any) -> None:
         with self._connection() as connection:
             with connection.cursor() as cursor:
                 cursor.execute(query, self._wrap_json(arguments))
 
     @wrap_exceptions
+    @wrap_query_exceptions
     def execute_query_one(self, query: str, **arguments: Any) -> Dict[str, Any]:
         with self._connection() as connection:
             with connection.cursor() as cursor:
@@ -144,6 +188,7 @@ class Psycopg2Connector(connector.BaseConnector):
                 return cursor.fetchone()
 
     @wrap_exceptions
+    @wrap_query_exceptions
     def execute_query_all(self, query: str, **arguments: Any) -> Dict[str, Any]:
         with self._connection() as connection:
             with connection.cursor() as cursor:

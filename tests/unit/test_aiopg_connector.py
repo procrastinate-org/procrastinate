@@ -17,7 +17,7 @@ async def test_adapt_pool_args_on_connect(mocker):
 
     assert args["on_connect"] is not on_connect
 
-    connection = mocker.Mock()
+    connection = mocker.Mock(_pool=None)
     await args["on_connect"](connection)
 
     assert called == [connection]
@@ -42,6 +42,67 @@ async def test_wrap_exceptions_success():
         return a, b
 
     assert await corofunc(1, 2) == (1, 2)
+
+
+@pytest.mark.asyncio
+async def test_wrap_query_exceptions_reached_max_tries(mocker):
+    called = []
+
+    @aiopg_connector.wrap_query_exceptions
+    async def corofunc(connector):
+        called.append(True)
+        raise psycopg2.errors.OperationalError(
+            "server closed the connection unexpectedly"
+        )
+
+    connector = mocker.Mock(_pool=mocker.Mock(maxsize=5))
+    coro = corofunc(connector)
+
+    with pytest.raises(exceptions.ConnectorException) as excinfo:
+        await coro
+
+    assert len(called) == 6
+    assert str(excinfo.value) == "Could not get a valid connection after 6 tries"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "exception_class", [Exception, psycopg2.errors.OperationalError]
+)
+async def test_wrap_query_exceptions_unhandled_exception(mocker, exception_class):
+    called = []
+
+    @aiopg_connector.wrap_query_exceptions
+    async def corofunc(connector):
+        called.append(True)
+        raise exception_class("foo")
+
+    connector = mocker.Mock(_pool=mocker.Mock(maxsize=5))
+    coro = corofunc(connector)
+
+    with pytest.raises(exception_class):
+        await coro
+
+    assert len(called) == 1
+
+
+@pytest.mark.asyncio
+async def test_wrap_query_exceptions_success(mocker):
+    called = []
+
+    @aiopg_connector.wrap_query_exceptions
+    async def corofunc(connector, a, b):
+        if len(called) < 2:
+            called.append(True)
+            raise psycopg2.errors.OperationalError(
+                "server closed the connection unexpectedly"
+            )
+        return a, b
+
+    connector = mocker.Mock(_pool=mocker.Mock(maxsize=5))
+
+    assert await corofunc(connector, 1, 2) == (1, 2)
+    assert len(called) == 2
 
 
 @pytest.mark.parametrize(
