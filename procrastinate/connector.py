@@ -43,6 +43,9 @@ class BaseConnector:
     ) -> None:
         raise exceptions.SyncConnectorConfigurationError
 
+    def __del__(self):
+        self.close()
+
 
 @utils.add_sync_api
 class BaseAsyncConnector(BaseConnector):

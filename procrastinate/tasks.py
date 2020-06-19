@@ -93,7 +93,7 @@ class Task:
 
     @property
     def full_path(self) -> str:
-        return f"{self.func.__module__}.{self.func.__name__}"
+        return utils.get_full_path(self.func)
 
     async def defer_async(self, **task_kwargs: types.JSONValue) -> int:
         """
