@@ -2,10 +2,9 @@ import procrastinate
 
 import_paths = ["procrastinate_demo.tasks"]
 
-app = procrastinate.App(
-    connector=procrastinate.AiopgConnector(), import_paths=import_paths
-)
+connector_class = procrastinate.AiopgConnector
+# connector_class = procrastinate.Psycopg2Connector
 
-sync_app = procrastinate.App(
-    connector=procrastinate.Psycopg2Connector(), import_paths=import_paths
+app = procrastinate.App(
+    connector=connector_class(listen_notify=False), import_paths=import_paths
 )
