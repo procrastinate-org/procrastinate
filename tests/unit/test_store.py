@@ -141,3 +141,12 @@ async def test_listen_for_jobs(job_store, connector, mocker, queues, channels):
     await job_store.listen_for_jobs(queues=queues, event=event)
     assert connector.notify_event is event
     assert connector.notify_channels == channels
+
+
+async def test_defer_periodic_job(job_store, connector, app):
+    @app.task
+    def foo(timestamp):
+        pass
+
+    result = await job_store.defer_periodic_job(foo, 1234567890)
+    assert result == 1

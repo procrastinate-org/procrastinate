@@ -60,6 +60,15 @@ class JobStore:
             ) from exc
         raise exc
 
+    async def defer_periodic_job(self, task, schedule_timestamp) -> Optional[int]:
+        result = await self.connector.execute_query_one_async(
+            query=sql.queries["defer_periodic_job"],
+            queue=task.queue,
+            task_name=task.name,
+            schedule_timestamp=schedule_timestamp,
+        )
+        return result["id"]
+
     async def fetch_job(self, queues: Optional[Iterable[str]]) -> Optional[jobs.Job]:
 
         row = await self.connector.execute_query_one_async(
