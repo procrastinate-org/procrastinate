@@ -56,6 +56,7 @@ class App:
         connector: connector_module.BaseConnector,
         import_paths: Optional[Iterable[str]] = None,
         worker_defaults: Optional[Dict] = None,
+        scheduler_defaults: Optional[Dict] = None,
     ):
         """
         Parameters
@@ -77,15 +78,29 @@ class App:
         worker_defaults :
             All the values passed here will override the default values sent when
             launching a worker. See `App.run_worker` for details.
+        scheduler_defaults :
+            Parameters for fine tuning the periodic tasks scheduler. Available
+            parameters are:
+
+            - ``max_delay``: ``float``, in seconds, controls how long after the planned
+              launch of a periodic task a scheduler can launch the task. Thanks to this
+              parameter, when deploying a new periodic task, it's usually not deferred
+              until its next scheduled time. Default to 10 minutes.
         """
+        from procrastinate import scheduler
+
         self.connector = connector
         self.tasks: Dict[str, "tasks.Task"] = {}
         self.builtin_tasks: Dict[str, "tasks.Task"] = {}
         self.queues: Set[str] = set()
         self.import_paths = import_paths or []
         self.worker_defaults = worker_defaults or {}
+        scheduler_defaults = scheduler_defaults or {}
 
         self.job_store = store.JobStore(connector=self.connector)
+        self.scheduler = scheduler.Scheduler(
+            job_store=self.job_store, **scheduler_defaults
+        )
 
         self._register_builtin_tasks()
 
@@ -172,7 +187,7 @@ class App:
         cron :
             Cron-like string. Optionally add a 6th column for seconds.
         """
-        pass
+        return self.scheduler.schedule_decorator(cron=cron)
 
     def _register(self, task: "tasks.Task") -> None:
         self.tasks[task.name] = task
