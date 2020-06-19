@@ -24,3 +24,10 @@ def sum_plus_one(a, b):
 def random_fail():
     if random.random() > 0.1:
         raise Exception("random fail")
+
+
+# 6th * means "every second of the minute"
+@app.schedule(cron="* * * * * *")
+@app.task
+def tick(timestamp):
+    return timestamp
