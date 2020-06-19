@@ -1,3 +1,4 @@
+import asyncio
 import sys
 import types
 
@@ -229,3 +230,54 @@ def test_get_full_path():
     path = "procrastinate.utils.get_full_path"
     # Calling the function on itself
     assert utils.get_full_path(utils.get_full_path) == path
+
+
+@pytest.mark.asyncio
+async def test_task_context_exit_normally(caplog):
+    done = []
+
+    async def foo():
+        done.append(True)
+
+    with utils.task_context(foo(), name="foo"):
+        await asyncio.sleep(0)
+
+    assert done == [True]
+
+
+@pytest.mark.asyncio
+async def test_task_context_cancelled(caplog):
+    done = []
+
+    async def foo():
+        done.append(True)
+        await asyncio.sleep(10)
+
+    caplog.set_level("DEBUG")
+
+    with utils.task_context(foo(), name="foo") as task:
+        await asyncio.sleep(0)
+
+    assert done == [True]
+    # Give the task a cycled to update
+    await asyncio.sleep(0)
+    assert task.cancelled() is True
+
+    assert len([r for r in caplog.records if r.action == "foo_stop"]) == 1
+
+
+@pytest.mark.asyncio
+async def test_task_context_exception(caplog):
+    async def foo():
+        0 / 0
+
+    with utils.task_context(foo(), name="foo") as task:
+        await asyncio.sleep(0)
+
+    # Give the task a cycled to update
+    await asyncio.sleep(0)
+    assert task.done() is True
+
+    exc_logs = [r for r in caplog.records if r.action == "foo_error" and r.exc_info]
+    assert len(exc_logs) == 1
+
