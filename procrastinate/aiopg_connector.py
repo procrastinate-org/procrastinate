@@ -49,10 +49,10 @@ def wrap_query_exceptions(coro: CoroutineFunction) -> CoroutineFunction:
     was actually closed by the server. In this case, aiopg raises an OperationalError
     with a "server closed the connection unexpectedly" message (and no pgcode) when the
     connection is used for issuing a query. What we do is retry when an OperationalError
-    is raised, and until max_tries is reached.
+    is raised, and until the maximum number of retries is reached.
 
-    max_tries is set to the max pool size + 1 (maxsize + 1) to handle the case where all
-    the connections we have in the pool were closed by the server.
+    The number of retries is set to the pool maximum size plus one, to handle the case
+    where the connections we have in the pool were all closed on the server side.
     """
 
     @functools.wraps(coro)
