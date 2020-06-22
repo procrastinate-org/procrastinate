@@ -1,7 +1,6 @@
 import logging
 
 from procrastinate_demo import tasks
-from procrastinate_demo.app import app
 
 
 def main():
@@ -15,8 +14,6 @@ def main():
     tasks.sleep.configure(lock="a").defer(i=3)
     tasks.sleep.configure(lock="a").defer(i=4)
     tasks.random_fail.defer()
-
-    app.connector.close()
 
 
 if __name__ == "__main__":
