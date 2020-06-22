@@ -208,3 +208,17 @@ async def test_loop_notify_timeout(aiopg_connector):
             pytest.fail("Failed to detect that connection was closed and stop")
 
     assert not event.is_set()
+
+
+async def test_destructor(connection_params, capsys):
+    connector = aiopg_connector.AiopgConnector(**connection_params)
+    await connector.execute_query_async("SELECT 1")
+
+    assert len(connector._pool._free) == 1
+
+    # "del connector" causes a ResourceWarning from aiopg.Pool if the
+    # AiopgConnector destructor doesn't close the connections managed
+    # by the pool. Unfortunately there's no way to catch that warning,
+    # even by using filterwarnings to turn it into an exception, as
+    # Python ignores exceptions that occur in destructors
+    del connector
