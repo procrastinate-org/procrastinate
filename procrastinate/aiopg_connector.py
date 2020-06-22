@@ -132,6 +132,7 @@ class AiopgConnector(connector.BaseAsyncConnector):
             is created, but at first use of the pool.
         """
         self._pool: Optional[aiopg.Pool] = None
+        self._pool_externally_set: bool = False
         self.json_dumps = json_dumps
         self.json_loads = json_loads
         self._pool_args = self._adapt_pool_args(kwargs, json_loads)
@@ -175,6 +176,17 @@ class AiopgConnector(connector.BaseAsyncConnector):
             await self._pool.wait_closed()
             self._pool = None
 
+    def __del__(self):
+        if self._pool and not self._pool_externally_set:
+            # This one deserves a comment. Aiopg will close the free connections upon
+            # __del__ but warns when doing so, so we'll be doing it ourselves. Plus,
+            # there's no official sync method for closing all the connections in a pool.
+            # This is a hack, and if something breaks around connection closing in the
+            # future, it's a good idea to start looking here.
+            self._pool.terminate()
+            while self._pool._free:
+                self._pool._free.popleft().close()
+
     def _wrap_json(self, arguments: Dict[str, Any]):
         return {
             key: Json(value, dumps=self.json_dumps)
@@ -188,12 +200,14 @@ class AiopgConnector(connector.BaseAsyncConnector):
     async def _create_pool(pool_args: Dict[str, Any]) -> aiopg.Pool:
         return await aiopg.create_pool(**pool_args)
 
-    def set_pool(self, pool: aiopg.Pool) -> None:
+    def set_pool(self, pool: aiopg.Pool, *, _external: bool = True) -> None:
         """
         Set the connection pool. Raises an exception if the pool is already set.
         """
+
         if self._pool:
             raise exceptions.PoolAlreadySet
+        self._pool_externally_set = _external
         self._pool = pool
 
     async def _get_pool(self) -> aiopg.Pool:
@@ -203,7 +217,7 @@ class AiopgConnector(connector.BaseAsyncConnector):
             self._lock = asyncio.Lock()
         async with self._lock:
             if not self._pool:
-                self.set_pool(await self._create_pool(self._pool_args))
+                self.set_pool(await self._create_pool(self._pool_args), _external=False)
         return self._pool
 
     # Pools and single connections do not exactly share their cursor API:
