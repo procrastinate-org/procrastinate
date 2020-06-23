@@ -40,7 +40,7 @@ class ChangelogDirective(Directive):
             pypi_name = None
 
         result_nodes: List[nodes.Node] = []
-        for release in releases:
+        for release in self.filter_releases(releases):
             result_nodes.extend(
                 list(self.nodes_for_release(release, pypi_name=pypi_name))
             )
@@ -72,6 +72,9 @@ class ChangelogDirective(Directive):
             )
 
         return stripped_url[len(prefix) :]  # noqa
+
+    def filter_releases(self, releases: Iterable[Dict[str, Any]]):
+        yield from (release for release in releases if not release["isDraft"])
 
     def nodes_for_release(
         self, release: Dict[str, Any], pypi_name: Optional[str] = None
@@ -111,7 +114,7 @@ class ChangelogDirective(Directive):
             repository(owner: "%(owner)s", name: "%(repo)s") {
                 releases(orderBy: {field: CREATED_AT, direction: DESC}, first:100) {
                     nodes {
-                        name, descriptionHTML, url, tagName
+                        name, descriptionHTML, url, tagName, isDraft
                     }
                 }
             }
