@@ -1,5 +1,5 @@
-Limit the number of openned connections
-=======================================
+Limit the number of opened connections
+======================================
 
 By default, each worker using an `AiopgConnector` will open up to 10 parallel
 connections. You can control this value with the ``maxsize`` parameter (from
