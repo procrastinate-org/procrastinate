@@ -5,13 +5,13 @@ Procrastinate offers a way to schedule periodic deferring of tasks. It uses the
 `Unix cron`_ syntax::
 
     # scheduled at the 0th minute of each hour
-    @app.schedule(cron="0 * * * *")
+    @app.periodic(cron="0 * * * *")
     @app.task
     def cleanup_foobar(timestamp: int):
         ...
 
     # scheduled every 5 minutes
-    @app.schedule(cron="*/5 * * * *")
+    @app.periodic(cron="*/5 * * * *")
     @app.task
     def run_healthchecks(timestamp: int):
         ...

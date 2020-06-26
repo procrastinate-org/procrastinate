@@ -56,7 +56,7 @@ class App:
         connector: connector_module.BaseConnector,
         import_paths: Optional[Iterable[str]] = None,
         worker_defaults: Optional[Dict] = None,
-        scheduler_defaults: Optional[Dict] = None,
+        periodic_defaults: Optional[Dict] = None,
     ):
         """
         Parameters
@@ -78,16 +78,16 @@ class App:
         worker_defaults :
             All the values passed here will override the default values sent when
             launching a worker. See `App.run_worker` for details.
-        scheduler_defaults :
-            Parameters for fine tuning the periodic tasks scheduler. Available
+        periodic_defaults :
+            Parameters for fine tuning the periodic tasks deferrer. Available
             parameters are:
 
             - ``max_delay``: ``float``, in seconds, controls how long after the planned
-              launch of a periodic task a scheduler can launch the task. Thanks to this
+              launch of a periodic task a deferrer can launch the task. Thanks to this
               parameter, when deploying a new periodic task, it's usually not deferred
               until its next scheduled time. Default to 10 minutes.
         """
-        from procrastinate import scheduler
+        from procrastinate import periodic
 
         self.connector = connector
         self.tasks: Dict[str, "tasks.Task"] = {}
@@ -95,11 +95,11 @@ class App:
         self.queues: Set[str] = set()
         self.import_paths = import_paths or []
         self.worker_defaults = worker_defaults or {}
-        scheduler_defaults = scheduler_defaults or {}
+        periodic_defaults = periodic_defaults or {}
 
         self.job_store = store.JobStore(connector=self.connector)
-        self.scheduler = scheduler.Scheduler(
-            job_store=self.job_store, **scheduler_defaults
+        self.periodic_deferrer = periodic.PeriodicDeferrer(
+            job_store=self.job_store, **periodic_defaults
         )
 
         self._register_builtin_tasks()
@@ -177,7 +177,7 @@ class App:
 
         return _wrap(_func)  # Called as @app.task
 
-    def schedule(self, *, cron: str):
+    def periodic(self, *, cron: str):
         """
         Task decorator, marks task as being scheduled for periodic deferring (see
         `howto/cron`).
@@ -187,7 +187,7 @@ class App:
         cron :
             Cron-like string. Optionally add a 6th column for seconds.
         """
-        return self.scheduler.schedule_decorator(cron=cron)
+        return self.periodic_deferrer.periodic_decorator(cron=cron)
 
     def _register(self, task: "tasks.Task") -> None:
         self.tasks[task.name] = task

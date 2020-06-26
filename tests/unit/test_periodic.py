@@ -2,12 +2,12 @@ import itertools
 
 import pytest
 
-from procrastinate import scheduler as scheduler_module
+from procrastinate import periodic
 
 
 @pytest.fixture
-def scheduler(job_store):
-    return scheduler_module.Scheduler(job_store=job_store)
+def deferrer(job_store):
+    return periodic.PeriodicDeferrer(job_store=job_store)
 
 
 @pytest.fixture
@@ -20,26 +20,26 @@ def task(app):
 
 
 @pytest.fixture
-def cron_task(scheduler, task):
+def cron_task(deferrer, task):
     def _(cron="0 0 * * *"):
-        return scheduler.register_task(task=task, cron=cron)
+        return deferrer.register_task(task=task, cron=cron)
 
     return _
 
 
-def test_register_task(scheduler, task):
-    scheduler.register_task(task=task, cron="0 0 * * *")
+def test_register_task(deferrer, task):
+    deferrer.register_task(task=task, cron="0 0 * * *")
 
-    assert scheduler.periodic_tasks == [
-        scheduler_module.PeriodicTask(task=task, cron="0 0 * * *")
+    assert deferrer.periodic_tasks == [
+        periodic.PeriodicTask(task=task, cron="0 0 * * *")
     ]
 
 
-def test_schedule_decorator(scheduler, task):
-    scheduler.schedule_decorator(cron="0 0 * * *")(task)
+def test_schedule_decorator(deferrer, task):
+    deferrer.periodic_decorator(cron="0 0 * * *")(task)
 
-    assert scheduler.periodic_tasks == [
-        scheduler_module.PeriodicTask(task=task, cron="0 0 * * *")
+    assert deferrer.periodic_tasks == [
+        periodic.PeriodicTask(task=task, cron="0 0 * * *")
     ]
 
 
@@ -53,49 +53,49 @@ def test_schedule_decorator(scheduler, task):
         ("* * * * * */5", 5),
     ],
 )
-def test_get_next_tick(scheduler, cron_task, cron, expected):
+def test_get_next_tick(deferrer, cron_task, cron, expected):
 
     cron_task(cron="0 0 * * *")
     cron_task(cron=cron)
 
     # Making things easier, we'll compute things next to timestamp 0
-    assert scheduler.get_next_tick(now=0) == expected
+    assert deferrer.get_next_tick(now=0) == expected
 
 
-def test_get_previous_tasks(scheduler, cron_task, task):
+def test_get_previous_tasks(deferrer, cron_task, task):
 
     cron_task(cron="* * * * *")
 
-    assert list(scheduler.get_previous_tasks(now=3600 * 24 - 1)) == [
+    assert list(deferrer.get_previous_tasks(now=3600 * 24 - 1)) == [
         (task, 3600 * 24 - 60)
     ]
 
 
-def test_get_previous_tasks_known_schedule(scheduler, cron_task, task):
+def test_get_previous_tasks_known_schedule(deferrer, cron_task, task):
 
     cron_task(cron="* * * * *")
 
-    scheduler.last_schedules_for_task[task.name] = 3600 * 24 - 60
+    deferrer.last_defers[task.name] = 3600 * 24 - 60
 
-    assert list(scheduler.get_previous_tasks(now=3600 * 24 - 1)) == []
+    assert list(deferrer.get_previous_tasks(now=3600 * 24 - 1)) == []
 
 
-def test_get_previous_tasks_too_old(scheduler, cron_task, task, caplog):
+def test_get_previous_tasks_too_old(deferrer, cron_task, task, caplog):
 
     cron_task(cron="0 0 0 * *")
     caplog.set_level("DEBUG")
 
-    assert list(scheduler.get_previous_tasks(now=3600 * 24 - 1)) == []
+    assert list(deferrer.get_previous_tasks(now=3600 * 24 - 1)) == []
 
     assert [r.action for r in caplog.records] == ["ignore_periodic_task"]
 
 
 @pytest.mark.asyncio
-async def test_worker_no_task(scheduler, caplog):
+async def test_worker_no_task(deferrer, caplog):
     caplog.set_level("INFO")
-    await scheduler.worker()
+    await deferrer.worker()
 
-    assert [r.action for r in caplog.records] == ["scheduler_no_task"]
+    assert [r.action for r in caplog.records] == ["periodic_deferrer_no_task"]
 
 
 @pytest.mark.asyncio
@@ -105,7 +105,7 @@ async def test_worker_loop(job_store, mocker, task):
     mock.wait_next_tick.side_effect = [None, None, ValueError]
     counter = itertools.count()
 
-    class MockScheduler(scheduler_module.Scheduler):
+    class MockPeriodicDeferrer(periodic.PeriodicDeferrer):
         async def defer_jobs(self, jobs_to_defer):
             mock.defer_jobs()
 
@@ -115,10 +115,10 @@ async def test_worker_loop(job_store, mocker, task):
         def get_next_tick(self):
             return next(counter)
 
-    mock_scheduler = MockScheduler(job_store=job_store)
-    mock_scheduler.register_task(task=task, cron="* * * * *")
+    mock_deferrer = MockPeriodicDeferrer(job_store=job_store)
+    mock_deferrer.register_task(task=task, cron="* * * * *")
     with pytest.raises(ValueError):
-        await mock_scheduler.worker()
+        await mock_deferrer.worker()
 
     assert mock.mock_calls == [
         mocker.call.defer_jobs(),
@@ -131,27 +131,27 @@ async def test_worker_loop(job_store, mocker, task):
 
 
 @pytest.mark.asyncio
-async def test_wait_next_tick(scheduler, mocker):
+async def test_wait_next_tick(deferrer, mocker):
     async def wait(val):
-        assert val == 5 + scheduler_module.MARGIN
+        assert val == 5 + periodic.MARGIN
 
     mocker.patch("asyncio.sleep", wait)
 
-    await scheduler.wait(5)
+    await deferrer.wait(5)
 
 
 @pytest.mark.asyncio
-async def test_defer_jobs(scheduler, task, connector, caplog):
+async def test_defer_jobs(deferrer, task, connector, caplog):
     caplog.set_level("DEBUG")
-    await scheduler.defer_jobs([(task, 1)])
+    await deferrer.defer_jobs([(task, 1)])
 
     assert connector.queries == [
         (
             "defer_periodic_job",
             {
                 "queue": "default",
-                "schedule_timestamp": 1,
-                "task_name": "tests.unit.test_scheduler.foo",
+                "defer_timestamp": 1,
+                "task_name": "tests.unit.test_periodic.foo",
             },
         )
     ]
@@ -159,19 +159,19 @@ async def test_defer_jobs(scheduler, task, connector, caplog):
 
 
 @pytest.mark.asyncio
-async def test_defer_jobs_already(scheduler, task, connector, caplog):
+async def test_defer_jobs_already(deferrer, task, connector, caplog):
     caplog.set_level("DEBUG")
-    connector.schedules[task.name] = 1
+    connector.periodic_defers[task.name] = 1
 
-    await scheduler.defer_jobs([(task, 1)])
+    await deferrer.defer_jobs([(task, 1)])
 
     assert connector.queries == [
         (
             "defer_periodic_job",
             {
                 "queue": "default",
-                "schedule_timestamp": 1,
-                "task_name": "tests.unit.test_scheduler.foo",
+                "defer_timestamp": 1,
+                "task_name": "tests.unit.test_periodic.foo",
             },
         )
     ]

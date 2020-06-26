@@ -27,7 +27,7 @@ def random_fail():
 
 
 # 6th * means "every second of the minute"
-@app.schedule(cron="* * * * * *")
+@app.periodic(cron="* * * * * *")
 @app.task
 def tick(timestamp):
     return timestamp

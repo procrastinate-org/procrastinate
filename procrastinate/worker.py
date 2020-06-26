@@ -80,9 +80,9 @@ class Worker:
             name="listener",
         )
 
-    def scheduler(self):
+    def periodic_deferrer(self):
         return utils.task_context(
-            awaitable=self.app.scheduler.worker(), name="scheduler",
+            awaitable=self.app.periodic_deferrer.worker(), name="periodic_deferrer",
         )
 
     async def run(self) -> None:
@@ -100,7 +100,7 @@ class Worker:
             if self.wait and self.listen_notify:
                 stack.enter_context(self.listener())
 
-            stack.enter_context(self.scheduler())
+            stack.enter_context(self.periodic_deferrer())
             stack.enter_context(signals.on_stop(self.stop))
 
             await asyncio.gather(

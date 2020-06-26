@@ -111,11 +111,11 @@ def test_app_configure_task(app):
     assert job.task_kwargs == {"a": 1}
 
 
-def test_app_scheduler(app):
-    @app.schedule(cron="0 * * * 1")
+def test_app_periodic(app):
+    @app.periodic(cron="0 * * * 1")
     @app.task
     def yay(timestamp):
         pass
 
-    assert len(app.scheduler.periodic_tasks) == 1
-    assert app.scheduler.periodic_tasks[0].task == yay
+    assert len(app.periodic_deferrer.periodic_tasks) == 1
+    assert app.periodic_deferrer.periodic_tasks[0].task == yay

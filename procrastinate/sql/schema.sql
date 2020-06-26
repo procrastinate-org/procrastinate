@@ -35,12 +35,12 @@ CREATE TABLE procrastinate_jobs (
     attempts integer DEFAULT 0 NOT NULL
 );
 
-CREATE TABLE procrastinate_schedules (
+CREATE TABLE procrastinate_periodic_defers (
     id bigserial PRIMARY KEY,
     task_name character varying(128) NOT NULL,
-    schedule_timestamp bigint,
+    defer_timestamp bigint,
     job_id bigint REFERENCES procrastinate_jobs(id) NULL,
-    UNIQUE (task_name, schedule_timestamp)
+    UNIQUE (task_name, defer_timestamp)
 );
 
 CREATE TABLE procrastinate_events (
@@ -86,45 +86,45 @@ $$;
 CREATE FUNCTION procrastinate_defer_periodic_job(
     _queue_name character varying,
     _task_name character varying,
-    _schedule_timestamp bigint
+    _defer_timestamp bigint
 ) RETURNS bigint
     LANGUAGE plpgsql
     AS $$
 DECLARE
-	periodic_job_id bigint;
-	schedule_id bigint;
+	_job_id bigint;
+	_defer_id bigint;
 BEGIN
 
     INSERT
-        INTO procrastinate_schedules (task_name, schedule_timestamp)
-        VALUES (_task_name, _schedule_timestamp)
+        INTO procrastinate_periodic_defers (task_name, defer_timestamp)
+        VALUES (_task_name, _defer_timestamp)
         ON CONFLICT DO NOTHING
-        RETURNING id into schedule_id;
+        RETURNING id into _defer_id;
 
-    IF schedule_id IS NULL THEN
+    IF _defer_id IS NULL THEN
         RETURN NULL;
     END IF;
 
-    UPDATE procrastinate_schedules
+    UPDATE procrastinate_periodic_defers
         SET job_id = procrastinate_defer_job(
                 _queue_name,
                 _task_name,
                 NULL,
                 NULL,
-                ('{"timestamp": ' || _schedule_timestamp || '}')::jsonb,
+                ('{"timestamp": ' || _defer_timestamp || '}')::jsonb,
                 NULL
             )
-        WHERE id = schedule_id
-        RETURNING job_id INTO periodic_job_id;
+        WHERE id = _defer_id
+        RETURNING job_id INTO _job_id;
 
     DELETE
-        FROM procrastinate_schedules
+        FROM procrastinate_periodic_defers
         WHERE
-            periodic_job_id IS NOT NULL
-            AND procrastinate_schedules.task_name = _task_name
-            AND procrastinate_schedules.schedule_timestamp < _schedule_timestamp;
+            _job_id IS NOT NULL
+            AND procrastinate_periodic_defers.task_name = _task_name
+            AND procrastinate_periodic_defers.defer_timestamp < _defer_timestamp;
 
-    RETURN periodic_job_id;
+    RETURN _job_id;
 END;
 $$;
 

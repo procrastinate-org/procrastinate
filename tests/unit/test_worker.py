@@ -39,7 +39,7 @@ async def test_run(test_worker, mocker, caplog):
     assert set(caplog.messages) == {
         "Starting worker on all queues",
         "Stopped worker on all queues",
-        "No periodic task found, scheduler will not run.",
+        "No periodic task found, periodic deferrer will not run.",
     }
 
 

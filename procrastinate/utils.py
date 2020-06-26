@@ -215,17 +215,18 @@ def task_context(awaitable: Awaitable, name: str):
 
     A name is required for logging purposes.
     """
+    nice_name = name.replace("_", " ").title()
 
     async def wrapper():
         try:
-            logger.debug(f"Started {name.title()}", extra={"action": f"{name}_start"})
+            logger.debug(f"Started {nice_name}", extra={"action": f"{name}_start"})
             await awaitable
         except asyncio.CancelledError:
-            logger.debug(f"Stopped {name.title()}", extra={"action": f"{name}_stop"})
+            logger.debug(f"Stopped {nice_name}", extra={"action": f"{name}_stop"})
             raise
 
         except Exception:
-            logger.exception(f"{name.title()} error", extra={"action": f"{name}_error"})
+            logger.exception(f"{nice_name} error", extra={"action": f"{name}_error"})
 
     try:
         task = asyncio.ensure_future(wrapper())

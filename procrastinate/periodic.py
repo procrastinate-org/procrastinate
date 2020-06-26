@@ -5,8 +5,8 @@ import time
 from typing import Dict, Iterable, List, Optional, Tuple
 
 import attr
-
 import croniter
+
 from procrastinate import store, tasks
 
 # The maximum delay after which tasks will be considered as
@@ -31,17 +31,18 @@ class PeriodicTask:
         return croniter.croniter(self.cron)
 
 
-class Scheduler:
+class PeriodicDeferrer:
     def __init__(self, job_store: store.JobStore, max_delay: float = MAX_DELAY):
         self.periodic_tasks: List[PeriodicTask] = []
         self.job_store = job_store
-        self.last_schedules_for_task: Dict[str, int] = {}
+        # {task_name: defer_timestamp}
+        self.last_defers: Dict[str, int] = {}
         self.max_delay = max_delay
 
-    def schedule_decorator(self, cron: str):
+    def periodic_decorator(self, cron: str):
         """
         Decorator over a task definition that will reegister that task for periodic
-        launch. This decorator should not be use directly, ``@app.schedule()`` is meant
+        launch. This decorator should not be use directly, ``@app.periodic()`` is meant
         to be used instead.
         """
 
@@ -53,12 +54,12 @@ class Scheduler:
 
     async def worker(self) -> None:
         """
-        High level command for the scheduler. Launches the scheduling loop.
+        High level command for the periodic deferrer. Launches the loop.
         """
         if not self.periodic_tasks:
             logger.info(
-                "No periodic task found, scheduler will not run.",
-                extra={"action": "scheduler_no_task"},
+                "No periodic task found, periodic deferrer will not run.",
+                extra={"action": "periodic_deferrer_no_task"},
             )
             return
 
@@ -83,7 +84,7 @@ class Scheduler:
 
     def get_next_tick(self, now: Optional[float] = None):
         """
-        Return the number of seconds to wait before the next scheduled task needs to be
+        Return the number of seconds to wait before the next periodic task needs to be
         deferred.
         If now is not passed, the current timestamp is used.
         """
@@ -96,14 +97,14 @@ class Scheduler:
 
     def get_previous_tasks(self, now: Optional[float] = None) -> Iterable[TaskAtTime]:
         """
-        Return each periodic task that may not have been defered yet, alongside with
+        Return each periodic task that may not have been deferred yet, alongside with
         its scheduled time.
-        Tasks that should have been defered more than self.max_delay seconds ago are
+        Tasks that should have been deferred more than self.max_delay seconds ago are
         ignored.
         """
         now = now if now is not None else time.time()
 
-        known_schedule_keys = set(self.last_schedules_for_task.items())
+        known_schedule_keys = set(self.last_defers.items())
         for periodic_task in self.periodic_tasks:
             task = periodic_task.task
             name = task.name
@@ -128,17 +129,17 @@ class Scheduler:
                 )
                 continue
 
-            self.last_schedules_for_task[name] = previous_time
+            self.last_defers[name] = previous_time
             yield task, previous_time
 
     async def defer_jobs(self, jobs_to_defer: Iterable[TaskAtTime]) -> None:
         """
-        Try deferring all tasks that might need defering. The database will keep us from
-        deferring the same task for the same schedule time multiple times.
+        Try deferring all tasks that might need deferring. The database will keep us
+        from deferring the same task for the same scheduled time multiple times.
         """
         for task, timestamp in jobs_to_defer:
             job_id = await self.job_store.defer_periodic_job(
-                task=task, schedule_timestamp=timestamp
+                task=task, defer_timestamp=timestamp
             )
             if job_id:
                 logger.info(
@@ -167,7 +168,7 @@ class Scheduler:
         Wait until it's time to defer new tasks.
         """
         logger.debug(
-            f"Scheduler waiting for next task to schedule ({next_tick:.0f} s)",
+            f"Periodic deferrer waiting for next tasks to defer ({next_tick:.0f} s)",
             extra={"action": "wait_next_tick", "next_tick": next_tick},
         )
 
