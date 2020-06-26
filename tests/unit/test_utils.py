@@ -280,4 +280,3 @@ async def test_task_context_exception(caplog):
 
     exc_logs = [r for r in caplog.records if r.action == "foo_error" and r.exc_info]
     assert len(exc_logs) == 1
-

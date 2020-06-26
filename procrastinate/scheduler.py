@@ -1,12 +1,12 @@
 import asyncio
+import functools
 import logging
 import time
-import functools
-from typing import Iterable, List, Tuple, Dict, Optional
+from typing import Dict, Iterable, List, Optional, Tuple
 
 import attr
-import croniter
 
+import croniter
 from procrastinate import store, tasks
 
 # The maximum delay after which tasks will be considered as
