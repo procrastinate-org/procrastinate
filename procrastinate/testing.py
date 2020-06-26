@@ -74,6 +74,12 @@ class InMemoryConnector(connector.BaseAsyncConnector):
         self.notify_event = event
         self.notify_channels = channels
 
+    def open(self) -> None:
+        pass
+
+    async def open_async(self) -> None:
+        pass
+
     def close(self) -> None:
         pass
 

@@ -5,16 +5,15 @@ App
 ---
 
 .. autoclass:: procrastinate.App
-    :members: task, run_worker, run_worker_async, configure_task, from_path
+    :members: open, open_async, task, run_worker, run_worker_async, configure_task,
+              from_path
 
 Connectors
 ----------
 
 .. autoclass:: procrastinate.AiopgConnector
-    :members: set_pool, close, close_async
 
 .. autoclass:: procrastinate.Psycopg2Connector
-    :members: close
 
 .. autoclass:: procrastinate.testing.InMemoryConnector
     :members: reset
@@ -60,8 +59,8 @@ Exceptions
 ----------
 
 .. automodule:: procrastinate.exceptions
-    :members: ProcrastinateException, PoolAlreadySet, LoadFromPathError,
-              ConnectorException, AlreadyEnqueued
+    :members: ProcrastinateException, LoadFromPathError,
+              ConnectorException, AlreadyEnqueued, AppNotOpen
 
 Administration
 --------------

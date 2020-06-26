@@ -40,10 +40,14 @@ class JobRetry(ProcrastinateException):
         super().__init__()
 
 
-class PoolAlreadySet(ProcrastinateException):
+class AppNotOpen(ProcrastinateException):
     """
-    connector.set_pool() was called but the pool already had a set.
-    Changing the pool of a connector is not permitted.
+    App was not open. Procrastinate App needs to be opened using:
+
+    - ``App.open``,
+    - ``App.open_async``,
+    - ``with App():``,
+    - ``async with App():``,
     """
 
 

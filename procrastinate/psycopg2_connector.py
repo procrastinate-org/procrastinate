@@ -73,7 +73,6 @@ class Psycopg2Connector(connector.BaseConnector):
         *,
         json_dumps: Optional[Callable] = None,
         json_loads: Optional[Callable] = None,
-        pool: Optional[psycopg2.pool.ThreadedConnectionPool] = None,
         **kwargs: Any,
     ):
         """
@@ -102,10 +101,7 @@ class Psycopg2Connector(connector.BaseConnector):
             The JSON loads function to use for deserializing job arguments. Defaults
             to the function used by psycopg2. See the `psycopg2 doc`_. Unused if the
             pool is externally created and set into the connector through the
-            `AiopgConnector.set_pool` method.
-        pool :
-            Optional pool. Procrastinate can use an existing pool. Additional parameters
-            will be ignored.
+            `App.open` method.
         minconn : int
             Passed to psycopg2, default set to 1 (same as aiopg).
         maxconn : int
@@ -121,8 +117,9 @@ class Psycopg2Connector(connector.BaseConnector):
         """
         self.json_dumps = json_dumps
         self.json_loads = json_loads
-        pool_args = self._adapt_pool_args(kwargs)
-        self._pool = pool or psycopg2.pool.ThreadedConnectionPool(**pool_args)
+        self._pool: Optional[psycopg2.pool.AbstractConnectionPool] = None
+        self._pool_args = self._adapt_pool_args(kwargs)
+        self._pool_externally_set = False
 
     @staticmethod
     def _adapt_pool_args(pool_args: Dict[str, Any]) -> Dict[str, Any]:
@@ -138,13 +135,42 @@ class Psycopg2Connector(connector.BaseConnector):
         final_args.update(pool_args)
         return final_args
 
+    def open(
+        self,
+        pool: Optional[psycopg2.pool.AbstractConnectionPool] = None,
+    ) -> None:
+        """
+        Instantiate the pool.
+
+        pool :
+            Optional pool. Procrastinate can use an existing pool. Connection parameters
+            passed in the constructor will be ignored.
+        """
+
+        if pool:
+            self._pool_externally_set = True
+            self._pool = pool
+        else:
+            self._pool = self._create_pool(self._pool_args)
+
+    @staticmethod
+    @wrap_exceptions
+    def _create_pool(pool_args: Dict[str, Any]) -> psycopg2.pool.AbstractConnectionPool:
+        return psycopg2.pool.ThreadedConnectionPool(**pool_args)
+
     @wrap_exceptions
     def close(self) -> None:
         """
         Close the pool
         """
-        if not self._pool.closed:
+        if self._pool and not self._pool.closed and not self._pool_externally_set:
             self._pool.closeall()
+
+    @property
+    def pool(self) -> psycopg2.pool.AbstractConnectionPool:
+        if self._pool is None:  # Set by open
+            raise exceptions.AppNotOpen
+        return self._pool
 
     def _wrap_json(self, arguments: Dict[str, Any]):
         return {
@@ -159,18 +185,18 @@ class Psycopg2Connector(connector.BaseConnector):
         # in case of an admin shutdown (Postgres error code 57P01) we do not
         # rollback the connection or put the connection back to the pool as
         # this will cause a psycopg2.InterfaceError exception
-        connection = self._pool.getconn()
+        connection = self.pool.getconn()
         try:
             yield connection
         except psycopg2.errors.AdminShutdown:
             raise
         except Exception:
             connection.rollback()
-            self._pool.putconn(connection)
+            self.pool.putconn(connection)
             raise
         else:
             connection.commit()
-            self._pool.putconn(connection)
+            self.pool.putconn(connection)
 
     @wrap_exceptions
     @wrap_query_exceptions

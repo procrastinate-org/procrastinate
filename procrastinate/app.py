@@ -14,7 +14,6 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-@utils.add_sync_api
 class App:
     """
     The App is the main entry point for procrastinate integration.
@@ -306,3 +305,30 @@ class App:
     @property
     def admin(self) -> admin.Admin:
         return admin.Admin(connector=self.connector)
+
+    def open(self, pool: Optional[connector_module.Pool] = None) -> None:
+        self.connector.open(pool)
+
+    def close(self) -> None:
+        self.connector.close()
+
+    async def open_async(self, pool: Optional[connector_module.Pool] = None) -> None:
+        await self.connector.open_async(pool)
+
+    async def close_async(self) -> None:
+        await self.connector.close_async()
+
+    def __enter__(self, pool: Optional[connector_module.Pool] = None) -> None:
+        self.open(pool)
+
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+        self.close()
+
+    async def __aenter__(self, pool: Optional[connector_module.Pool] = None) -> None:
+        await self.open_async(pool)
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
+        await self.close_async()
+
+
+utils.add_method_sync_api(cls=App, method_name="run_worker_async")

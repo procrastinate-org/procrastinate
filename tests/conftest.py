@@ -82,6 +82,7 @@ def setup_db():
     db_create(dbname=dbname)
 
     connector = aiopg_connector_module.AiopgConnector(dbname=dbname)
+    connector.open()
     schema_manager = schema.SchemaManager(connector=connector)
     schema_manager.apply_schema()
     # We need to close the psycopg2 underlying connection synchronously
@@ -108,6 +109,7 @@ async def connection(connection_params):
 @pytest.fixture
 async def aiopg_connector(connection_params):
     connector = aiopg_connector_module.AiopgConnector(**connection_params)
+    await connector.open_async()
     yield connector
     await connector.close_async()
 
@@ -115,6 +117,7 @@ async def aiopg_connector(connection_params):
 @pytest.fixture
 def psycopg2_connector(connection_params):
     connector = psycopg2_connector_module.Psycopg2Connector(**connection_params)
+    connector.open()
     yield connector
     connector.close()
 

@@ -7,7 +7,7 @@ import inspect
 import logging
 import pathlib
 import types
-from typing import Any, Awaitable, Iterable, Optional, Type, TypeVar
+from typing import Any, Awaitable, Iterable, Optional, Type, TypeVar, Callable
 
 import dateutil.parser
 
@@ -64,7 +64,7 @@ def add_sync_api(cls: Type) -> Type:
     """
     # Iterate on all class attributes
     for attribute_name in dir(cls):
-        wrap_one(cls=cls, attribute_name=attribute_name)
+        add_method_sync_api(cls=cls, method_name=attribute_name)
 
     return cls
 
@@ -83,12 +83,11 @@ ASYNC_ADDENDUM = """
 """
 
 
-def wrap_one(cls: Type, attribute_name: str):
-    suffix = "_async"
-    if attribute_name.startswith("_") or not attribute_name.endswith(suffix):
+def add_method_sync_api(*, cls: Type, method_name: str, suffix: str = "_async"):
+    if method_name.startswith("_") or not method_name.endswith(suffix):
         return
 
-    attribute, function = get_raw_method(cls=cls, attribute_name=attribute_name)
+    attribute, function = get_raw_method(cls=cls, method_name=method_name)
 
     # Keep only async def methods
     if not asyncio.iscoroutinefunction(function):
@@ -115,12 +114,12 @@ def wrap_one(cls: Type, attribute_name: str):
         else:
             final_class = cls
 
-        _, function = get_raw_method(cls=final_class, attribute_name=attribute_name)
+        _, function = get_raw_method(cls=final_class, method_name=method_name)
 
         awaitable = function(*args, **kwargs)
         return sync_await(awaitable=awaitable)
 
-    sync_name = attribute_name[: -len(suffix)]
+    sync_name = method_name[: -len(suffix)]
     attribute.__doc__ += ASYNC_ADDENDUM.format(sync_name)
 
     final_wrapper: Any
@@ -133,11 +132,11 @@ def wrap_one(cls: Type, attribute_name: str):
 
     # Save this new method on the class
     wrapper.__name__ = sync_name
-    final_wrapper.__doc__ += SYNC_ADDENDUM.format(attribute_name)
+    final_wrapper.__doc__ += SYNC_ADDENDUM.format(method_name)
     setattr(cls, sync_name, final_wrapper)
 
 
-def get_raw_method(cls: Type, attribute_name: str):
+def get_raw_method(cls: Type, method_name: str):
     """
     Extract a method from the class, without triggering the descriptor.
     Return 2 objects:
@@ -150,13 +149,13 @@ def get_raw_method(cls: Type, attribute_name: str):
     """
     # Methods are descriptors so using getattr here will not give us the real method
     cls_vars = vars(cls)
-    attribute = cls_vars[attribute_name]
+    method = cls_vars[method_name]
 
     # If method is a classmethod or staticmethod, its real function, that may be
     # async, is stored in __func__.
-    wrapped = getattr(attribute, "__func__", attribute)
+    wrapped = getattr(method, "__func__", method)
 
-    return attribute, wrapped
+    return method, wrapped
 
 
 def sync_await(awaitable: Awaitable[T]) -> T:

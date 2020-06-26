@@ -109,7 +109,6 @@ async def test_wrap_query_exceptions_success(mocker):
     "method_name",
     [
         "close_async",
-        "_create_pool",
         "execute_query_async",
         "_execute_query_connection",
         "execute_query_one_async",
@@ -123,29 +122,11 @@ def test_wrap_exceptions_applied(method_name):
     assert getattr(connector, method_name)._exceptions_wrapped is True
 
 
-def test_set_pool(mocker):
-    pool = mocker.Mock()
-    connector = aiopg_connector.AiopgConnector()
-
-    connector.set_pool(pool)
-
-    assert connector._pool is pool
-
-
-def test_set_pool_already_set(mocker):
-    pool = mocker.Mock()
-    connector = aiopg_connector.AiopgConnector()
-    connector.set_pool(pool)
-
-    with pytest.raises(exceptions.PoolAlreadySet):
-        connector.set_pool(pool)
-
-
 @pytest.mark.asyncio
 async def test_listen_notify_pool_one_connection(mocker, caplog):
     pool = mocker.Mock(maxsize=1)
     connector = aiopg_connector.AiopgConnector()
-    connector.set_pool(pool)
+    await connector.open_async(pool)
     caplog.clear()
 
     await connector.listen_notify(None, None)
