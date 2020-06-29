@@ -95,3 +95,17 @@ def sleep_and_write(sleep, write_before, write_after):
     print("->", write_before, time.time())
     time.sleep(sleep)
     print("->", write_after, time.time())
+
+
+cron_app = procrastinate.App(
+    connector=procrastinate.AiopgConnector(json_dumps=json_dumps, json_loads=json_loads)
+)
+
+
+counter = itertools.count()
+
+
+@cron_app.periodic(cron="* * * * * *")
+@cron_app.task()
+def tick(timestamp):
+    print(next(counter), timestamp)

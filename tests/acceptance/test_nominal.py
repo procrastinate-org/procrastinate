@@ -7,9 +7,9 @@ import pytest
 
 @pytest.fixture
 def worker(running_worker):
-    def func(*queues):
-        process = running_worker(*queues)
-        time.sleep(1)
+    def func(*queues, sleep=1, app="app"):
+        process = running_worker(*queues, app=app)
+        time.sleep(sleep)
         process.send_signal(signal.SIGINT)
         return process.communicate()
 
@@ -18,7 +18,7 @@ def worker(running_worker):
 
 @pytest.fixture
 def running_worker(process_env):
-    def func(*queues, name="worker"):
+    def func(*queues, name="worker", app="app"):
         return subprocess.Popen(
             [
                 "procrastinate",
@@ -28,7 +28,7 @@ def running_worker(process_env):
                 "--queues",
                 ",".join(queues),
             ],
-            env=process_env,
+            env=process_env(app=app),
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             encoding="utf-8",
@@ -141,5 +141,29 @@ def test_queueing_lock(defer, running_worker):
     with pytest.raises(subprocess.CalledProcessError) as excinfo:
         defer("sometask", ["--queueing-lock", "a"], app="sync_app")
 
+    defer("sometask", ["--queueing-lock", "c"], app="sync_app")
+
     # This one doesn't raise
     defer("sometask", ["--queueing-lock", "a", "--ignore-already-enqueued"])
+    defer(
+        "sometask",
+        ["--queueing-lock", "a", "--ignore-already-enqueued"],
+        app="sync_app",
+    )
+
+
+def test_periodic_deferrer(worker):
+    # We're launching a worker that executes a periodic task every second, and
+    # letting it run for 2.5 s. It should execute the task 3 times, and print to stdout:
+    # 0 <timestamp>
+    # 1 <timestamp + 1>
+    # 2 <timestamp + 2>  (this one won't always be there)
+    stdout, stderr = worker(app="cron_app", sleep=3)
+    # This won't be visible unless the test fails
+    print(stdout)
+    print(stderr)
+
+    # We're making a dict from the output
+    results = dict((int(a) for a in e.split()) for e in stdout.splitlines()[1:])
+    assert list(results)[:2] == [0, 1]
+    assert results[1] == results[0] + 1
