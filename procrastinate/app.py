@@ -1,6 +1,6 @@
 import functools
 import logging
-from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, Optional, Set
+from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, List, Optional, Set
 
 from procrastinate import admin
 from procrastinate import connector as connector_module
@@ -95,6 +95,7 @@ class App:
         *,
         queue: str = jobs.DEFAULT_QUEUE,
         name: Optional[str] = None,
+        aliases: Optional[List[str]] = None,
         retry: retry_module.RetryValue = False,
         pass_context: bool = False,
     ) -> Any:
@@ -128,6 +129,11 @@ class App:
             if the function is nested or dynamically defined, it is important to give
             it a unique name, and to make sure the module that defines this function
             is listed in the ``import_paths`` of the `procrastinate.App`.
+        aliases:
+            Additional names for the task.
+            The main use case is to gracefully rename tasks by moving the old
+            name to aliases (these tasks can have been scheduled in a distant
+            future, so the aliases can remain for a long time).
         retry :
             Details how to auto-retry the task if it fails. Can be:
 
@@ -150,6 +156,7 @@ class App:
                 app=self,
                 queue=queue,
                 name=name,
+                aliases=aliases,
                 retry=retry,
                 pass_context=pass_context,
             )
@@ -164,6 +171,8 @@ class App:
 
     def _register(self, task: "tasks.Task") -> None:
         self.tasks[task.name] = task
+        for alias in task.aliases:
+            self.tasks[alias] = task
         queue = task.queue
         if queue not in self.queues:
             logger.debug(

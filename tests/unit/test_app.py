@@ -28,6 +28,18 @@ def test_app_task_explicit(app, mocker):
     assert app.tasks["b"].func is wrapped.__wrapped__
 
 
+def test_app_task_aliases(app, mocker):
+    @app.task(name="b", aliases=["c", "d"])
+    def wrapped():
+        pass
+
+    assert "b" == app.tasks["b"].name
+    assert ["c", "d"] == app.tasks["b"].aliases
+    assert app.tasks["b"] is wrapped
+    assert app.tasks["c"] is wrapped
+    assert app.tasks["d"] is wrapped
+
+
 def test_app_task_implicit(app, mocker):
     @app.task
     def wrapped():
