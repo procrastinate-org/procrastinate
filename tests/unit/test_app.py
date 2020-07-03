@@ -132,3 +132,52 @@ def test_app_periodic(app):
 
     assert len(app.periodic_deferrer.periodic_tasks) == 1
     assert app.periodic_deferrer.periodic_tasks[0].task == yay
+
+
+def test_enter_exit(app, pool, mock_connector_open, mock_connector_close):
+
+    with app:
+        pass
+
+    mock_connector_open.assert_called_once_with(None)
+    mock_connector_close.assert_called_once_with()
+
+
+def test_open(app, pool, mock_connector_open):
+    app.open(pool)
+
+    mock_connector_open.assert_called_once_with(pool)
+
+
+def test_close(app, mock_connector_close):
+    app.close()
+
+    mock_connector_close.assert_called_once_with()
+
+
+@pytest.mark.asyncio
+async def test_async_enter_exit(
+    app, mock_connector_open_async, mock_connector_close_async
+):
+    async with app:
+        pass
+
+    mock_connector_open_async.assert_called_once_with(None)
+    mock_connector_close_async.assert_called_once_with()
+
+
+@pytest.mark.asyncio
+async def test_async_open(app, mock_connector_open_async):
+    pool = ...
+
+    await app.open_async(pool)
+
+    mock_connector_open_async.assert_called_once_with(pool)
+
+
+@pytest.mark.asyncio
+async def test_close_close(app, mock_connector_close_async):
+
+    await app.close_async()
+
+    mock_connector_close_async.assert_called_once_with()

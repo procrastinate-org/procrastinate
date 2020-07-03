@@ -108,6 +108,7 @@ async def test_wrap_query_exceptions_success(mocker):
 @pytest.mark.parametrize(
     "method_name",
     [
+        "_create_pool",
         "close_async",
         "execute_query_async",
         "_execute_query_connection",
@@ -132,3 +133,31 @@ async def test_listen_notify_pool_one_connection(mocker, caplog):
     await connector.listen_notify(None, None)
 
     assert {e.action for e in caplog.records} == {"listen_notify_disabled"}
+
+
+@pytest.mark.asyncio
+async def test_open_async_no_pool_specified(mock_async_create_pool):
+    connector = aiopg_connector.AiopgConnector()
+
+    await connector.open_async()
+
+    assert connector._pool_externally_set is False
+    mock_async_create_pool.assert_called_once_with(connector._pool_args)
+
+
+@pytest.mark.asyncio
+async def test_open_async_pool_argument_specified(pool, mock_async_create_pool):
+    connector = aiopg_connector.AiopgConnector()
+
+    await connector.open_async(pool)
+
+    assert connector._pool_externally_set is True
+    mock_async_create_pool.assert_not_called()
+    assert connector._pool == pool
+
+
+def test_get_pool():
+    connector = aiopg_connector.AiopgConnector()
+
+    with pytest.raises(exceptions.AppNotOpen):
+        pool = connector.pool

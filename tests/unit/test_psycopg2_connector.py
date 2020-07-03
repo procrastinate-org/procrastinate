@@ -74,8 +74,34 @@ def test_wrap_query_exceptions_success(mocker):
 
 @pytest.mark.parametrize(
     "method_name",
-    ["__init__", "open", "close", "execute_query", "execute_query_one", "execute_query_all"],
+    ["__init__", "_create_pool", "close", "execute_query", "execute_query_one", "execute_query_all"],
 )
 def test_wrap_exceptions_applied(method_name):
     connector = psycopg2_connector.Psycopg2Connector()
     assert getattr(connector, method_name)._exceptions_wrapped is True
+
+
+def test_open_no_pool_specified(mock_create_pool):
+    connector = psycopg2_connector.Psycopg2Connector()
+
+    connector.open()
+
+    assert connector._pool_externally_set is False
+    mock_create_pool.assert_called_once_with(connector._pool_args)
+
+
+def test_open_pool_argument_specified(pool, mock_create_pool):
+    connector = psycopg2_connector.Psycopg2Connector()
+
+    connector.open(pool)
+
+    assert connector._pool_externally_set is True
+    mock_create_pool.assert_not_called()
+    assert connector._pool == pool
+
+
+def test_get_pool():
+    connector = psycopg2_connector.Psycopg2Connector()
+
+    with pytest.raises(exceptions.AppNotOpen):
+        pool = connector.pool
