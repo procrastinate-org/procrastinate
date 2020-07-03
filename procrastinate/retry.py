@@ -70,6 +70,10 @@ class RetryStrategy(BaseRetryStrategy):
         Use this if you want to use an exponential backoff.
         Give a number of seconds as argument, it will be used to compute the backoff.
         (e.g. if 3, then successive runs will wait 3, 9, 27, 81, 243 seconds)
+    retry_exceptions:
+        Define the exception types you want to retry on.
+        If you don't, jobs will be retried on any type of exceptions
+
     """
 
     max_attempts: Optional[int] = None
