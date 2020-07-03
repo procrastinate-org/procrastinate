@@ -73,6 +73,7 @@ class Psycopg2Connector(connector.BaseConnector):
         *,
         json_dumps: Optional[Callable] = None,
         json_loads: Optional[Callable] = None,
+        pool: Optional[psycopg2.pool.ThreadedConnectionPool] = None,
         **kwargs: Any,
     ):
         """

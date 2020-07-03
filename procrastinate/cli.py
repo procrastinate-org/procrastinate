@@ -110,6 +110,7 @@ def cli(ctx: click.Context, app: str, **kwargs) -> None:
         # If we don't provide an app, initialize a default one that will fail if it
         # needs a connector.
         app_obj = procrastinate.App(connector=MissingAppConnector())
+    app_obj.open()
     ctx.obj = app_obj
 
     worker_defaults = app_obj.worker_defaults.copy()
