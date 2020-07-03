@@ -47,7 +47,7 @@ class AppNotOpen(ProcrastinateException):
     - ``App.open``,
     - ``App.open_async``,
     - ``with App():``,
-    - ``async with App():``,
+    - ``async with App():``.
     """
 
 

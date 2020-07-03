@@ -318,14 +318,14 @@ class App:
     async def close_async(self) -> None:
         await self.connector.close_async()
 
-    def __enter__(self, pool: Optional[connector_module.Pool] = None) -> None:
-        self.open(pool)
+    def __enter__(self) -> None:
+        self.open()
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
         self.close()
 
-    async def __aenter__(self, pool: Optional[connector_module.Pool] = None) -> None:
-        await self.open_async(pool)
+    async def __aenter__(self) -> None:
+        await self.open_async()
 
     async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
         await self.close_async()

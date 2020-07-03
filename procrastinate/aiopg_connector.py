@@ -87,11 +87,12 @@ class AiopgConnector(connector.BaseAsyncConnector):
     ):
         """
         Create a PostgreSQL connector using aiopg. The connector uses an ``aiopg.Pool``,
-        which is either created by `App.open_async`.
+        which is created internally, or set into the connector by calling
+        `AiopgConnector.open_async`.
 
-        The pool connection parameters can be provided in this method. Alternatively,
-        an already existing ``aiopg.Pool`` can be provided in the
-        `App.open_async`, via the ``pool`` parameter.
+        The pool connection parameters can be provided here. Alternatively, an already
+        existing ``aiopg.Pool`` can be provided in the `App.open_async`, via the
+        ``pool`` parameter.
 
         All other arguments than ``json_dumps`` and ``json_loads`` are passed to
         :py:func:`aiopg.create_pool` (see aiopg documentation__), with default values
@@ -109,7 +110,7 @@ class AiopgConnector(connector.BaseAsyncConnector):
             The JSON loads function to use for deserializing job arguments. Defaults
             to the function used by psycopg2. See the `psycopg2 doc`_. Unused if the
             pool is externally created and set into the connector through the
-            :py:meth:`AiopgConnector.open_async` method.
+            `App.open_async` method.
         dsn : ``Optional[str]``
             Passed to aiopg. Default is "" instead of None, which means if no argument
             is passed, it will connect to localhost:5432 instead of a Unix-domain
