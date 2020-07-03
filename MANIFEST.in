@@ -4,6 +4,7 @@ prune procrastinate_demo
 
 include LICENSE.rst
 include VERSION.txt
+include procrastinate/py.typed
 
 exclude .editorconfig
 exclude .readthedocs.yml
