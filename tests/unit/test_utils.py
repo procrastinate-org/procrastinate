@@ -259,7 +259,7 @@ async def test_task_context_cancelled(caplog):
         await asyncio.sleep(0)
 
     assert done == [True]
-    # Give the task a cycled to update
+    # Give the task a cycle to update
     await asyncio.sleep(0)
     assert task.cancelled() is True
 

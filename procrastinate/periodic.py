@@ -10,7 +10,7 @@ import croniter
 from procrastinate import store, tasks
 
 # The maximum delay after which tasks will be considered as
-# too late, and ignored.
+# outdated, and ignored.
 MAX_DELAY = 60 * 10  # 10 minutes
 # We'll always be oversleeping by this amount to avoid waking up too early for our
 # tasks. This is, of course, the most important part of procrastinate ;)
@@ -41,8 +41,8 @@ class PeriodicDeferrer:
 
     def periodic_decorator(self, cron: str):
         """
-        Decorator over a task definition that will reegister that task for periodic
-        launch. This decorator should not be use directly, ``@app.periodic()`` is meant
+        Decorator over a task definition that registers that task for periodic
+        launch. This decorator should not be used directly, ``@app.periodic()`` is meant
         to be used instead.
         """
 
@@ -54,7 +54,7 @@ class PeriodicDeferrer:
 
     async def worker(self) -> None:
         """
-        High level command for the periodic deferrer. Launches the loop.
+        High-level command for the periodic deferrer. Launches the loop.
         """
         if not self.periodic_tasks:
             logger.info(

@@ -85,7 +85,7 @@ class App:
             - ``max_delay``: ``float``, in seconds, controls how long after the planned
               launch of a periodic task a deferrer can launch the task. Thanks to this
               parameter, when deploying a new periodic task, it's usually not deferred
-              until its next scheduled time. Default to 10 minutes.
+              until its next scheduled time. Defaults to 10 minutes.
         """
         from procrastinate import periodic
 

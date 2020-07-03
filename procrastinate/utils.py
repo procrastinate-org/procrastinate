@@ -207,7 +207,7 @@ def get_full_path(obj: Any) -> str:
 @contextlib.contextmanager
 def task_context(awaitable: Awaitable, name: str):
     """
-    Take an awaitable, returns a context manager.
+    Take an awaitable, return a context manager.
 
     On enter, launch the awaitable as a task that will execute in parallel in the
     event loop. On exit, cancel the task (and log). If the task ends with an exception
