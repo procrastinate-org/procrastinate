@@ -1,4 +1,5 @@
 import asyncio
+import contextlib
 import functools
 import importlib
 import inspect
@@ -201,3 +202,34 @@ def _get_module_name(obj: Any) -> str:
 def get_full_path(obj: Any) -> str:
 
     return f"{_get_module_name(obj)}.{obj.__name__}"
+
+
+@contextlib.contextmanager
+def task_context(awaitable: Awaitable, name: str):
+    """
+    Take an awaitable, return a context manager.
+
+    On enter, launch the awaitable as a task that will execute in parallel in the
+    event loop. On exit, cancel the task (and log). If the task ends with an exception
+    log it.
+
+    A name is required for logging purposes.
+    """
+    nice_name = name.replace("_", " ").title()
+
+    async def wrapper():
+        try:
+            logger.debug(f"Started {nice_name}", extra={"action": f"{name}_start"})
+            await awaitable
+        except asyncio.CancelledError:
+            logger.debug(f"Stopped {nice_name}", extra={"action": f"{name}_stop"})
+            raise
+
+        except Exception:
+            logger.exception(f"{nice_name} error", extra={"action": f"{name}_error"})
+
+    try:
+        task = asyncio.ensure_future(wrapper())
+        yield task
+    finally:
+        task.cancel()

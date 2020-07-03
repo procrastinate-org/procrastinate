@@ -65,7 +65,7 @@ Let's go through a few words and their meaning.
         When configuring a job using `Task.configure` you can attach a lock to the job.
         Jobs with the same lock are guaranteed to be executed in defer order, and in a
         sequential manner. No two jobs with the same lock can run simultaneously. See
-        the `howto-locks` section for more information.
+        `howto/locks` for more information.
 
     Queueing Lock
         When configuring a job using `Task.configure` you can attach a queueing lock to

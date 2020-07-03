@@ -7,7 +7,7 @@ import pytest
 def shell(process_env):
     return subprocess.Popen(
         ["procrastinate", "shell"],
-        env=process_env,
+        env=process_env(),
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,

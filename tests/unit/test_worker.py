@@ -36,10 +36,11 @@ async def test_run(test_worker, mocker, caplog):
 
     single_worker.assert_called()
 
-    assert caplog.messages == [
+    assert set(caplog.messages) == {
         "Starting worker on all queues",
         "Stopped worker on all queues",
-    ]
+        "No periodic task found, periodic deferrer will not run.",
+    }
 
 
 @pytest.mark.parametrize(

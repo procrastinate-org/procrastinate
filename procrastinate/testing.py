@@ -42,6 +42,7 @@ class InMemoryConnector(connector.BaseAsyncConnector):
         self.queries: List[Tuple[str, Dict[str, Any]]] = []
         self.notify_event = None
         self.notify_channels = []
+        self.periodic_defers: Dict[str, int] = {}
 
     def generic_execute(self, query, suffix, **arguments) -> Any:
         """
@@ -116,6 +117,19 @@ class InMemoryConnector(connector.BaseAsyncConnector):
             ):
                 self.notify_event.set()
         return job_row
+
+    def defer_periodic_job_one(self, queue, task_name, defer_timestamp):
+        if self.periodic_defers.get(task_name) == defer_timestamp:
+            return {"id": None}
+        self.periodic_defers[task_name] = defer_timestamp
+        return self.defer_job_one(
+            task_name=task_name,
+            queue=queue,
+            lock=None,
+            queueing_lock=None,
+            args={"timestamp": defer_timestamp},
+            scheduled_at=None,
+        )
 
     @property
     def current_locks(self) -> Iterable[str]:

@@ -4,7 +4,7 @@ import logging
 import time
 from typing import Dict, Iterable, Optional, Set, Union
 
-from procrastinate import app, exceptions, job_context, jobs, signals, tasks
+from procrastinate import app, exceptions, job_context, jobs, signals, tasks, utils
 
 logger = logging.getLogger(__name__)
 
@@ -71,16 +71,19 @@ class Worker:
 
         return context
 
-    @contextlib.contextmanager
     def listener(self):
         assert self.notify_event
-        notifier = asyncio.ensure_future(
-            self.job_store.listen_for_jobs(event=self.notify_event, queues=self.queues)
+        return utils.task_context(
+            awaitable=self.job_store.listen_for_jobs(
+                event=self.notify_event, queues=self.queues
+            ),
+            name="listener",
         )
-        try:
-            yield
-        finally:
-            notifier.cancel()
+
+    def periodic_deferrer(self):
+        return utils.task_context(
+            awaitable=self.app.periodic_deferrer.worker(), name="periodic_deferrer",
+        )
 
     async def run(self) -> None:
         self.notify_event = asyncio.Event()
@@ -97,6 +100,7 @@ class Worker:
             if self.wait and self.listen_notify:
                 stack.enter_context(self.listener())
 
+            stack.enter_context(self.periodic_deferrer())
             stack.enter_context(signals.on_stop(self.stop))
 
             await asyncio.gather(
