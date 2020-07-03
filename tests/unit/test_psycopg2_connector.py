@@ -81,6 +81,11 @@ def test_wrap_exceptions_applied(method_name):
     assert getattr(connector, method_name)._exceptions_wrapped is True
 
 
+@pytest.fixture
+def mock_create_pool(mocker):
+    return mocker.patch.object(psycopg2_connector.Psycopg2Connector, "_create_pool")
+
+
 def test_open_no_pool_specified(mock_create_pool):
     connector = psycopg2_connector.Psycopg2Connector()
 

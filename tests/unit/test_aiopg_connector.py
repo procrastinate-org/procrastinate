@@ -3,6 +3,8 @@ import pytest
 
 from procrastinate import aiopg_connector, exceptions
 
+from .conftest import AsyncMock
+
 
 @pytest.mark.asyncio
 async def test_adapt_pool_args_on_connect(mocker):
@@ -133,6 +135,13 @@ async def test_listen_notify_pool_one_connection(mocker, caplog):
     await connector.listen_notify(None, None)
 
     assert {e.action for e in caplog.records} == {"listen_notify_disabled"}
+
+
+@pytest.fixture
+def mock_async_create_pool(mocker):
+    return mocker.patch.object(
+        aiopg_connector.AiopgConnector, "_create_pool", new_callable=AsyncMock
+    )
 
 
 @pytest.mark.asyncio

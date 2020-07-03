@@ -136,8 +136,14 @@ def connector():
 
 
 @pytest.fixture
-def app(connector):
+def not_opened_app(connector):
     return app_module.App(connector=connector)
+
+
+@pytest.fixture
+def app(not_opened_app):
+    with not_opened_app as app:
+        yield app
 
 
 @pytest.fixture

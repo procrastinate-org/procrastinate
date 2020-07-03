@@ -306,29 +306,32 @@ class App:
     def admin(self) -> admin.Admin:
         return admin.Admin(connector=self.connector)
 
-    def open(self, pool: Optional[connector_module.Pool] = None) -> None:
+    def open(self, pool: Optional[connector_module.Pool] = None) -> "App":
         self.connector.open(pool)
+        return self
 
     def close(self) -> None:
         self.connector.close()
 
-    async def open_async(self, pool: Optional[connector_module.Pool] = None) -> None:
+    async def open_async(self, pool: Optional[connector_module.Pool] = None) -> "App":
         await self.connector.open_async(pool)
+        return self
 
     async def close_async(self) -> None:
         await self.connector.close_async()
 
-    def __enter__(self) -> None:
-        self.open()
+    def __enter__(self) -> "App":
+        return self
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
         self.close()
 
-    async def __aenter__(self) -> None:
-        await self.open_async()
+    async def __aenter__(self) -> "App":
+        return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
         await self.close_async()
+
 
 
 utils.add_method_sync_api(cls=App, method_name="run_worker_async")
