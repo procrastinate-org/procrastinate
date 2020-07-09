@@ -1,4 +1,4 @@
-name-template: '$RESOLVED_VERSION: Version title (TODO: set meaningful title)'
+name-template: '$RESOLVED_VERSION: TODO: set meaningful title - UNRELEASED'
 tag-template: '$RESOLVED_VERSION'
 categories:
   - title: 'Breaking changes'
@@ -26,7 +26,7 @@ template: |
   None (TODO: replace if there are migrations)
   https://github.com/peopledoc/procrastinate/tree/master/procrastinate/sql/migrations
 
-  ## Uncategorized (TODO: please categorize)
+  ## TODO: please categorize
 
   $CHANGES
 
