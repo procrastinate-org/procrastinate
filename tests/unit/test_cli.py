@@ -92,7 +92,9 @@ def test_get_schedule_at(input, output):
     assert cli.get_schedule_at(input) == output
 
 
-@pytest.mark.parametrize("input", ["yay", "2000-01-34T00:00:00Z"])
+@pytest.mark.parametrize(
+    "input", ["yay", "2000-01-34T00:00:00Z", "P1Y2M10DT2H30M/2008-05-11T15:30:00Z"]
+)
 def test_get_schedule_at_error(input):
     with pytest.raises(click.BadOptionUsage):
         assert cli.get_schedule_at(input)
