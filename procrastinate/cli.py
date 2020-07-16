@@ -285,14 +285,18 @@ def load_json_args(json_args: str, json_loads: Callable) -> types.JSONDict:
 
 # return type should not be Optional[str], but there's a typing bug in
 # Pendulum 2.1.0 (https://github.com/sdispater/pendulum/issues/450)
-def get_schedule_at(at: Optional[str]) -> Optional[str]:
+def get_schedule_at(at: Optional[str]) -> Optional[pendulum.DateTime]:
     if at is None:
         return None
 
     try:
-        return pendulum.parse(at)
-    except pendulum.exceptions.ParserError:
+        datetime = pendulum.parse(at)
+        if not isinstance(datetime, pendulum.DateTime):
+            raise ValueError
+    except (pendulum.exceptions.ParserError, ValueError):
         raise click.BadOptionUsage("--at", f"Cannot parse datetime {at}")
+
+    return datetime
 
 
 def get_schedule_in(in_: Optional[int]) -> Optional[Dict[str, int]]:
