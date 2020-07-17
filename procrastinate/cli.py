@@ -289,7 +289,7 @@ def get_schedule_at(at: Optional[str]) -> Optional[datetime.datetime]:
 
     try:
         dt = utils.parse_datetime(at)
-    except (ValueError):
+    except ValueError:
         raise click.BadOptionUsage("--at", f"Cannot parse datetime {at}")
 
     return dt
