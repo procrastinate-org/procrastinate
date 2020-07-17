@@ -2,8 +2,7 @@ import datetime
 
 import pytest
 
-from procrastinate import jobs
-from procrastinate import utils
+from procrastinate import jobs, utils
 
 
 @pytest.mark.parametrize(

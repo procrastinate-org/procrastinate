@@ -3,13 +3,11 @@ A retry strategy class lets procrastinate know what to do when a job fails: shou
 try again? And when?
 """
 import datetime
-
 from typing import Iterable, Optional, Type, Union
 
 import attr
 
-from procrastinate import exceptions
-from procrastinate import utils
+from procrastinate import exceptions, utils
 
 
 class BaseRetryStrategy:

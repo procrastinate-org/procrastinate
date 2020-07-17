@@ -1,8 +1,8 @@
 import asyncio
+import datetime
 import sys
 import types
 
-import datetime
 import pytest
 
 from procrastinate import exceptions, utils

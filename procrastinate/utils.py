@@ -242,13 +242,24 @@ def utcnow() -> datetime.datetime:
     return datetime.datetime.now(datetime.timezone.utc)
 
 
-def aware_datetime(*args, tz_offset: Optional[int] = None) -> datetime.datetime:
+def aware_datetime(
+    year: int,
+    month: int,
+    day: int,
+    hour: int = 0,
+    minute: int = 0,
+    second: int = 0,
+    microsecond: int = 0,
+    tz_offset: Optional[int] = None,
+) -> datetime.datetime:
     tzinfo = (
         datetime.timezone(datetime.timedelta(hours=tz_offset))
         if tz_offset
         else datetime.timezone.utc
     )
-    return datetime.datetime(*args, tzinfo=tzinfo)
+    return datetime.datetime(
+        year, month, day, hour, minute, second, microsecond, tzinfo=tzinfo
+    )
 
 
 def parse_datetime(raw: str) -> datetime.datetime:
