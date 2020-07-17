@@ -245,9 +245,14 @@ def utcnow() -> datetime.datetime:
 def parse_datetime(raw: str) -> datetime.datetime:
     try:
         # this parser is the stricter one, so we try it first
-        return dateutil.parser.isoparse(raw)
+        dt = dateutil.parser.isoparse(raw)
+        if not dt.tzinfo:
+            dt = dt.replace(tzinfo=datetime.timezone.utc)
+        return dt
     except ValueError:
         pass
     # this parser is quite forgiving, and will attempt to return
     # a value in most circumstances, so we use it as last option
-    return dateutil.parser.parse(raw)
+    dt = dateutil.parser.parse(raw)
+    dt = dt.replace(tzinfo=datetime.timezone.utc)
+    return dt
