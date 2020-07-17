@@ -2,13 +2,14 @@
 A retry strategy class lets procrastinate know what to do when a job fails: should it
 try again? And when?
 """
+import datetime
 
 from typing import Iterable, Optional, Type, Union
 
 import attr
-import pendulum
 
 from procrastinate import exceptions
+from procrastinate import utils
 
 
 class BaseRetryStrategy:
@@ -24,8 +25,8 @@ class BaseRetryStrategy:
         if schedule_in is None:
             return None
 
-        schedule_at = pendulum.now("UTC").add(seconds=schedule_in)
-        return exceptions.JobRetry(schedule_at)
+        schedule_at = utils.utcnow() + datetime.timedelta(seconds=schedule_in)
+        return exceptions.JobRetry(schedule_at.replace(microsecond=0))
 
     def get_schedule_in(self, *, exception: Exception, attempts: int) -> Optional[int]:
         """

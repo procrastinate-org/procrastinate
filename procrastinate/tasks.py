@@ -2,8 +2,6 @@ import datetime
 import logging
 from typing import Any, Callable, Dict, List, Optional
 
-import pendulum
-
 from procrastinate import app, exceptions, jobs
 from procrastinate import retry as retry_module
 from procrastinate import store, types, utils
@@ -35,7 +33,7 @@ def configure_task(
         raise ValueError("Cannot set both schedule_at and schedule_in")
 
     if schedule_in is not None:
-        schedule_at = pendulum.now("UTC").add(**schedule_in)
+        schedule_at = utils.utcnow() + datetime.timedelta(**schedule_in)
 
     task_kwargs = task_kwargs or {}
     return jobs.JobDeferrer(
