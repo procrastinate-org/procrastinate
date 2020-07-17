@@ -59,6 +59,8 @@ CREATE UNIQUE INDEX procrastinate_jobs_lock_idx ON procrastinate_jobs (lock) WHE
 
 CREATE INDEX procrastinate_jobs_queue_name_idx ON procrastinate_jobs(queue_name);
 CREATE INDEX procrastinate_events_job_id_fkey ON procrastinate_events(job_id);
+CREATE INDEX procrastinate_periodic_defers_job_id_fkey ON procrastinate_periodic_defers(job_id);
+
 
 -- Functions
 
