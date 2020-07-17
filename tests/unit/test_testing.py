@@ -1,7 +1,10 @@
 import asyncio
 
-import pendulum
 import pytest
+
+from procrastinate import utils
+
+from .. import conftest
 
 
 def test_reset(connector):
@@ -145,12 +148,12 @@ def test_select_stalled_jobs_all(connector):
         },
     }
     connector.events = {
-        1: [{"at": pendulum.datetime(2000, 1, 1)}],
-        2: [{"at": pendulum.datetime(2000, 1, 1)}],
-        3: [{"at": pendulum.datetime(2000, 1, 1)}],
-        4: [{"at": pendulum.datetime(2100, 1, 1)}],
-        5: [{"at": pendulum.datetime(2000, 1, 1)}],
-        6: [{"at": pendulum.datetime(2000, 1, 1)}],
+        1: [{"at": conftest.aware_datetime(2000, 1, 1)}],
+        2: [{"at": conftest.aware_datetime(2000, 1, 1)}],
+        3: [{"at": conftest.aware_datetime(2000, 1, 1)}],
+        4: [{"at": conftest.aware_datetime(2100, 1, 1)}],
+        5: [{"at": conftest.aware_datetime(2000, 1, 1)}],
+        6: [{"at": conftest.aware_datetime(2000, 1, 1)}],
     }
 
     results = connector.select_stalled_jobs_all(
@@ -171,10 +174,10 @@ def test_delete_old_jobs_run(connector):
         4: {"id": 4, "status": "succeeded", "queue_name": "marsupilami"},
     }
     connector.events = {
-        1: [{"type": "succeeded", "at": pendulum.datetime(2000, 1, 1)}],
-        2: [{"type": "succeeded", "at": pendulum.datetime(2000, 1, 1)}],
-        3: [{"type": "succeeded", "at": pendulum.now()}],
-        4: [{"type": "succeeded", "at": pendulum.datetime(2000, 1, 1)}],
+        1: [{"type": "succeeded", "at": conftest.aware_datetime(2000, 1, 1)}],
+        2: [{"type": "succeeded", "at": conftest.aware_datetime(2000, 1, 1)}],
+        3: [{"type": "succeeded", "at": utils.utcnow()}],
+        4: [{"type": "succeeded", "at": conftest.aware_datetime(2000, 1, 1)}],
     }
 
     connector.delete_old_jobs_run(
@@ -208,7 +211,7 @@ def test_fetch_job_one(connector):
         task_name="mytask",
         args={},
         queue="marsupilami",
-        scheduled_at=pendulum.datetime(2100, 1, 1),
+        scheduled_at=conftest.aware_datetime(2100, 1, 1),
         lock="c",
         queueing_lock="c",
     )
@@ -266,7 +269,7 @@ def test_finish_job_run_retry(connector):
     job_row = connector.fetch_job_one(queues=None)
     id = job_row["id"]
 
-    retry_at = pendulum.datetime(2000, 1, 1)
+    retry_at = conftest.aware_datetime(2000, 1, 1)
     connector.finish_job_run(job_id=id, status="todo", scheduled_at=retry_at)
 
     assert connector.jobs[id]["attempts"] == 1

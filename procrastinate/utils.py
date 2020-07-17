@@ -1,5 +1,6 @@
 import asyncio
 import contextlib
+import datetime
 import functools
 import importlib
 import inspect
@@ -7,6 +8,8 @@ import logging
 import pathlib
 import types
 from typing import Any, Awaitable, Iterable, Optional, Type, TypeVar
+
+import dateutil.parser
 
 from procrastinate import exceptions
 
@@ -233,3 +236,23 @@ def task_context(awaitable: Awaitable, name: str):
         yield task
     finally:
         task.cancel()
+
+
+def utcnow() -> datetime.datetime:
+    return datetime.datetime.now(tz=datetime.timezone.utc)
+
+
+def parse_datetime(raw: str) -> datetime.datetime:
+    try:
+        # this parser is the stricter one, so we try it first
+        dt = dateutil.parser.isoparse(raw)
+        if not dt.tzinfo:
+            dt = dt.replace(tzinfo=datetime.timezone.utc)
+        return dt
+    except ValueError:
+        pass
+    # this parser is quite forgiving, and will attempt to return
+    # a value in most circumstances, so we use it as last option
+    dt = dateutil.parser.parse(raw)
+    dt = dt.replace(tzinfo=datetime.timezone.utc)
+    return dt

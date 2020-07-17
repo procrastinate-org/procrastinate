@@ -1,8 +1,10 @@
-import pendulum
+import datetime
+
 import pytest
 
 from procrastinate import exceptions
 from procrastinate import retry as retry_module
+from procrastinate import utils
 
 
 @pytest.mark.parametrize(
@@ -70,9 +72,9 @@ def test_get_retry_exception_returns_none():
 def test_get_retry_exception_returns():
     strategy = retry_module.RetryStrategy(max_attempts=10, wait=5.0)
 
-    now = pendulum.datetime(2000, 1, 1, tz="UTC")
-    expected = pendulum.datetime(2000, 1, 1, 0, 0, 5, tz="UTC")
-    with pendulum.test(now):
-        exc = strategy.get_retry_exception(exception=None, attempts=1)
-        assert isinstance(exc, exceptions.JobRetry)
-        assert exc.scheduled_at == expected
+    now = utils.utcnow()
+    expected = now + datetime.timedelta(seconds=5, microseconds=0)
+
+    exc = strategy.get_retry_exception(exception=None, attempts=1)
+    assert isinstance(exc, exceptions.JobRetry)
+    assert exc.scheduled_at == expected.replace(microsecond=0)

@@ -1,4 +1,5 @@
 import asyncio
+import datetime
 import sys
 import types
 
@@ -280,3 +281,53 @@ async def test_task_context_exception(caplog):
 
     exc_logs = [r for r in caplog.records if r.action == "foo_error" and r.exc_info]
     assert len(exc_logs) == 1
+
+
+def test_utcnow(mocker):
+    dt = mocker.patch("datetime.datetime")
+    assert utils.utcnow() == dt.now.return_value
+    dt.now.assert_called_once_with(tz=datetime.timezone.utc)
+
+
+@pytest.mark.parametrize(
+    "input, expected",
+    [
+        (
+            "2020-01-05",
+            datetime.datetime(2020, 1, 5, 0, 0, tzinfo=datetime.timezone.utc),
+        ),
+        (
+            "2020/01/05",
+            datetime.datetime(2020, 1, 5, 0, 0, tzinfo=datetime.timezone.utc),
+        ),
+        (
+            "2020/01/05 22:07",
+            datetime.datetime(2020, 1, 5, 22, 7, tzinfo=datetime.timezone.utc),
+        ),
+        (
+            "1984-06-02 19:05:57",
+            datetime.datetime(1984, 6, 2, 19, 5, 57, tzinfo=datetime.timezone.utc),
+        ),
+        (
+            "1984-06-02T19:05:57.720Z",
+            datetime.datetime(
+                1984, 6, 2, 19, 5, 57, 720000, tzinfo=datetime.timezone.utc
+            ),
+        ),
+        (
+            "1984-06-02T19:05:57.720+01:00",
+            datetime.datetime(
+                1984,
+                6,
+                2,
+                19,
+                5,
+                57,
+                720000,
+                tzinfo=datetime.timezone(datetime.timedelta(hours=1)),
+            ),
+        ),
+    ],
+)
+def test_parse_datetime(input, expected):
+    assert utils.parse_datetime(input) == expected

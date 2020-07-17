@@ -1,12 +1,12 @@
 import asyncio
 import contextlib
+import datetime
 import json
 import logging
 import os
 from typing import Any, Callable, Dict, Optional
 
 import click
-import pendulum
 
 import procrastinate
 from procrastinate import connector, exceptions, jobs, shell, types, utils, worker
@@ -283,20 +283,16 @@ def load_json_args(json_args: str, json_loads: Callable) -> types.JSONDict:
     return args
 
 
-# return type should not be Optional[str], but there's a typing bug in
-# Pendulum 2.1.0 (https://github.com/sdispater/pendulum/issues/450)
-def get_schedule_at(at: Optional[str]) -> Optional[pendulum.DateTime]:
+def get_schedule_at(at: Optional[str]) -> Optional[datetime.datetime]:
     if at is None:
         return None
 
     try:
-        datetime = pendulum.parse(at)
-        if not isinstance(datetime, pendulum.DateTime):
-            raise ValueError
-    except (pendulum.exceptions.ParserError, ValueError):
+        dt = utils.parse_datetime(at)
+    except ValueError:
         raise click.BadOptionUsage("--at", f"Cannot parse datetime {at}")
 
-    return datetime
+    return dt
 
 
 def get_schedule_in(in_: Optional[int]) -> Optional[Dict[str, int]]:

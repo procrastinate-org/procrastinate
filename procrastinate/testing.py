@@ -4,9 +4,7 @@ from collections import Counter
 from itertools import count
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
-import pendulum
-
-from procrastinate import connector, exceptions, schema, sql
+from procrastinate import connector, exceptions, schema, sql, utils
 
 JobRow = Dict[str, Any]
 EventRow = Dict[str, Any]
@@ -110,7 +108,7 @@ class InMemoryConnector(connector.BaseAsyncConnector):
         self.events[id] = []
         if scheduled_at:
             self.events[id].append({"type": "scheduled", "at": scheduled_at})
-        self.events[id].append({"type": "deferred", "at": pendulum.now()})
+        self.events[id].append({"type": "deferred", "at": utils.utcnow()})
         if self.notify_event:
             if "procrastinate_any_queue" in self.notify_channels or (
                 f"procrastinate_queue#{queue}" in self.notify_channels
@@ -150,14 +148,11 @@ class InMemoryConnector(connector.BaseAsyncConnector):
             if (
                 job["status"] == "todo"
                 and (queues is None or job["queue_name"] in queues)
-                and (
-                    not job["scheduled_at"]
-                    or job["scheduled_at"] <= pendulum.now("UTC")
-                )
+                and (not job["scheduled_at"] or job["scheduled_at"] <= utils.utcnow())
                 and job["lock"] not in self.current_locks
             ):
                 job["status"] = "doing"
-                self.events[job["id"]].append({"type": "started", "at": pendulum.now()})
+                self.events[job["id"]].append({"type": "started", "at": utils.utcnow()})
 
                 return job
 
@@ -177,7 +172,7 @@ class InMemoryConnector(connector.BaseAsyncConnector):
                 self.events[job_id].append({"type": "scheduled", "at": scheduled_at})
             event_type = "deferred_for_retry"
 
-        self.events[job_id].append({"type": event_type, "at": pendulum.now()})
+        self.events[job_id].append({"type": event_type, "at": utils.utcnow()})
 
     def select_stalled_jobs_all(self, nb_seconds, queue, task_name):
         return (
@@ -185,7 +180,7 @@ class InMemoryConnector(connector.BaseAsyncConnector):
             for job in self.jobs.values()
             if job["status"] == "doing"
             and self.events[job["id"]][-1]["at"]
-            < pendulum.now().subtract(seconds=nb_seconds)
+            < utils.utcnow() - datetime.timedelta(seconds=nb_seconds)
             and queue in (job["queue_name"], None)
             and task_name in (job["task_name"], None)
         )
@@ -197,7 +192,7 @@ class InMemoryConnector(connector.BaseAsyncConnector):
                 job["status"] in statuses
                 and (
                     max(e["at"] for e in self.events[id])
-                    < pendulum.now().subtract(hours=nb_hours)
+                    < utils.utcnow() - datetime.timedelta(hours=nb_hours)
                 )
                 and queue in (job["queue_name"], None)
             ):

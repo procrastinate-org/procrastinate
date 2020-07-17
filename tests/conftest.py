@@ -1,4 +1,5 @@
 import contextlib
+import datetime
 import functools
 import itertools
 import os
@@ -170,3 +171,16 @@ def job_factory(serial, random_str):
         return jobs.Job(**final_kwargs)
 
     return factory
+
+
+def aware_datetime(
+    year, month, day, hour=0, minute=0, second=0, microsecond=0, tz_offset=None,
+):
+    tzinfo = (
+        datetime.timezone(datetime.timedelta(hours=tz_offset))
+        if tz_offset
+        else datetime.timezone.utc
+    )
+    return datetime.datetime(
+        year, month, day, hour, minute, second, microsecond, tzinfo=tzinfo
+    )

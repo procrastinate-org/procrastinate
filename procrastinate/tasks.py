@@ -2,8 +2,6 @@ import datetime
 import logging
 from typing import Any, Callable, Dict, List, Optional
 
-import pendulum
-
 from procrastinate import app, exceptions, jobs
 from procrastinate import retry as retry_module
 from procrastinate import store, types, utils
@@ -35,7 +33,7 @@ def configure_task(
         raise ValueError("Cannot set both schedule_at and schedule_in")
 
     if schedule_in is not None:
-        schedule_at = pendulum.now("UTC").add(**schedule_in)
+        schedule_at = utils.utcnow() + datetime.timedelta(**schedule_in)
 
     task_kwargs = task_kwargs or {}
     return jobs.JobDeferrer(
@@ -148,8 +146,8 @@ class Task:
             schedule_in)
         schedule_in :
             A dict describing the time interval before the task should be launched.
-            See details in the `pendulum documentation
-            <https://pendulum.eustace.io/docs/#addition-and-subtraction>`__
+            See details in the `python documentation
+            <https://docs.python.org/3/library/datetime.html#timedelta-objects>`__
             (incompatible with schedule_at)
 
         queue :
