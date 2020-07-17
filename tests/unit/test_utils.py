@@ -289,7 +289,6 @@ def test_utcnow(mocker):
     dt.now.assert_called_once_with(tz=datetime.timezone.utc)
 
 
-
 @pytest.mark.parametrize(
     "input, expected",
     [

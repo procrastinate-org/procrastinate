@@ -2,13 +2,15 @@ import datetime
 
 import pytest
 
-from procrastinate import jobs, utils
+from procrastinate import jobs
+
+from .. import conftest
 
 
 @pytest.mark.parametrize(
     "scheduled_at,context_scheduled_at",
     [
-        (utils.aware_datetime(2000, 1, 1, tz_offset=1), "2000-01-01T00:00:00+01:00"),
+        (conftest.aware_datetime(2000, 1, 1, tz_offset=1), "2000-01-01T00:00:00+01:00"),
         (None, None),
     ],
 )

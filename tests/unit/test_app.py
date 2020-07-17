@@ -3,7 +3,9 @@ import asyncio
 import pytest
 
 from procrastinate import app as app_module
-from procrastinate import tasks, utils
+from procrastinate import tasks
+
+from .. import conftest
 
 
 def task_func():
@@ -106,7 +108,7 @@ def test_from_path(mocker):
 
 
 def test_app_configure_task(app):
-    scheduled_at = utils.aware_datetime(2000, 1, 1)
+    scheduled_at = conftest.aware_datetime(2000, 1, 1)
     job = app.configure_task(
         name="my_name",
         queue="marsupilami",

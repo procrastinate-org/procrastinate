@@ -172,15 +172,9 @@ def job_factory(serial, random_str):
 
     return factory
 
+
 def aware_datetime(
-    year,
-    month,
-    day,
-    hour=0,
-    minute=0,
-    second=0,
-    microsecond=0,
-    tz_offset=None,
+    year, month, day, hour=0, minute=0, second=0, microsecond=0, tz_offset=None,
 ):
     tzinfo = (
         datetime.timezone(datetime.timedelta(hours=tz_offset))
