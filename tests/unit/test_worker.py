@@ -1,10 +1,9 @@
 import asyncio
 import logging
 
-import pendulum
 import pytest
 
-from procrastinate import exceptions, job_context, jobs, tasks, worker
+from procrastinate import exceptions, job_context, jobs, tasks, utils, worker
 
 pytestmark = pytest.mark.asyncio
 
@@ -75,7 +74,7 @@ async def test_process_job_retry_failed_job(
     async def coro(*args, **kwargs):
         pass
 
-    scheduled_at = pendulum.datetime(2000, 1, 1, tz="UTC")
+    scheduled_at = utils.aware_datetime(2000, 1, 1)
     test_worker.run_job = mocker.Mock(
         side_effect=exceptions.JobRetry(scheduled_at=scheduled_at)
     )

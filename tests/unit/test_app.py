@@ -1,10 +1,9 @@
 import asyncio
 
-import pendulum
 import pytest
 
 from procrastinate import app as app_module
-from procrastinate import tasks
+from procrastinate import tasks, utils
 
 
 def task_func():
@@ -107,7 +106,7 @@ def test_from_path(mocker):
 
 
 def test_app_configure_task(app):
-    scheduled_at = pendulum.datetime(2000, 1, 1)
+    scheduled_at = utils.aware_datetime(2000, 1, 1)
     job = app.configure_task(
         name="my_name",
         queue="marsupilami",

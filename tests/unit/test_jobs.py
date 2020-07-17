@@ -1,13 +1,15 @@
-import pendulum
+import datetime
+
 import pytest
 
 from procrastinate import jobs
+from procrastinate import utils
 
 
 @pytest.mark.parametrize(
     "scheduled_at,context_scheduled_at",
     [
-        (pendulum.datetime(2000, 1, 1, tz="Europe/Paris"), "2000-01-01T00:00:00+01:00"),
+        (utils.aware_datetime(2000, 1, 1, tz_offset=1), "2000-01-01T00:00:00+01:00"),
         (None, None),
     ],
 )
@@ -77,7 +79,7 @@ async def test_job_deferrer_defer_async(job_factory, job_store, connector):
 
 def test_job_scheduled_at_naive(job_factory):
     with pytest.raises(ValueError):
-        job_factory(scheduled_at=pendulum.naive(2000, 1, 1),)
+        job_factory(scheduled_at=datetime.datetime(2000, 1, 1))
 
 
 def test_call_string(job_factory):

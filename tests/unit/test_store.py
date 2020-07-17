@@ -1,9 +1,8 @@
 import uuid
 
-import pendulum
 import pytest
 
-from procrastinate import exceptions, jobs
+from procrastinate import exceptions, jobs, utils
 
 pytestmark = pytest.mark.asyncio
 
@@ -93,7 +92,7 @@ async def test_get_stalled_jobs_stalled(job_store, job_factory, connector):
     job = job_factory(id=1)
     await job_store.defer_job_async(job=job)
     await job_store.fetch_job(queues=None)
-    connector.events[1][-1]["at"] = pendulum.datetime(2000, 1, 1)
+    connector.events[1][-1]["at"] = utils.aware_datetime(2000, 1, 1)
     assert await job_store.get_stalled_jobs(nb_seconds=1000) == [job]
 
 
@@ -119,7 +118,7 @@ async def test_delete_old_jobs(
 async def test_finish_job(job_store, job_factory, connector):
     job = job_factory(id=1)
     await job_store.defer_job_async(job=job)
-    retry_at = pendulum.datetime(2000, 1, 1)
+    retry_at = utils.aware_datetime(2000, 1, 1)
 
     await job_store.finish_job(job=job, status=jobs.Status.TODO, scheduled_at=retry_at)
     assert connector.queries[-1] == (

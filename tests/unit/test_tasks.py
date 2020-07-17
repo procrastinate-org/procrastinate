@@ -1,7 +1,6 @@
-import pendulum
 import pytest
 
-from procrastinate import exceptions, tasks
+from procrastinate import exceptions, tasks, utils
 
 
 def task_func():
@@ -51,20 +50,20 @@ def test_configure_task_schedule_at(job_store):
     job = tasks.configure_task(
         name="my_name",
         job_store=job_store,
-        schedule_at=pendulum.datetime(2000, 1, 1, tz="Europe/Paris"),
+        schedule_at=utils.aware_datetime(2000, 1, 1, tz_offset=1),
     ).job
 
-    assert job.scheduled_at == pendulum.datetime(2000, 1, 1, tz="Europe/Paris")
+    assert job.scheduled_at == utils.aware_datetime(2000, 1, 1, tz_offset=1)
 
 
-def test_configure_task_schedule_in(job_store):
-    now = pendulum.datetime(2000, 1, 1, tz="Europe/Paris")
-    with pendulum.test(now):
-        job = tasks.configure_task(
-            name="my_name", job_store=job_store, schedule_in={"hours": 2}
-        ).job
+def test_configure_task_schedule_in(job_store, mocker):
+    now = utils.aware_datetime(2000, 1, 1, tz_offset=1)
+    mocker.patch.object(utils, "utcnow", return_value=now)
+    job = tasks.configure_task(
+        name="my_name", job_store=job_store, schedule_in={"hours": 2}
+    ).job
 
-    assert job.scheduled_at == pendulum.datetime(2000, 1, 1, 2, tz="Europe/Paris")
+    assert job.scheduled_at == utils.aware_datetime(2000, 1, 1, 2, tz_offset=1)
 
 
 def test_configure_task_schedule_in_and_schedule_at(job_store):
@@ -72,7 +71,7 @@ def test_configure_task_schedule_in_and_schedule_at(job_store):
         tasks.configure_task(
             name="my_name",
             job_store=job_store,
-            schedule_at=pendulum.datetime(2000, 1, 1, tz="Europe/Paris"),
+            schedule_at=utils.aware_datetime(2000, 1, 1, tz_offset=1),
             schedule_in={"hours": 2},
         )
 

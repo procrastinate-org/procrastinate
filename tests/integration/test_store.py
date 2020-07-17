@@ -1,10 +1,9 @@
 import datetime
 
-import pendulum
 import psycopg2.errors
 import pytest
 
-from procrastinate import exceptions, jobs, store
+from procrastinate import exceptions, jobs, store, utils
 
 pytestmark = pytest.mark.asyncio
 
@@ -28,7 +27,7 @@ def get_all(aiopg_connector):
     "job_kwargs",
     [
         {"queue": "queue_a"},
-        {"queue": "queue_a", "scheduled_at": pendulum.datetime(2000, 1, 1)},
+        {"queue": "queue_a", "scheduled_at": utils.aware_datetime(2000, 1, 1)},
     ],
 )
 async def test_fetch_job(pg_job_store, job_factory, job_kwargs):
@@ -51,7 +50,7 @@ async def test_fetch_job(pg_job_store, job_factory, job_kwargs):
         # We won't see this one because of the queue
         {"queue": "queue_b"},
         # We won't see this one because of the scheduled date
-        {"queue": "queue_a", "scheduled_at": pendulum.datetime(2100, 1, 1)},
+        {"queue": "queue_a", "scheduled_at": utils.aware_datetime(2100, 1, 1)},
     ],
 )
 async def test_get_job_no_result(pg_job_store, job_factory, job_kwargs):
