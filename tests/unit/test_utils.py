@@ -286,7 +286,7 @@ async def test_task_context_exception(caplog):
 def test_utcnow(mocker):
     dt = mocker.patch("datetime.datetime")
     assert utils.utcnow() == dt.now.return_value
-    dt.now.assert_called_once_with(datetime.timezone.utc)
+    dt.now.assert_called_once_with(tz=datetime.timezone.utc)
 
 
 @pytest.mark.parametrize(
