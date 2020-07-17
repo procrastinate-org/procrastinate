@@ -20,10 +20,9 @@ Also, you can configure a delay from now::
 
     clean.configure(schedule_in={"hours": 1, "minutes": 30}).defer()
 
-The details on the parameters you can use are in the `pendulum documentation`_
-(because we use pendulum under the hood).
+The details on the parameters you can use are in the `python documentation`_.
 
-.. _`pendulum documentation`: https://pendulum.eustace.io/docs/#addition-and-subtraction
+.. _`python documentation`: https://docs.python.org/3/library/datetime.html#timedelta-objects
 
 From the command line
 ^^^^^^^^^^^^^^^^^^^^^
