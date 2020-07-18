@@ -1,0 +1,14 @@
+from django.db import migrations
+
+from procrastinate.contrib.django.utils import get_sql
+
+
+class Migration(migrations.Migration):
+
+    dependencies = [("procrastinate_django", "0003_drop_started_at_column")]
+
+    operations = [
+        migrations.RunSQL(
+            get_sql("delta_0.5.0_003_drop_procrastinate_version_table.sql")
+        ),
+    ]
