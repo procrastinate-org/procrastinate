@@ -3,36 +3,28 @@ Contributing
 
 You're welcome to come and procrastinate with us :)
 
-This contributing guide is trying to avoid common pitfalls, but the project
-development environment is quite common. If it's not your first rodeo, here's a TL;DR
-
 TL;DR
 -----
 
-(The following is not meant to be executed as a script)
-
 .. code-block:: console
 
-    $ # Export libpq env vars for PG connection
-    $ export PGDATABASE=procrastinate PGHOST=localhost PGUSER=postgres PGPASSWORD=password
+    $ source ./dev-env
 
-    $ # Start PostgreSQL in a Docker container
-    $ docker-compose up -d postgres
+Of course, feel free to read the script before launching it.
 
-    $ # Explore tox entrypoints
-    $ tox -l
+This script is intended to be a one-liner that sets up everything you need. It makes
+the following assumptions:
 
-    $ # You can do things without tox too:
-
-    $ # Install requirements
-    $ pip install -r requirements.txt
-
-    $ # Launch tests
-    $ pytest
-
-    $ # Launch demo
-    $ export PROCRASTINATE_APP=procrastinate_demo.app.app
-    $ procrastinate -h
+- You're using ``MacOS`` or ``Linux``, and ``bash`` or ``zsh``.
+- You already have ``python3`` available
+- You either have ``virtualenv`` installed or your ``python3`` supports ``-m venv``
+  (on Ubuntu, ``sudo apt install python3-venv``)
+- Either you've already created a ``virtualenv``, or you're OK with the script creating
+  a local ``virtualenv`` in ``.venv``
+- Either you've already setup a PostgreSQL database and environment variables (``PG*``)
+  are set or you have ``docker-compose`` available and port 5432 is free.
+- Either ``psql`` and other libpq executables are available in the ``PATH`` or they are
+  located in ``usr/local/opt/libpq/bin`` (``Homebrew``).
 
 Instructions for contribution
 -----------------------------
@@ -66,31 +58,20 @@ commands like ``createdb`` we use below.
 
 .. code-block:: console
 
+    $ # Ubuntu
     $ sudo apt install postgresql-client
     $ createdb
+
+.. code-block:: console
+
+    $ # MacOS
+    $ brew install libpq
+    $ /usr/local/opt/libpq/bin/createdb
 
 Set up your development environment
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-If you don't plan to run the code interactively and just want to run tests,
-linting and build the doc, you'll just need ``tox``. You can install it
-for your user:
-
-.. code-block:: console
-
-    $ pip install --user tox
-
-In order for this to work, you'll need to make sure your python user install binary
-directory is included in your shell's ``PATH``. One way of doing that is to add
-a line in your ``~/.profile`` (or ``~/.zprofile`` for ``zsh``). The following command
-will output the line to write in that file:
-
-.. code-block:: console
-
-    echo "export PATH=$(python3 -c "import site; print(site.USER_BASE)")/bin:"'$PATH'
-
-If you plan to launch the project locally, install the package itself with development
-dependencies in a virtual environment:
+Install the package itself with development dependencies in a virtual environment:
 
 .. code-block:: console
 
@@ -192,14 +173,14 @@ Pycharm and VS Code.
 Build the documentation
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-Without spell checking:
+Build with:
 
 .. code-block:: console
 
     $ tox -e docs
     $ python -m webbrowser docs/_build/html/index.html
 
-Run spell checking on the documentation:
+Run spell checking on the documentation (optional):
 
 .. code-block:: console
 
@@ -212,7 +193,7 @@ always a nice thing to do. Feel free to include any spell fix in your PR, even i
 not related to your PR (but please put it in a dedicated commit).
 
 If you need to add words to the spell checking dictionary, it's in
-``docs/spelling_wordlist.txt``. Make sure the file is alphabetically sorted!
+``docs/spelling_wordlist.txt``. Make sure the file is alphabetically sorted.
 
 If Sphinx's console output is localized and you would rather have it in English,
 use the environment variable ``LC_ALL=C.utf-8`` (either exported or attached to the
@@ -279,21 +260,38 @@ with:
 Try our demo
 ------------
 
-With a running database:
-
-Launch a worker with:
+With a running database, and its schema installed:
 
 .. code-block:: console
 
     (venv) $ export PROCRASTINATE_APP=procrastinate_demo.app.app
     (venv) $ procrastinate schema --apply
-    (venv) $ procrastinate worker
 
-Schedule some tasks with:
+schedule some tasks with a script:
 
 .. code-block:: console
 
     (venv) $ python -m procrastinate_demo
+
+Or from the command line:
+
+.. code-block:: console
+
+    procrastinate defer procrastinate_demo.tasks.sum '{"a": 3, "b": 5}'
+    procrastinate defer procrastinate_demo.tasks.sum '{"a": 5, "b": 7}'
+    procrastinate defer procrastinate_demo.tasks.sum '{"a": 5, "b": "}")'
+    procrastinate defer procrastinate_demo.tasks.sum_plus_one '{"a": 4, "b": 7}'
+    procrastinate defer --lock a procrastinate_demo.tasks.sleep '{"i": 2}'
+    procrastinate defer --lock a procrastinate_demo.tasks.sleep '{"i": 3}'
+    procrastinate defer --lock a procrastinate_demo.tasks.sleep '{"i": 4}'
+    procrastinate defer procrastinate_demo.tasks.random_fail '{}'
+
+Launch a worker with:
+
+.. code-block:: console
+
+    (venv) $ procrastinate worker
+
 
 Use Docker for Procrastinate development
 ----------------------------------------

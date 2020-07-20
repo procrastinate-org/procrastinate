@@ -1,0 +1,90 @@
+# This file is meant to be sourced, not executed:
+#    source ./dev-env
+
+# We're doing our best to keep it compatible with bash and zsh.
+
+if [ -z "$VIRTUAL_ENV" ]; then
+    if [ ! -d ".venv" ]; then
+        echo "Creating virtual environment at .venv"
+        if which virtualenv; then
+            virtualenv .venv
+        else
+            python3 -m venv .venv
+        fi
+    fi
+    echo "Activating virtual environment at .venv"
+    source .venv/bin/activate
+fi
+
+echo ""
+echo "Virtualenv is present and active!"
+echo ""
+
+if ! ls .venv/lib/python*/site-packages/procrastinate.egg-link 1>/dev/null 2>&1; then
+    echo "Installing package for development"
+    pip install -r requirements.txt
+fi
+
+echo ""
+echo "Procrastinate is installed!"
+echo ""
+
+if ! which pg_isready; then
+    # When installing libpq from Homebrew, it's not added to the path automatically.
+    if [ -e /usr/local/opt/libpq/bin/psql ]; then
+        export PATH="$PATH:usr/local/opt/libpq/bin:"
+    else
+        # It's not a good idea not to install system-wide stuff without asking.
+        echo "Please install psql and libpq utils on your machine:"
+        echo "Ubuntu:"
+        echo "  sudo apt install postgresql-client"
+        echo "MacOS (using Homebrew):"
+        echo "  brew install libpq"
+        return
+    fi
+fi
+
+if ! pg_isready ; then
+    echo "Starting database"
+    export PGDATABASE=procrastinate PGHOST=localhost PGUSER=postgres PGPASSWORD=password
+    docker-compose up -d postgres
+    sleep 3
+fi
+
+echo ""
+echo "Database is ready!"
+echo ""
+
+if ! pg_dump --schema-only --table=procrastinate_jobs 1>/dev/null 2>&1; then
+    echo "Applying migrations"
+    procrastinate schema --apply
+fi
+
+echo "Migrations applied!"
+
+
+export PROCRASTINATE_APP=procrastinate_demo.app.app
+
+alias htmlcov='python -m webbrowser file://$(pwd)/htmlcov/index.html'
+alias htmldoc='python -m webbrowser file://$(pwd)/docs/_build/html/index.html'
+alias check-lint='tox -e check-lint'
+alias format='tox -e format'
+alias docs='tox -e docs'
+
+echo ""
+echo "Welcome to the Procrastinate development environment interactive shell!"
+echo ""
+echo "You'll find the detailed instructions in the contributing documentation:"
+echo "    https://procrastinate.readthedocs.io/en/latest/contributing.html"
+echo ""
+echo "TL;DR: important commands:"
+echo "- pytest: Launch the tests"
+echo "- tox: Entrypoint for testing multiple python versions as well as docs, linters & formatters"
+echo "- procrastinate: Test procrastinate locally."
+echo ""
+echo "We've gone ahead and set up a few additional commands for you:"
+echo "- htmlcov: Opens the test coverage results in your browser"
+echo "- htmldoc: Opens the locally built sphinx documentation in your browser"
+echo "- check-lint: shorthand for tox -e check-lint (validates code style)"
+echo "- format: shorthand for tox -e format (rewrites files according to code style)"
+echo "- docs: shorthand for tox -e docs (builds the doc)"
