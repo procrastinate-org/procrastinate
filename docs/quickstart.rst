@@ -175,6 +175,7 @@ Your final file
 ::
 
     import random
+    import time
     import sys
 
     from procrastinate import App, AiopgConnector
@@ -183,7 +184,7 @@ Your final file
 
     @app.task
     def sum(a, b):
-        sleep(random.random() * 5)  # Sleep up to 5 seconds
+        time.sleep(random.random() * 5)  # Sleep up to 5 seconds
         return a + b
 
     if __name__ == "__main__":
