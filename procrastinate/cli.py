@@ -56,6 +56,9 @@ def handle_errors():
 
 
 class MissingAppConnector(connector.BaseConnector):
+    def open(self, *args, **kwargs):
+        pass
+
     def close(self, *args, **kwargs):
         pass
 

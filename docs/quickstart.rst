@@ -39,6 +39,7 @@ We'll do this in a single file. Start an empty file named ``tutorial.py``::
     app = App(
         connector=AiopgConnector(host="localhost", user="postgres", password="password")
     )
+    app.open()
 
 
 The application will be the entry point for both:
@@ -181,6 +182,7 @@ Your final file
     from procrastinate import App, AiopgConnector
 
     app = App(connector=AiopgConnector(host="localhost", user="postgres", password="password"))
+    app.open()
 
     @app.task
     def sum(a, b):

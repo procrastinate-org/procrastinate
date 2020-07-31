@@ -63,7 +63,7 @@ def test_schema_read(entrypoint):
     assert result.exit_code == 0
 
 
-def test_schema_migrations_patth(entrypoint):
+def test_schema_migrations_path(entrypoint):
     result = entrypoint("schema --migrations-path")
 
     assert result.output.endswith("sql/migrations\n")
