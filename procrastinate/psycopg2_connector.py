@@ -102,7 +102,7 @@ class Psycopg2Connector(connector.BaseConnector):
             The JSON loads function to use for deserializing job arguments. Defaults
             to the function used by psycopg2. See the `psycopg2 doc`_. Unused if the
             pool is externally created and set into the connector through the
-            `App.open` method.
+            ``App.open`` method.
         minconn : int
             Passed to psycopg2, default set to 1 (same as aiopg).
         maxconn : int
