@@ -177,6 +177,8 @@ class AiopgConnector(connector.BaseAsyncConnector):
         return self._pool
 
     async def open_async(self, pool: Optional[aiopg.Pool] = None) -> None:
+        if self._pool:
+            return
         if pool:
             self._pool_externally_set = True
             self._pool = pool
@@ -194,10 +196,11 @@ class AiopgConnector(connector.BaseAsyncConnector):
         Close the pool and awaits all connections to be released.
         """
 
-        if self._pool and not self._pool_externally_set:
-            self._pool.close()
-            await self._pool.wait_closed()
-            self._pool = None
+        if not self._pool or self._pool_externally_set:
+            return
+        self._pool.close()
+        await self._pool.wait_closed()
+        self._pool = None
 
     def __del__(self):
         if self._pool and not self._pool_externally_set:

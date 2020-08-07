@@ -7,13 +7,14 @@ import inspect
 import logging
 import pathlib
 import types
-from typing import Any, Awaitable, Iterable, Optional, Type, TypeVar, Callable
+from typing import Any, Awaitable, Callable, Iterable, Optional, Tuple, Type, TypeVar
 
 import dateutil.parser
 
 from procrastinate import exceptions
 
 T = TypeVar("T")
+U = TypeVar("U")
 
 logger = logging.getLogger(__name__)
 
@@ -255,3 +256,37 @@ def parse_datetime(raw: str) -> datetime.datetime:
     dt = dateutil.parser.parse(raw)
     dt = dt.replace(tzinfo=datetime.timezone.utc)
     return dt
+
+
+class AwaitableContext:
+    """
+    Provides an object that can be called this way:
+    - value = await AppContext(...)
+    - async with AppContext(...) as value: ...
+
+    open_coro and close_coro are functions taking on arguments and returning coroutines.
+    """
+
+    def __init__(
+        self,
+        open_coro: Callable[[], Awaitable],
+        close_coro: Callable[[], Awaitable],
+        return_value: U,
+    ):
+        self._open_coro = open_coro
+        self._close_coro = close_coro
+        self._return_value = return_value
+
+    async def __aenter__(self) -> U:
+        await self._open_coro()
+        return self._return_value
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        await self._close_coro()
+
+    def __await__(self):
+        async def _inner_coro() -> U:
+            await self._open_coro()
+            return self._return_value
+
+        return _inner_coro().__await__()

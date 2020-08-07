@@ -1,6 +1,16 @@
 import functools
 import logging
-from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, List, Optional, Set
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Awaitable,
+    Callable,
+    Dict,
+    Iterable,
+    List,
+    Optional,
+    Set,
+)
 
 from procrastinate import admin
 from procrastinate import connector as connector_module
@@ -313,9 +323,15 @@ class App:
     def close(self) -> None:
         self.connector.close()
 
-    async def open_async(self, pool: Optional[connector_module.Pool] = None) -> "App":
-        await self.connector.open_async(pool)
-        return self
+    def open_async(
+        self, pool: Optional[connector_module.Pool] = None
+    ) -> utils.AwaitableContext:
+        open_coro = functools.partial(self.connector.open_async, pool=pool)
+        return utils.AwaitableContext(
+            open_coro=open_coro,
+            close_coro=self.connector.close_async,
+            return_value=self,
+        )
 
     async def close_async(self) -> None:
         await self.connector.close_async()
@@ -325,13 +341,6 @@ class App:
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
         self.close()
-
-    async def __aenter__(self) -> "App":
-        return self
-
-    async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
-        await self.close_async()
-
 
 
 utils.add_method_sync_api(cls=App, method_name="run_worker_async")
