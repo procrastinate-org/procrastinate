@@ -48,6 +48,9 @@ The application will be the entry point for both:
 - Launching the worker that will consume the jobs created from those tasks.
 - Applying Database schema
 
+The ``App.open`` method is called to initiate the connection to the underlying
+database. It will be automatically terminated upon garbage collection.
+
 Prepare the database
 --------------------
 
