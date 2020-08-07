@@ -22,7 +22,7 @@ def main():
 
 
 async def main_async():
-    logging.info(f"Running app in async context")
+    logging.info("Running app in async context")
 
     await app.app.open_async()
 

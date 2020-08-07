@@ -7,7 +7,7 @@ import inspect
 import logging
 import pathlib
 import types
-from typing import Any, Awaitable, Callable, Iterable, Optional, Tuple, Type, TypeVar
+from typing import Any, Awaitable, Callable, Iterable, Optional, Type, TypeVar
 
 import dateutil.parser
 

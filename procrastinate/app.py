@@ -1,16 +1,6 @@
 import functools
 import logging
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Awaitable,
-    Callable,
-    Dict,
-    Iterable,
-    List,
-    Optional,
-    Set,
-)
+from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, List, Optional, Set
 
 from procrastinate import admin
 from procrastinate import connector as connector_module

@@ -116,4 +116,4 @@ def test_get_pool():
     connector = psycopg2_connector.Psycopg2Connector()
 
     with pytest.raises(exceptions.AppNotOpen):
-        pool = connector.pool
+        _ = connector.pool

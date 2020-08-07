@@ -169,4 +169,4 @@ def test_get_pool():
     connector = aiopg_connector.AiopgConnector()
 
     with pytest.raises(exceptions.AppNotOpen):
-        pool = connector.pool
+        _ = connector.pool
