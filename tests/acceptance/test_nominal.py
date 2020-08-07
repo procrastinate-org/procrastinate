@@ -154,10 +154,16 @@ def test_queueing_lock(defer, running_worker):
 
 def test_periodic_deferrer(worker):
     # We're launching a worker that executes a periodic task every second, and
-    # letting it run for 2.5 s. It should execute the task 3 times, and print to stdout:
-    # 0 <timestamp>
-    # 1 <timestamp + 1>
-    # 2 <timestamp + 2>  (this one won't always be there)
+    # letting it run for 2.5 s. It should execute the task 3 times, and print
+    # to stdout:
+    # 0 <timestamp 0>
+    # 1 <timestamp 1>
+    # 2 <timestamp 2>  (this one won't always be there)
+    #
+    # Note: with the current implementation we cannot guarantee that <timestamp 1>
+    # is <timestamp 0> + 1, <timestamp 2> is <timestamp 1> + 1, etc. See
+    # https://github.com/peopledoc/procrastinate/issues/276#issuecomment-670538989
+    # for more information.
     stdout, stderr = worker(app="cron_app", sleep=3)
     # This won't be visible unless the test fails
     print(stdout)
@@ -166,4 +172,4 @@ def test_periodic_deferrer(worker):
     # We're making a dict from the output
     results = dict((int(a) for a in e.split()) for e in stdout.splitlines()[1:])
     assert list(results)[:2] == [0, 1]
-    assert results[1] == results[0] + 1
+    assert results[1] >= results[0] + 1
