@@ -140,7 +140,7 @@ async def test_listen_notify_pool_one_connection(mocker, caplog):
 @pytest.fixture
 def mock_async_create_pool(mocker):
     return mocker.patch.object(
-        aiopg_connector.AiopgConnector, "_create_pool", new_callable=AsyncMock
+        aiopg_connector.AiopgConnector, "_create_pool", return_value=AsyncMock()
     )
 
 

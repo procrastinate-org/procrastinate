@@ -74,7 +74,14 @@ def test_wrap_query_exceptions_success(mocker):
 
 @pytest.mark.parametrize(
     "method_name",
-    ["__init__", "_create_pool", "close", "execute_query", "execute_query_one", "execute_query_all"],
+    [
+        "__init__",
+        "_create_pool",
+        "close",
+        "execute_query",
+        "execute_query_one",
+        "execute_query_all",
+    ],
 )
 def test_wrap_exceptions_applied(method_name):
     connector = psycopg2_connector.Psycopg2Connector()

@@ -2,16 +2,22 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from procrastinate import aiopg_connector, psycopg2_connector
-
 
 class AsyncMock(MagicMock):
-    async def __call__(self, *args, **kwargs):
-        return super(AsyncMock, self).__call__(*args, **kwargs)
+    """Provides a Mock object that can be awaited.
+
+    Unfortunately AsyncMock does not natively exists before python3.7.
+    """
+
+    def __init__(self):
+        super(AsyncMock, self).__init__()
+        self.was_awaited = False
+
+    def __await__(self):
+        self.was_awaited = True
+        return iter([])
 
 
 @pytest.fixture
 def pool():
     return MagicMock()
-
-

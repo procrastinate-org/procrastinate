@@ -6,33 +6,52 @@ pytestmark = pytest.mark.asyncio
 
 
 @pytest.fixture
-def pg_app(psycopg2_connector):
-    return procrastinate.App(connector=psycopg2_connector)
+def sync_app_explicit_open(not_opened_psycopg2_connector):
+    app = procrastinate.App(connector=not_opened_psycopg2_connector).open()
+    yield app
+    app.close()
+
+
+@pytest.fixture
+def sync_app_context_manager(not_opened_psycopg2_connector):
+    with procrastinate.App(connector=not_opened_psycopg2_connector).open() as app:
+        yield app
+
+
+@pytest.fixture(
+    params=[
+        pytest.param(False, id="explicit open"),
+        pytest.param(True, id="context manager open"),
+    ]
+)
+async def sync_app(request, sync_app_explicit_open, sync_app_context_manager):
+    if request.param:
+        yield sync_app_explicit_open
+    else:
+        yield sync_app_context_manager
 
 
 # Even if we test the purely sync parts, we'll still need an async worker to execute
 # the tasks
-async def test_defer(pg_app, aiopg_connector):
+async def test_defer(sync_app, async_app):
 
     sum_results = []
     product_results = []
 
-    @pg_app.task(queue="default", name="sum_task")
+    @sync_app.task(queue="default", name="sum_task")
     def sum_task(a, b):
         sum_results.append(a + b)
 
-    @pg_app.task(queue="default", name="product_task")
+    @sync_app.task(queue="default", name="product_task")
     async def product_task(a, b):
         product_results.append(a * b)
 
     sum_task.defer(a=1, b=2)
     sum_task.configure().defer(a=3, b=4)
-    pg_app.configure_task(name="sum_task").defer(a=5, b=6)
+    sync_app.configure_task(name="sum_task").defer(a=5, b=6)
     product_task.defer(a=3, b=4)
 
-    async_app = procrastinate.App(connector=aiopg_connector)
-    async_app.tasks = pg_app.tasks
-
+    async_app.tasks = sync_app.tasks
     await async_app.run_worker_async(queues=["default"], wait=False)
 
     assert sum_results == [3, 7, 11]

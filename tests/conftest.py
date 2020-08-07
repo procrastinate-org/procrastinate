@@ -107,19 +107,27 @@ async def connection(connection_params):
 
 
 @pytest.fixture
-async def aiopg_connector(connection_params):
-    connector = aiopg_connector_module.AiopgConnector(**connection_params)
-    await connector.open_async()
-    yield connector
-    await connector.close_async()
+async def not_opened_aiopg_connector(connection_params):
+    yield aiopg_connector_module.AiopgConnector(**connection_params)
 
 
 @pytest.fixture
-def psycopg2_connector(connection_params):
-    connector = psycopg2_connector_module.Psycopg2Connector(**connection_params)
-    connector.open()
-    yield connector
-    connector.close()
+def not_opened_psycopg2_connector(connection_params):
+    yield psycopg2_connector_module.Psycopg2Connector(**connection_params)
+
+
+@pytest.fixture
+async def aiopg_connector(not_opened_aiopg_connector):
+    await not_opened_aiopg_connector.open_async()
+    yield not_opened_aiopg_connector
+    await not_opened_aiopg_connector.close_async()
+
+
+@pytest.fixture
+def psycopg2_connector(not_opened_psycopg2_connector):
+    not_opened_psycopg2_connector.open()
+    yield not_opened_psycopg2_connector
+    not_opened_psycopg2_connector.close()
 
 
 @pytest.fixture
@@ -142,7 +150,7 @@ def not_opened_app(connector):
 
 @pytest.fixture
 def app(not_opened_app):
-    with not_opened_app as app:
+    with not_opened_app.open() as app:
         yield app
 
 

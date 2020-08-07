@@ -147,16 +147,13 @@ def mock_connector_close(app, mocker):
 
 @pytest.fixture
 def mock_connector_open_async(app, mocker):
-    return mocker.patch.object(
-        app.connector, "open_async", new_callable=AsyncMock
-    )
+    return mocker.patch.object(app.connector, "open_async", return_value=AsyncMock())
 
 
 @pytest.fixture
 def mock_connector_close_async(app, mocker):
-    return mocker.patch.object(
-        app.connector, "close_async", new_callable=AsyncMock
-    )
+    return mocker.patch.object(app.connector, "close_async", return_value=AsyncMock())
+
 
 def test_enter_exit(not_opened_app, pool, mock_connector_open, mock_connector_close):
 
@@ -185,24 +182,24 @@ def test_close(app, mock_connector_close):
 async def test_async_enter_exit(
     not_opened_app, pool, mock_connector_open_async, mock_connector_close_async
 ):
-    async with await not_opened_app.open_async(pool) as app:
+    async with not_opened_app.open_async(pool) as app:
         pass
 
-    mock_connector_open_async.assert_called_once_with(pool)
+    mock_connector_open_async.assert_called_once_with(pool=pool)
     mock_connector_close_async.assert_called_once_with()
     assert app is not_opened_app  # checks that open_async returns the app instance
 
 
 @pytest.mark.asyncio
-async def test_async_open(not_opened_app, pool, mock_connector_open_async):
+async def test_open_async(not_opened_app, pool, mock_connector_open_async):
     app = await not_opened_app.open_async(pool)
 
-    mock_connector_open_async.assert_called_once_with(pool)
+    mock_connector_open_async.assert_called_once_with(pool=pool)
     assert app is not_opened_app  # checks that open_async returns the app instance
 
 
 @pytest.mark.asyncio
-async def test_close_close(app, mock_connector_close_async):
+async def test_close_async(app, mock_connector_close_async):
 
     await app.close_async()
 
