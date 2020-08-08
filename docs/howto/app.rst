@@ -20,7 +20,7 @@ In the first two cases, it's important to specify the location to your tasks usi
 Initiate and terminate the connection to the database
 -----------------------------------------------------
 
-The app must be opened at the beginning of the program to initiate the connection to
+The app must be opened at the beginning of the program to create the connection pool to
 the database, and eventually closed to properly terminate it.
 
 The app implements several ways to do this.
@@ -29,7 +29,7 @@ Explicitly open and close the app
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The app can be opened using the ``open`` method (for sync case) or ``open_async``
-method (for async case). It eventually needs to be close, using the ``close`` method
+method (for async case). It eventually needs to be closed, using the ``close`` method
 (for sync case) or ``close_async`` (for async case).
 
 For sync case::
@@ -89,15 +89,15 @@ Or with a context manager::
 Open the app, and let the garbage collector terminate the connection
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The app does not necessarily needs to be closed at the end of your program. Indeed, the
+The app does not necessarily need to be closed at the end of your program. Indeed, the
 connections to the database will be automatically terminated when the database
-connectors are garbage collected. Thus, your program can work with only the following
-statements, as we did in the quickstart::
+connector is garbage collected. Thus, your program can work with only the following
+statements, as we did in the readme and the quickstart::
 
    app = procrastinate.App(connector=connector)
    app.open()
 
-Note that the ``close`` method is not called in he above example.
+Note that the ``close`` method is not called in the above example.
 
 Use an external pool instead of the connectors default pool
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

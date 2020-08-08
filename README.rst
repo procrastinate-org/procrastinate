@@ -62,9 +62,6 @@ Here's an example
     )
     worker.run()
 
-    # Close the connection to the database
-    app.close()
-
 The worker will run the job, which will create a text file
 named ``myfile`` with the result of the sum ``3 + 5`` (that's ``8``).
 
