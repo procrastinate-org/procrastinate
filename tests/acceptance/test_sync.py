@@ -33,7 +33,7 @@ async def sync_app(request, sync_app_explicit_open, sync_app_context_manager):
 
 # Even if we test the purely sync parts, we'll still need an async worker to execute
 # the tasks
-async def test_defer(sync_app, async_app):
+async def test_defer(sync_app, async_app_explicit_open):
 
     sum_results = []
     product_results = []
@@ -51,8 +51,8 @@ async def test_defer(sync_app, async_app):
     sync_app.configure_task(name="sum_task").defer(a=5, b=6)
     product_task.defer(a=3, b=4)
 
-    async_app.tasks = sync_app.tasks
-    await async_app.run_worker_async(queues=["default"], wait=False)
+    async_app_explicit_open.tasks = sync_app.tasks
+    await async_app_explicit_open.run_worker_async(queues=["default"], wait=False)
 
     assert sum_results == [3, 7, 11]
     assert product_results == [12]

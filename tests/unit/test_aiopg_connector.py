@@ -68,10 +68,13 @@ async def test_wrap_query_exceptions_reached_max_tries(mocker):
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("pool_max_size", [5, "5"])
 @pytest.mark.parametrize(
     "exception_class", [Exception, psycopg2.errors.OperationalError]
 )
-async def test_wrap_query_exceptions_unhandled_exception(mocker, exception_class):
+async def test_wrap_query_exceptions_unhandled_exception(
+    mocker, exception_class, pool_max_size
+):
     called = []
 
     @aiopg_connector.wrap_query_exceptions
@@ -79,7 +82,7 @@ async def test_wrap_query_exceptions_unhandled_exception(mocker, exception_class
         called.append(True)
         raise exception_class("foo")
 
-    connector = mocker.Mock(_pool=mocker.Mock(maxsize=5))
+    connector = mocker.Mock(_pool=mocker.Mock(maxsize=pool_max_size))
     coro = corofunc(connector)
 
     with pytest.raises(exception_class):

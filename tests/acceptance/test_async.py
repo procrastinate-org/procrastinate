@@ -1,6 +1,29 @@
 import pytest
 
+import procrastinate
+
 pytestmark = pytest.mark.asyncio
+
+
+@pytest.fixture
+async def async_app_context_manager(not_opened_aiopg_connector):
+    async with procrastinate.App(
+        connector=not_opened_aiopg_connector
+    ).open_async() as app:
+        yield app
+
+
+@pytest.fixture(
+    params=[
+        pytest.param(False, id="explicit open"),
+        pytest.param(True, id="context manager open"),
+    ]
+)
+async def async_app(request, async_app_explicit_open, async_app_context_manager):
+    if request.param:
+        yield async_app_explicit_open
+    else:
+        yield async_app_context_manager
 
 
 async def test_defer(async_app):
