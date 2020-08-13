@@ -23,3 +23,7 @@ class SchemaManager:
     def apply_schema(self) -> None:
         queries = self.get_schema()
         self.connector.execute_query(query=queries)
+
+    @staticmethod
+    def get_sql(migration) -> str:
+        return read_text("procrastinate.sql.migrations", migration)

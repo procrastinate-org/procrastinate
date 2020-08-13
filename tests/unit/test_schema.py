@@ -1,3 +1,5 @@
+import pathlib
+
 from collections import defaultdict
 
 
@@ -15,3 +17,13 @@ def test_apply_schema(app, connector):
     app.schema_manager.apply_schema()
 
     assert connector.queries == [("apply_schema", {})]
+
+
+def test_get_sql(app):
+    migration_name = "baseline-0.5.0.sql"
+    migration = app.schema_manager.get_sql(migration_name)
+
+    assert migration.startswith(
+        "CREATE EXTENSION IF NOT EXISTS plpgsql WITH SCHEMA pg_catalog;"
+    )
+    assert len(migration.splitlines()) == 187
