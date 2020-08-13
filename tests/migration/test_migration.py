@@ -2,9 +2,8 @@ import os
 import pathlib
 import subprocess
 
-from django.db import connection
-
 import pytest
+from django.db import connection
 
 from procrastinate import aiopg_connector, schema
 

@@ -1,5 +1,3 @@
-import pathlib
-
 from collections import defaultdict
 
 from procrastinate import schema
