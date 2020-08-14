@@ -9,8 +9,8 @@ Procrastinate: PostgreSQL-based Task Queue for Python
     :target: http://procrastinate.readthedocs.io/en/latest/?badge=latest
     :alt: Documentation Status
 
-.. image:: https://travis-ci.org/peopledoc/procrastinate.svg?branch=master
-    :target: https://travis-ci.org/peopledoc/procrastinate
+.. image:: https://github.com/peopledoc/procrastinate/workflows/CI/badge.svg?branch=master
+    :target: https://github.com/peopledoc/procrastinate/actions?workflow=CI
     :alt: Continuous Integration Status
 
 .. image:: https://codecov.io/gh/peopledoc/procrastinate/branch/master/graph/badge.svg
