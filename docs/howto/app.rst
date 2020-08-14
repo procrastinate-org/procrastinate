@@ -97,8 +97,6 @@ statements, as we did in the readme and the quickstart::
    app = procrastinate.App(connector=connector)
    app.open()
 
-Note that the ``close`` method is not called in the above example.
-
 Use an external pool instead of the connectors default pool
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
