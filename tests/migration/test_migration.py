@@ -95,10 +95,10 @@ def test_no_missing_django_migration():
     procrastinate_dir = pathlib.Path(__file__).parent.parent.parent / "procrastinate"
     django_migrations_path = procrastinate_dir / "contrib" / "django" / "migrations"
     django_migrations = [
-        e for e in list(django_migrations_path.iterdir()) if e.name.startswith("0")
+        e for e in django_migrations_path.iterdir() if e.name.startswith("0")
     ]
     sql_migrations_path = procrastinate_dir / "sql" / "migrations"
-    sql_migrations = list(sql_migrations_path.iterdir())
+    sql_migrations = [e for e in sql_migrations_path.iterdir() if e.suffix == ".sql"]
 
     assert len(sql_migrations) > 0
     assert len(django_migrations) > 0
