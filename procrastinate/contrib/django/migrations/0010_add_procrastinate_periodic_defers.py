@@ -5,7 +5,7 @@ from procrastinate.schema import get_sql
 
 class Migration(migrations.Migration):
 
-    dependencies = [("procrastinate_django", "0009_add_defer_job_function")]
+    dependencies = [("procrastinate", "0009_add_defer_job_function")]
 
     operations = [
         migrations.RunSQL(

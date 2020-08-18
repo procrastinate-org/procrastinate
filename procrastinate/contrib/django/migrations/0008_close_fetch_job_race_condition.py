@@ -5,7 +5,7 @@ from procrastinate.schema import get_sql
 
 class Migration(migrations.Migration):
 
-    dependencies = [("procrastinate_django", "0007_add_queueing_lock_column")]
+    dependencies = [("procrastinate", "0007_add_queueing_lock_column")]
 
     operations = [
         migrations.RunSQL(

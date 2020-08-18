@@ -5,7 +5,7 @@ from procrastinate.schema import get_sql
 
 class Migration(migrations.Migration):
 
-    dependencies = [("procrastinate_django", "0005_fix_procrastinate_fetch_job")]
+    dependencies = [("procrastinate", "0005_fix_procrastinate_fetch_job")]
 
     operations = [
         migrations.RunSQL(
