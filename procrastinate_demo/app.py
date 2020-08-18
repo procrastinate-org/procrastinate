@@ -5,8 +5,4 @@ import_paths = ["procrastinate_demo.tasks"]
 connector_class = procrastinate.AiopgConnector
 # connector_class = procrastinate.Psycopg2Connector
 
-app = procrastinate.App(
-    connector=connector_class(),
-    import_paths=import_paths,
-    worker_defaults={"listen_notify": False},
-)
+app = procrastinate.App(connector=connector_class(), import_paths=import_paths)
