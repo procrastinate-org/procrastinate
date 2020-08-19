@@ -112,7 +112,7 @@ async def test_worker_loop(job_store, mocker, task):
         async def wait(self, next_tick):
             mock.wait_next_tick(next_tick)
 
-        def get_next_tick(self):
+        def get_next_tick(self, now):
             return next(counter)
 
     mock_deferrer = MockPeriodicDeferrer(job_store=job_store)
