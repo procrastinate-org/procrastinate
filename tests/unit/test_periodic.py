@@ -71,22 +71,49 @@ def test_get_previous_tasks(periodic_deferrer, cron_task, task):
     ]
 
 
-def test_get_previous_tasks_known_schedule(periodic_deferrer, cron_task, task):
+def test_get_timestamp_late(periodic_deferrer, cron_task):
+    task = cron_task(cron="* * * * *")
 
-    cron_task(cron="* * * * *")
+    end = 3600 * 24
+    timestamps = periodic_deferrer.get_timestamps(
+        periodic_task=task, since=end - 4 * 60 + 1, until=end - 1
+    )
 
-    periodic_deferrer.last_defers[task.name] = 3600 * 24 - 60
-
-    assert list(periodic_deferrer.get_previous_tasks(at=3600 * 24 - 1)) == []
+    assert list(timestamps) == [end - 3 * 60, end - 2 * 60, end - 60]
 
 
-def test_get_previous_tasks_too_old(periodic_deferrer, cron_task, task, caplog):
+def test_get_timestamp_no_timestamp(periodic_deferrer, cron_task):
+    task = cron_task(cron="* * * * *")
 
-    cron_task(cron="0 0 0 * *")
+    end = 3600 * 24
+    timestamps = periodic_deferrer.get_timestamps(
+        periodic_task=task, since=end - 30, until=end - 1
+    )
+
+    assert list(timestamps) == []
+
+
+def test_get_timestamp_no_since_within_delay(periodic_deferrer, cron_task):
+    task = cron_task(cron="* * * * *")
+
+    end = 3600 * 24
+    timestamps = periodic_deferrer.get_timestamps(
+        periodic_task=task, since=None, until=end - 1
+    )
+
+    assert list(timestamps) == [end - 60]
+
+
+def test_get_timestamp_no_since_not_within_delay(periodic_deferrer, cron_task, caplog):
+    task = cron_task(cron="0 0 * * *")
     caplog.set_level("DEBUG")
 
-    assert list(periodic_deferrer.get_previous_tasks(at=3600 * 24 - 1)) == []
+    end = 3600 * 24
+    timestamps = periodic_deferrer.get_timestamps(
+        periodic_task=task, since=None, until=end - 1
+    )
 
+    assert list(timestamps) == []
     assert [r.action for r in caplog.records] == ["ignore_periodic_task"]
 
 

@@ -81,10 +81,11 @@ class App:
             Parameters for fine tuning the periodic tasks deferrer. Available
             parameters are:
 
-            - ``max_delay``: ``float``, in seconds, controls how long after the planned
-              launch of a periodic task a deferrer can launch the task. Thanks to this
-              parameter, when deploying a new periodic task, it's usually not deferred
-              until its next scheduled time. Defaults to 10 minutes.
+            - ``max_delay``: ``float``, in seconds. When a worker starts and there's
+              a periodic task that has not been deferred, the worker will defer the task
+              if it's been due for less that this amount of time. This avoids new
+              periodic tasks to be immediately deferred just after their first
+              deployment. (defaults to 10 minutes)
         """
         from procrastinate import periodic
 

@@ -2,7 +2,7 @@ import asyncio
 import functools
 import logging
 import time
-from typing import Dict, Iterable, List, Tuple
+from typing import Dict, Iterable, List, Optional, Tuple
 
 import attr
 import croniter
@@ -102,19 +102,35 @@ class PeriodicDeferrer:
         Tasks that should have been deferred more than self.max_delay seconds ago are
         ignored.
         """
-        known_schedule_keys = set(self.last_defers.items())
         for periodic_task in self.periodic_tasks:
             task = periodic_task.task
             name = task.name
-            cron_iterator = periodic_task.croniter()
+
+            for timestamp in self.get_timestamps(
+                periodic_task=periodic_task, since=self.last_defers.get(name), until=at,
+            ):
+                self.last_defers[name] = timestamp
+                yield task, timestamp
+
+    def get_timestamps(
+        self, periodic_task: PeriodicTask, since: Optional[int], until: float,
+    ) -> Iterable[int]:
+        cron_iterator = periodic_task.croniter()
+        if since:
             # For some reason, mypy can't wrap its head around this statement.
-            # You're welcome to tell me why (or how to fix it).
-            cron_iterator.set_current(start_time=at)  # type: ignore
-            previous_time = round(cron_iterator.get_prev(ret_type=float))
-            schedule_key = (name, previous_time)
-            if schedule_key in known_schedule_keys:
-                continue
-            delay = at - previous_time
+            # You're welcome to tell us why (or how to fix it).
+            timestamp = cron_iterator.set_current(start_time=since)  # type: ignore
+            while True:
+                timestamp = round(cron_iterator.get_next(ret_type=float))
+                if timestamp > until:
+                    return
+                yield timestamp
+
+        else:
+            cron_iterator.set_current(start_time=until)  # type: ignore
+            timestamp = round(cron_iterator.get_prev(ret_type=float))
+            delay = until - timestamp
+
             if delay > self.max_delay:
                 logger.debug(
                     "Ignoring periodic task scheduled more than "
@@ -125,10 +141,9 @@ class PeriodicDeferrer:
                         "delay": delay,
                     },
                 )
-                continue
+                return
 
-            self.last_defers[name] = previous_time
-            yield task, previous_time
+            yield timestamp
 
     async def defer_jobs(self, jobs_to_defer: Iterable[TaskAtTime]) -> None:
         """

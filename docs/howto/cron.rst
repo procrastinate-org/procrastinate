@@ -36,21 +36,12 @@ When using periodic tasks there are a few things to know:
   your queue. If your workers are overwhelmed with long tasks, periodic executions could
   be delayed. One possible solution involves using queues to make sure short tasks are
   not delayed by long tasks.
-- Workers are responsible for deferring periodic tasks. If not a single worker is
-  running, then periodic tasks will not get scheduled. On the other hand, even if you
-  have multiple workers, periodic tasks will only be deferred once per period.
-- If a worker is occupied by a long-standing synchronous task, it will not be available
-  to defer periodic tasks. If you use sync tasks, ensure that at least one of your
-  workers is assigned tasks that are usually shorter to run than your shortest periodic
-  task interval. This is especially true for tasks that run every second.
-- When a worker wakes up, it will defer periodic tasks that have not been deferred yet
-  but:
-
-  - Only a single job for each task will be deferred (if a task is scheduled to run
-    every minute, and it missed 5 minutes, when the first worker starts, it will only
-    defer the last missed task, not the 4 previous ones).
-  - A task that is more than 10 minutes late will not be launched. This value is
-    configurable in the `App`.
+- Workers are responsible for deferring periodic tasks. If there is no worker running,
+  then periodic tasks will not get scheduled. On the other hand, even if you have
+  multiple workers, periodic tasks will only be deferred once per period.
+- When a worker starts, it will defer periodic tasks that have not been deferred yet
+  but a task that is more than 10 minutes late will not be deferred. This value is
+  configurable in the `App`.
 
 Periodic task arguments
 -----------------------
