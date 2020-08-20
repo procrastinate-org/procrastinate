@@ -105,25 +105,25 @@ def test_get_schedule_in(input, output):
     assert cli.get_schedule_in(input) == output
 
 
-def test_configure_job_known(app):
+def test_configure_task_known(app):
     @app.task(name="foobar", queue="marsupilami")
     def mytask():
         pass
 
-    job = cli.configure_job(app, "foobar", {}, unknown=False).job
+    job = cli.configure_task(app, "foobar", {}, allow_unknown=False).job
     assert job.task_name == "foobar"
     assert job.queue == "marsupilami"
 
 
-def test_configure_job_unknown(app):
-    job = cli.configure_job(app, "foobar", {}, unknown=True).job
+def test_configure_task_unknown(app):
+    job = cli.configure_task(app, "foobar", {}, allow_unknown=True).job
     assert job.task_name == "foobar"
     assert job.queue == "default"
 
 
-def test_test_configure_job_error(app):
-    with pytest.raises(click.BadArgumentUsage):
-        assert cli.configure_job(app, "foobar", {}, unknown=False)
+def test_test_configure_task_error(app):
+    with pytest.raises(exceptions.TaskNotFound):
+        assert cli.configure_task(app, "foobar", {}, allow_unknown=False)
 
 
 def test_filter_none():

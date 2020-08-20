@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, List, Optional,
 
 from procrastinate import admin
 from procrastinate import connector as connector_module
-from procrastinate import healthchecks, jobs
+from procrastinate import exceptions, healthchecks, jobs
 from procrastinate import retry as retry_module
 from procrastinate import schema, store, utils
 
@@ -212,7 +212,9 @@ class App:
 
         builtin_tasks.register_builtin_tasks(self)
 
-    def configure_task(self, name: str, **kwargs: Any) -> jobs.JobDeferrer:
+    def configure_task(
+        self, name: str, *, allow_unknown: bool = True, **kwargs: Any
+    ) -> jobs.JobDeferrer:
         """
         Configure a task for deferring, using its name
 
@@ -232,7 +234,15 @@ class App:
         """
         from procrastinate import tasks
 
-        return tasks.configure_task(name=name, job_store=self.job_store, **kwargs)
+        self.perform_import_paths()
+        try:
+            return self.tasks[name].configure(**kwargs)
+        except KeyError as exc:
+            if allow_unknown:
+                return tasks.configure_task(
+                    name=name, job_store=self.job_store, **kwargs
+                )
+            raise exceptions.TaskNotFound from exc
 
     def _worker(self, **kwargs) -> "worker.Worker":
         from procrastinate import worker

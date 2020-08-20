@@ -3,7 +3,7 @@ import asyncio
 import pytest
 
 from procrastinate import app as app_module
-from procrastinate import tasks
+from procrastinate import exceptions, tasks
 
 from .. import conftest
 from .conftest import AsyncMock
@@ -123,6 +123,29 @@ def test_app_configure_task(app):
     assert job.lock == "sher"
     assert job.scheduled_at == scheduled_at
     assert job.task_kwargs == {"a": 1}
+
+
+def test_app_configure_task_unknown_allowed(app):
+    @app.task(name="my_name", queue="bla")
+    def my_name(a):
+        pass
+
+    scheduled_at = conftest.aware_datetime(2000, 1, 1)
+    job = app.configure_task(
+        name="my_name", lock="sher", schedule_at=scheduled_at, task_kwargs={"a": 1},
+    ).job
+
+    assert job.task_name == "my_name"
+    assert job.queue == "bla"
+    assert job.lock == "sher"
+    assert job.scheduled_at == scheduled_at
+    assert job.task_kwargs == {"a": 1}
+
+
+def test_app_configure_task_unkown_not_allowed(app):
+    with pytest.raises(exceptions.TaskNotFound):
+
+        app.configure_task(name="my_name", allow_unknown=False)
 
 
 def test_app_periodic(app):
