@@ -23,8 +23,8 @@ the following assumptions:
   a local ``virtualenv`` in ``.venv``
 - Either you've already setup a PostgreSQL database and environment variables (``PG*``)
   are set or you have ``docker-compose`` available and port 5432 is free.
-- Either ``psql`` and other libpq executables are available in the ``PATH`` or they are
-  located in ``usr/local/opt/libpq/bin`` (``Homebrew``).
+- Either ``psql`` and other ``libpq`` executables are available in the ``PATH`` or they
+  are located in ``usr/local/opt/libpq/bin`` (``Homebrew``).
 
 Instructions for contribution
 -----------------------------

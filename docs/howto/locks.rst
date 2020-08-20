@@ -18,7 +18,7 @@ configure just once::
     my_task.defer(a=2)
 
 In both cases, the second task cannot run before the first one
-has ended (succesfully or not).
+has ended (successfully or not).
 
 .. warning::
 
@@ -26,5 +26,5 @@ has ended (succesfully or not).
     following tasks can only run after this one is processed, which
     may be in a long time.
 
-    Similarily, if the oldest task of a lock is in a queue that no worker consumes, the
+    Similarly, if the oldest task of a lock is in a queue that no worker consumes, the
     other tasks are blocked.
