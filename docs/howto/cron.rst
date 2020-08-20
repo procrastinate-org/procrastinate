@@ -78,6 +78,20 @@ plan to have the same value for every job::
     def run_healthchecks(timestamp: int):
         ...
 
+The value of those parameters is static, but you could put different values on different
+workers. If the same task is periodically deferred to different queues, each job will be
+independent::
+
+    @app.periodic(cron="*/5 * * * *")
+    @app.task(
+        queue=f"healthchecks_{my_worker_id}",
+    )
+    def run_healthchecks(timestamp: int):
+        ...
+
+In this setup, each worker (with differing values of ``my_worker_id``) would defer their
+own healthcheck jobs, independently from other workers.
+
 Using cron
 ----------
 

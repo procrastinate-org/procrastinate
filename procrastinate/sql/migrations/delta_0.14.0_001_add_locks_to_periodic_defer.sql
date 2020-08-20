@@ -1,3 +1,15 @@
+ALTER TABLE procrastinate_periodic_defers
+    ADD COLUMN queue_name character varying(128) NOT NULL DEFAULT 'undefined';
+
+ALTER TABLE procrastinate_periodic_defers
+    ALTER COLUMN queue_name DROP DEFAULT;
+
+ALTER TABLE procrastinate_periodic_defers
+    DROP CONSTRAINT procrastinate_periodic_defers_task_name_defer_timestamp_key;
+
+ALTER TABLE procrastinate_periodic_defers
+    ADD CONSTRAINT procrastinate_periodic_defers_unique UNIQUE (task_name, queue_name, defer_timestamp);
+
 DROP FUNCTION IF EXISTS procrastinate_defer_periodic_job;
 CREATE FUNCTION procrastinate_defer_periodic_job(
     _queue_name character varying,
@@ -14,8 +26,8 @@ DECLARE
 BEGIN
 
     INSERT
-        INTO procrastinate_periodic_defers (task_name, defer_timestamp)
-        VALUES (_task_name, _defer_timestamp)
+        INTO procrastinate_periodic_defers (task_name, queue_name, defer_timestamp)
+        VALUES (_task_name, _queue_name, _defer_timestamp)
         ON CONFLICT DO NOTHING
         RETURNING id into _defer_id;
 

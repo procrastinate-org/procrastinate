@@ -40,7 +40,8 @@ CREATE TABLE procrastinate_periodic_defers (
     task_name character varying(128) NOT NULL,
     defer_timestamp bigint,
     job_id bigint REFERENCES procrastinate_jobs(id) NULL,
-    UNIQUE (task_name, defer_timestamp)
+    queue_name character varying(128) NOT NULL,
+    CONSTRAINT procrastinate_periodic_defers_unique UNIQUE (task_name, queue_name, defer_timestamp)
 );
 
 CREATE TABLE procrastinate_events (
@@ -100,8 +101,8 @@ DECLARE
 BEGIN
 
     INSERT
-        INTO procrastinate_periodic_defers (task_name, defer_timestamp)
-        VALUES (_task_name, _defer_timestamp)
+        INTO procrastinate_periodic_defers (task_name, queue_name, defer_timestamp)
+        VALUES (_task_name, _queue_name, _defer_timestamp)
         ON CONFLICT DO NOTHING
         RETURNING id into _defer_id;
 
