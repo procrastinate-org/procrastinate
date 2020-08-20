@@ -2,7 +2,7 @@ import uuid
 
 import pytest
 
-from procrastinate import exceptions, jobs
+from procrastinate import connector, exceptions, jobs
 
 from .. import conftest
 
@@ -151,3 +151,31 @@ async def test_defer_periodic_job(job_store, connector, app):
 
     result = await job_store.defer_periodic_job(foo, 1234567890)
     assert result == 1
+
+
+async def test_defer_periodic_job_unique_violation(job_store, connector, app):
+    @app.task(queueing_lock="bla")
+    def foo(timestamp):
+        pass
+
+    await job_store.defer_periodic_job(foo, 1234567890)
+    with pytest.raises(exceptions.AlreadyEnqueued):
+        await job_store.defer_periodic_job(foo, 1234567891)
+
+
+def test_raise_already_enqueued_right_constraint(job_store):
+    class UniqueViolation(Exception):
+        constraint_name = connector.QUEUEING_LOCK_CONSTRAINT
+
+    with pytest.raises(exceptions.AlreadyEnqueued) as exc_info:
+        job_store._raise_already_enqueued(exc=UniqueViolation(), queueing_lock="foo")
+
+    assert "queueing lock foo" in str(exc_info.value)
+
+
+def test_raise_already_enqueued_wrong_constraint(job_store):
+    class UniqueViolation(Exception):
+        constraint_name = "foo"
+
+    with pytest.raises(UniqueViolation):
+        job_store._raise_already_enqueued(exc=UniqueViolation(), queueing_lock="foo")

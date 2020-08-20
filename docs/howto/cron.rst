@@ -61,6 +61,23 @@ in the past).
 
 .. __: https://en.wikipedia.org/wiki/Unix_time
 
+Queue, lock, queuing lock
+-------------------------
+
+Procrastinate itself takes care of deferring the periodic jobs, which means you don't
+have to opportunity to specify a given queue, lock or queueing lock at defer time.
+Fortunately, you can define all of those on the task itself, provided that you
+plan to have the same value for every job::
+
+    @app.periodic(cron="*/5 * * * *")
+    @app.task(
+        queue="healthchecks",
+        lock="healthchecks",
+        queueing_lock="healthchecks"
+    )
+    def run_healthchecks(timestamp: int):
+        ...
+
 Using cron
 ----------
 

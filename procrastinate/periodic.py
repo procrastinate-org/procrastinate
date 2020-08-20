@@ -7,7 +7,7 @@ from typing import Dict, Iterable, List, Tuple
 import attr
 import croniter
 
-from procrastinate import store, tasks
+from procrastinate import exceptions, store, tasks
 
 # The maximum delay after which tasks will be considered as
 # outdated, and ignored.
@@ -136,9 +136,24 @@ class PeriodicDeferrer:
         from deferring the same task for the same scheduled time multiple times.
         """
         for task, timestamp in jobs_to_defer:
-            job_id = await self.job_store.defer_periodic_job(
-                task=task, defer_timestamp=timestamp
-            )
+            try:
+                job_id = await self.job_store.defer_periodic_job(
+                    task=task, defer_timestamp=timestamp
+                )
+            except exceptions.AlreadyEnqueued:
+                logger.debug(
+                    f"Periodic job {task.name}(timestamp={timestamp}) "
+                    "cannot be enqueued: there is already a job in the queue "
+                    f"with the queueing lock {task.queueing_lock}",
+                    extra={
+                        "action": "skip_periodic_task_queueing_lock",
+                        "task_name": task.name,
+                        "defer_timestamp": timestamp,
+                        "queueing_lock": task.queueing_lock,
+                    },
+                )
+                continue
+
             if job_id:
                 logger.info(
                     f"Periodic task {task.name} deferred for timestamp "

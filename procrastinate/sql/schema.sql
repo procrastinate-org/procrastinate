@@ -87,6 +87,8 @@ $$;
 
 CREATE FUNCTION procrastinate_defer_periodic_job(
     _queue_name character varying,
+    _lock character varying,
+    _queueing_lock character varying,
     _task_name character varying,
     _defer_timestamp bigint
 ) RETURNS bigint
@@ -111,8 +113,8 @@ BEGIN
         SET job_id = procrastinate_defer_job(
                 _queue_name,
                 _task_name,
-                NULL,
-                NULL,
+                _lock,
+                _queueing_lock,
                 ('{"timestamp": ' || _defer_timestamp || '}')::jsonb,
                 NULL
             )

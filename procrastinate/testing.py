@@ -122,15 +122,17 @@ class InMemoryConnector(connector.BaseAsyncConnector):
                 self.notify_event.set()
         return job_row
 
-    def defer_periodic_job_one(self, queue, task_name, defer_timestamp):
+    def defer_periodic_job_one(
+        self, queue, task_name, defer_timestamp, lock, queueing_lock
+    ):
         if self.periodic_defers.get(task_name) == defer_timestamp:
             return {"id": None}
         self.periodic_defers[task_name] = defer_timestamp
         return self.defer_job_one(
             task_name=task_name,
             queue=queue,
-            lock=None,
-            queueing_lock=None,
+            lock=lock,
+            queueing_lock=queueing_lock,
             args={"timestamp": defer_timestamp},
             scheduled_at=None,
         )
