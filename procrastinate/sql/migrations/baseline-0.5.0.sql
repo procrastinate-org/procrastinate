@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS procrastinate_version (
 CREATE TYPE procrastinate_job_status AS ENUM (
     'todo',  -- The job is queued
     'doing',  -- The job has been fetched by a worker
-    'succeeded',  -- The job ended succesfully
+    'succeeded',  -- The job ended successfully
     'failed'  -- The job ended with an error
 );
 

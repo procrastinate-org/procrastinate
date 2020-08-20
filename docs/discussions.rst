@@ -89,7 +89,7 @@ pretty much is too.
 
 We can solve this problem by using locks. Procrastinate gives us two guarantees:
 
-- Jobs are consumed in creation order. When a worker requests a job, it can recieve
+- Jobs are consumed in creation order. When a worker requests a job, it can receive
   a job with a lock, or a job without a lock. If there is a lock, then the received
   job will be the oldest one with that lock. If the oldest job awaiting execution is
   not available for this worker (either it's on a queue that this worker doesn't

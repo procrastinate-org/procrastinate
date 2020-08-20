@@ -12,10 +12,12 @@ coroutine
 coroutines
 cron
 crons
+deferrer
 deserialize
 deserializing
 Dramatiq
 enqueued
+executables
 formatters
 Godwin
 healthchecks
@@ -33,5 +35,6 @@ reimplement
 schemas
 suboptimal
 sync
+th
 tox
 Travis
