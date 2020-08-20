@@ -41,7 +41,7 @@ When using periodic tasks there are a few things to know:
   have multiple workers, periodic tasks will only be deferred once per period.
 - If a worker is occupied by a long-standing synchronous task, it will not be available
   to defer periodic tasks. If you use sync tasks, ensure that at least one of your
-  workers is executing tasks that are usually shorter to run than your shortest periodic
+  workers is assigned tasks that are usually shorter to run than your shortest periodic
   task interval. This is especially true for tasks that run every second.
 - When a worker wakes up, it will defer periodic tasks that have not been deferred yet
   but:
