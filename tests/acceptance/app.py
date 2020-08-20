@@ -108,4 +108,4 @@ counter = itertools.count()
 @cron_app.periodic(cron="* * * * * *")
 @cron_app.task()
 def tick(timestamp):
-    print(next(counter), timestamp)
+    print("tick", next(counter), timestamp)

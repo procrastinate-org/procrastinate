@@ -164,6 +164,10 @@ def test_periodic_deferrer(worker):
     print(stderr)
 
     # We're making a dict from the output
-    results = dict((int(a) for a in e.split()) for e in stdout.splitlines()[1:])
+    results = dict(
+        (int(a) for a in e[5:].split())
+        for e in stdout.splitlines()[1:]
+        if e.startswith("tick ")
+    )
     assert list(results)[:2] == [0, 1]
     assert results[1] == results[0] + 1

@@ -2,7 +2,7 @@ import asyncio
 import functools
 import logging
 import time
-from typing import Dict, Iterable, List, Optional, Tuple
+from typing import Dict, Iterable, List, Tuple
 
 import attr
 import croniter
@@ -64,8 +64,9 @@ class PeriodicDeferrer:
             return
 
         while True:
-            await self.defer_jobs(jobs_to_defer=self.get_previous_tasks())
-            await self.wait(next_tick=self.get_next_tick())
+            now = time.time()
+            await self.defer_jobs(jobs_to_defer=self.get_previous_tasks(at=now))
+            await self.wait(next_tick=self.get_next_tick(at=now))
 
     # Internal methods
 
@@ -82,28 +83,25 @@ class PeriodicDeferrer:
         self.periodic_tasks.append(periodic_task)
         return periodic_task
 
-    def get_next_tick(self, now: Optional[float] = None):
+    def get_next_tick(self, at: float):
         """
         Return the number of seconds to wait before the next periodic task needs to be
         deferred.
         If now is not passed, the current timestamp is used.
         """
-        now = now if now is not None else time.time()
         next_timestamp = min(
-            pt.croniter().get_next(ret_type=float, start_time=now)  # type: ignore
+            pt.croniter().get_next(ret_type=float, start_time=at)  # type: ignore
             for pt in self.periodic_tasks
         )
-        return next_timestamp - now
+        return next_timestamp - at
 
-    def get_previous_tasks(self, now: Optional[float] = None) -> Iterable[TaskAtTime]:
+    def get_previous_tasks(self, at: float) -> Iterable[TaskAtTime]:
         """
         Return each periodic task that may not have been deferred yet, alongside with
         its scheduled time.
         Tasks that should have been deferred more than self.max_delay seconds ago are
         ignored.
         """
-        now = now if now is not None else time.time()
-
         known_schedule_keys = set(self.last_defers.items())
         for periodic_task in self.periodic_tasks:
             task = periodic_task.task
@@ -111,12 +109,12 @@ class PeriodicDeferrer:
             cron_iterator = periodic_task.croniter()
             # For some reason, mypy can't wrap its head around this statement.
             # You're welcome to tell me why (or how to fix it).
-            cron_iterator.set_current(start_time=now)  # type: ignore
+            cron_iterator.set_current(start_time=at)  # type: ignore
             previous_time = round(cron_iterator.get_prev(ret_type=float))
             schedule_key = (name, previous_time)
             if schedule_key in known_schedule_keys:
                 continue
-            delay = now - previous_time
+            delay = at - previous_time
             if delay > self.max_delay:
                 logger.debug(
                     "Ignoring periodic task scheduled more than "
