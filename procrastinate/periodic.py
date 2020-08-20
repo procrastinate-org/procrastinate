@@ -65,8 +65,8 @@ class PeriodicDeferrer:
 
         while True:
             now = time.time()
-            await self.defer_jobs(jobs_to_defer=self.get_previous_tasks(now=now))
-            await self.wait(next_tick=self.get_next_tick(now=now))
+            await self.defer_jobs(jobs_to_defer=self.get_previous_tasks(at=now))
+            await self.wait(next_tick=self.get_next_tick(at=now))
 
     # Internal methods
 
@@ -83,19 +83,19 @@ class PeriodicDeferrer:
         self.periodic_tasks.append(periodic_task)
         return periodic_task
 
-    def get_next_tick(self, now: float):
+    def get_next_tick(self, at: float):
         """
         Return the number of seconds to wait before the next periodic task needs to be
         deferred.
         If now is not passed, the current timestamp is used.
         """
         next_timestamp = min(
-            pt.croniter().get_next(ret_type=float, start_time=now)  # type: ignore
+            pt.croniter().get_next(ret_type=float, start_time=at)  # type: ignore
             for pt in self.periodic_tasks
         )
-        return next_timestamp - now
+        return next_timestamp - at
 
-    def get_previous_tasks(self, now: float) -> Iterable[TaskAtTime]:
+    def get_previous_tasks(self, at: float) -> Iterable[TaskAtTime]:
         """
         Return each periodic task that may not have been deferred yet, alongside with
         its scheduled time.
@@ -109,12 +109,12 @@ class PeriodicDeferrer:
             cron_iterator = periodic_task.croniter()
             # For some reason, mypy can't wrap its head around this statement.
             # You're welcome to tell me why (or how to fix it).
-            cron_iterator.set_current(start_time=now)  # type: ignore
+            cron_iterator.set_current(start_time=at)  # type: ignore
             previous_time = round(cron_iterator.get_prev(ret_type=float))
             schedule_key = (name, previous_time)
             if schedule_key in known_schedule_keys:
                 continue
-            delay = now - previous_time
+            delay = at - previous_time
             if delay > self.max_delay:
                 logger.debug(
                     "Ignoring periodic task scheduled more than "

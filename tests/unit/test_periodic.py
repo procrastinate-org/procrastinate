@@ -59,14 +59,14 @@ def test_get_next_tick(deferrer, cron_task, cron, expected):
     cron_task(cron=cron)
 
     # Making things easier, we'll compute things next to timestamp 0
-    assert deferrer.get_next_tick(now=0) == expected
+    assert deferrer.get_next_tick(at=0) == expected
 
 
 def test_get_previous_tasks(deferrer, cron_task, task):
 
     cron_task(cron="* * * * *")
 
-    assert list(deferrer.get_previous_tasks(now=3600 * 24 - 1)) == [
+    assert list(deferrer.get_previous_tasks(at=3600 * 24 - 1)) == [
         (task, 3600 * 24 - 60)
     ]
 
@@ -77,7 +77,7 @@ def test_get_previous_tasks_known_schedule(deferrer, cron_task, task):
 
     deferrer.last_defers[task.name] = 3600 * 24 - 60
 
-    assert list(deferrer.get_previous_tasks(now=3600 * 24 - 1)) == []
+    assert list(deferrer.get_previous_tasks(at=3600 * 24 - 1)) == []
 
 
 def test_get_previous_tasks_too_old(deferrer, cron_task, task, caplog):
@@ -85,7 +85,7 @@ def test_get_previous_tasks_too_old(deferrer, cron_task, task, caplog):
     cron_task(cron="0 0 0 * *")
     caplog.set_level("DEBUG")
 
-    assert list(deferrer.get_previous_tasks(now=3600 * 24 - 1)) == []
+    assert list(deferrer.get_previous_tasks(at=3600 * 24 - 1)) == []
 
     assert [r.action for r in caplog.records] == ["ignore_periodic_task"]
 
@@ -112,7 +112,7 @@ async def test_worker_loop(job_store, mocker, task):
         async def wait(self, next_tick):
             mock.wait_next_tick(next_tick)
 
-        def get_next_tick(self, now):
+        def get_next_tick(self, at):
             return next(counter)
 
     mock_deferrer = MockPeriodicDeferrer(job_store=job_store)
