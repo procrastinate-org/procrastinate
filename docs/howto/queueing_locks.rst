@@ -23,3 +23,10 @@ In the command line interface (see `./defer`), you can use ``--queueing-lock`` a
 
     $ procrastinate defer --queueing-lock=maintenance --ignore-already-enqueued \
         my.maintenance.task
+
+If you plan to use the same queueing lock for every job deferred from the same task, you
+can define the value when you register the task::
+
+    @app.task(queueing_lock="my_lock_value")
+    def my_task(**kwargs):
+        ...

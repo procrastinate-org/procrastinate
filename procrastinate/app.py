@@ -107,11 +107,13 @@ class App:
         self,
         _func: Optional[Callable] = None,
         *,
-        queue: str = jobs.DEFAULT_QUEUE,
         name: Optional[str] = None,
         aliases: Optional[List[str]] = None,
         retry: retry_module.RetryValue = False,
         pass_context: bool = False,
+        queue: str = jobs.DEFAULT_QUEUE,
+        lock: Optional[str] = None,
+        queueing_lock: Optional[str] = None,
     ) -> Any:
         """
         Declare a function as a task. This method is meant to be used as a decorator::
@@ -138,6 +140,10 @@ class App:
             Default is ``"default"``.
             When a worker is launched, it can listen to specific queues, or to all
             queues.
+        lock :
+            Default value for the ``lock`` (see `Task.defer`).
+        queueing_lock:
+            Default value for the ``queueing_lock`` (see `Task.defer`).
         name :
             Name of the task, by default the full dotted path to the decorated function.
             if the function is nested or dynamically defined, it is important to give
@@ -169,6 +175,8 @@ class App:
                 func,
                 app=self,
                 queue=queue,
+                lock=lock,
+                queueing_lock=queueing_lock,
                 name=name,
                 aliases=aliases,
                 retry=retry,

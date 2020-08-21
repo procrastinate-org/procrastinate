@@ -14,8 +14,8 @@ Or if we're deferring the same task with the same lock multiple times, we can ca
 configure just once::
 
     job_description = my_task.configure(lock=customer.id)
-    my_task.defer(a=1)
-    my_task.defer(a=2)
+    job_description.defer(a=1)
+    job_description.defer(a=2)
 
 In both cases, the second task cannot run before the first one
 has ended (successfully or not).
@@ -28,3 +28,10 @@ has ended (successfully or not).
 
     Similarly, if the oldest task of a lock is in a queue that no worker consumes, the
     other tasks are blocked.
+
+If you plan to use the same lock for every job deferred from the same task, you can
+define the value when you register the task::
+
+    @app.task(lock="my_lock_value")
+    def my_task(**kwargs):
+        ...
