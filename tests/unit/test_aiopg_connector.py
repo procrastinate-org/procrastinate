@@ -47,7 +47,16 @@ async def test_wrap_exceptions_success():
 
 
 @pytest.mark.asyncio
-async def test_wrap_query_exceptions_reached_max_tries(mocker):
+@pytest.mark.parametrize(
+    "maxsize, expected_calls_count",
+    [
+        pytest.param(5, 6, id="Valid maxsize"),
+        pytest.param("5", 1, id="Invalid maxsize"),
+    ],
+)
+async def test_wrap_query_exceptions_reached_max_tries(
+    mocker, maxsize, expected_calls_count
+):
     called = []
 
     @aiopg_connector.wrap_query_exceptions
@@ -57,24 +66,24 @@ async def test_wrap_query_exceptions_reached_max_tries(mocker):
             "server closed the connection unexpectedly"
         )
 
-    connector = mocker.Mock(_pool=mocker.Mock(maxsize=5))
+    connector = mocker.Mock(_pool=mocker.Mock(maxsize=maxsize))
     coro = corofunc(connector)
 
     with pytest.raises(exceptions.ConnectorException) as excinfo:
         await coro
 
-    assert len(called) == 6
-    assert str(excinfo.value) == "Could not get a valid connection after 6 tries"
+    assert len(called) == expected_calls_count
+    assert (
+        str(excinfo.value)
+        == f"Could not get a valid connection after {expected_calls_count} tries"
+    )
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("pool_max_size", [5, "5"])
 @pytest.mark.parametrize(
     "exception_class", [Exception, psycopg2.errors.OperationalError]
 )
-async def test_wrap_query_exceptions_unhandled_exception(
-    mocker, exception_class, pool_max_size
-):
+async def test_wrap_query_exceptions_unhandled_exception(mocker, exception_class):
     called = []
 
     @aiopg_connector.wrap_query_exceptions
@@ -82,7 +91,7 @@ async def test_wrap_query_exceptions_unhandled_exception(
         called.append(True)
         raise exception_class("foo")
 
-    connector = mocker.Mock(_pool=mocker.Mock(maxsize=pool_max_size))
+    connector = mocker.Mock(_pool=mocker.Mock(maxsize=5))
     coro = corofunc(connector)
 
     with pytest.raises(exception_class):
@@ -143,7 +152,7 @@ async def test_listen_notify_pool_one_connection(mocker, caplog):
 @pytest.fixture
 def mock_async_create_pool(mocker):
     return mocker.patch.object(
-        aiopg_connector.AiopgConnector, "_create_pool", return_value=AsyncMock()
+        aiopg_connector.AiopgConnector, "_create_pool", return_value=AsyncMock(),
     )
 
 
