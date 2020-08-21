@@ -39,6 +39,7 @@ We'll do this in a single file. Start an empty file named ``tutorial.py``::
     app = App(
         connector=AiopgConnector(host="localhost", user="postgres", password="password")
     )
+    app.open()
 
 
 The application will be the entry point for both:
@@ -46,6 +47,9 @@ The application will be the entry point for both:
 - Declaring tasks (a.k.a job templates) to be launched by Procrastinate,
 - Launching the worker that will consume the jobs created from those tasks.
 - Applying Database schema
+
+The ``App.open`` method is called to create the connection pool to the underlying
+database. It will be automatically terminated upon garbage collection.
 
 Prepare the database
 --------------------
@@ -181,6 +185,7 @@ Your final file
     from procrastinate import App, AiopgConnector
 
     app = App(connector=AiopgConnector(host="localhost", user="postgres", password="password"))
+    app.open()
 
     @app.task
     def sum(a, b):

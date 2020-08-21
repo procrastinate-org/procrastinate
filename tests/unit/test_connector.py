@@ -4,6 +4,15 @@ from procrastinate import connector as connector_module
 from procrastinate import exceptions
 
 
+def test_open(connector):
+    connector.open()
+
+
+@pytest.mark.asyncio
+async def test_open_async(connector):
+    await connector.open_async()
+
+
 def test_close(connector):
     connector.close()
 
@@ -16,6 +25,7 @@ async def test_close_async(connector):
 @pytest.mark.parametrize(
     "method_name, kwargs",
     [
+        ["open_async", {}],
         ["close_async", {}],
         ["execute_query_async", {"query": ""}],
         ["execute_query_one_async", {"query": ""}],

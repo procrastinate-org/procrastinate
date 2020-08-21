@@ -3,6 +3,8 @@ import pytest
 
 from procrastinate import aiopg_connector, exceptions
 
+from .conftest import AsyncMock
+
 
 @pytest.mark.asyncio
 async def test_adapt_pool_args_on_connect(mocker):
@@ -45,7 +47,16 @@ async def test_wrap_exceptions_success():
 
 
 @pytest.mark.asyncio
-async def test_wrap_query_exceptions_reached_max_tries(mocker):
+@pytest.mark.parametrize(
+    "maxsize, expected_calls_count",
+    [
+        pytest.param(5, 6, id="Valid maxsize"),
+        pytest.param("5", 1, id="Invalid maxsize"),
+    ],
+)
+async def test_wrap_query_exceptions_reached_max_tries(
+    mocker, maxsize, expected_calls_count
+):
     called = []
 
     @aiopg_connector.wrap_query_exceptions
@@ -55,14 +66,17 @@ async def test_wrap_query_exceptions_reached_max_tries(mocker):
             "server closed the connection unexpectedly"
         )
 
-    connector = mocker.Mock(_pool=mocker.Mock(maxsize=5))
+    connector = mocker.Mock(_pool=mocker.Mock(maxsize=maxsize))
     coro = corofunc(connector)
 
     with pytest.raises(exceptions.ConnectorException) as excinfo:
         await coro
 
-    assert len(called) == 6
-    assert str(excinfo.value) == "Could not get a valid connection after 6 tries"
+    assert len(called) == expected_calls_count
+    assert (
+        str(excinfo.value)
+        == f"Could not get a valid connection after {expected_calls_count} tries"
+    )
 
 
 @pytest.mark.asyncio
@@ -108,8 +122,8 @@ async def test_wrap_query_exceptions_success(mocker):
 @pytest.mark.parametrize(
     "method_name",
     [
-        "close_async",
         "_create_pool",
+        "close_async",
         "execute_query_async",
         "_execute_query_connection",
         "execute_query_one_async",
@@ -123,31 +137,48 @@ def test_wrap_exceptions_applied(method_name):
     assert getattr(connector, method_name)._exceptions_wrapped is True
 
 
-def test_set_pool(mocker):
-    pool = mocker.Mock()
-    connector = aiopg_connector.AiopgConnector()
-
-    connector.set_pool(pool)
-
-    assert connector._pool is pool
-
-
-def test_set_pool_already_set(mocker):
-    pool = mocker.Mock()
-    connector = aiopg_connector.AiopgConnector()
-    connector.set_pool(pool)
-
-    with pytest.raises(exceptions.PoolAlreadySet):
-        connector.set_pool(pool)
-
-
 @pytest.mark.asyncio
 async def test_listen_notify_pool_one_connection(mocker, caplog):
     pool = mocker.Mock(maxsize=1)
     connector = aiopg_connector.AiopgConnector()
-    connector.set_pool(pool)
+    await connector.open_async(pool)
     caplog.clear()
 
     await connector.listen_notify(None, None)
 
     assert {e.action for e in caplog.records} == {"listen_notify_disabled"}
+
+
+@pytest.fixture
+def mock_async_create_pool(mocker):
+    return mocker.patch.object(
+        aiopg_connector.AiopgConnector, "_create_pool", return_value=AsyncMock(),
+    )
+
+
+@pytest.mark.asyncio
+async def test_open_async_no_pool_specified(mock_async_create_pool):
+    connector = aiopg_connector.AiopgConnector()
+
+    await connector.open_async()
+
+    assert connector._pool_externally_set is False
+    mock_async_create_pool.assert_called_once_with(connector._pool_args)
+
+
+@pytest.mark.asyncio
+async def test_open_async_pool_argument_specified(pool, mock_async_create_pool):
+    connector = aiopg_connector.AiopgConnector()
+
+    await connector.open_async(pool)
+
+    assert connector._pool_externally_set is True
+    mock_async_create_pool.assert_not_called()
+    assert connector._pool == pool
+
+
+def test_get_pool():
+    connector = aiopg_connector.AiopgConnector()
+
+    with pytest.raises(exceptions.AppNotOpen):
+        _ = connector.pool

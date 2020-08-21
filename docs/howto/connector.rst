@@ -1,5 +1,5 @@
-Create your connector, and connect to a PostgreSQL database
-===========================================================
+Create your connector
+=====================
 
 There are three ways you can specify the connection parameters:
 

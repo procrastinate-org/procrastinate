@@ -19,6 +19,7 @@ def psycopg2_connector_factory(connection_params):
             json_dumps=json_dumps, json_loads=json_loads, **connection_params
         )
         connectors.append(connector)
+        connector.open()
         return connector
 
     yield _

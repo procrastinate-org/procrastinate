@@ -56,6 +56,9 @@ def handle_errors():
 
 
 class MissingAppConnector(connector.BaseConnector):
+    def open(self, *args, **kwargs):
+        pass
+
     def close(self, *args, **kwargs):
         pass
 
@@ -110,6 +113,7 @@ def cli(ctx: click.Context, app: str, **kwargs) -> None:
         # If we don't provide an app, initialize a default one that will fail if it
         # needs a connector.
         app_obj = procrastinate.App(connector=MissingAppConnector())
+    app_obj.open()
     ctx.obj = app_obj
 
     worker_defaults = app_obj.worker_defaults.copy()

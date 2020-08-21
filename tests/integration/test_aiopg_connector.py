@@ -14,7 +14,7 @@ pytestmark = pytest.mark.asyncio
 async def aiopg_connector_factory(connection_params):
     connectors = []
 
-    def _(**kwargs):
+    async def _(**kwargs):
         json_dumps = kwargs.pop("json_dumps", None)
         json_loads = kwargs.pop("json_loads", None)
         connection_params.update(kwargs)
@@ -22,18 +22,12 @@ async def aiopg_connector_factory(connection_params):
             json_dumps=json_dumps, json_loads=json_loads, **connection_params
         )
         connectors.append(connector)
+        await connector.open_async()
         return connector
 
     yield _
     for connector in connectors:
         await connector.close_async()
-
-
-async def test_create_pool(connection_params):
-    pool = await aiopg_connector.AiopgConnector._create_pool(connection_params)
-    async with pool:
-        async with pool.acquire() as connection:
-            assert connection.dsn == "dbname=" + connection_params["dbname"]
 
 
 async def test_adapt_pool_args_on_connect(mocker):
@@ -75,7 +69,7 @@ async def test_execute_query_json_dumps(
     query = "SELECT %(arg)s::jsonb as json"
     arg = {"a": "a", "b": NotJSONSerializableByDefault()}
     json_dumps = functools.partial(json.dumps, default=encode)
-    connector = aiopg_connector_factory(json_dumps=json_dumps)
+    connector = await aiopg_connector_factory(json_dumps=json_dumps)
     method = getattr(connector, method_name)
 
     result = await method(query, arg=arg)
@@ -96,7 +90,7 @@ async def test_json_loads(aiopg_connector_factory, mocker):
 
     query = "SELECT %(arg)s::jsonb as json"
     arg = {"a": 1, "b": 2}
-    connector = aiopg_connector_factory(json_loads=json_loads)
+    connector = await aiopg_connector_factory(json_loads=json_loads)
 
     result = await connector.execute_query_one_async(query, arg=arg)
     assert result["json"] == {"a": 1, "b": Param(p=2)}
@@ -147,8 +141,8 @@ async def test_get_connection_no_psycopg2_adapter_registration(
     aiopg_connector_factory, mocker
 ):
     register_adapter = mocker.patch("psycopg2.extensions.register_adapter")
-    connector = aiopg_connector_factory()
-    await connector._get_pool()
+    connector = await aiopg_connector_factory()
+    await connector.open_async()
     assert not register_adapter.called
 
 
@@ -173,8 +167,8 @@ async def test_listen_notify(aiopg_connector):
 async def test_loop_notify_stop_when_connection_closed(aiopg_connector):
     # We want to make sure that the when the connection is closed, the loop end.
     event = asyncio.Event()
-    pool = await aiopg_connector._get_pool()
-    async with pool.acquire() as connection:
+    await aiopg_connector.open_async()
+    async with aiopg_connector._pool.acquire() as connection:
         coro = aiopg_connector._loop_notify(event=event, connection=connection)
         await asyncio.sleep(0.1)
         # Currently, the the connection closes, the notifies queue is not
@@ -192,8 +186,8 @@ async def test_loop_notify_timeout(aiopg_connector):
     # We want to make sure that when the listen starts, we don't listen forever. If the
     # connection closes, we eventually finish the coroutine.
     event = asyncio.Event()
-    pool = await aiopg_connector._get_pool()
-    async with pool.acquire() as connection:
+    await aiopg_connector.open_async()
+    async with aiopg_connector._pool.acquire() as connection:
         task = asyncio.ensure_future(
             aiopg_connector._loop_notify(
                 event=event, connection=connection, timeout=0.01
@@ -212,6 +206,7 @@ async def test_loop_notify_timeout(aiopg_connector):
 
 async def test_destructor(connection_params, capsys):
     connector = aiopg_connector.AiopgConnector(**connection_params)
+    await connector.open_async()
     await connector.execute_query_async("SELECT 1")
 
     assert len(connector._pool._free) == 1

@@ -6,6 +6,7 @@ import types
 import pytest
 
 from procrastinate import exceptions, utils
+from tests.unit.conftest import AsyncMock
 
 
 def test_load_from_path():
@@ -331,3 +332,30 @@ def test_utcnow(mocker):
 )
 def test_parse_datetime(input, expected):
     assert utils.parse_datetime(input) == expected
+
+
+@pytest.fixture
+def mock_awaitable_context():
+    open_mock, close_mock = AsyncMock(), AsyncMock()
+    return utils.AwaitableContext(
+        open_coro=lambda: open_mock, close_coro=lambda: close_mock, return_value=1,
+    )
+
+
+@pytest.mark.asyncio
+async def test_awaitable_context_await(mock_awaitable_context):
+    return_value = await mock_awaitable_context
+
+    assert return_value == 1
+    assert mock_awaitable_context._open_coro().was_awaited
+    assert not mock_awaitable_context._close_coro().was_awaited
+
+
+@pytest.mark.asyncio
+async def test_awaitable_context_enter_exit(mock_awaitable_context):
+    async with mock_awaitable_context as return_value:
+        pass
+
+    assert return_value == 1
+    assert mock_awaitable_context._open_coro().was_awaited
+    assert mock_awaitable_context._close_coro().was_awaited

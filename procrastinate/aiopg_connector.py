@@ -87,8 +87,12 @@ class AiopgConnector(connector.BaseAsyncConnector):
     ):
         """
         Create a PostgreSQL connector using aiopg. The connector uses an ``aiopg.Pool``,
-        which is either created automatically upon first use, or set through the
-        `AiopgConnector.set_pool` method.
+        which is created internally, or set into the connector by calling
+        ``AiopgConnector.open_async``.
+
+        The pool connection parameters can be provided here. Alternatively, an already
+        existing ``aiopg.Pool`` can be provided in the ``App.open_async``, via the
+        ``pool`` parameter.
 
         All other arguments than ``json_dumps`` and ``json_loads`` are passed to
         :py:func:`aiopg.create_pool` (see aiopg documentation__), with default values
@@ -106,7 +110,7 @@ class AiopgConnector(connector.BaseAsyncConnector):
             The JSON loads function to use for deserializing job arguments. Defaults
             to the function used by psycopg2. See the `psycopg2 doc`_. Unused if the
             pool is externally created and set into the connector through the
-            `AiopgConnector.set_pool` method.
+            ``App.open_async`` method.
         dsn : ``Optional[str]``
             Passed to aiopg. Default is "" instead of None, which means if no argument
             is passed, it will connect to localhost:5432 instead of a Unix-domain
@@ -166,15 +170,37 @@ class AiopgConnector(connector.BaseAsyncConnector):
         final_args.update(pool_args)
         return final_args
 
+    @property
+    def pool(self) -> aiopg.Pool:
+        if self._pool is None:  # Set by open_async
+            raise exceptions.AppNotOpen
+        return self._pool
+
+    async def open_async(self, pool: Optional[aiopg.Pool] = None) -> None:
+        if self._pool:
+            return
+        if pool:
+            self._pool_externally_set = True
+            self._pool = pool
+        else:
+            self._pool = await self._create_pool(self._pool_args)
+
+    @staticmethod
+    @wrap_exceptions
+    async def _create_pool(pool_args: Dict[str, Any]) -> aiopg.Pool:
+        return await aiopg.create_pool(**pool_args)
+
     @wrap_exceptions
     async def close_async(self) -> None:
         """
         Close the pool and awaits all connections to be released.
         """
-        if self._pool:
-            self._pool.close()
-            await self._pool.wait_closed()
-            self._pool = None
+
+        if not self._pool or self._pool_externally_set:
+            return
+        self._pool.close()
+        await self._pool.wait_closed()
+        self._pool = None
 
     def __del__(self):
         if self._pool and not self._pool_externally_set:
@@ -195,31 +221,6 @@ class AiopgConnector(connector.BaseAsyncConnector):
             for key, value in arguments.items()
         }
 
-    @staticmethod
-    @wrap_exceptions
-    async def _create_pool(pool_args: Dict[str, Any]) -> aiopg.Pool:
-        return await aiopg.create_pool(**pool_args)
-
-    def set_pool(self, pool: aiopg.Pool, *, _external: bool = True) -> None:
-        """
-        Set the connection pool. Raises an exception if the pool is already set.
-        """
-
-        if self._pool:
-            raise exceptions.PoolAlreadySet
-        self._pool_externally_set = _external
-        self._pool = pool
-
-    async def _get_pool(self) -> aiopg.Pool:
-        if self._pool:
-            return self._pool
-        if not self._lock:
-            self._lock = asyncio.Lock()
-        async with self._lock:
-            if not self._pool:
-                self.set_pool(await self._create_pool(self._pool_args), _external=False)
-        return self._pool
-
     # Pools and single connections do not exactly share their cursor API:
     # - connection.cursor() is an async context manager (async with)
     # - pool.cursor() is a coroutine returning a sync context manage (with await)
@@ -229,8 +230,7 @@ class AiopgConnector(connector.BaseAsyncConnector):
     @wrap_exceptions
     @wrap_query_exceptions
     async def execute_query_async(self, query: str, **arguments: Any) -> None:
-        pool = await self._get_pool()
-        with await pool.cursor() as cursor:
+        with await self.pool.cursor() as cursor:
             await cursor.execute(query, self._wrap_json(arguments))
 
     @wrap_exceptions
@@ -246,8 +246,7 @@ class AiopgConnector(connector.BaseAsyncConnector):
     async def execute_query_one_async(
         self, query: str, **arguments: Any
     ) -> Dict[str, Any]:
-        pool = await self._get_pool()
-        with await pool.cursor() as cursor:
+        with await self.pool.cursor() as cursor:
             await cursor.execute(query, self._wrap_json(arguments))
 
             return await cursor.fetchone()
@@ -257,8 +256,7 @@ class AiopgConnector(connector.BaseAsyncConnector):
     async def execute_query_all_async(
         self, query: str, **arguments: Any
     ) -> List[Dict[str, Any]]:
-        pool = await self._get_pool()
-        with await pool.cursor() as cursor:
+        with await self.pool.cursor() as cursor:
             await cursor.execute(query, self._wrap_json(arguments))
 
             return await cursor.fetchall()
@@ -275,10 +273,9 @@ class AiopgConnector(connector.BaseAsyncConnector):
     async def listen_notify(
         self, event: asyncio.Event, channels: Iterable[str]
     ) -> None:
-        pool = await self._get_pool()
         # We need to acquire a dedicated connection, and use the listen
         # query
-        if pool.maxsize == 1:
+        if self.pool.maxsize == 1:
             logger.warning(
                 "Listen/Notify capabilities disabled because maximum pool size"
                 "is set to 1",
@@ -287,7 +284,7 @@ class AiopgConnector(connector.BaseAsyncConnector):
             return
 
         while True:
-            async with pool.acquire() as connection:
+            async with self.pool.acquire() as connection:
                 for channel_name in channels:
                     await self._execute_query_connection(
                         connection=connection,

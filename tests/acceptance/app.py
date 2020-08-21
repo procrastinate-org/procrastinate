@@ -28,12 +28,14 @@ json_loads = functools.partial(json.loads, object_hook=decode)
 app = procrastinate.App(
     connector=procrastinate.AiopgConnector(json_dumps=json_dumps, json_loads=json_loads)
 )
+app.open()
 
 sync_app = procrastinate.App(
     connector=procrastinate.Psycopg2Connector(
         json_dumps=json_dumps, json_loads=json_loads
     )
 )
+sync_app.open()
 
 
 @app.task(queue="default")

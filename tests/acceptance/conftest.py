@@ -3,6 +3,8 @@ import subprocess
 
 import pytest
 
+import procrastinate
+
 APP_MODULE = "tests.acceptance.app"
 
 
@@ -36,3 +38,10 @@ def defer(process_env):
         )
 
     return func
+
+
+@pytest.fixture
+async def async_app_explicit_open(not_opened_aiopg_connector):
+    app = await procrastinate.App(connector=not_opened_aiopg_connector).open_async()
+    yield app
+    await app.close_async()

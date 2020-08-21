@@ -82,6 +82,7 @@ def setup_db():
     db_create(dbname=dbname)
 
     connector = aiopg_connector_module.AiopgConnector(dbname=dbname)
+    connector.open()
     schema_manager = schema.SchemaManager(connector=connector)
     schema_manager.apply_schema()
     # We need to close the psycopg2 underlying connection synchronously
@@ -106,17 +107,27 @@ async def connection(connection_params):
 
 
 @pytest.fixture
-async def aiopg_connector(connection_params):
-    connector = aiopg_connector_module.AiopgConnector(**connection_params)
-    yield connector
-    await connector.close_async()
+async def not_opened_aiopg_connector(connection_params):
+    yield aiopg_connector_module.AiopgConnector(**connection_params)
 
 
 @pytest.fixture
-def psycopg2_connector(connection_params):
-    connector = psycopg2_connector_module.Psycopg2Connector(**connection_params)
-    yield connector
-    connector.close()
+def not_opened_psycopg2_connector(connection_params):
+    yield psycopg2_connector_module.Psycopg2Connector(**connection_params)
+
+
+@pytest.fixture
+async def aiopg_connector(not_opened_aiopg_connector):
+    await not_opened_aiopg_connector.open_async()
+    yield not_opened_aiopg_connector
+    await not_opened_aiopg_connector.close_async()
+
+
+@pytest.fixture
+def psycopg2_connector(not_opened_psycopg2_connector):
+    not_opened_psycopg2_connector.open()
+    yield not_opened_psycopg2_connector
+    not_opened_psycopg2_connector.close()
 
 
 @pytest.fixture
@@ -133,8 +144,14 @@ def connector():
 
 
 @pytest.fixture
-def app(connector):
+def not_opened_app(connector):
     return app_module.App(connector=connector)
+
+
+@pytest.fixture
+def app(not_opened_app):
+    with not_opened_app.open() as app:
+        yield app
 
 
 @pytest.fixture

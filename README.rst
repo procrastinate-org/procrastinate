@@ -43,6 +43,9 @@ Here's an example
     # Make an app in your code
     app = procrastinate.App(connector=procrastinate.AiopgConnector())
 
+    # Open the connection to the database
+    app.open()
+
     # Then define tasks
     @app.task(queue="sums")
     def sum(a, b):

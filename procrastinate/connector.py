@@ -6,9 +6,15 @@ from procrastinate import exceptions, utils
 QUEUEING_LOCK_CONSTRAINT = "procrastinate_jobs_queueing_lock_idx"
 
 
+Pool = Any  # The connection pool can be any pool object compatible with the database.
+
+
 class BaseConnector:
     json_dumps: Optional[Callable] = None
     json_loads: Optional[Callable] = None
+
+    def open(self, pool: Optional[Pool] = None) -> None:
+        raise NotImplementedError
 
     def close(self) -> None:
         raise NotImplementedError
@@ -21,6 +27,9 @@ class BaseConnector:
 
     def execute_query_all(self, query: str, **arguments: Any) -> List[Dict[str, Any]]:
         raise NotImplementedError
+
+    async def open_async(self, pool: Optional[Pool] = None) -> None:
+        raise exceptions.SyncConnectorConfigurationError
 
     async def close_async(self) -> None:
         raise exceptions.SyncConnectorConfigurationError
@@ -49,6 +58,9 @@ class BaseConnector:
 
 @utils.add_sync_api
 class BaseAsyncConnector(BaseConnector):
+    async def open_async(self, pool: Optional[Pool] = None) -> None:
+        raise NotImplementedError
+
     async def close_async(self) -> None:
         raise NotImplementedError
 

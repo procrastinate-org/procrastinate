@@ -6,6 +6,7 @@ How to...
 
     howto/app
     howto/connector
+    howto/open_connection
     howto/tasks
     howto/defer
     howto/worker
