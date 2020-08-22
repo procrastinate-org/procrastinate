@@ -1,0 +1,116 @@
+#!/usr/bin/env python3
+
+import itertools
+import pathlib
+import subprocess
+from typing import Any, Dict, Iterable, Iterator, Optional, Tuple
+
+import attr
+
+from procrastinate import schema
+
+migration_template = """from django.db import migrations
+
+from procrastinate import schema
+
+
+class Migration(migrations.Migration):
+    initial={initial}
+    dependencies: list = [{dependency}]
+    operations = [migrations.RunSQL(schema.get_sql("{filename}"))]
+"""
+
+
+def version_from_string(version_str) -> Tuple:
+    return tuple(int(e) for e in version_str.split("."))
+
+
+@attr.dataclass
+class Migration:
+    path: pathlib.Path
+    name: str
+    version: Tuple
+
+    @classmethod
+    def from_string(cls, path) -> "Migration":
+        if path.stem.startswith("baseline"):
+            name = "baseline"
+            version_str = path.stem.split("-")[1]
+        else:
+            _, version_str, _, name = path.stem.split("_", 3)
+        return cls(
+            path=path, name=name, version=version_from_string(version_str=version_str)
+        )
+
+
+def list_sql_migrations() -> Iterable[Migration]:
+    all_files = schema.get_raw_migration_paths()
+    migrations = [
+        Migration.from_string(path=e) for e in all_files if e.suffix == ".sql"
+    ]
+
+    return sorted(migrations, key=lambda x: x.version)
+
+
+def get_migration_file(
+    sql_migration: Migration, previous_file: Optional[str], counter: Iterator[int],
+) -> Dict[str, Any]:
+    dependency: Any
+    if previous_file is None:
+        dependency = ""
+        initial = True
+    else:
+        dependency = ("procrastinate", previous_file)
+        initial = False
+    body = migration_template.format(
+        dependency=dependency, filename=sql_migration.path.name, initial=initial
+    )
+    index = next(counter)
+    filename = f"{index:04d}_{sql_migration.name}"
+    return {"body": body, "filename": filename}
+
+
+def generate_django_migrations() -> Iterable[Dict]:
+    previous_file = None
+    counter = itertools.count(1)
+    for sql_migration in list_sql_migrations():
+        migration_file = get_migration_file(
+            sql_migration=sql_migration, previous_file=previous_file, counter=counter
+        )
+        previous_file = migration_file["filename"]
+        yield migration_file
+
+
+def django_migration_folder() -> pathlib.Path:
+    return (
+        pathlib.Path(__file__) / "../../procrastinate/contrib/django/migrations"
+    ).resolve()
+
+
+DJANGO_MIGRATION_FOLDER = django_migration_folder()
+
+
+def write_migration(body: str, filename: str):
+    (DJANGO_MIGRATION_FOLDER / f"{filename}.py").write_text(body)
+
+
+def clear_migrations():
+    for file in DJANGO_MIGRATION_FOLDER.iterdir():
+        if file.name.startswith("0"):
+            file.unlink()
+
+
+def black():
+    subprocess.check_call(["black", DJANGO_MIGRATION_FOLDER.absolute()])
+
+
+def main():
+    clear_migrations()
+    for migration in generate_django_migrations():
+        print(f"Writing {migration['filename']}")
+        write_migration(**migration)
+    black()
+
+
+if __name__ == "__main__":
+    main()
