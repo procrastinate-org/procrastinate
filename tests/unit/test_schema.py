@@ -27,3 +27,7 @@ def test_get_sql(app):
         "CREATE EXTENSION IF NOT EXISTS plpgsql WITH SCHEMA pg_catalog;"
     )
     assert len(migration.splitlines()) == 187
+
+
+def test_get_raw_migration_paths():
+    assert "baseline-0.5.0.sql" in set(e.name for e in schema.get_raw_migration_paths())
