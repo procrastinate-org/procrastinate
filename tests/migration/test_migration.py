@@ -1,7 +1,7 @@
 import os
-import pathlib
 import subprocess
 
+import importlib_resources
 import pytest
 from django.db import connection
 
@@ -92,18 +92,19 @@ def test_django_migrations_run_properly(django_db):
         cursor.execute("SELECT * FROM procrastinate_jobs")
 
 
-def test_no_missing_django_migration():
-    procrastinate_dir = pathlib.Path(__file__).parent.parent.parent / "procrastinate"
-    django_migrations_path = procrastinate_dir / "contrib" / "django" / "migrations"
-    django_migrations = [
-        e for e in django_migrations_path.iterdir() if e.name.startswith("0")
-    ]
-    sql_migrations_path = procrastinate_dir / "sql" / "migrations"
-    sql_migrations = [e for e in sql_migrations_path.iterdir() if e.suffix == ".sql"]
+@pytest.mark.parametrize(
+    "name", [e.name for e in schema.get_raw_migration_paths() if e.suffix == ".sql"]
+)
+def test_no_missing_django_migration(name):
+    # Testing that each SQL migration is mentioned in the django migrations.
+    # We're not testing that it properly runs, but we're making sure that no
+    # migration was forgotten.
 
-    assert len(sql_migrations) > 0
-    assert len(django_migrations) > 0
+    django_migrations = importlib_resources.files(
+        "procrastinate.contrib.django.migrations"
+    ).iterdir()
+    all_code = "\n".join(f.read_text() for f in django_migrations)
 
-    assert len(sql_migrations) == len(
-        django_migrations
-    ), "Some django migrations are missing"
+    assert (
+        name in all_code
+    ), f"Missing migration `{name}`. Please run `bin/generate-django-migrations`"

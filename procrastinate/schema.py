@@ -30,5 +30,5 @@ def get_sql(migration) -> str:
     return importlib_resources.read_text("procrastinate.sql.migrations", migration)
 
 
-def get_raw_migration_paths() -> Iterable[str]:
+def get_raw_migration_paths() -> Iterable[pathlib.Path]:
     return importlib_resources.files("procrastinate.sql.migrations").iterdir()
