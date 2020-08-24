@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, List, Optional,
 
 from procrastinate import admin
 from procrastinate import connector as connector_module
-from procrastinate import healthchecks, jobs
+from procrastinate import exceptions, healthchecks, jobs
 from procrastinate import retry as retry_module
 from procrastinate import schema, store, utils
 
@@ -81,10 +81,11 @@ class App:
             Parameters for fine tuning the periodic tasks deferrer. Available
             parameters are:
 
-            - ``max_delay``: ``float``, in seconds, controls how long after the planned
-              launch of a periodic task a deferrer can launch the task. Thanks to this
-              parameter, when deploying a new periodic task, it's usually not deferred
-              until its next scheduled time. Defaults to 10 minutes.
+            - ``max_delay``: ``float``, in seconds. When a worker starts and there's
+              a periodic task that has not been deferred, the worker will defer the task
+              if it's been due for less that this amount of time. This avoids new
+              periodic tasks to be immediately deferred just after their first
+              deployment. (defaults to 10 minutes)
         """
         from procrastinate import periodic
 
@@ -107,11 +108,13 @@ class App:
         self,
         _func: Optional[Callable] = None,
         *,
-        queue: str = jobs.DEFAULT_QUEUE,
         name: Optional[str] = None,
         aliases: Optional[List[str]] = None,
         retry: retry_module.RetryValue = False,
         pass_context: bool = False,
+        queue: str = jobs.DEFAULT_QUEUE,
+        lock: Optional[str] = None,
+        queueing_lock: Optional[str] = None,
     ) -> Any:
         """
         Declare a function as a task. This method is meant to be used as a decorator::
@@ -138,6 +141,10 @@ class App:
             Default is ``"default"``.
             When a worker is launched, it can listen to specific queues, or to all
             queues.
+        lock :
+            Default value for the ``lock`` (see `Task.defer`).
+        queueing_lock:
+            Default value for the ``queueing_lock`` (see `Task.defer`).
         name :
             Name of the task, by default the full dotted path to the decorated function.
             if the function is nested or dynamically defined, it is important to give
@@ -169,6 +176,8 @@ class App:
                 func,
                 app=self,
                 queue=queue,
+                lock=lock,
+                queueing_lock=queueing_lock,
                 name=name,
                 aliases=aliases,
                 retry=retry,
@@ -212,7 +221,9 @@ class App:
 
         builtin_tasks.register_builtin_tasks(self)
 
-    def configure_task(self, name: str, **kwargs: Any) -> jobs.JobDeferrer:
+    def configure_task(
+        self, name: str, *, allow_unknown: bool = True, **kwargs: Any
+    ) -> jobs.JobDeferrer:
         """
         Configure a task for deferring, using its name
 
@@ -232,7 +243,15 @@ class App:
         """
         from procrastinate import tasks
 
-        return tasks.configure_task(name=name, job_store=self.job_store, **kwargs)
+        self.perform_import_paths()
+        try:
+            return self.tasks[name].configure(**kwargs)
+        except KeyError as exc:
+            if allow_unknown:
+                return tasks.configure_task(
+                    name=name, job_store=self.job_store, **kwargs
+                )
+            raise exceptions.TaskNotFound from exc
 
     def _worker(self, **kwargs) -> "worker.Worker":
         from procrastinate import worker

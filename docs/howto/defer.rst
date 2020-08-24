@@ -54,8 +54,7 @@ that runs the jobs. You can defer a job with just the name of its task.
     app.configure_task(name="my_module.my_task", queue="some_queue").defer(a=1, b=2)
 
 Any parameter you would use for `Task.configure` can be used in
-`configure_task`. Remember that the default queue declared on the task will not
-be used here. You need to define the queue or the job will use the ``"default"`` queue.
+`configure_task`.
 
 
 From the command line

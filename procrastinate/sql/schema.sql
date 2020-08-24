@@ -40,7 +40,8 @@ CREATE TABLE procrastinate_periodic_defers (
     task_name character varying(128) NOT NULL,
     defer_timestamp bigint,
     job_id bigint REFERENCES procrastinate_jobs(id) NULL,
-    UNIQUE (task_name, defer_timestamp)
+    queue_name character varying(128) NOT NULL,
+    CONSTRAINT procrastinate_periodic_defers_unique UNIQUE (task_name, queue_name, defer_timestamp)
 );
 
 CREATE TABLE procrastinate_events (
@@ -87,6 +88,8 @@ $$;
 
 CREATE FUNCTION procrastinate_defer_periodic_job(
     _queue_name character varying,
+    _lock character varying,
+    _queueing_lock character varying,
     _task_name character varying,
     _defer_timestamp bigint
 ) RETURNS bigint
@@ -98,8 +101,8 @@ DECLARE
 BEGIN
 
     INSERT
-        INTO procrastinate_periodic_defers (task_name, defer_timestamp)
-        VALUES (_task_name, _defer_timestamp)
+        INTO procrastinate_periodic_defers (task_name, queue_name, defer_timestamp)
+        VALUES (_task_name, _queue_name, _defer_timestamp)
         ON CONFLICT DO NOTHING
         RETURNING id into _defer_id;
 
@@ -111,8 +114,8 @@ BEGIN
         SET job_id = procrastinate_defer_job(
                 _queue_name,
                 _task_name,
-                NULL,
-                NULL,
+                _lock,
+                _queueing_lock,
                 ('{"timestamp": ' || _defer_timestamp || '}')::jsonb,
                 NULL
             )

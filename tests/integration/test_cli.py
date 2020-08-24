@@ -146,7 +146,10 @@ def test_defer_queueing_lock(entrypoint, click_app, connector):
     result = entrypoint("""-a yay defer --queueing-lock=houba hello {"a":2}""")
 
     assert result.exit_code > 0
-    assert "there is already a job in the queue with the lock houba" in result.output
+    assert (
+        "there is already a job in the queue with the queueing lock houba"
+        in result.output
+    )
     assert len(connector.jobs) == 1
 
 
@@ -163,7 +166,7 @@ def test_defer_queueing_lock_ignore(entrypoint, click_app, connector):
 
     assert result.exit_code == 0
     assert (
-        "there is already a job in the queue with the lock houba (ignored)"
+        "there is already a job in the queue with the queueing lock houba (ignored)"
         in result.output
     )
     assert len(connector.jobs) == 1

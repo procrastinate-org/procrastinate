@@ -3,7 +3,7 @@ import asyncio
 import pytest
 
 from procrastinate import app as app_module
-from procrastinate import tasks
+from procrastinate import exceptions, retry, tasks
 
 from .. import conftest
 from .conftest import AsyncMock
@@ -19,15 +19,26 @@ def test_app_no_connector():
 
 
 def test_app_task_explicit(app, mocker):
-    @app.task(queue="a", name="b")
+    @app.task(
+        name="foobar",
+        queue="bar",
+        lock="sher",
+        queueing_lock="baz",
+        retry=True,
+        pass_context=True,
+    )
     def wrapped():
         return "foo"
 
-    assert "foo" == wrapped()
-    assert "b" == app.tasks["b"].name
-    assert "a" == app.tasks["b"].queue
-    assert app.tasks["b"] is wrapped
-    assert app.tasks["b"].func is wrapped.__wrapped__
+    assert wrapped() == "foo"
+    assert app.tasks["foobar"].name == "foobar"
+    assert app.tasks["foobar"].queue == "bar"
+    assert app.tasks["foobar"].lock == "sher"
+    assert app.tasks["foobar"].queueing_lock == "baz"
+    assert isinstance(app.tasks["foobar"].retry_strategy, retry.RetryStrategy)
+    assert app.tasks["foobar"].pass_context is True
+    assert app.tasks["foobar"] is wrapped
+    assert app.tasks["foobar"].func is wrapped.__wrapped__
 
 
 def test_app_task_aliases(app, mocker):
@@ -123,6 +134,29 @@ def test_app_configure_task(app):
     assert job.lock == "sher"
     assert job.scheduled_at == scheduled_at
     assert job.task_kwargs == {"a": 1}
+
+
+def test_app_configure_task_unknown_allowed(app):
+    @app.task(name="my_name", queue="bla")
+    def my_name(a):
+        pass
+
+    scheduled_at = conftest.aware_datetime(2000, 1, 1)
+    job = app.configure_task(
+        name="my_name", lock="sher", schedule_at=scheduled_at, task_kwargs={"a": 1},
+    ).job
+
+    assert job.task_name == "my_name"
+    assert job.queue == "bla"
+    assert job.lock == "sher"
+    assert job.scheduled_at == scheduled_at
+    assert job.task_kwargs == {"a": 1}
+
+
+def test_app_configure_task_unkown_not_allowed(app):
+    with pytest.raises(exceptions.TaskNotFound):
+
+        app.configure_task(name="my_name", allow_unknown=False)
 
 
 def test_app_periodic(app):

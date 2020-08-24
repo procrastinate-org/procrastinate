@@ -57,8 +57,6 @@ class Task:
 
     Attributes
     ----------
-    queue : ``str``
-        Default queue to send deferred jobs to.
     name : ``str``
         Name of the task, usually the dotted path of the decorated function.
     aliases : ``List[str]``
@@ -69,6 +67,14 @@ class Task:
     pass_context : ``bool``
         If ``True``, passes the task execution context as first positional argument on
         :py:class:`procrastinate.jobs.Job` execution.
+    queue : ``str``
+        Default queue to send deferred jobs to. The queue can be overridden when a
+        job is deferred.
+    lock : ``Optional[str]``
+        Default lock. The lock can be overridden when a job is deferred.
+    queueing_lock : ``Optional[str]``
+        Default queueing lock. The queuing lock can be overridden when a job is
+        deferred.
     """
 
     def __init__(
@@ -76,11 +82,16 @@ class Task:
         func: Callable,
         *,
         app: app.App,
-        queue: str,
+        # task naming
         name: Optional[str] = None,
         aliases: Optional[List[str]] = None,
+        # task specific settings
         retry: retry_module.RetryValue = False,
         pass_context: bool = False,
+        # default defer arguments
+        queue: str,
+        lock: Optional[str] = None,
+        queueing_lock: Optional[str] = None,
     ):
         self.queue = queue
         self.app = app
@@ -89,6 +100,8 @@ class Task:
         self.retry_strategy = retry_module.get_retry_strategy(retry)
         self.name: str = name if name else self.full_path
         self.pass_context = pass_context
+        self.lock = lock
+        self.queueing_lock = queueing_lock
 
     def __call__(self, *args, **kwargs: types.JSONValue) -> Any:
         return self.func(*args, **kwargs)
@@ -166,8 +179,10 @@ class Task:
         return configure_task(
             name=self.name,
             job_store=self.app.job_store,
-            lock=lock,
-            queueing_lock=queueing_lock,
+            lock=lock if lock is not None else self.lock,
+            queueing_lock=(
+                queueing_lock if queueing_lock is not None else self.queueing_lock
+            ),
             task_kwargs=task_kwargs,
             schedule_at=schedule_at,
             schedule_in=schedule_in,

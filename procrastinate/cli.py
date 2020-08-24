@@ -252,8 +252,11 @@ def defer(
     configure_kwargs = filter_none(configure_kwargs)
 
     # Configure the job. If the task is known, it will be used.
-    job_deferrer = configure_job(
-        app=app, task_name=task, configure_kwargs=configure_kwargs, unknown=unknown
+    job_deferrer = configure_task(
+        app=app,
+        task_name=task,
+        configure_kwargs=configure_kwargs,
+        allow_unknown=unknown,
     )
 
     # Printing info
@@ -306,21 +309,15 @@ def get_schedule_in(in_: Optional[int]) -> Optional[Dict[str, int]]:
     return {"seconds": in_}
 
 
-def configure_job(
+def configure_task(
     app: procrastinate.App,
     task_name: str,
     configure_kwargs: Dict[str, Any],
-    unknown: bool,
+    allow_unknown: bool,
 ) -> jobs.JobDeferrer:
-    app.perform_import_paths()
-    try:
-        return app.tasks[task_name].configure(**configure_kwargs)
-
-    except KeyError:
-        if unknown:
-            return app.configure_task(name=task_name, **configure_kwargs)
-        else:
-            raise click.BadArgumentUsage(f"Task {task_name} not found.")
+    return app.configure_task(
+        name=task_name, allow_unknown=allow_unknown, **configure_kwargs
+    )
 
 
 @cli.command()
