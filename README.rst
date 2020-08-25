@@ -1,21 +1,25 @@
 Procrastinate: PostgreSQL-based Task Queue for Python
 =====================================================
 
-.. image:: https://badge.fury.io/py/procrastinate.svg
+.. image:: https://img.shields.io/pypi/v/procrastinate?logo=pypi&logoColor=white
     :target: https://pypi.org/pypi/procrastinate
     :alt: Deployed to PyPI
 
-.. image:: https://readthedocs.org/projects/procrastinate/badge/?version=latest
-    :target: http://procrastinate.readthedocs.io/en/latest/?badge=latest
-    :alt: Documentation Status
+.. image:: https://img.shields.io/pypi/pyversions/procrastinate?logo=pypi&logoColor=white
+    :target: https://pypi.org/pypi/procrastinate
+    :alt: Deployed to PyPI
 
-.. image:: https://github.com/peopledoc/procrastinate/workflows/CI/badge.svg?branch=master
+.. image:: https://img.shields.io/github/workflow/status/peopledoc/procrastinate/CI?logo=github
     :target: https://github.com/peopledoc/procrastinate/actions?workflow=CI
-    :alt: Continuous Integration Status
+    :alt: Continuous Integration
 
-.. image:: https://codecov.io/gh/peopledoc/procrastinate/branch/master/graph/badge.svg
+.. image:: https://img.shields.io/readthedocs/procrastinate?logo=read-the-docs
+    :target: http://procrastinate.readthedocs.io/en/latest/?badge=latest
+    :alt: Documentation
+
+.. image:: https://img.shields.io/codecov/c/github/peopledoc/procrastinate?logo=codecov
     :target: https://codecov.io/gh/peopledoc/procrastinate
-    :alt: Coverage Status
+    :alt: Coverage
 
 .. image:: https://img.shields.io/badge/License-MIT-green.svg
     :target: https://github.com/peopledoc/procrastinate/blob/master/LICENSE
