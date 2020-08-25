@@ -5,8 +5,10 @@ on:
     branches:
       - master
     tags:
-      - '*'
   pull_request:
+  release:
+    types:
+      - published
 
 jobs:
   lint:
@@ -108,7 +110,7 @@ jobs:
       - lint
       - tests
       - docs
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+    if: (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')) || github.event_name == 'release'
     steps:
       - uses: actions/checkout@v2
       - name: Setup Python
