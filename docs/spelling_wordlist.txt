@@ -37,4 +37,3 @@ suboptimal
 sync
 th
 tox
-Travis
