@@ -125,7 +125,7 @@ jobs:
       - name: Build the wheel
         run: python setup.py sdist bdist_wheel
       - name: Publish to PyPI
-        uses: pypa/gh-actions-pypi-publish@master
+        uses: pypa/gh-action-pypi-publish@master
         with:
           user: __token__
           password: ${{ secrets.PYPI_TOKEN }}
