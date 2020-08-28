@@ -338,7 +338,7 @@ def test_parse_datetime(input, expected):
 def mock_awaitable_context():
     open_mock, close_mock = AsyncMock(), AsyncMock()
     return utils.AwaitableContext(
-        open_coro=lambda: open_mock, close_coro=lambda: close_mock, return_value=1,
+        open_coro=lambda: open_mock, close_coro=lambda: close_mock, return_value=1
     )
 
 

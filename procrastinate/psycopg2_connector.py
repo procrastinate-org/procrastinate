@@ -136,9 +136,7 @@ class Psycopg2Connector(connector.BaseConnector):
         final_args.update(pool_args)
         return final_args
 
-    def open(
-        self, pool: Optional[psycopg2.pool.AbstractConnectionPool] = None,
-    ) -> None:
+    def open(self, pool: Optional[psycopg2.pool.AbstractConnectionPool] = None) -> None:
         """
         Instantiate the pool.
 

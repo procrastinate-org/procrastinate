@@ -17,9 +17,7 @@ def get_channel_for_queues(queues: Optional[Iterable[str]] = None) -> Iterable[s
 
 
 class JobStore:
-    def __init__(
-        self, connector: connector.BaseConnector,
-    ):
+    def __init__(self, connector: connector.BaseConnector):
         self.connector = connector
 
     async def defer_job_async(self, job: jobs.Job) -> int:
@@ -142,7 +140,7 @@ class JobStore:
         )
 
     async def listen_for_jobs(
-        self, *, event: asyncio.Event, queues: Optional[Iterable[str]] = None,
+        self, *, event: asyncio.Event, queues: Optional[Iterable[str]] = None
     ) -> None:
         await self.connector.listen_notify(
             event=event, channels=get_channel_for_queues(queues=queues)

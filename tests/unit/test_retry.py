@@ -57,7 +57,11 @@ def test_get_schedule_in_time(
 
 
 @pytest.mark.parametrize(
-    "exception, expected", [(ValueError(), 0), (KeyError(), None)],
+    "exception, expected",
+    [
+        (ValueError(), 0),
+        (KeyError(), None),
+    ],
 )
 def test_get_schedule_in_exception(exception, expected):
     strategy = retry_module.RetryStrategy(retry_exceptions=[ValueError])

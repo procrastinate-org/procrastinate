@@ -6,7 +6,7 @@ from procrastinate import shell as shell_module
 
 @pytest.fixture
 def shell(connector):
-    return shell_module.ProcrastinateShell(admin.Admin(connector=connector),)
+    return shell_module.ProcrastinateShell(admin.Admin(connector=connector))
 
 
 def test_exit(shell):

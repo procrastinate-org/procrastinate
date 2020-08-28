@@ -330,7 +330,7 @@ def configure_task(
     default=True,
 )
 @click.option(
-    "--read", "action", flag_value="read", help="Read the schema SQL and output it",
+    "--read", "action", flag_value="read", help="Read the schema SQL and output it"
 )
 @click.option(
     "--migrations-path",
