@@ -64,9 +64,7 @@ async def test_process_job(
 
     await test_worker.process_job(job=job)
 
-    test_worker.run_job.assert_called_with(
-        job=job, worker_id=0,
-    )
+    test_worker.run_job.assert_called_with(job=job, worker_id=0)
     assert connector.jobs[1]["status"] == status
 
 

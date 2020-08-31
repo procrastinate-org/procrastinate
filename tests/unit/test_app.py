@@ -101,7 +101,7 @@ def test_app_worker(app, mocker):
     app._worker(queues=["yay"], name="w1", wait=False)
 
     Worker.assert_called_once_with(
-        queues=["yay"], app=app, name="w1", timeout=12, wait=False,
+        queues=["yay"], app=app, name="w1", timeout=12, wait=False
     )
 
 
@@ -143,7 +143,7 @@ def test_app_configure_task_unknown_allowed(app):
 
     scheduled_at = conftest.aware_datetime(2000, 1, 1)
     job = app.configure_task(
-        name="my_name", lock="sher", schedule_at=scheduled_at, task_kwargs={"a": 1},
+        name="my_name", lock="sher", schedule_at=scheduled_at, task_kwargs={"a": 1}
     ).job
 
     assert job.task_name == "my_name"

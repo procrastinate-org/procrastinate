@@ -82,7 +82,7 @@ class Worker:
 
     def periodic_deferrer(self):
         return utils.task_context(
-            awaitable=self.app.periodic_deferrer.worker(), name="periodic_deferrer",
+            awaitable=self.app.periodic_deferrer.worker(), name="periodic_deferrer"
         )
 
     async def run(self) -> None:

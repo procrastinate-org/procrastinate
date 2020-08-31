@@ -188,7 +188,7 @@ class Admin:
             ``lock``, ``args``, ``status``, ``scheduled_at``, ``attempts``).
         """
         await self.connector.execute_query_async(
-            query=sql.queries["set_job_status"], id=id, status=status,
+            query=sql.queries["set_job_status"], id=id, status=status
         )
         (result,) = await self.list_jobs_async(id=id)
         return result

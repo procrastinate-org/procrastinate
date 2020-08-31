@@ -107,13 +107,13 @@ class PeriodicDeferrer:
             name = task.name
 
             for timestamp in self.get_timestamps(
-                periodic_task=periodic_task, since=self.last_defers.get(name), until=at,
+                periodic_task=periodic_task, since=self.last_defers.get(name), until=at
             ):
                 self.last_defers[name] = timestamp
                 yield task, timestamp
 
     def get_timestamps(
-        self, periodic_task: PeriodicTask, since: Optional[int], until: float,
+        self, periodic_task: PeriodicTask, since: Optional[int], until: float
     ) -> Iterable[int]:
         cron_iterator = periodic_task.croniter()
         if since:

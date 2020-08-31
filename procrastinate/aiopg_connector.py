@@ -236,7 +236,7 @@ class AiopgConnector(connector.BaseAsyncConnector):
     @wrap_exceptions
     @wrap_query_exceptions
     async def _execute_query_connection(
-        self, query: str, connection: aiopg.Connection, **arguments: Any,
+        self, query: str, connection: aiopg.Connection, **arguments: Any
     ) -> None:
         async with connection.cursor() as cursor:
             await cursor.execute(query, self._wrap_json(arguments))
