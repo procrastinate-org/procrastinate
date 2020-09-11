@@ -2,6 +2,7 @@ admin
 app
 async
 asynchronicity
+attrs
 backend
 backoff
 builtin
@@ -19,7 +20,9 @@ Dramatiq
 enqueued
 executables
 formatters
+GitHub
 Godwin
+healthcheck
 healthchecks
 linting
 localhost
@@ -28,8 +31,10 @@ namespaces
 pre
 programmatically
 pycharm
+PyPI
 queueing
 quickstart
+readme
 reimplement
 schemas
 suboptimal

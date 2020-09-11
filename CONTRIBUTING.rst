@@ -428,7 +428,7 @@ relevant edits to the changelog, (see ``TODO``) including listing the migrations
 for the release. Click on Release, that's it, the rest is automated.
 
 When creating the release, GitHub will save the release info and create a tag with
-the provided version. The new tag will be seen by Github Actions, which will then
+the provided version. The new tag will be seen by GitHub Actions, which will then
 create a wheel (using the tag as version number, thanks to our ``setup.py``), and push
 it to PyPI (using the new API tokens). That tag should also trigger a ReadTheDocs
 build, which will read GitHub releases (thanks to our ``changelog`` extension)
