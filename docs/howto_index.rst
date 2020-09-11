@@ -26,6 +26,7 @@ How to...
     howto/logging
     howto/testing
     howto/deployment
+    howto/migrations
     howto/monitoring
     howto/remove_old_jobs
     howto/connections
