@@ -27,7 +27,6 @@ middleware
 namespaces
 pre
 programmatically
-pum
 pycharm
 queueing
 quickstart

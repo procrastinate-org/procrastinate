@@ -228,10 +228,6 @@ The name of migration scripts must follow a specific pattern:
 
     delta_x.y.z_abc_very_short_description_of_your_changes.sql
 
-We follow the conventions and rules of the `Pum`_ (PostgreSQL Updates Manager) project.
-
-.. _`Pum`: https://github.com/opengisch/pum/
-
 ``x.y.z`` is the number of the latest released version of Procrastinate. (The latest
 release is the one marked ``Latest release`` on the `Procrastinate releases`_ page.)
 ``abc`` is the migration script's serial number, ``001`` being the first number in the
