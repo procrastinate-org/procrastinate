@@ -1,3 +1,5 @@
+from typing import Type
+
 import procrastinate
 
 USE_ASYNC = True
@@ -5,6 +7,7 @@ USE_ASYNC = True
 
 import_paths = ["procrastinate_demo.tasks"]
 
+connector_class: Type[procrastinate.BaseConnector]
 if USE_ASYNC:
     connector_class = procrastinate.AiopgConnector
 else:
