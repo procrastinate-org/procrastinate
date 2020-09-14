@@ -22,6 +22,7 @@ How to...
     howto/events
     howto/async
     howto/sync_defer
+    howto/django
     howto/logging
     howto/testing
     howto/deployment

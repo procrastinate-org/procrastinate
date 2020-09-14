@@ -68,3 +68,9 @@ Administration
 .. autoclass:: procrastinate.admin.Admin
     :members: list_jobs, list_jobs_async, list_queues, list_queues_async,
               list_tasks, list_tasks_async, set_job_status, set_job_status_async
+
+
+Django
+------
+
+.. autofunction:: procrastinate.contrib.django.connector_params

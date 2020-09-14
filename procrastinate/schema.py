@@ -1,6 +1,6 @@
 import pathlib
 
-from importlib_resources import read_text
+import importlib_resources
 
 from procrastinate import connector as connector_module
 
@@ -14,7 +14,7 @@ class SchemaManager:
 
     @staticmethod
     def get_schema() -> str:
-        return read_text("procrastinate.sql", "schema.sql")
+        return importlib_resources.read_text("procrastinate.sql", "schema.sql")
 
     @staticmethod
     def get_migrations_path() -> str:
@@ -23,7 +23,3 @@ class SchemaManager:
     def apply_schema(self) -> None:
         queries = self.get_schema()
         self.connector.execute_query(query=queries)
-
-
-def get_sql(migration) -> str:
-    return read_text("procrastinate.sql.migrations", migration)
