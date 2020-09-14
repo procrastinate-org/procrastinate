@@ -42,4 +42,4 @@ def test_run_procrastinate_file_describe():
 
 
 def test_connector_params():
-    assert utils.connector_params() == {"database": os.environ["PGDATABASE"]}
+    assert "database" in utils.connector_params()
