@@ -11,12 +11,12 @@ This tells pip to consider the extra dependencies from the group of dependencies
 ``django``. For now, this group only contains Django itself, which you likely already
 have in your project's dependencies. So why bother?
 
-Specifying your dependency to the "``django`` extras" will ensure that your Django version
-and the one we support stay in sync through time (for now, we support every version, but
-if we learn of strong incompatibilities, we'll update the lib: we're considering every
-version is compatible until proven otherwise). Also, while this is not the case today,
-if our Django integration ever requires other third-party packages, they will be added
-here.
+Specifying your dependency to the "``django`` extras" will ensure that your Django
+version and the one we support stay in sync through time (for now, we support every
+version, but if we learn of strong incompatibilities, we'll update the lib: we're
+considering every version is compatible until proven otherwise). Also, while this is not
+the case today, if our Django integration ever requires other third-party packages, they
+will be added here.
 
 Add Procrastinate in your ``INSTALLED_APPS``::
 
