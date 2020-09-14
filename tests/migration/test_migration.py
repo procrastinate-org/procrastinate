@@ -1,66 +1,64 @@
-import os
+import contextlib
 import pathlib
-import subprocess
+import re
 import uuid
 
+import pkg_resources
 import pytest
 from django.core.management import call_command
 from django.db import connection
+from migra import Migration
+from sqlalchemy.pool import NullPool
+from sqlbag import S
 
 from procrastinate import aiopg_connector, schema
 
 BASELINE = "0.5.0"
 
+DELTA_REGEX = re.compile(r"^delta_(\d+\.\d+\.\d+)_(\w*)\.sql")
 
-# Pum config file is currently broken (https://github.com/opengisch/pum/issues/5)
-# When it's fixed, we can add a config file here, and then get rid of omit_table_dir
+
 @pytest.fixture
-def pum():
+def run_migrations(db_execute):
+    def _(dbname):
+        def key_fn(script):
+            match = DELTA_REGEX.match(script.name)
+            return (pkg_resources.parse_version(match.group(1)), match.group(2))
 
-    env = {**os.environ, "PGSERVICEFILE": "tests/migration/pgservice.ini"}
+        scripts = pathlib.Path("procrastinate/sql/migrations").glob("delta_*.sql")
+        scripts = sorted(scripts, key=key_fn)
 
-    def _(command, args: str, omit_table_dir=False):
-        first_args = ["pum", command]
-        if not omit_table_dir:
-            first_args.extend(
-                ["--table=public.pum", "--dir=procrastinate/sql/migrations"]
-            )
-        return subprocess.run(first_args + args.split(), check=True, env=env)
+        for script in scripts:
+            with db_execute(dbname) as execute:
+                execute(script.read_text())
 
     return _
 
 
 @pytest.fixture
-def schema_database(db_factory, pum):
+def schema_database(db_factory):
     dbname = "procrastinate_schema"
     db_factory(dbname=dbname)
 
-    # apply the current procrastinate schema to procrastinate_schema
+    # apply the current procrastinate schema to the "procrastinate_schema" database
     connector = aiopg_connector.AiopgConnector(dbname=dbname)
     connector.open()
     schema_manager = schema.SchemaManager(connector=connector)
     schema_manager.apply_schema()
     connector.close()
 
-    # set the baseline version in procrastinate_schema
-    # This db is as far as can be.
-    pum("baseline", f"--pg_service {dbname} --baseline 999.999.999")
-
     return dbname
 
 
 @pytest.fixture
-def migrations_database(db_factory, db_execute, pum):
+def migrations_database(db_factory, db_execute):
     dbname = "procrastinate_migrations"
     db_factory(dbname=dbname)
 
-    # apply the baseline schema to procrastinate_migrations
+    # apply the baseline schema to the "procrastinate_migrations" database
     with db_execute(dbname) as execute:
         with open(f"procrastinate/sql/migrations/baseline-{BASELINE}.sql") as file:
             execute(file.read())
-
-    # set the baseline version in procrastinate_migrations
-    pum("baseline", f"--pg_service {dbname} --baseline {BASELINE}")
 
     return dbname
 
@@ -70,22 +68,29 @@ def django_db(db):
     yield db
 
 
-def test_migration(schema_database, migrations_database, pum):
+def test_migration(schema_database, migrations_database, run_migrations):
     # apply the migrations on the migrations_database database
-    pum("upgrade", f"--pg_service {migrations_database}")
+    run_migrations(migrations_database)
 
-    # check that the schema_database and migrations_database have
-    # the same schema
-    proc = pum(
-        "check",
-        f"--pg_service1={schema_database} --pg_service2={migrations_database} "
-        "--verbose_level=2",
-        omit_table_dir=True,
-    )
+    # use migra to verify that the databases "schema_database" and "migrations_database"
+    # have nos differences
 
-    # pum check exits with a non-zero return code if the databases don't have
-    # the same schema
-    assert proc.returncode == 0
+    with contextlib.ExitStack() as stack:
+
+        # we use a NullPool to avoid issues when dropping the databases because
+        # of opened database sessions
+        schema_db_session = stack.enter_context(
+            S(f"postgresql:///{schema_database}", poolclass=NullPool)
+        )
+        migrations_db_session = stack.enter_context(
+            S(f"postgresql:///{migrations_database}", poolclass=NullPool)
+        )
+        m = Migration(schema_db_session, migrations_db_session)
+        m.set_safety(False)
+        m.add_all_changes()
+
+    print(m.sql)
+    assert not m.statements
 
 
 def test_django_migrations_run_properly(django_db):
