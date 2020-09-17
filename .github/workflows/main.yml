@@ -64,7 +64,6 @@ jobs:
           --health-timeout 5s
         ports:
           - 5432:5432
-        command: ["-c", "fsync=off"]
 
     steps:
       - uses: actions/checkout@v2
