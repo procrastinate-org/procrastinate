@@ -21,3 +21,4 @@ services:
     environment:
         POSTGRES_DB: procrastinate
         POSTGRES_PASSWORD: password
+    command: ["-c", "fsync=off"]
