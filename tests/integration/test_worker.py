@@ -68,11 +68,12 @@ async def test_run_log_current_job_when_stopping(app, running_worker, caplog):
         pytest.fail("Failed to launch task within .5s")
 
     # We want to make sure that the log that names the current running task fired.
-    assert {
-        "Stop requested",
-        "Waiting for job to finish: worker 0: tests.integration.test_worker.t[1]() "
-        "(started 0.000 s ago)",
-    } <= set(r.message for r in caplog.records)
+    logs = " ".join(r.message for r in caplog.records)
+    assert "Stop requested" in logs
+    assert (
+        "Waiting for job to finish: worker 0: tests.integration.test_worker.t[1]()"
+        in logs
+    )
 
 
 async def test_run_no_listen_notify(app):
