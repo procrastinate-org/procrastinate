@@ -53,7 +53,7 @@ jobs:
 
     services:
       postgres:
-        image: postgres:10
+        image: postgres:12
         env:
           POSTGRES_DB: procrastinate
           POSTGRES_PASSWORD: password
