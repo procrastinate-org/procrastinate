@@ -22,6 +22,7 @@ echo ""
 
 if ! ls .venv/lib/python*/site-packages/procrastinate.egg-link 1>/dev/null 2>&1; then
     echo "Installing package for development"
+    pip install dunamai
     pip install -r requirements.txt
 fi
 

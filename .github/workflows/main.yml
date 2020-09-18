@@ -112,7 +112,7 @@ jobs:
         run: |
           set -xeu
           python -VV
-          pip install setuptools wheel
+          pip install setuptools wheel dunamai
       - name: Build the wheel
         run: python setup.py sdist bdist_wheel
       - name: Publish to PyPI

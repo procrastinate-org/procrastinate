@@ -1,7 +1,6 @@
 import contextlib
 import os
 import pathlib
-import subprocess
 
 import setuptools
 
@@ -19,19 +18,12 @@ def ensure_version():
         pass
 
     # If running from the git repository
-    try:
-        version = (
-            subprocess.check_output(["git", "describe", "--tags"])
-            .decode("utf-8")
-            .strip()
-            .replace("-", "+", 1)
-            .replace("-", ".")
-        )
-    except subprocess.CalledProcessError:
-        # This might happen in some rare cases, like when running check-manifest.
-        # We'll update this to something better if it ever proves problematic.
-        yield "0.0.0"
-        return
+    import dunamai
+
+    version_pattern = (
+        r"^(?P<base>\d+\.\d+\.\d+)(-?((?P<stage>[a-zA-Z]+)\.?(?P<revision>\d+)?))?$"
+    )
+    version = dunamai.Version.from_git(pattern=version_pattern).serialize()
 
     try:
         with open(version_filename, "w") as f:
