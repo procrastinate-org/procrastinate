@@ -92,15 +92,12 @@ jobs:
         with:
           fail_ci_if_error: true
 
-  report-success:
-    name: Report success in Github Checks
+  report-status:
+    name: ${{ github.event_name }}-success
     runs-on: ubuntu-latest
     needs:
       - check-lint
       - tests
     steps:
-      - uses: LouisBrunner/checks-action@v0.1.0
-        with:
-          name: Test
-          token: ${{ secrets.GITHUB_TOKEN }}
-          conclusion: ${{ job.status }}
+      - name: Report success
+        run: echo 'Success !'
