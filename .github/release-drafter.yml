@@ -1,5 +1,6 @@
-name-template: '$RESOLVED_VERSION: TODO: set meaningful title - UNRELEASED'
-tag-template: '$RESOLVED_VERSION'
+name-template: '$NEXT_MINOR_VERSION: TODO: set meaningful title - UNRELEASED'
+tag-template: '$NEXT_MINOR_VERSION'
+change-template: '- $TITLE (#$NUMBER)'
 categories:
   - title: 'Breaking changes'
     label: 'PR type: breaking'
@@ -9,15 +10,6 @@ categories:
     label: 'PR type: bugfix'
   - title: 'Miscellaneous'
     label: 'PR type: miscellaneous'
-change-template: '- $TITLE (#$NUMBER)'
-version-resolver:
-  default: minor
-  major:
-    label: 'PR scope: major'
-  minor:
-    label: 'PR scope: minor'
-  patch:
-    label: 'PR scope: incremental'
 exclude-labels:
 - 'PR: Skip changelog'
 template: |
