@@ -45,3 +45,22 @@ For example, to use a queueing lock:
 
 The call to ``defer`` will raise an `AlreadyEnqueued` exception if there already is
 a "remove_old_jobs" job waiting in the queue, which you may want to catch and ignore.
+
+As mentioned in the previous section you may want to run ``remove_old_jobs``
+periodically. For that you may use a Unix cron, or rely on Procrastinate's "periodic
+tasks" functionality. This is how you can make ``remove_old_jobs`` periodic:
+
+.. code-block:: python
+
+    @app.periodic(cron="0 4 * * *")
+    @app.task(queueing_lock="remove_old_jobs", pass_context=True)
+    async def remove_old_jobs(context, timestamp):
+        return await app.builtin_tasks["remove_old_jobs"](
+            context=context,
+            max_hours=72,
+            remove_error=True,
+        )
+
+With this you define your own ``remove_old_jobs`` task, which relies on Procrastinate's
+builtin ``remove_old_jobs`` task function. The task is periodic, and configured to be
+deferred every day at 4 am.
