@@ -44,10 +44,10 @@ class AppNotOpen(ProcrastinateException):
     """
     App was not open. Procrastinate App needs to be opened using:
 
-    - ``App.open``,
-    - ``App.open_async``,
-    - ``with App():``,
-    - ``async with App():``.
+    - ``app.open()``,
+    - ``await app.open_async()``,
+    - ``with app.open():``,
+    - ``async with app.open_async():``.
     """
 
 
