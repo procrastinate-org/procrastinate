@@ -162,7 +162,7 @@ def close_connection(procrastinate_app: procrastinate.App, *args, **kwargs):
     "terminate or to wait for new jobs",
 )
 @click.option(
-    "-w",
+    "-l",
     "--listen-notify/--no-listen-notify",
     default=True,
     help="Whether to actively listen for new jobs or periodically poll",
