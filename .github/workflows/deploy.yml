@@ -18,7 +18,7 @@ jobs:
         id: wait-for-ci
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          checkName: push-success
+          checkName: success
       - name: Exit if CI did not succeed
         if: steps.wait-for-ci.outputs.conclusion != 'success'
         run: exit 1
