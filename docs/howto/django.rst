@@ -34,7 +34,7 @@ Configure your procrastinate app from your Django settings::
         connector=procrastinate.Psycopg2Connector(**connector_params())
     )
 
-(See `connector` for more on how to instanciate your connector.)
+(See `connector` for more on how to instantiate your connector.)
 
 Procrastinate comes with its own migrations so don't forget to run ``./manage.py
 migrate``.

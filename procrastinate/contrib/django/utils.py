@@ -50,7 +50,7 @@ def connector_params(alias: str = "default") -> Dict[str, Any]:
     Returns
     -------
     ``Dict[str, Any]``
-        Provide these keyword arguments when instanciating your connector
+        Provide these keyword arguments when instantiating your connector
     """
     wrapper = connections[alias]
     return wrapper.get_connection_params()
