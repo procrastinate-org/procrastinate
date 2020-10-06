@@ -7,9 +7,6 @@ on:
     tags:
       - '*'
   pull_request:
-  release:
-    types:
-      - published
 
 jobs:
   check-lint:
@@ -95,28 +92,12 @@ jobs:
         with:
           fail_ci_if_error: true
 
-  deploy:
-    name: Publish package to PyPI
+  report-status:
+    name: success
     runs-on: ubuntu-latest
     needs:
       - check-lint
       - tests
-    if: (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')) || github.event_name == 'release'
     steps:
-      - uses: actions/checkout@v2
-      - name: Setup Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: 3.x
-      - name: Install dependencies
-        run: |
-          set -xeu
-          python -VV
-          pip install -U pip build
-      - name: Build the wheel
-        run: python -m build --sdist --wheel
-      - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@master
-        with:
-          user: __token__
-          password: ${{ secrets.PYPI_TOKEN }}
+      - name: Report success
+        run: echo 'Success !'
