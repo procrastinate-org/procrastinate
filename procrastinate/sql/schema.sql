@@ -124,10 +124,16 @@ BEGIN
 
     DELETE
         FROM procrastinate_periodic_defers
-        WHERE
-            _job_id IS NOT NULL
-            AND procrastinate_periodic_defers.task_name = _task_name
-            AND procrastinate_periodic_defers.defer_timestamp < _defer_timestamp;
+        USING (
+            SELECT id
+            FROM procrastinate_periodic_defers
+            WHERE procrastinate_periodic_defers.task_name = _task_name
+            AND procrastinate_periodic_defers.queue_name = _queue_name
+            AND procrastinate_periodic_defers.defer_timestamp < _defer_timestamp
+            ORDER BY id
+            FOR UPDATE
+        ) to_delete
+        WHERE procrastinate_periodic_defers.id = to_delete.id;
 
     RETURN _job_id;
 END;
