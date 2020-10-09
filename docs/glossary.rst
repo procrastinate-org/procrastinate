@@ -51,15 +51,15 @@ Let's go through a few words and their meaning.
         job store will store your jobs in your PostgreSQL database.
 
     Schema
-        The schema designates all the tables, relations, indexes, procedures, etc. in the
-        database. Applying the schema means installing all those objects in the database.
-        An evolution in the schema (modifying the table structure, or the procedures) is
-        called a migration.
+        The schema designates all the tables, relations, indexes, procedures, etc. in
+        the database. Applying the schema means installing all those objects in the
+        database. An evolution in the schema (modifying the table structure, or the
+        procedures) is called a migration.
 
-        This term is not to be confused with that of PostgreSQL. In PostgreSQL a database
-        contains one or more *schemas*, which in turn contains tables. Schemas in PostgreSQL
-        are namespaces for objects of the database. See the `PostgreSQL Schema
-        documentation`_ for more detail.
+        This term is not to be confused with that of PostgreSQL. In PostgreSQL a
+        database contains one or more *schemas*, which in turn contains tables. Schemas
+        in PostgreSQL are namespaces for objects of the database. See the `PostgreSQL
+        Schema documentation`_ for more detail.
 
     Lock
         When configuring a job using `Task.configure` you can attach a lock to the job.
