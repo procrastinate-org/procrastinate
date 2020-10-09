@@ -39,40 +39,40 @@ async def test_task_defer_async(app, connector):
     }
 
 
-def test_configure_task(job_store):
+def test_configure_task(job_manager):
     job = tasks.configure_task(
-        name="my_name", job_store=job_store, lock="sher", task_kwargs={"yay": "ho"}
+        name="my_name", job_manager=job_manager, lock="sher", task_kwargs={"yay": "ho"}
     ).job
 
     assert job.lock == "sher"
     assert job.task_kwargs == {"yay": "ho"}
 
 
-def test_configure_task_schedule_at(job_store):
+def test_configure_task_schedule_at(job_manager):
     job = tasks.configure_task(
         name="my_name",
-        job_store=job_store,
+        job_manager=job_manager,
         schedule_at=conftest.aware_datetime(2000, 1, 1, tz_offset=1),
     ).job
 
     assert job.scheduled_at == conftest.aware_datetime(2000, 1, 1, tz_offset=1)
 
 
-def test_configure_task_schedule_in(job_store, mocker):
+def test_configure_task_schedule_in(job_manager, mocker):
     now = conftest.aware_datetime(2000, 1, 1, tz_offset=1)
     mocker.patch.object(utils, "utcnow", return_value=now)
     job = tasks.configure_task(
-        name="my_name", job_store=job_store, schedule_in={"hours": 2}
+        name="my_name", job_manager=job_manager, schedule_in={"hours": 2}
     ).job
 
     assert job.scheduled_at == conftest.aware_datetime(2000, 1, 1, 2, tz_offset=1)
 
 
-def test_configure_task_schedule_in_and_schedule_at(job_store):
+def test_configure_task_schedule_in_and_schedule_at(job_manager):
     with pytest.raises(ValueError):
         tasks.configure_task(
             name="my_name",
-            job_store=job_store,
+            job_manager=job_manager,
             schedule_at=conftest.aware_datetime(2000, 1, 1, tz_offset=1),
             schedule_in={"hours": 2},
         )

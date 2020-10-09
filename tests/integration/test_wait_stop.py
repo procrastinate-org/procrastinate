@@ -67,7 +67,7 @@ async def test_wait_for_activity_stop_from_signal(aiopg_connector, kill_own_pid)
 @pytest.mark.asyncio
 async def test_wait_for_activity_stop(aiopg_connector):
     """
-    Testing than calling job_store.stop() interrupts the wait
+    Testing than calling job_manager.stop() interrupts the wait
     """
     pg_app = app.App(connector=aiopg_connector)
     worker = worker_module.Worker(app=pg_app, timeout=2)

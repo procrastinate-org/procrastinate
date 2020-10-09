@@ -2,7 +2,7 @@ import attr
 import pytest
 
 from procrastinate import admin as admin_module
-from procrastinate import jobs, store
+from procrastinate import jobs, manager
 
 pytestmark = pytest.mark.asyncio
 
@@ -13,12 +13,12 @@ def admin(aiopg_connector):
 
 
 @pytest.fixture
-def pg_job_store(aiopg_connector):
-    return store.JobStore(connector=aiopg_connector)
+def pg_job_manager(aiopg_connector):
+    return manager.JobManager(connector=aiopg_connector)
 
 
 @pytest.fixture
-async def fixture_jobs(pg_job_store, job_factory):
+async def fixture_jobs(pg_job_manager, job_factory):
     j1 = job_factory(
         queue="q1",
         lock="lock1",
@@ -26,7 +26,7 @@ async def fixture_jobs(pg_job_store, job_factory):
         task_name="task_foo",
         task_kwargs={"key": "a"},
     )
-    j1 = attr.evolve(j1, id=await pg_job_store.defer_job_async(j1))
+    j1 = attr.evolve(j1, id=await pg_job_manager.defer_job_async(j1))
 
     j2 = job_factory(
         queue="q1",
@@ -35,8 +35,8 @@ async def fixture_jobs(pg_job_store, job_factory):
         task_name="task_bar",
         task_kwargs={"key": "b"},
     )
-    j2 = attr.evolve(j2, id=await pg_job_store.defer_job_async(j2))
-    await pg_job_store.finish_job(j2, jobs.Status.FAILED)
+    j2 = attr.evolve(j2, id=await pg_job_manager.defer_job_async(j2))
+    await pg_job_manager.finish_job(j2, jobs.Status.FAILED)
 
     j3 = job_factory(
         queue="q2",
@@ -45,13 +45,13 @@ async def fixture_jobs(pg_job_store, job_factory):
         task_name="task_foo",
         task_kwargs={"key": "c"},
     )
-    j3 = attr.evolve(j3, id=await pg_job_store.defer_job_async(j3))
-    await pg_job_store.finish_job(j3, jobs.Status.SUCCEEDED)
+    j3 = attr.evolve(j3, id=await pg_job_manager.defer_job_async(j3))
+    await pg_job_manager.finish_job(j3, jobs.Status.SUCCEEDED)
 
     return [j1, j2, j3]
 
 
-async def test_list_jobs_dict(fixture_jobs, admin, pg_job_store):
+async def test_list_jobs_dict(fixture_jobs, admin, pg_job_manager):
     j1, *_ = fixture_jobs
     assert (await admin.list_jobs_async())[0] == {
         "id": j1.id,
