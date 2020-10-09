@@ -15,5 +15,5 @@ To use it, you can do::
     # See the jobs created:
     print(app.connector.jobs)
 
-    # Reset the store between tests:
+    # Reset the "in-memory pseudo-database" between tests:
     app.connector.reset()

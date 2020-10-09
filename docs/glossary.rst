@@ -43,12 +43,12 @@ Let's go through a few words and their meaning.
     App
     Application
         This is meant to be the main entry point of Procrastinate. The app knows
-        all the tasks of your project, and thanks to the job store, it knows how
+        all the tasks of your project, and thanks to the job manager, it knows how
         to launch jobs to execute your tasks (see `App`).
 
-    Job Store
-        The job store responsibility is to store and retrieve jobs. In Procrastinate, the
-        job store will store your jobs in your PostgreSQL database.
+    Job Manager
+        The job manager responsibility is to operate on jobs in the database. This
+        includes both read and write operations.
 
     Schema
         The schema designates all the tables, relations, indexes, procedures, etc. in
