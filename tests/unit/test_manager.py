@@ -9,8 +9,8 @@ from .. import conftest
 pytestmark = pytest.mark.asyncio
 
 
-async def test_store_defer_job(job_store, job_factory, connector):
-    job_row = await job_store.defer_job_async(
+async def test_manager_defer_job(job_manager, job_factory, connector):
+    job_row = await job_manager.defer_job_async(
         job=job_factory(
             task_kwargs={"a": "b"}, queue="marsupilami", task_name="bla", lock="sher"
         )
@@ -33,25 +33,25 @@ async def test_store_defer_job(job_store, job_factory, connector):
     }
 
 
-async def test_store_defer_job_no_lock(job_store, job_factory, connector):
-    await job_store.defer_job_async(job=job_factory())
+async def test_manager_defer_job_no_lock(job_manager, job_factory, connector):
+    await job_manager.defer_job_async(job=job_factory())
 
     assert uuid.UUID(connector.jobs[1]["lock"])
 
 
-async def test_store_defer_job_connector_exception(
-    mocker, job_store, job_factory, connector
+async def test_manager_defer_job_connector_exception(
+    mocker, job_manager, job_factory, connector
 ):
     connector.execute_query_one_async = mocker.Mock(
         side_effect=exceptions.ConnectorException
     )
 
     with pytest.raises(exceptions.ConnectorException):
-        await job_store.defer_job_async(job=job_factory(task_kwargs={"a": "b"}))
+        await job_manager.defer_job_async(job=job_factory(task_kwargs={"a": "b"}))
 
 
-async def test_store_defer_job_unique_violation_exception(
-    mocker, job_store, job_factory, connector
+async def test_manager_defer_job_unique_violation_exception(
+    mocker, job_manager, job_factory, connector
 ):
     connector.execute_query_one_async = mocker.Mock(
         side_effect=exceptions.UniqueViolation(
@@ -60,42 +60,42 @@ async def test_store_defer_job_unique_violation_exception(
     )
 
     with pytest.raises(exceptions.AlreadyEnqueued):
-        await job_store.defer_job_async(job=job_factory(task_kwargs={"a": "b"}))
+        await job_manager.defer_job_async(job=job_factory(task_kwargs={"a": "b"}))
 
 
-async def test_store_defer_job_unique_violation_exception_other_constraint(
-    mocker, job_store, job_factory, connector
+async def test_manager_defer_job_unique_violation_exception_other_constraint(
+    mocker, job_manager, job_factory, connector
 ):
     connector.execute_query_one_async = mocker.Mock(
         side_effect=exceptions.UniqueViolation(constraint_name="some_other_constraint")
     )
 
     with pytest.raises(exceptions.ConnectorException):
-        await job_store.defer_job_async(job=job_factory(task_kwargs={"a": "b"}))
+        await job_manager.defer_job_async(job=job_factory(task_kwargs={"a": "b"}))
 
 
-async def test_fetch_job_no_suitable_job(job_store):
-    assert await job_store.fetch_job(queues=None) is None
+async def test_fetch_job_no_suitable_job(job_manager):
+    assert await job_manager.fetch_job(queues=None) is None
 
 
-async def test_fetch_job(job_store, job_factory):
+async def test_fetch_job(job_manager, job_factory):
     job = job_factory(id=1)
-    await job_store.defer_job_async(job=job)
-    assert await job_store.fetch_job(queues=None) == job
+    await job_manager.defer_job_async(job=job)
+    assert await job_manager.fetch_job(queues=None) == job
 
 
-async def test_get_stalled_jobs_not_stalled(job_store, job_factory):
+async def test_get_stalled_jobs_not_stalled(job_manager, job_factory):
     job = job_factory(id=1)
-    await job_store.defer_job_async(job=job)
-    assert await job_store.get_stalled_jobs(nb_seconds=1000) == []
+    await job_manager.defer_job_async(job=job)
+    assert await job_manager.get_stalled_jobs(nb_seconds=1000) == []
 
 
-async def test_get_stalled_jobs_stalled(job_store, job_factory, connector):
+async def test_get_stalled_jobs_stalled(job_manager, job_factory, connector):
     job = job_factory(id=1)
-    await job_store.defer_job_async(job=job)
-    await job_store.fetch_job(queues=None)
+    await job_manager.defer_job_async(job=job)
+    await job_manager.fetch_job(queues=None)
     connector.events[1][-1]["at"] = conftest.aware_datetime(2000, 1, 1)
-    assert await job_store.get_stalled_jobs(nb_seconds=1000) == [job]
+    assert await job_manager.get_stalled_jobs(nb_seconds=1000) == [job]
 
 
 @pytest.mark.parametrize(
@@ -103,10 +103,10 @@ async def test_get_stalled_jobs_stalled(job_store, job_factory, connector):
     [(False, ("succeeded",)), (True, ("succeeded", "failed"))],
 )
 async def test_delete_old_jobs(
-    job_store, job_factory, connector, include_error, statuses, mocker
+    job_manager, job_factory, connector, include_error, statuses, mocker
 ):
 
-    await job_store.delete_old_jobs(
+    await job_manager.delete_old_jobs(
         nb_hours=5, queue="marsupilami", include_error=include_error
     )
     assert connector.queries == [
@@ -117,12 +117,14 @@ async def test_delete_old_jobs(
     ]
 
 
-async def test_finish_job(job_store, job_factory, connector):
+async def test_finish_job(job_manager, job_factory, connector):
     job = job_factory(id=1)
-    await job_store.defer_job_async(job=job)
+    await job_manager.defer_job_async(job=job)
     retry_at = conftest.aware_datetime(2000, 1, 1)
 
-    await job_store.finish_job(job=job, status=jobs.Status.TODO, scheduled_at=retry_at)
+    await job_manager.finish_job(
+        job=job, status=jobs.Status.TODO, scheduled_at=retry_at
+    )
     assert connector.queries[-1] == (
         "finish_job",
         {"job_id": 1, "scheduled_at": retry_at, "status": "todo"},
@@ -136,46 +138,46 @@ async def test_finish_job(job_store, job_factory, connector):
         (["a", "b"], ["procrastinate_queue#a", "procrastinate_queue#b"]),
     ],
 )
-async def test_listen_for_jobs(job_store, connector, mocker, queues, channels):
+async def test_listen_for_jobs(job_manager, connector, mocker, queues, channels):
     event = mocker.Mock()
 
-    await job_store.listen_for_jobs(queues=queues, event=event)
+    await job_manager.listen_for_jobs(queues=queues, event=event)
     assert connector.notify_event is event
     assert connector.notify_channels == channels
 
 
-async def test_defer_periodic_job(job_store, connector, app):
+async def test_defer_periodic_job(job_manager, connector, app):
     @app.task
     def foo(timestamp):
         pass
 
-    result = await job_store.defer_periodic_job(foo, 1234567890)
+    result = await job_manager.defer_periodic_job(foo, 1234567890)
     assert result == 1
 
 
-async def test_defer_periodic_job_unique_violation(job_store, connector, app):
+async def test_defer_periodic_job_unique_violation(job_manager, connector, app):
     @app.task(queueing_lock="bla")
     def foo(timestamp):
         pass
 
-    await job_store.defer_periodic_job(foo, 1234567890)
+    await job_manager.defer_periodic_job(foo, 1234567890)
     with pytest.raises(exceptions.AlreadyEnqueued):
-        await job_store.defer_periodic_job(foo, 1234567891)
+        await job_manager.defer_periodic_job(foo, 1234567891)
 
 
-def test_raise_already_enqueued_right_constraint(job_store):
+def test_raise_already_enqueued_right_constraint(job_manager):
     class UniqueViolation(Exception):
         constraint_name = connector.QUEUEING_LOCK_CONSTRAINT
 
     with pytest.raises(exceptions.AlreadyEnqueued) as exc_info:
-        job_store._raise_already_enqueued(exc=UniqueViolation(), queueing_lock="foo")
+        job_manager._raise_already_enqueued(exc=UniqueViolation(), queueing_lock="foo")
 
     assert "queueing lock foo" in str(exc_info.value)
 
 
-def test_raise_already_enqueued_wrong_constraint(job_store):
+def test_raise_already_enqueued_wrong_constraint(job_manager):
     class UniqueViolation(Exception):
         constraint_name = "foo"
 
     with pytest.raises(UniqueViolation):
-        job_store._raise_already_enqueued(exc=UniqueViolation(), queueing_lock="foo")
+        job_manager._raise_already_enqueued(exc=UniqueViolation(), queueing_lock="foo")

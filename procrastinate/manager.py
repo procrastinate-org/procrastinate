@@ -16,7 +16,7 @@ def get_channel_for_queues(queues: Optional[Iterable[str]] = None) -> Iterable[s
         return ["procrastinate_queue#" + queue for queue in queues]
 
 
-class JobStore:
+class JobManager:
     def __init__(self, connector: connector.BaseConnector):
         self.connector = connector
 
