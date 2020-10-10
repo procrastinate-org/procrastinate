@@ -4,9 +4,9 @@ from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, List, Optional,
 
 from procrastinate import admin
 from procrastinate import connector as connector_module
-from procrastinate import exceptions, healthchecks, jobs
+from procrastinate import exceptions, healthchecks, jobs, manager
 from procrastinate import retry as retry_module
-from procrastinate import schema, store, utils
+from procrastinate import schema, utils
 
 if TYPE_CHECKING:
     from procrastinate import tasks, worker
@@ -97,9 +97,9 @@ class App:
         self.worker_defaults = worker_defaults or {}
         periodic_defaults = periodic_defaults or {}
 
-        self.job_store = store.JobStore(connector=self.connector)
+        self.job_manager = manager.JobManager(connector=self.connector)
         self.periodic_deferrer = periodic.PeriodicDeferrer(
-            job_store=self.job_store, **periodic_defaults
+            job_manager=self.job_manager, **periodic_defaults
         )
 
         self._register_builtin_tasks()
@@ -249,7 +249,7 @@ class App:
         except KeyError as exc:
             if allow_unknown:
                 return tasks.configure_task(
-                    name=name, job_store=self.job_store, **kwargs
+                    name=name, job_manager=self.job_manager, **kwargs
                 )
             raise exceptions.TaskNotFound from exc
 

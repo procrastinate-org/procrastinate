@@ -43,23 +43,23 @@ Let's go through a few words and their meaning.
     App
     Application
         This is meant to be the main entry point of Procrastinate. The app knows
-        all the tasks of your project, and thanks to the job store, it knows how
+        all the tasks of your project, and thanks to the job manager, it knows how
         to launch jobs to execute your tasks (see `App`).
 
-    Job Store
-        The job store responsibility is to store and retrieve jobs. In Procrastinate, the
-        job store will store your jobs in your PostgreSQL database.
+    Job Manager
+        The job manager responsibility is to operate on jobs in the database. This
+        includes both read and write operations.
 
     Schema
-        The schema designates all the tables, relations, indexes, procedures, etc. in the
-        database. Applying the schema means installing all those objects in the database.
-        An evolution in the schema (modifying the table structure, or the procedures) is
-        called a migration.
+        The schema designates all the tables, relations, indexes, procedures, etc. in
+        the database. Applying the schema means installing all those objects in the
+        database. An evolution in the schema (modifying the table structure, or the
+        procedures) is called a migration.
 
-        This term is not to be confused with that of PostgreSQL. In PostgreSQL a database
-        contains one or more *schemas*, which in turn contains tables. Schemas in PostgreSQL
-        are namespaces for objects of the database. See the `PostgreSQL Schema
-        documentation`_ for more detail.
+        This term is not to be confused with that of PostgreSQL. In PostgreSQL a
+        database contains one or more *schemas*, which in turn contains tables. Schemas
+        in PostgreSQL are namespaces for objects of the database. See the `PostgreSQL
+        Schema documentation`_ for more detail.
 
     Lock
         When configuring a job using `Task.configure` you can attach a lock to the job.

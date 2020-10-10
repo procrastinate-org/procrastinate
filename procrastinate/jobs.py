@@ -9,7 +9,7 @@ import attr
 from procrastinate import types
 
 if TYPE_CHECKING:
-    from procrastinate import store  # noqa
+    from procrastinate import manager  # noqa
 
 logger = logging.getLogger(__name__)
 
@@ -105,14 +105,14 @@ class Job:
 
 class JobDeferrer:
     """
-    The main purpose of ``JobDeferrer`` is to get a hold of the job_store and the job,
-    so that we can call ``defer`` without having to specify the job_store, and the job
-    doesn't need a job_store property.
+    The main purpose of ``JobDeferrer`` is to get a hold of the job_manager and the job,
+    so that we can call ``defer`` without having to specify the job_manager, and the job
+    doesn't need a job_manager property.
     """
 
-    def __init__(self, job_store: "store.JobStore", job: Job):
+    def __init__(self, job_manager: "manager.JobManager", job: Job):
         self.job = job
-        self.job_store = job_store
+        self.job_manager = job_manager
 
     def make_new_job(self, **task_kwargs: types.JSONValue) -> Job:
         final_kwargs = self.job.task_kwargs.copy()
@@ -140,7 +140,7 @@ class JobDeferrer:
         # Make sure this code stays synchronized with .defer()
         job = self.make_new_job(**task_kwargs)
         self._log_before_defer_job(job=job)
-        id = await self.job_store.defer_job_async(job=job)
+        id = await self.job_manager.defer_job_async(job=job)
         self._log_after_defer_job(job=job.evolve(id=id))
         return id
 
@@ -148,6 +148,6 @@ class JobDeferrer:
         # Make sure this code stays synchronized with .defer_async()
         job = self.make_new_job(**task_kwargs)
         self._log_before_defer_job(job=job)
-        id = self.job_store.defer_job(job=job)
+        id = self.job_manager.defer_job(job=job)
         self._log_after_defer_job(job=job.evolve(id=id))
         return id

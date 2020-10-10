@@ -48,7 +48,7 @@ def test_job_evolve(job_factory):
 
 
 @pytest.mark.asyncio
-async def test_job_deferrer_defer_async(job_factory, job_store, connector):
+async def test_job_deferrer_defer_async(job_factory, job_manager, connector):
 
     job = job_factory(
         queue="marsupilami",
@@ -58,7 +58,7 @@ async def test_job_deferrer_defer_async(job_factory, job_store, connector):
         task_kwargs={"a": "b"},
     )
 
-    deferrer = jobs.JobDeferrer(job=job, job_store=job_store)
+    deferrer = jobs.JobDeferrer(job=job, job_manager=job_manager)
     id = await deferrer.defer_async(c=3)
 
     assert id == 1

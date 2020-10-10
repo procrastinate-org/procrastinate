@@ -32,7 +32,8 @@ class InMemoryConnector(connector.BaseAsyncConnector):
 
     def reset(self):
         """
-        Removes anything the store contains, to ensure test independence.
+        Removes anything the in-memory pseudo-database contains, to ensure test
+        independence.
         """
         self.jobs: Dict[int, JobRow] = {}
         self.events: Dict[int, List[EventRow]] = {}

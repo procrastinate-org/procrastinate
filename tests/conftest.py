@@ -155,8 +155,8 @@ def app(not_opened_app):
 
 
 @pytest.fixture
-def job_store(app):
-    return app.job_store
+def job_manager(app):
+    return app.job_manager
 
 
 @pytest.fixture

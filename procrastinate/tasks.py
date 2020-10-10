@@ -2,9 +2,9 @@ import datetime
 import logging
 from typing import Any, Callable, Dict, List, Optional
 
-from procrastinate import app, exceptions, jobs
+from procrastinate import app, exceptions, jobs, manager
 from procrastinate import retry as retry_module
-from procrastinate import store, types, utils
+from procrastinate import types, utils
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +21,7 @@ def load_task(path: str) -> "Task":
 def configure_task(
     *,
     name: str,
-    job_store: store.JobStore,
+    job_manager: manager.JobManager,
     lock: Optional[str] = None,
     queueing_lock: Optional[str] = None,
     task_kwargs: Optional[types.JSONDict] = None,
@@ -46,7 +46,7 @@ def configure_task(
             task_kwargs=task_kwargs,
             scheduled_at=schedule_at,
         ),
-        job_store=job_store,
+        job_manager=job_manager,
     )
 
 
@@ -178,7 +178,7 @@ class Task:
         """
         return configure_task(
             name=self.name,
-            job_store=self.app.job_store,
+            job_manager=self.app.job_manager,
             lock=lock if lock is not None else self.lock,
             queueing_lock=(
                 queueing_lock if queueing_lock is not None else self.queueing_lock

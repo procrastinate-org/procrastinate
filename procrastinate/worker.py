@@ -36,7 +36,7 @@ class Worker:
 
         # Handling the info about the currently running task.
         self.known_missing_tasks: Set[str] = set()
-        self.job_store = self.app.job_store
+        self.job_manager = self.app.job_manager
 
         if name:
             self.logger = logger.getChild(name)
@@ -74,7 +74,7 @@ class Worker:
     def listener(self):
         assert self.notify_event
         return utils.task_context(
-            awaitable=self.job_store.listen_for_jobs(
+            awaitable=self.job_manager.listen_for_jobs(
                 event=self.notify_event, queues=self.queues
             ),
             name="listener",
@@ -119,7 +119,7 @@ class Worker:
     async def single_worker(self, worker_id: int):
         current_timeout = self.timeout * (worker_id + 1)
         while not self.stop_requested:
-            job = await self.job_store.fetch_job(self.queues)
+            job = await self.job_manager.fetch_job(self.queues)
             if job:
                 await self.process_job(job=job, worker_id=worker_id)
             else:
@@ -168,7 +168,7 @@ class Worker:
                 extra=context.log_extra(action="task_not_found", exception=str(exc)),
             )
         finally:
-            await self.job_store.finish_job(
+            await self.job_manager.finish_job(
                 job=job, status=status, scheduled_at=next_attempt_scheduled_at
             )
 

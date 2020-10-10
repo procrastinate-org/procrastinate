@@ -60,7 +60,7 @@ async def test_process_job(
 
     test_worker.run_job = mocker.Mock(side_effect=side_effect or coro)
     job = job_factory(id=1)
-    await test_worker.job_store.defer_job_async(job)
+    await test_worker.job_manager.defer_job_async(job)
 
     await test_worker.process_job(job=job)
 
@@ -79,7 +79,7 @@ async def test_process_job_retry_failed_job(
         side_effect=exceptions.JobRetry(scheduled_at=scheduled_at)
     )
     job = job_factory(id=1)
-    await test_worker.job_store.defer_job_async(job)
+    await test_worker.job_manager.defer_job_async(job)
 
     await test_worker.process_job(job=job, worker_id=0)
 

@@ -6,8 +6,8 @@ from procrastinate import periodic
 
 
 @pytest.fixture
-def periodic_deferrer(job_store):
-    return periodic.PeriodicDeferrer(job_store=job_store)
+def periodic_deferrer(job_manager):
+    return periodic.PeriodicDeferrer(job_manager=job_manager)
 
 
 @pytest.fixture
@@ -126,7 +126,7 @@ async def test_worker_no_task(periodic_deferrer, caplog):
 
 
 @pytest.mark.asyncio
-async def test_worker_loop(job_store, mocker, task):
+async def test_worker_loop(job_manager, mocker, task):
     # The idea of this test is to make the inifite loop raise at some point
     mock = mocker.Mock()
     mock.wait_next_tick.side_effect = [None, None, ValueError]
@@ -142,7 +142,7 @@ async def test_worker_loop(job_store, mocker, task):
         def get_next_tick(self, at):
             return next(counter)
 
-    mock_deferrer = MockPeriodicDeferrer(job_store=job_store)
+    mock_deferrer = MockPeriodicDeferrer(job_manager=job_manager)
     mock_deferrer.register_task(task=task, cron="* * * * *")
     with pytest.raises(ValueError):
         await mock_deferrer.worker()
