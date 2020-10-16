@@ -120,14 +120,23 @@ async def test_delete_old_jobs(
 async def test_finish_job(job_manager, job_factory, connector):
     job = job_factory(id=1)
     await job_manager.defer_job_async(job=job)
-    retry_at = conftest.aware_datetime(2000, 1, 1)
 
-    await job_manager.finish_job(
-        job=job, status=jobs.Status.TODO, scheduled_at=retry_at
-    )
+    await job_manager.finish_job(job=job, status=jobs.Status.TODO)
     assert connector.queries[-1] == (
         "finish_job",
-        {"job_id": 1, "scheduled_at": retry_at, "status": "todo"},
+        {"job_id": 1, "status": "todo"},
+    )
+
+
+async def test_retry_job(job_manager, job_factory, connector):
+    job = job_factory(id=1)
+    await job_manager.defer_job_async(job=job)
+    retry_at = conftest.aware_datetime(2000, 1, 1)
+
+    await job_manager.retry_job(job=job, retry_at=retry_at)
+    assert connector.queries[-1] == (
+        "retry_job",
+        {"job_id": 1, "retry_at": retry_at},
     )
 
 
