@@ -18,5 +18,6 @@ exclude Dockerfile
 exclude pre-commit-hook
 exclude requirements.txt
 exclude tox.ini
+exclude procrastinate/contrib/django/README.md
 
 recursive-include procrastinate *.sql
