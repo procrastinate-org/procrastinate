@@ -1,23 +1,18 @@
 Monitor Procrastinate in a real environment
 -------------------------------------------
 
-Using the command line
-^^^^^^^^^^^^^^^^^^^^^^
+The baseline: a smoke test
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The command line interface gives a basic monitoring available through the console.
 
 .. code-block:: console
 
     $ procrastinate healthchecks
+    App configuration: OK
     DB connection: OK
-    DB schema are up-to-date (0.2.1)
-    todo: 0
-    doing: 0
-    succeeded: 0
-    failed: 0
+    Found procrastinate_jobs table: OK
 
-We're in the process of writing an admin website and Rest API.
-We'll update this section.
 The administration shell
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -45,3 +40,8 @@ There are commands to list all the jobs (``list_jobs``), tasks (``list_tasks``)
 And commands to retry (``retry``) & cancel (``cancel``) a specific job.
 
 You can get help for a specific command *cmd* by typing ``help cmd``.
+
+The administration web portal
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Not yet, maybe someday.*

@@ -68,6 +68,16 @@ Install the PostgreSQL structure procrastinate needs in your database with:
     inside it. You wouldn't need to export ``PYTHONPATH`` if the ``tutorial``
     module was installed in the (virtual) Python environment.
 
+Are we good to go?
+
+.. code-block:: console
+
+    (venv) $ procrastinate --app=tutorial.app healthcheck
+    App configuration: OK
+    DB connection: OK
+    Found procrastinate_jobs table: OK
+
+
 Declare a task
 --------------
 
@@ -145,13 +155,11 @@ Checking your jobs
 
 .. code-block:: console
 
-    (venv) $ procrastinate --app=tutorial.app healthchecks
-    DB connection: OK
-    todo: 0
-    doing: 0
-    succeeded: 1
-    failed: 0
+    (venv) $ procrastinate shell
+    Welcome to the procrastinate shell.   Type help or ? to list commands.
 
+    procrastinate> list_jobs
+    #1 sum on default - [succeeded]
 
 You can check that your application can access your database, and that your
 procrastination was a success. For more precise monitoring, we can launch an interactive

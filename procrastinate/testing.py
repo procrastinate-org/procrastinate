@@ -42,6 +42,7 @@ class InMemoryConnector(connector.BaseAsyncConnector):
         self.notify_event = None
         self.notify_channels = []
         self.periodic_defers: Dict[str, int] = {}
+        self.table_exists = True
 
     def generic_execute(self, query, suffix, **arguments) -> Any:
         """
@@ -240,3 +241,6 @@ class InMemoryConnector(connector.BaseAsyncConnector):
     def set_job_status_run(self, id, status):
         id = int(id)
         self.jobs[id]["status"] = status
+
+    def check_connection_one(self):
+        return {"check": self.table_exists or None}
