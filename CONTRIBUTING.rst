@@ -121,6 +121,12 @@ To look at coverage in the browser after launching the tests, use:
 
     $ python -m webbrowser htmlcov/index.html
 
+The automated test turn every warning into an error. This is deliberate. If the code
+fails because of a warning, you need to either fix it or explicitly ignore it. If you
+didn't introduce the warning yourself, but it came as part of a third party upgrade,
+please let us know and feel free to temporarily comment out the ``error`` line in
+``setup.cfg`` under ``filterwarnings``.
+
 Keep your code clean
 ^^^^^^^^^^^^^^^^^^^^
 
