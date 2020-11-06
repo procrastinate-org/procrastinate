@@ -248,6 +248,89 @@ that the ``migrations`` directory already includes a migration script whose seri
 number is ``001`` for that release number. In that case, if you need to add a migration
 script, its name will start with ``delta_1.0.1_002_``.
 
+Backward-compatibility
+^^^^^^^^^^^^^^^^^^^^^^
+
+As a Procrastinate developer, the changes that you make to the Procrastinate database
+schema must be compatible with the Python code of previous Procrastinate versions.
+
+For example, let's say that the current Procrastinate database schema includes an SQL
+function
+
+.. code-block:: sql
+
+    procrastinate_func(arg1 integer, arg2 text, arg3 timestamp)
+
+that you want to change to
+
+.. code-block:: sql
+
+    procrastinate_func(arg1 integer, arg2 text)
+
+The straightforward way to do that would be to edit the ``schema.sql`` file and just
+replace the old function by the new one, and add a migration script that removes the old
+function and adds the new one:
+
+.. code-block:: sql
+
+    DROP FUNCTION procrastinate_func(integer, text, timestamp);
+    CREATE FUNCTION procrastinate_func(arg1 integer, arg2 text)
+    RETURNS INT
+    ...
+
+But if you do that you will break the Procrastinate Python code that uses the old
+version of the ``procrastinate_func`` function. The direct consequence of that is
+that Procrastinate users won't be able to upgrade Procrastinate without incurring
+a service outage.
+
+So when you make changes to the Procrastinate database schema you must ensure that the
+new schema still works with old versions of the Procrastinate Python code.
+
+Going back to our ``procrastinate_func`` example. Instead of replacing the old function
+by the new one in ``schema.sql``, you will leave the old function, and just add the new
+one. And your migration script will just involve adding the new version of the function:
+
+.. code-block:: sql
+
+    CREATE FUNCTION procrastinate_func(arg1 integer, arg2 text)
+    RETURNS INT
+    ...
+
+The question that comes next is: when can the old version of ``procrastinate_func`` be
+removed? Or more generally, when can the SQL compatibility layer be removed?
+
+The answer is some time after the next major version of Procrastinate!
+
+For example, if the current Procrastinate version is 1.5.0, the SQL compatibility layer
+will be removed after 2.0.0 is released. The 2.0.0 release will be a pivot release, in
+the sense that Procrastinate users who want to upgrade from, say, 1.5.0 to 2.5.0, will
+need to upgrade from 1.5.0 to 2.0.0 first, and then from 2.0.0 to 2.5.0. And they will
+always migrate the database schema before updating the code.
+
+The task of removing the SQL compatibility layer after the release of a major version
+(e.g. 2.0.0) is the responsibility of Procrastinate maintainers. More specifically, for
+the 2.1.0 release, Procrastinate maintainers will need to edit ``schema.sql`` and remove
+the SQL compatibility layer.
+
+But, as a standard developer, when you make changes to the Procrastinate database schema
+that involves leaving or adding SQL statements for compatibility reasons, it's a good
+idea to add a migration script for the removal of the SQL compatibility layer. This will
+greatly help the Procrastinate maintainers.
+
+For example, let's say the current released version of Procrastinate is 1.5.0, and you
+want to change the signature of ``procrastinate_func`` as described above. You will add
+a ``1.5.0`` migration script (e.g.
+``delta_1.5.0_001_add-new-version-procrastinate-func.sql``) that adds the new version of
+the function, as already described above. And you will also add a ``2.0.0`` migration
+script (e.g. ``delta_2.0.0_001_remove-old-version-procrastinate-func.sql``) that takes
+care of removing the old version of the function:
+
+.. code-block:: sql
+
+    DROP FUNCTION procrastinate_func(integer, text, timestamp);
+
+In this way, you provide the new SQL code, the compatibility layer, and the migration
+for the removal of the compatibility layer.
 
 Migration tests
 ^^^^^^^^^^^^^^^
