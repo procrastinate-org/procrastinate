@@ -362,16 +362,19 @@ def healthchecks(app: procrastinate.App):
     """
     Check the state of procrastinate.
     """
-    health_check = app.health_check_runner
-    db_ok = health_check.check_connection()  # type: ignore
-    if not db_ok:
-        click.echo("Cannot connect to DB")
-        return  # No need to go further
+    db_ok = app.check_connection()  # type: ignore
+    # If app or DB is not configured correctly, we raise before this point
+    click.echo("App configuration: OK")
     click.echo("DB connection: OK")
 
-    status_count = health_check.get_status_count()  # type: ignore
-    for status, count in status_count.items():
-        click.echo(f"{status.value}: {count}")
+    if not db_ok:
+        raise click.ClickException(
+            "Connection to the database works but the procrastinate_jobs table was not "
+            "found. Have you applied database migrations (see "
+            "`procrastinate schema -h`)?"
+        )
+
+    click.echo("Found procrastinate_jobs table: OK")
 
 
 @cli.command("shell")

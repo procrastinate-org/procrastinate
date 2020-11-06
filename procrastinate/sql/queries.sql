@@ -55,8 +55,8 @@ SELECT procrastinate_finish_job(%(job_id)s, %(status)s, %(scheduled_at)s);
 LISTEN {channel_name};
 
 -- check_connection --
--- This does only check you have read permission
-SELECT TRUE as check;
+-- This query checks that the procrastinate_jobs table exists. Returns NULL otherwise.
+SELECT to_regclass('procrastinate_jobs') as check;
 
 -- count_jobs_status --
 -- Count the number of jobs per status

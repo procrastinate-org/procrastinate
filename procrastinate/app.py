@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, List, Optional,
 
 from procrastinate import admin
 from procrastinate import connector as connector_module
-from procrastinate import exceptions, healthchecks, jobs, manager
+from procrastinate import exceptions, jobs, manager
 from procrastinate import retry as retry_module
 from procrastinate import schema, utils
 
@@ -313,13 +313,12 @@ class App:
         worker = self._worker(**kwargs)
         await worker.run()
 
+    async def check_connection_async(self):
+        return await self.job_manager.check_connection()
+
     @property
     def schema_manager(self) -> schema.SchemaManager:
         return schema.SchemaManager(connector=self.connector)
-
-    @property
-    def health_check_runner(self) -> healthchecks.HealthCheckRunner:
-        return healthchecks.HealthCheckRunner(connector=self.connector)
 
     @property
     def admin(self) -> admin.Admin:
@@ -353,3 +352,4 @@ class App:
 
 
 utils.add_method_sync_api(cls=App, method_name="run_worker_async")
+utils.add_method_sync_api(cls=App, method_name="check_connection_async")

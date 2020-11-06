@@ -1,6 +1,6 @@
 import pytest
 
-from procrastinate import __version__, cli, jobs
+from procrastinate import __version__, cli, exceptions
 
 
 @pytest.fixture
@@ -70,37 +70,30 @@ def test_schema_migrations_path(entrypoint):
     assert result.exit_code == 0
 
 
-def test_healthchecks(entrypoint, click_app, mocker):
-    check_db = mocker.patch(
-        "procrastinate.healthchecks.HealthCheckRunner.check_connection"
-    )
-    check_db.return_value = True
-    count_jobs = mocker.patch(
-        "procrastinate.healthchecks.HealthCheckRunner.get_status_count"
-    )
-    count_jobs.return_value = {jobs.Status.SUCCEEDED: 42}
+def test_healthchecks(entrypoint, click_app):
+    result = entrypoint("-a yay healthchecks")
+
+    assert result.output.startswith("App configuration: OK")
+
+
+def test_healthchecks_no_schema(entrypoint, click_app, connector):
+    connector.table_exists = False
 
     result = entrypoint("-a yay healthchecks")
 
-    assert result.output.startswith("DB connection: OK")
-    check_db.assert_called_once_with()
-    count_jobs.assert_called_once_with()
+    assert "procrastinate_jobs table was not found" in result.output
 
 
 def test_healthchecks_bad_connection(entrypoint, click_app, mocker):
-    check_db = mocker.patch(
-        "procrastinate.healthchecks.HealthCheckRunner.check_connection"
-    )
-    check_db.return_value = False
-    count_jobs = mocker.patch(
-        "procrastinate.healthchecks.HealthCheckRunner.get_status_count"
+    mocker.patch.object(
+        click_app.job_manager,
+        "check_connection",
+        side_effect=exceptions.ConnectorException("Something's wrong"),
     )
 
     result = entrypoint("-a yay healthchecks")
 
-    assert result.output == "Cannot connect to DB\n"
-    check_db.assert_called_once_with()
-    count_jobs.assert_not_called()
+    assert result.output.strip() == "Error: Something's wrong"
 
 
 def test_no_app(entrypoint, mocker):

@@ -145,3 +145,9 @@ class JobManager:
         await self.connector.listen_notify(
             event=event, channels=get_channel_for_queues(queues=queues)
         )
+
+    async def check_connection(self) -> bool:
+        result = await self.connector.execute_query_one_async(
+            query=sql.queries["check_connection"],
+        )
+        return result["check"] is not None

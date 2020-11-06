@@ -321,3 +321,7 @@ async def test_defer_job_violate_queueing_lock(pg_job_manager, job_factory):
             excinfo.value.__cause__.diag.constraint_name
             == "procrastinate_jobs_queueing_lock_idx"
         )
+
+
+async def test_check_connection(pg_job_manager):
+    assert await pg_job_manager.check_connection() is True

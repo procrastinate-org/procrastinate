@@ -11,7 +11,6 @@ How to...
     howto/defer
     howto/worker
     howto/command_line
-    howto/shell
     howto/locks
     howto/schedule
     howto/queueing_locks
