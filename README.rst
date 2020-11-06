@@ -9,24 +9,28 @@ Procrastinate: PostgreSQL-based Task Queue for Python
     :target: https://pypi.org/pypi/procrastinate
     :alt: Deployed to PyPI
 
+.. image:: https://img.shields.io/github/stars/peopledoc/procrastinate?logo=github
+    :target: https://github.com/peopledoc/procrastinate/
+    :alt: GitHub Repository
+
 .. image:: https://img.shields.io/github/workflow/status/peopledoc/procrastinate/CI?logo=github
     :target: https://github.com/peopledoc/procrastinate/actions?workflow=CI
     :alt: Continuous Integration
 
-.. image:: https://img.shields.io/readthedocs/procrastinate?logo=read-the-docs
+.. image:: https://img.shields.io/readthedocs/procrastinate?logo=read-the-docs&logoColor=white
     :target: http://procrastinate.readthedocs.io/en/latest/?badge=latest
     :alt: Documentation
 
-.. image:: https://img.shields.io/codecov/c/github/peopledoc/procrastinate?logo=codecov
+.. image:: https://img.shields.io/codecov/c/github/peopledoc/procrastinate?logo=codecov&logoColor=white
     :target: https://codecov.io/gh/peopledoc/procrastinate
     :alt: Coverage
 
-.. image:: https://img.shields.io/badge/License-MIT-green.svg
+.. image:: https://img.shields.io/github/license/peopledoc/procrastinate?logo=open-source-initiative&logoColor=white
     :target: https://github.com/peopledoc/procrastinate/blob/master/LICENSE
     :alt: MIT License
 
 .. image:: https://img.shields.io/badge/Contributor%20Covenant-v1.4%20adopted-ff69b4.svg
-    :target: CODE_OF_CONDUCT.md
+    :target: https://github.com/peopledoc/procrastinate/blob/master/LICENSE/CODE_OF_CONDUCT.md
     :alt: Contributor Covenant
 
 
