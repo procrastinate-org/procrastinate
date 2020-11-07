@@ -18,7 +18,7 @@ package, but this package doesn't exist on the disk.
 
 This all happens in  `migrations_magic` if you want to read the code along.
 
-Django introspects it's apps looking for migrations (in django.db.migrations.loader). It
+Django introspects its apps looking for migrations (in django.db.migrations.loader). It
 doesn't specifically let each App override the way it's done, so we can't "just"
 override the right method in App and be done with it. But Django doesn't read the
 migrations modules on the disk directly either. It does the following:
@@ -38,7 +38,7 @@ and be empty or we could trick Python's import system into believing it exists. 
 first alternative seems simpler, but if we do that, in the B step,
 `pkgutil.iter_modules` will try to load submodules the same way this module was loaded:
 by reading the disk. So in the end, given we'll be tricking the import system anyway,
-we're doing it for both `p.c.d.migrations` and `p.c.d.migrations`.*
+we're doing it for both `p.c.d.migrations` and `p.c.d.migrations.*`
 
 Doing step A is done the following way: we ensure that before Django tries to load
 migrations, this module's `load()` function is called. It adds an instance of

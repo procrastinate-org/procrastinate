@@ -163,14 +163,16 @@ def clean_paths(mocker):
 def test_load(clean_paths):
     migrations_magic.load()
     assert isinstance(
-        sys.meta_path[-1], migrations_magic.ProcrastinateMigrationsImporter
+        sys.meta_path[0], migrations_magic.ProcrastinateMigrationsImporter
     )
     hook_name = "ProcrastinateMigrationsImporter.path_hook"
-    assert hook_name == sys.path_hooks[-1].__qualname__
+    assert hook_name == sys.path_hooks[0].__qualname__
 
 
 def test_load_again(clean_paths):
     migrations_magic.load()
-    old_len = len(sys.meta_path)
+    assert len(sys.meta_path) == 1
     migrations_magic.load()
-    assert len(sys.meta_path) == old_len
+
+    # Making sure we don't add our elements to the path twice
+    assert len(sys.meta_path) == 1
