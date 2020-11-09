@@ -320,9 +320,9 @@ greatly help the Procrastinate maintainers.
 For example, let's say the current released version of Procrastinate is 1.5.0, and you
 want to change the signature of ``procrastinate_func`` as described above. You will add
 a ``1.5.0`` migration script (e.g.
-``delta_1.5.0_001_add-new-version-procrastinate-func.sql``) that adds the new version of
+``delta_1.5.0_001_add_new_version_procrastinate_func.sql``) that adds the new version of
 the function, as already described above. And you will also add a ``2.0.0`` migration
-script (e.g. ``delta_2.0.0_001_remove-old-version-procrastinate-func.sql``) that takes
+script (e.g. ``delta_2.0.0_001_remove_old_version_procrastinate_func.sql``) that takes
 care of removing the old version of the function:
 
 .. code-block:: sql
