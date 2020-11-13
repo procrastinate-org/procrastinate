@@ -333,6 +333,13 @@ care of removing the old version of the function:
 In this way, you provide the new SQL code, the compatibility layer, and the migration
 for the removal of the compatibility layer.
 
+.. note::
+
+    The migration scripts that remove the SQL compatibility code are to be added to the
+    ``future_migrations`` directory instead of the ``migrations`` directory. And it will
+    be the responsibility of Procrastinate maintainers to move them to the
+    ``migrations`` directory after the next major release.
+
 Migration tests
 ^^^^^^^^^^^^^^^
 
@@ -516,3 +523,8 @@ it to PyPI (using the new API tokens). That tag should also trigger a ReadTheDoc
 build, which will read GitHub releases (thanks to our ``changelog`` extension)
 which will  write the changelog in the published documentation (transformed from
 ``Markdown`` to ``RestructuredText``).
+
+After a new major version is released (e.g. ``2.0.0``), in preparation for the next
+minor release (``2.1.0``), the migration scripts in the ``future_migrations`` directory
+that remove the SQL compatibility code must be moved to the ``migrations`` directory.
+And the ``schema.sql`` file must be updated accordingly.
