@@ -12,38 +12,23 @@ def test_version_from_string():
     assert migrations_magic.version_from_string("1.2.3") == (1, 2, 3)
 
 
-@pytest.mark.parametrize(
-    "path, expected",
-    [
-        (
-            "a/baseline-0.5.0.sql",
-            migrations_magic.ProcrastinateMigration(
-                filename="baseline-0.5.0.sql",
-                name="baseline",
-                version=(0, 5, 0),
-                index=0,
-            ),
-        ),
-        (
-            "b/delta_0.11.0_003_add_procrastinate_periodic_defers.sql",
-            migrations_magic.ProcrastinateMigration(
-                filename="delta_0.11.0_003_add_procrastinate_periodic_defers.sql",
-                name="add_procrastinate_periodic_defers",
-                version=(0, 11, 0),
-                index=3,
-            ),
-        ),
-    ],
-)
-def test_procrastinate_migration_from_path(path, expected):
+def test_procrastinate_migration_from_path():
+
+    path = "b/00.11.00_03_add_procrastinate_periodic_defers.sql"
+
     migration = migrations_magic.ProcrastinateMigration.from_path(pathlib.Path(path))
 
-    assert migration == expected
+    assert migration == migrations_magic.ProcrastinateMigration(
+        filename="00.11.00_03_add_procrastinate_periodic_defers.sql",
+        name="add_procrastinate_periodic_defers",
+        version=(0, 11, 0),
+        index=3,
+    )
 
 
 def test_get_all_migrations():
     migrations = migrations_magic.get_all_migrations()
-    assert migrations[0].name == "baseline"
+    assert migrations[0].name == "initial"
 
 
 def test_make_migration(mocker):
@@ -51,7 +36,7 @@ def test_make_migration(mocker):
     previous.name = "0001_foo"
     migration = migrations_magic.make_migration(
         sql_migration=migrations_magic.ProcrastinateMigration.from_path(
-            path=pathlib.Path("a/delta_0.8.1_001_add_queueing_lock_column.sql")
+            path=pathlib.Path("a/00.08.01_01_add_queueing_lock_column.sql")
         ),
         previous_migration=previous,
         counter=iter([2]),
@@ -66,18 +51,18 @@ def test_make_migration(mocker):
 def test_make_migration_initial():
     migration = migrations_magic.make_migration(
         sql_migration=migrations_magic.ProcrastinateMigration.from_path(
-            path=pathlib.Path("a/baseline-0.5.0.sql")
+            path=pathlib.Path("a/00.00.00_01_initial.sql")
         ),
         previous_migration=None,
         counter=iter([1]),
     )
-    assert migration.name == "0001_baseline"
+    assert migration.name == "0001_initial"
     assert migration.dependencies == []
     assert migration.initial is True
 
 
 def test_get_sql(app):
-    migration_name = "baseline-0.5.0.sql"
+    migration_name = "00.00.00_01_initial.sql"
     migration = migrations_magic.get_sql(migration_name)
 
     assert migration.startswith(
@@ -88,7 +73,7 @@ def test_get_sql(app):
 
 def test_list_migration_files():
     names = {e.name for e in migrations_magic.list_migration_files()}
-    assert "baseline-0.5.0.sql" in names
+    assert "00.00.00_01_initial.sql" in names
     assert "__init__.py" not in names
 
 
@@ -98,11 +83,11 @@ def importer():
 
 
 def test_importer(importer):
-    assert issubclass(importer.migrations["0001_baseline"], django_migrations.Migration)
+    assert issubclass(importer.migrations["0001_initial"], django_migrations.Migration)
 
 
 def test_importer_iter_modules(importer):
-    assert importer.iter_modules(prefix="")[0] == ("0001_baseline", False)
+    assert importer.iter_modules(prefix="")[0] == ("0001_initial", False)
 
 
 def test_importer_exec_module_top_level(importer):
@@ -117,19 +102,19 @@ def test_importer_exec_module_top_level(importer):
 
 def test_importer_exec_module_migration(importer):
     module = types.ModuleType(
-        name="procrastinate.contrib.django.migrations.0001_baseline"
+        name="procrastinate.contrib.django.migrations.0001_initial"
     )
 
     importer.exec_module(module)
 
-    assert module.Migration.name == "0001_baseline"
+    assert module.Migration.name == "0001_initial"
 
 
 @pytest.mark.parametrize(
     "name, is_package",
     [
         ("procrastinate.contrib.django.migrations", True),
-        ("procrastinate.contrib.django.migrations.0001_baseline", False),
+        ("procrastinate.contrib.django.migrations.0001_initial", False),
     ],
 )
 def test_importer_exec_find_spec(importer, name, is_package):
@@ -137,6 +122,7 @@ def test_importer_exec_find_spec(importer, name, is_package):
 
     assert spec.name == name
     assert spec.loader is importer
+    # We can't check directly the is_package value, but this is a side-effect:
     assert spec.submodule_search_locations == ([] if is_package else None)
 
 

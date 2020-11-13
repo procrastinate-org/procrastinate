@@ -87,12 +87,7 @@ class ProcrastinateMigration:
 
     @classmethod
     def from_path(cls, path: pathlib.Path) -> "ProcrastinateMigration":
-        if path.stem.startswith("baseline"):
-            name = "baseline"
-            index = "000"
-            version_str = path.stem.split("-")[1]
-        else:
-            _, version_str, index, name = path.stem.split("_", 3)
+        version_str, index, name = path.stem.split("_", 2)
         return cls(
             filename=path.name,
             name=name,

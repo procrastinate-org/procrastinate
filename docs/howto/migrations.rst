@@ -27,38 +27,33 @@ The names of migration script files adhere to a certain pattern:
 
 .. code-block::
 
-    delta_x.y.z_abc_very_short_description_of_your_changes.sql
+    xx.yy.zz_ab_very_short_description_of_the_migration.sql
 
-* ``x.y.z`` is the version of Procrastinate the migration script can be applied to.
-* ``abc`` is the migration script's serial number, ``001`` being the first number in the
+* ``xx.yy.zz`` is the version of Procrastinate the migration script can be applied to.
+* ``ab`` is the migration script's serial number, ``01`` being the first number in the
   series.
-* ``very_short_description_of_your_changes`` is a very short description of the
-  migration.
 
-Let's say you are currently using Procrastinate 0.9.0, and you want to update to
-Procrastinate 0.15.0. In that case, before upgrading the Procrastinate Python package
-(from 0.9.0 to 0.15.0), you will need to apply all the migration scripts whose versions
-are greater than or equal to 0.9.0, and lower than 0.15.0 (0.9.0 ≤ version < 0.15.0).
+Let's say you are currently using Procrastinate 1.9.0, and you want to update to
+Procrastinate 1.15.0. In that case, before upgrading the Procrastinate Python package
+(from 1.9.0 to 1.15.0), you will need to apply all the migration scripts whose versions
+are greater than or equal to 1.9.0, and lower than 1.15.0 (1.9.0 ≤ version < 1.15.0).
 And you will apply them in version order, and, for a version, in serial number order.
 For example, you will apply the following migration scripts, in that order:
 
-1. ``delta_0.9.0_001_xxxxx.sql``
-2. ``delta_0.10.0_001_xxxxx.sql``
-3. ``delta_0.11.0_001_xxxxx.sql``
-4. ``delta_0.11.0_002_xxxxx.sql``
-5. ``delta_0.12.0_001_xxxxx.sql``
-6. ``delta_0.14.0_001_xxxxx.sql``
-7. ``delta_0.14.0_002_xxxxx.sql``
-
-.. note::
-
-    The ordering of migrations scripts is not based on the typical lexicographical
-    order. For example, ``delta_0.9.0_001_xxxxx.sql`` is to be applied before
-    ```delta_0.10.0_001_xxxxx.sql`` (because version 0.9.0 is lower than
-    0.10.0).
+1. ``01.09.00_01_xxxxx.sql``
+2. ``01.10.00_01_xxxxx.sql``
+3. ``01.11.00_01_xxxxx.sql``
+4. ``01.11.00_02_xxxxx.sql``
+5. ``01.12.00_01_xxxxx.sql``
+6. ``01.14.00_01_xxxxx.sql``
+7. ``01.14.00_02_xxxxx.sql``
 
 If you want to upgrade from one Procrastinate major version to another, say from
-Procrastinate 1.6.0 to 3.2.0, the easiest way is to follow these steps:
+Procrastinate 1.6.0 to 3.2.0, there are two options, depending on whether you can
+interrupt the service to do the migration or not.
+
+The easier way, with service interruption
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 1. Shut down the services that use Procrastinate: both the services that defer tasks and
    the workers.
@@ -66,15 +61,25 @@ Procrastinate 1.6.0 to 3.2.0, the easiest way is to follow these steps:
 3. Upgrade your code to the new Procrastinate version (3.2.0).
 4. Start all the services.
 
-This, as you've noticed, only works if you're able to stop the services. If you care
-about service continuity, you'll need to make intermediate upgrades. For example, to
-upgrade from Procrastinate 1.6.0 to 3.2.0, here are the steps you will need to follow:
+This, as you've noticed, only works if you're able to stop the services.
+
+The safer way, without service interruption
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. note::
+
+    This only applies starting at Procrastinate 0.17.0. For previous versions,
+    you will have to interrupt the service or write custom migrations.
+
+If you care about service continuity, you'll need to make intermediate upgrades. For
+example, to upgrade from Procrastinate 1.6.0 to 3.2.0, here are the steps you will need
+to follow:
 
 1. Apply all the migration scripts between 1.6.0 and 2.0.0 (1.6.0 ≤ version < 2.0.0).
-2. Upgrade Procrastinate from 1.6.0 to 2.0.0.
+2. Live-upgrade the Procrastinate version used in your services, from 1.6.0 to 2.0.0.
 3. Apply all the migration scripts between 2.0.0 and 3.0.0 (2.0.0 ≤ version < 3.0.0).
-4. Upgrade Procrastinate from 2.0.0 to 3.0.0.
+4. Live-upgrade the Procrastinate version used in your services, from 2.0.0 to 3.0.0.
 5. Apply all the migration scripts between 3.0.0 and 3.2.0 (3.0.0 ≤ version < 3.2.0).
-6. Upgrade Procrastinate from 3.0.0 and 3.2.0.
+6. Live-upgrade the Procrastinate version used in your services, from 3.0.0 and 3.2.0.
 
 Following this process you can go from 1.6.0 to 3.2.0 with no service discontinuity.
