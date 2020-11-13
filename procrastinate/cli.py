@@ -384,7 +384,7 @@ def shell_(app: procrastinate.App):
     """
     Administration shell for procrastinate.
     """
-    shell.ProcrastinateShell(app.admin).cmdloop()
+    shell.ProcrastinateShell(job_manager=app.job_manager).cmdloop()
 
 
 def main():

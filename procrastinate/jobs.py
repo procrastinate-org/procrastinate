@@ -27,10 +27,14 @@ def check_aware(
 
 
 class Status(Enum):
-    TODO = "todo"
-    DOING = "doing"
-    SUCCEEDED = "succeeded"
-    FAILED = "failed"
+    """
+    An enumeration with all the possible job statuses.
+    """
+
+    TODO = "todo"  #: The job is waiting in a queue
+    DOING = "doing"  #: A worker is running the job
+    SUCCEEDED = "succeeded"  #: The job ended successfully
+    FAILED = "failed"  #: The job ended with an error
 
 
 @attr.dataclass(frozen=True, kw_only=True)
