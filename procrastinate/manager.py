@@ -129,14 +129,23 @@ class JobManager:
         self,
         job: jobs.Job,
         status: jobs.Status,
-        scheduled_at: Optional[datetime.datetime] = None,
     ) -> None:
         assert job.id  # TODO remove this
         await self.connector.execute_query_async(
             query=sql.queries["finish_job"],
             job_id=job.id,
             status=status.value,
-            scheduled_at=scheduled_at,
+        )
+
+    async def retry_job(
+        self,
+        job: jobs.Job,
+        retry_at: datetime.datetime,
+    ) -> None:
+        await self.connector.execute_query_async(
+            query=sql.queries["retry_job"],
+            job_id=job.id,
+            retry_at=retry_at,
         )
 
     async def listen_for_jobs(

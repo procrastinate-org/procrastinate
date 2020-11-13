@@ -152,25 +152,26 @@ class Worker:
             extra=context.log_extra(action="loaded_job_info"),
         )
 
-        status = jobs.Status.FAILED
-        next_attempt_scheduled_at = None
+        status, retry_at = None, None
         try:
             await self.run_job(job=job, worker_id=worker_id)
             status = jobs.Status.SUCCEEDED
         except exceptions.JobRetry as e:
-            status = jobs.Status.TODO
-            next_attempt_scheduled_at = e.scheduled_at
+            retry_at = e.scheduled_at
         except exceptions.JobError:
-            pass
+            status = jobs.Status.FAILED
         except exceptions.TaskNotFound as exc:
+            status = jobs.Status.FAILED
             self.logger.exception(
                 f"Task was not found: {exc}",
                 extra=context.log_extra(action="task_not_found", exception=str(exc)),
             )
         finally:
-            await self.job_manager.finish_job(
-                job=job, status=status, scheduled_at=next_attempt_scheduled_at
-            )
+            if retry_at:
+                await self.job_manager.retry_job(job=job, retry_at=retry_at)
+            else:
+                assert status is not None
+                await self.job_manager.finish_job(job=job, status=status)
 
             self.logger.debug(
                 f"Acknowledged job completion {job.call_string}",

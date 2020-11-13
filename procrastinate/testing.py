@@ -168,21 +168,19 @@ class InMemoryConnector(connector.BaseAsyncConnector):
 
         return {"id": None}
 
-    def finish_job_run(
-        self, job_id: int, status: str, scheduled_at: Optional[datetime.datetime] = None
-    ) -> None:
+    def finish_job_run(self, job_id: int, status: str) -> None:
         job_row = self.jobs[job_id]
         job_row["status"] = status
-        event_type = status
+        job_row["attempts"] += 1
+        self.events[job_id].append({"type": status, "at": utils.utcnow()})
 
-        if status == "todo":
-            job_row["attempts"] += 1
-            job_row["scheduled_at"] = scheduled_at
-            if scheduled_at:
-                self.events[job_id].append({"type": "scheduled", "at": scheduled_at})
-            event_type = "deferred_for_retry"
-
-        self.events[job_id].append({"type": event_type, "at": utils.utcnow()})
+    def retry_job_run(self, job_id: int, retry_at: datetime.datetime) -> None:
+        job_row = self.jobs[job_id]
+        job_row["status"] = "todo"
+        job_row["attempts"] += 1
+        job_row["scheduled_at"] = retry_at
+        self.events[job_id].append({"type": "scheduled", "at": retry_at})
+        self.events[job_id].append({"type": "deferred_for_retry", "at": utils.utcnow()})
 
     def select_stalled_jobs_all(self, nb_seconds, queue, task_name):
         return (

@@ -47,8 +47,12 @@ WHERE id IN (
 )
 
 -- finish_job --
--- Stop a job, free the lock and record the relevant events
-SELECT procrastinate_finish_job(%(job_id)s, %(status)s, %(scheduled_at)s);
+-- Finish a job, changing it from "doing" to "succeeded" or "failed"
+SELECT procrastinate_finish_job(%(job_id)s, %(status)s);
+
+-- retry_job --
+-- Retry a job, changing it from "doing" to "todo"
+SELECT procrastinate_retry_job(%(job_id)s, %(retry_at)s);
 
 -- listen_queue --
 -- In this one, the argument is an identifier, shoud not be escaped the same way

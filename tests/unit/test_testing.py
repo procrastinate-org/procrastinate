@@ -252,12 +252,11 @@ def test_finish_job_run(connector):
 
     connector.finish_job_run(job_id=id, status="finished")
 
-    assert connector.jobs[id]["attempts"] == 0
+    assert connector.jobs[id]["attempts"] == 1
     assert connector.jobs[id]["status"] == "finished"
-    assert connector.jobs[id]["scheduled_at"] is None
 
 
-def test_finish_job_run_retry(connector):
+def test_retry_job_run(connector):
     connector.defer_job_one(
         task_name="mytask",
         args={},
@@ -270,32 +269,12 @@ def test_finish_job_run_retry(connector):
     id = job_row["id"]
 
     retry_at = conftest.aware_datetime(2000, 1, 1)
-    connector.finish_job_run(job_id=id, status="todo", scheduled_at=retry_at)
+    connector.retry_job_run(job_id=id, retry_at=retry_at)
 
     assert connector.jobs[id]["attempts"] == 1
     assert connector.jobs[id]["status"] == "todo"
     assert connector.jobs[id]["scheduled_at"] == retry_at
     assert len(connector.events[id]) == 4
-
-
-def test_finish_job_run_retry_no_schedule(connector):
-    connector.defer_job_one(
-        task_name="mytask",
-        args={},
-        queue="marsupilami",
-        scheduled_at=None,
-        lock="sher",
-        queueing_lock="houba",
-    )
-    job_row = connector.fetch_job_one(queues=None)
-    id = job_row["id"]
-
-    connector.finish_job_run(job_id=id, status="todo", scheduled_at=None)
-
-    assert connector.jobs[id]["attempts"] == 1
-    assert connector.jobs[id]["status"] == "todo"
-    assert connector.jobs[id]["scheduled_at"] is None
-    assert len(connector.events[id]) == 3
 
 
 def test_apply_schema_run(connector):
