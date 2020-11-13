@@ -173,6 +173,7 @@ END;
 $$;
 
 -- procrastinate_finish_job – old version
+-- to remove after 1.0.0 is released
 CREATE FUNCTION procrastinate_finish_job(job_id integer, end_status procrastinate_job_status, next_scheduled_at timestamp with time zone) RETURNS void
     LANGUAGE plpgsql
     AS $$
@@ -185,7 +186,7 @@ BEGIN
 END;
 $$;
 
--- procrastinate_finish_job – new version
+-- procrastinate_finish_job
 CREATE FUNCTION procrastinate_finish_job(job_id integer, end_status procrastinate_job_status) RETURNS void
     LANGUAGE plpgsql
     AS $$
