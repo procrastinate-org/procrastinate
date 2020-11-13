@@ -232,21 +232,22 @@ The name of migration scripts must follow a specific pattern:
 
 .. code-block::
 
-    delta_x.y.z_abc_very_short_description_of_your_changes.sql
+    xx.yy.zz_ab_very_short_description_of_your_changes.sql
 
-``x.y.z`` is the number of the latest released version of Procrastinate. (The latest
+``xx.yy.zz`` is the number of the latest released version of Procrastinate. (The latest
 release is the one marked ``Latest release`` on the `Procrastinate releases`_ page.)
-``abc`` is the migration script's serial number, ``001`` being the first number in the
-series. And, finally, ``very_short_description_of_your_changes`` is a very short
-description of the changes. It is important to use underscores between the different
-parts, and between words in the short description.
+``xx``, ``yy`` and ``zz`` must be 2-digit numbers, with leading zeros if necessary.
+``ab`` is the 2-digit migration script's serial number, ``01`` being the first number in
+the series. And, finally, ``very_short_description_of_your_changes`` is a very short
+description of the changes (wow). It is important to use underscores between the
+different parts, and between words in the short description.
 
 .. _`Procrastinate releases`: https://github.com/peopledoc/procrastinate/releases
 
 For example, let's say the latest released version of Procrastinate is ``1.0.1``, and
 that the ``migrations`` directory already includes a migration script whose serial
-number is ``001`` for that release number. In that case, if you need to add a migration
-script, its name will start with ``delta_1.0.1_002_``.
+number is ``01`` for that release number. In that case, if you need to add a migration
+script, its name will start with ``01.00.01_02_``.
 
 Backward-compatibility
 ^^^^^^^^^^^^^^^^^^^^^^
@@ -320,9 +321,9 @@ greatly help the Procrastinate maintainers.
 For example, let's say the current released version of Procrastinate is 1.5.0, and you
 want to change the signature of ``procrastinate_func`` as described above. You will add
 a ``1.5.0`` migration script (e.g.
-``delta_1.5.0_001_add_new_version_procrastinate_func.sql``) that adds the new version of
+``01.05.00_01_add_new_version_procrastinate_func.sql``) that adds the new version of
 the function, as already described above. And you will also add a ``2.0.0`` migration
-script (e.g. ``delta_2.0.0_001_remove_old_version_procrastinate_func.sql``) that takes
+script (e.g. ``02.00.00_01_remove_old_version_procrastinate_func.sql``) that takes
 care of removing the old version of the function:
 
 .. code-block:: sql

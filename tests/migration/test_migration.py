@@ -1,8 +1,6 @@
 import contextlib
 import pathlib
-import re
 
-import pkg_resources
 import pytest
 from django.db import connection
 from migra import Migration
@@ -11,24 +9,15 @@ from sqlbag import S
 
 from procrastinate import aiopg_connector, schema
 
-BASELINE = "0.5.0"
-
-DELTA_REGEX = re.compile(r"^delta_(\d+\.\d+\.\d+)_(\w*)\.sql")
-
 
 @pytest.fixture
 def run_migrations(db_execute):
     def _(dbname):
-        def key_fn(script):
-            match = DELTA_REGEX.match(script.name)
-            return (pkg_resources.parse_version(match.group(1)), match.group(2))
+        migrations = sorted(pathlib.Path("procrastinate/sql/migrations").glob("*.sql"))
 
-        scripts = pathlib.Path("procrastinate/sql/migrations").glob("delta_*.sql")
-        scripts = sorted(scripts, key=key_fn)
-
-        for script in scripts:
+        for migration in migrations:
             with db_execute(dbname) as execute:
-                execute(script.read_text())
+                execute(migration.read_text())
 
     return _
 
@@ -52,11 +41,6 @@ def schema_database(db_factory):
 def migrations_database(db_factory, db_execute):
     dbname = "procrastinate_migrations"
     db_factory(dbname=dbname)
-
-    # apply the baseline schema to the "procrastinate_migrations" database
-    with db_execute(dbname) as execute:
-        with open(f"procrastinate/sql/migrations/baseline-{BASELINE}.sql") as file:
-            execute(file.read())
 
     return dbname
 

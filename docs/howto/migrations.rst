@@ -27,13 +27,11 @@ The names of migration script files adhere to a certain pattern:
 
 .. code-block::
 
-    delta_x.y.z_abc_very_short_description_of_your_changes.sql
+    xx.yy.zz_ab_very_short_description_of_the_migration.sql
 
-* ``x.y.z`` is the version of Procrastinate the migration script can be applied to.
-* ``abc`` is the migration script's serial number, ``001`` being the first number in the
+* ``xx.yy.zz`` is the version of Procrastinate the migration script can be applied to.
+* ``ab`` is the migration script's serial number, ``01`` being the first number in the
   series.
-* ``very_short_description_of_your_changes`` is a very short description of the
-  migration.
 
 Let's say you are currently using Procrastinate 0.9.0, and you want to update to
 Procrastinate 0.15.0. In that case, before upgrading the Procrastinate Python package
@@ -42,20 +40,13 @@ are greater than or equal to 0.9.0, and lower than 0.15.0 (0.9.0 ≤ version < 0
 And you will apply them in version order, and, for a version, in serial number order.
 For example, you will apply the following migration scripts, in that order:
 
-1. ``delta_0.9.0_001_xxxxx.sql``
-2. ``delta_0.10.0_001_xxxxx.sql``
-3. ``delta_0.11.0_001_xxxxx.sql``
-4. ``delta_0.11.0_002_xxxxx.sql``
-5. ``delta_0.12.0_001_xxxxx.sql``
-6. ``delta_0.14.0_001_xxxxx.sql``
-7. ``delta_0.14.0_002_xxxxx.sql``
-
-.. note::
-
-    The ordering of migrations scripts is not based on the typical lexicographical
-    order. For example, ``delta_0.9.0_001_xxxxx.sql`` is to be applied before
-    ```delta_0.10.0_001_xxxxx.sql`` (because version 0.9.0 is lower than
-    0.10.0).
+1. ``01.09.00_01_xxxxx.sql``
+2. ``01.10.00_01_xxxxx.sql``
+3. ``01.11.00_01_xxxxx.sql``
+4. ``01.11.00_02_xxxxx.sql``
+5. ``01.12.00_01_xxxxx.sql``
+6. ``01.14.00_01_xxxxx.sql``
+7. ``01.14.00_02_xxxxx.sql``
 
 If you want to upgrade from one Procrastinate major version to another, say from
 Procrastinate 1.6.0 to 3.2.0, the easiest way is to follow these steps:
