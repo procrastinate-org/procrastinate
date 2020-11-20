@@ -9,7 +9,7 @@ want to defer tasks purely synchronously (what is called "classic" synchronous I
 
 By setting your `App`'s connector to an instance of `Psycopg2Connector`, you will
 get "classic" synchronous I/O. Note that in this case, some ``App`` features will be
-unavailable, such as the ``admin`` and ``worker`` sub-commands::
+unavailable, such as the ``shell`` and ``worker`` sub-commands::
 
     import procrastinate
 

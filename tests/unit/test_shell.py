@@ -1,12 +1,12 @@
 import pytest
 
-from procrastinate import admin
+from procrastinate import manager
 from procrastinate import shell as shell_module
 
 
 @pytest.fixture
 def shell(connector):
-    return shell_module.ProcrastinateShell(admin.Admin(connector=connector))
+    return shell_module.ProcrastinateShell(manager.JobManager(connector=connector))
 
 
 def test_exit(shell):

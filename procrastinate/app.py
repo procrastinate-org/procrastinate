@@ -2,7 +2,6 @@ import functools
 import logging
 from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, List, Optional, Set
 
-from procrastinate import admin
 from procrastinate import connector as connector_module
 from procrastinate import exceptions, jobs, manager
 from procrastinate import retry as retry_module
@@ -31,8 +30,8 @@ class App:
     builtin_tasks : ``Dict[str, tasks.Task]``
         The mapping of builtin tasks. Use it to programmatically access builtin tasks,
         to defer them.
-    admin : ``admin.Admin``
-        The administration interface linked to the application.
+    job_manager : `manager.JobManager`
+        The `JobManager` linked to the application
     """
 
     @classmethod
@@ -319,10 +318,6 @@ class App:
     @property
     def schema_manager(self) -> schema.SchemaManager:
         return schema.SchemaManager(connector=self.connector)
-
-    @property
-    def admin(self) -> admin.Admin:
-        return admin.Admin(connector=self.connector)
 
     def open(self, pool: Optional[connector_module.Pool] = None) -> "App":
         self.connector.open(pool)

@@ -1,7 +1,7 @@
 import cmd
 from typing import Any, Dict
 
-from procrastinate import admin
+from procrastinate import manager
 
 
 def parse_argument(arg: str) -> Dict[str, str]:
@@ -24,9 +24,9 @@ class ProcrastinateShell(cmd.Cmd):
     intro = "Welcome to the procrastinate shell.   Type help or ? to list commands.\n"
     prompt = "procrastinate> "
 
-    def __init__(self, admin: admin.Admin):
+    def __init__(self, job_manager: manager.JobManager):
         super().__init__()
-        self.admin = admin
+        self.job_manager = job_manager
 
     def do_EOF(self, _) -> bool:
         "Exit procrastinate shell."
@@ -47,7 +47,7 @@ class ProcrastinateShell(cmd.Cmd):
         """
         kwargs = parse_argument(arg)
         details = kwargs.pop("details", None) is not None
-        for job in self.admin.list_jobs(**kwargs):  # type: ignore
+        for job in self.job_manager.list_jobs(**kwargs):  # type: ignore
             print_job(job, details=details)
 
     def do_list_queues(self, arg: str) -> None:
@@ -61,7 +61,7 @@ class ProcrastinateShell(cmd.Cmd):
         Example: list_queues task=sums status=failed
         """
         kwargs = parse_argument(arg)
-        for queue in self.admin.list_queues(**kwargs):  # type: ignore
+        for queue in self.job_manager.list_queues(**kwargs):  # type: ignore
             print(
                 f"{queue['name']}: {queue['jobs_count']} jobs ("
                 f"todo: {queue['todo']}, "
@@ -80,7 +80,7 @@ class ProcrastinateShell(cmd.Cmd):
         Example: list_queues queue=default status=failed
         """
         kwargs = parse_argument(arg)
-        for task in self.admin.list_tasks(**kwargs):  # type: ignore
+        for task in self.job_manager.list_tasks(**kwargs):  # type: ignore
             print(
                 f"{task['name']}: {task['jobs_count']} jobs ("
                 f"todo: {task['todo']}, "
@@ -97,7 +97,7 @@ class ProcrastinateShell(cmd.Cmd):
 
         Example: retry 2
         """
-        print_job(self.admin.set_job_status(arg, status="todo"))  # type: ignore
+        print_job(self.job_manager.set_job_status(arg, status="todo"))  # type: ignore
 
     def do_cancel(self, arg: str) -> None:
         """
@@ -108,4 +108,4 @@ class ProcrastinateShell(cmd.Cmd):
 
         Example: cancel 3
         """
-        print_job(self.admin.set_job_status(arg, status="failed"))  # type: ignore
+        print_job(self.job_manager.set_job_status(arg, status="failed"))  # type: ignore
