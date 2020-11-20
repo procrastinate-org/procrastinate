@@ -70,12 +70,9 @@ def add_sync_api(cls: Type) -> Type:
     return cls
 
 
-# https://github.com/sphinx-doc/sphinx/issues/7559
 SYNC_ADDENDUM = """
 
         This method is the synchronous counterpart of `{}`.
-        Because of a slight issue in automatic doc generation, it
-        is shown here as "async", but this function is synchronous.
 """
 
 ASYNC_ADDENDUM = """
