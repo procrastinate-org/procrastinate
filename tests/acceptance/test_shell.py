@@ -5,14 +5,15 @@ import pytest
 
 @pytest.fixture
 def shell(process_env):
-    return subprocess.Popen(
+    with subprocess.Popen(
         ["procrastinate", "shell"],
         env=process_env(),
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         encoding="utf-8",
-    )
+    ) as proc:
+        yield proc
 
 
 def test_shell(shell, defer):

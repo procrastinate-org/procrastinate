@@ -19,6 +19,7 @@ def click_app(mocker, app):
 
 def test_cli(entrypoint):
     result = entrypoint()
+    print(result.output)
     assert result.output.startswith("Usage:")
 
 
