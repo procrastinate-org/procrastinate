@@ -276,6 +276,17 @@ BEGIN
 END;
 $$;
 
+CREATE FUNCTION procrastinate_unlink_periodic_defers() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    UPDATE procrastinate_periodic_defers
+    SET job_id = NULL
+    WHERE job_id = OLD.id;
+    RETURN OLD;
+END;
+$$;
+
 -- Triggers
 
 CREATE TRIGGER procrastinate_jobs_notify_queue
@@ -297,3 +308,7 @@ CREATE TRIGGER procrastinate_trigger_scheduled_events
     AFTER UPDATE OR INSERT ON procrastinate_jobs
     FOR EACH ROW WHEN ((new.scheduled_at IS NOT NULL AND new.status = 'todo'::procrastinate_job_status))
     EXECUTE PROCEDURE procrastinate_trigger_scheduled_events_procedure();
+
+CREATE TRIGGER procrastinate_trigger_delete_jobs
+    BEFORE DELETE ON procrastinate_jobs
+    FOR EACH ROW EXECUTE PROCEDURE procrastinate_unlink_periodic_defers();
