@@ -72,7 +72,7 @@ Are we good to go?
 
 .. code-block:: console
 
-    (venv) $ procrastinate --app=tutorial.app healthcheck
+    (venv) $ procrastinate --app=tutorial.app healthchecks
     App configuration: OK
     DB connection: OK
     Found procrastinate_jobs table: OK
@@ -195,7 +195,7 @@ Your final file
     app = App(connector=AiopgConnector(host="localhost", user="postgres", password="password"))
     app.open()
 
-    @app.task
+    @app.task(name="sum")
     def sum(a, b):
         time.sleep(random.random() * 5)  # Sleep up to 5 seconds
         return a + b
