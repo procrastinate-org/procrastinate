@@ -192,6 +192,7 @@ class JobManager:
         self,
         job: jobs.Job,
         status: jobs.Status,
+        delete_job: bool,
     ) -> None:
         """
         Set a job to its final state (``succeeded`` or ``failed``).
@@ -207,6 +208,7 @@ class JobManager:
             query=sql.queries["finish_job"],
             job_id=job.id,
             status=status.value,
+            delete_job=delete_job,
         )
 
     async def retry_job(

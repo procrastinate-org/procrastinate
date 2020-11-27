@@ -1,7 +1,31 @@
-Remove old jobs
----------------
+Delete finished jobs
+====================
 
-You may want to clean your database by removing old jobs. Procrastinate exposes
+Delete jobs on completion
+-------------------------
+
+By passing an extra parameter, you can make workers automatically delete jobs right
+when they are finished::
+
+    app = procrastinate.App(worker_defaults={"delete_jobs": "always"})
+    # or when launching a worker:
+    app.run_worker(delete_jobs="always")
+
+With ``always``, every finished job will be deleted on completion. Other options are:
+
+- ``successful`` to only delete successful jobs and keep failed jobs in the database
+  until explicit deletion.
+- ``never`` to keep every job in the database, this is the default.
+
+You can also do this from the CLI::
+
+    procrastinate worker --delete-jobs=always
+
+
+Delete older jobs
+-----------------
+
+You may want to clean your database by deleting old jobs. Procrastinate exposes
 a builtin task which lets you do just that. Note that jobs and linked events
 will be irreversibly removed from the database when running this task.
 

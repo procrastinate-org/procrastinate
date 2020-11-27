@@ -74,7 +74,7 @@ CREATE FUNCTION procrastinate_defer_job(
     scheduled_at timestamp with time zone
 ) RETURNS bigint
     LANGUAGE plpgsql
-    AS $$
+AS $$
 DECLARE
 	job_id bigint;
 BEGIN
@@ -94,7 +94,7 @@ CREATE FUNCTION procrastinate_defer_periodic_job(
     _defer_timestamp bigint
 ) RETURNS bigint
     LANGUAGE plpgsql
-    AS $$
+AS $$
 DECLARE
 	_job_id bigint;
 	_defer_id bigint;
@@ -141,7 +141,7 @@ $$;
 
 CREATE FUNCTION procrastinate_fetch_job(target_queue_names character varying[]) RETURNS procrastinate_jobs
     LANGUAGE plpgsql
-    AS $$
+AS $$
 DECLARE
 	found_jobs procrastinate_jobs;
 BEGIN
@@ -176,7 +176,7 @@ $$;
 -- to remove after 1.0.0 is released
 CREATE FUNCTION procrastinate_finish_job(job_id integer, end_status procrastinate_job_status, next_scheduled_at timestamp with time zone) RETURNS void
     LANGUAGE plpgsql
-    AS $$
+AS $$
 BEGIN
     UPDATE procrastinate_jobs
     SET status = end_status,
@@ -186,10 +186,11 @@ BEGIN
 END;
 $$;
 
--- procrastinate_finish_job
+-- procrastinate_finish_job – old version
+-- to remove after 1.0.0 is released
 CREATE FUNCTION procrastinate_finish_job(job_id integer, end_status procrastinate_job_status) RETURNS void
     LANGUAGE plpgsql
-    AS $$
+AS $$
 BEGIN
     UPDATE procrastinate_jobs
     SET status = end_status,
@@ -198,9 +199,25 @@ BEGIN
 END;
 $$;
 
+-- procrastinate_finish_job
+CREATE FUNCTION procrastinate_finish_job(job_id integer, end_status procrastinate_job_status, delete_job boolean) RETURNS void
+    LANGUAGE plpgsql
+AS $$
+BEGIN
+    IF delete_job THEN
+        DELETE FROM procrastinate_jobs WHERE id = job_id;
+    ELSE
+        UPDATE procrastinate_jobs
+        SET status = end_status,
+            attempts = attempts + 1
+        WHERE id = job_id;
+    END IF;
+END;
+$$;
+
 CREATE FUNCTION procrastinate_retry_job(job_id integer, retry_at timestamp with time zone) RETURNS void
     LANGUAGE plpgsql
-    AS $$
+AS $$
 BEGIN
     UPDATE procrastinate_jobs
     SET status = 'todo',
@@ -212,7 +229,7 @@ $$;
 
 CREATE FUNCTION procrastinate_notify_queue() RETURNS trigger
     LANGUAGE plpgsql
-    AS $$
+AS $$
 BEGIN
 	PERFORM pg_notify('procrastinate_queue#' || NEW.queue_name, NEW.task_name);
 	PERFORM pg_notify('procrastinate_any_queue', NEW.task_name);
@@ -222,7 +239,7 @@ $$;
 
 CREATE FUNCTION procrastinate_trigger_status_events_procedure_insert() RETURNS trigger
     LANGUAGE plpgsql
-    AS $$
+AS $$
 BEGIN
     INSERT INTO procrastinate_events(job_id, type)
         VALUES (NEW.id, 'deferred'::procrastinate_job_event_type);
@@ -232,7 +249,7 @@ $$;
 
 CREATE FUNCTION procrastinate_trigger_status_events_procedure_update() RETURNS trigger
     LANGUAGE plpgsql
-    AS $$
+AS $$
 BEGIN
     WITH t AS (
         SELECT CASE
@@ -267,12 +284,23 @@ $$;
 
 CREATE FUNCTION procrastinate_trigger_scheduled_events_procedure() RETURNS trigger
     LANGUAGE plpgsql
-    AS $$
+AS $$
 BEGIN
     INSERT INTO procrastinate_events(job_id, type, at)
         VALUES (NEW.id, 'scheduled'::procrastinate_job_event_type, NEW.scheduled_at);
 
 	RETURN NEW;
+END;
+$$;
+
+CREATE FUNCTION procrastinate_unlink_periodic_defers() RETURNS trigger
+    LANGUAGE plpgsql
+AS $$
+BEGIN
+    UPDATE procrastinate_periodic_defers
+    SET job_id = NULL
+    WHERE job_id = OLD.id;
+    RETURN OLD;
 END;
 $$;
 
@@ -297,3 +325,7 @@ CREATE TRIGGER procrastinate_trigger_scheduled_events
     AFTER UPDATE OR INSERT ON procrastinate_jobs
     FOR EACH ROW WHEN ((new.scheduled_at IS NOT NULL AND new.status = 'todo'::procrastinate_job_status))
     EXECUTE PROCEDURE procrastinate_trigger_scheduled_events_procedure();
+
+CREATE TRIGGER procrastinate_trigger_delete_jobs
+    BEFORE DELETE ON procrastinate_jobs
+    FOR EACH ROW EXECUTE PROCEDURE procrastinate_unlink_periodic_defers();

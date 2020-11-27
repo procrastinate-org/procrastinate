@@ -167,6 +167,12 @@ def close_connection(procrastinate_app: procrastinate.App, *args, **kwargs):
     default=True,
     help="Whether to actively listen for new jobs or periodically poll",
 )
+@click.option(
+    "--delete-jobs",
+    type=click.Choice([v.value for v in worker.DeleteJobCondition]),
+    default=worker.DeleteJobCondition.NEVER.value,
+    help="Whether to delete jobs on completion",
+)
 @handle_errors()
 def worker_(app: procrastinate.App, queues: str, **kwargs):
     """
