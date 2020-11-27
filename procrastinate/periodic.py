@@ -72,7 +72,7 @@ class PeriodicDeferrer:
 
     def register_task(self, task: tasks.Task, cron: str) -> PeriodicTask:
         logger.info(
-            f"Registring task {task.name} to run periodically with cron {cron}",
+            f"Registering task {task.name} to run periodically with cron {cron}",
             extra={
                 "action": "registering_periodic_task",
                 "task": task.name,

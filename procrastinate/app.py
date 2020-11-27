@@ -297,16 +297,20 @@ class App:
             logs (defaults to ``None`` which will result in the worker named
             ``worker``).
         timeout : ``float``
-            Indicates the maximum duration (in seconds) procrastinate
-            workers wait between each database job poll.
-            Raising this parameter can lower the rate of workers making queries to the
-            database for requesting jobs.
+            Indicates the maximum duration (in seconds) the worker waits between
+            each database job poll. Raising this parameter can lower the rate at which
+            the worker makes queries to the database for requesting jobs.
             (defaults to 5.0)
         listen_notify : ``bool``
-            If ``True``, worker will dedicate a connection from the pool to listening to
-            database events, notifying of newly available jobs. If ``False``, workers
-            will just poll the database periodically (see ``timeout``). (defaults to
-            True)
+            If ``True``, the worker will dedicate a connection from the pool to
+            listening to database events, notifying of newly available jobs.
+            If ``False``, the worker will just poll the database periodically
+            (see ``timeout``). (defaults to ``True``)
+        delete_jobs : ``str``
+            If ``always``, the worker will automatically delete all jobs on completion.
+            If ``successful`` the worker will only delete successful jobs.
+            If ``never``, the worker will keep the jobs in database.
+            (defaults to ``never``)
         """
         self.perform_import_paths()
         worker = self._worker(**kwargs)

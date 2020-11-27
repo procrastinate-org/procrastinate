@@ -135,8 +135,12 @@ async def test_delete_old_jobs_multiple_jobs(
     job_a = await pg_job_manager.fetch_job(queues=["queue_a"])
     job_b = await pg_job_manager.fetch_job(queues=["queue_b"])
     # We finish both jobs
-    await pg_job_manager.finish_job(job_a, status=jobs.Status.SUCCEEDED)
-    await pg_job_manager.finish_job(job_b, status=jobs.Status.SUCCEEDED)
+    await pg_job_manager.finish_job(
+        job_a, status=jobs.Status.SUCCEEDED, delete_job=False
+    )
+    await pg_job_manager.finish_job(
+        job_b, status=jobs.Status.SUCCEEDED, delete_job=False
+    )
     # We back date the events for job_a
     await aiopg_connector.execute_query_async(
         f"UPDATE procrastinate_events SET at=at - INTERVAL '2 hours'"
@@ -157,7 +161,7 @@ async def test_delete_old_job_filter_on_end_date(
     # We start the job
     job = await pg_job_manager.fetch_job(queues=["queue_a"])
     # We finish the job
-    await pg_job_manager.finish_job(job, status=jobs.Status.SUCCEEDED)
+    await pg_job_manager.finish_job(job, status=jobs.Status.SUCCEEDED, delete_job=False)
     # We back date only the start event
     await aiopg_connector.execute_query_async(
         f"UPDATE procrastinate_events SET at=at - INTERVAL '2 hours'"
@@ -202,7 +206,7 @@ async def test_delete_old_jobs_parameters(
     # We start a job
     job = await pg_job_manager.fetch_job(queues=["queue_a"])
     # We finish the job
-    await pg_job_manager.finish_job(job, status=status)
+    await pg_job_manager.finish_job(job, status=status, delete_job=False)
     # We back date its events
     await aiopg_connector.execute_query_async(
         f"UPDATE procrastinate_events SET at=at - INTERVAL '2 hours'"
@@ -231,7 +235,9 @@ async def test_finish_job(get_all, pg_job_manager, job_factory):
     assert started_at.date() == datetime.datetime.utcnow().date()
     assert await get_all("procrastinate_jobs", "attempts") == [{"attempts": 0}]
 
-    await pg_job_manager.finish_job(job=job, status=jobs.Status.SUCCEEDED)
+    await pg_job_manager.finish_job(
+        job=job, status=jobs.Status.SUCCEEDED, delete_job=False
+    )
     expected = [{"status": "succeeded", "attempts": 1}]
     assert await get_all("procrastinate_jobs", "status", "attempts") == expected
 
@@ -239,7 +245,7 @@ async def test_finish_job(get_all, pg_job_manager, job_factory):
 async def test_finish_job_retry(get_all, pg_job_manager, job_factory):
     await pg_job_manager.defer_job_async(job_factory())
     job1 = await pg_job_manager.fetch_job(queues=None)
-    await pg_job_manager.finish_job(job=job1, status=jobs.Status.TODO)
+    await pg_job_manager.finish_job(job=job1, status=jobs.Status.TODO, delete_job=False)
 
     job2 = await pg_job_manager.fetch_job(queues=None)
 
@@ -346,7 +352,7 @@ async def fixture_jobs(pg_job_manager, job_factory):
         task_kwargs={"key": "b"},
     )
     j2 = j2.evolve(id=await pg_job_manager.defer_job_async(job=j2))
-    await pg_job_manager.finish_job(job=j2, status=jobs.Status.FAILED)
+    await pg_job_manager.finish_job(job=j2, status=jobs.Status.FAILED, delete_job=False)
 
     j3 = job_factory(
         queue="q2",
@@ -356,7 +362,9 @@ async def fixture_jobs(pg_job_manager, job_factory):
         task_kwargs={"key": "c"},
     )
     j3 = j3.evolve(id=await pg_job_manager.defer_job_async(job=j3))
-    await pg_job_manager.finish_job(job=j3, status=jobs.Status.SUCCEEDED)
+    await pg_job_manager.finish_job(
+        job=j3, status=jobs.Status.SUCCEEDED, delete_job=False
+    )
 
     return [j1, j2, j3]
 

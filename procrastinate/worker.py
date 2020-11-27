@@ -2,6 +2,7 @@ import asyncio
 import contextlib
 import logging
 import time
+from enum import Enum
 from typing import Dict, Iterable, Optional, Set, Union
 
 from procrastinate import app, exceptions, job_context, jobs, signals, tasks, utils
@@ -14,16 +15,27 @@ WORKER_TIMEOUT = 5.0  # seconds
 WORKER_CONCURRENCY = 1  # parallel task(s)
 
 
+class DeleteJobCondition(Enum):
+    """
+    An enumeration with all the possible conditions to delete a job
+    """
+
+    NEVER = "never"  #: Keep jobs in database after completion
+    SUCCESSFUL = "successful"  #: Delete only successful jobs
+    ALWAYS = "always"  #: Always delete jobs at completion
+
+
 class Worker:
     def __init__(
         self,
         app: app.App,
         queues: Optional[Iterable[str]] = None,
         name: Optional[str] = None,
-        concurrency: int = 1,
+        concurrency: int = WORKER_CONCURRENCY,
         wait: bool = True,
         timeout: float = WORKER_TIMEOUT,
         listen_notify: bool = True,
+        delete_jobs: str = DeleteJobCondition.NEVER.value,
     ):
         self.app = app
         self.queues = queues
@@ -33,6 +45,7 @@ class Worker:
         self.timeout = timeout
         self.wait = wait
         self.listen_notify = listen_notify
+        self.delete_jobs = DeleteJobCondition(delete_jobs)
 
         # Handling the info about the currently running task.
         self.known_missing_tasks: Set[str] = set()
@@ -171,7 +184,16 @@ class Worker:
                 await self.job_manager.retry_job(job=job, retry_at=retry_at)
             else:
                 assert status is not None
-                await self.job_manager.finish_job(job=job, status=status)
+
+                delete_job = {
+                    DeleteJobCondition.ALWAYS: True,
+                    DeleteJobCondition.NEVER: False,
+                    DeleteJobCondition.SUCCESSFUL: status == jobs.Status.SUCCEEDED,
+                }[self.delete_jobs]
+
+                await self.job_manager.finish_job(
+                    job=job, status=status, delete_job=delete_job
+                )
 
             self.logger.debug(
                 f"Acknowledged job completion {job.call_string}",

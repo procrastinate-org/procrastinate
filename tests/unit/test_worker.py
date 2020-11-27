@@ -68,6 +68,54 @@ async def test_process_job(
     assert connector.jobs[1]["status"] == status
 
 
+@pytest.mark.parametrize(
+    "side_effect, delete_jobs",
+    [
+        (None, "successful"),
+        (None, "always"),
+        (exceptions.JobError(), "always"),
+    ],
+)
+async def test_process_job_with_deletion(
+    mocker, app, job_factory, connector, side_effect, delete_jobs
+):
+    async def coro(*args, **kwargs):
+        pass
+
+    test_worker = worker.Worker(app, delete_jobs=delete_jobs)
+    test_worker.run_job = mocker.Mock(side_effect=side_effect or coro)
+    job = job_factory(id=1)
+    await test_worker.job_manager.defer_job_async(job)
+
+    await test_worker.process_job(job=job)
+
+    assert 1 not in connector.jobs
+
+
+@pytest.mark.parametrize(
+    "side_effect, delete_jobs",
+    [
+        (None, "never"),
+        (exceptions.JobError(), "never"),
+        (exceptions.JobError(), "successful"),
+    ],
+)
+async def test_process_job_without_deletion(
+    mocker, app, job_factory, connector, side_effect, delete_jobs
+):
+    async def coro(*args, **kwargs):
+        pass
+
+    test_worker = worker.Worker(app, delete_jobs=delete_jobs)
+    test_worker.run_job = mocker.Mock(side_effect=side_effect or coro)
+    job = job_factory(id=1)
+    await test_worker.job_manager.defer_job_async(job)
+
+    await test_worker.process_job(job=job)
+
+    assert 1 in connector.jobs
+
+
 async def test_process_job_retry_failed_job(
     mocker, test_worker, job_factory, connector
 ):

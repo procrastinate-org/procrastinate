@@ -168,7 +168,11 @@ class InMemoryConnector(connector.BaseAsyncConnector):
 
         return {"id": None}
 
-    def finish_job_run(self, job_id: int, status: str) -> None:
+    def finish_job_run(self, job_id: int, status: str, delete_job: bool) -> None:
+        if delete_job:
+            self.jobs.pop(job_id)
+            return
+
         job_row = self.jobs[job_id]
         job_row["status"] = status
         job_row["attempts"] += 1

@@ -33,7 +33,7 @@ def test_worker(entrypoint, click_app, mocker):
     click_app.run_worker = mocker.MagicMock()
     result = entrypoint(
         "--app yay worker --queues a,b --name=w1 --timeout=8.3 "
-        "--one-shot --concurrency=10 --no-listen-notify"
+        "--one-shot --concurrency=10 --no-listen-notify --delete-jobs=always"
     )
 
     assert result.output.strip() == "Launching a worker on a, b"
@@ -45,6 +45,7 @@ def test_worker(entrypoint, click_app, mocker):
         timeout=8.3,
         wait=False,
         listen_notify=False,
+        delete_jobs="always",
     )
 
 

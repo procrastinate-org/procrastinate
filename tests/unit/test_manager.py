@@ -121,11 +121,25 @@ async def test_finish_job(job_manager, job_factory, connector):
     job = job_factory(id=1)
     await job_manager.defer_job_async(job=job)
 
-    await job_manager.finish_job(job=job, status=jobs.Status.TODO)
+    await job_manager.finish_job(
+        job=job, status=jobs.Status.SUCCEEDED, delete_job=False
+    )
     assert connector.queries[-1] == (
         "finish_job",
-        {"job_id": 1, "status": "todo"},
+        {"job_id": 1, "status": "succeeded", "delete_job": False},
     )
+
+
+async def test_finish_job_with_deletion(job_manager, job_factory, connector):
+    job = job_factory(id=1)
+    await job_manager.defer_job_async(job=job)
+
+    await job_manager.finish_job(job=job, status=jobs.Status.SUCCEEDED, delete_job=True)
+    assert connector.queries[-1] == (
+        "finish_job",
+        {"job_id": 1, "status": "succeeded", "delete_job": True},
+    )
+    assert 1 not in connector.jobs
 
 
 async def test_retry_job(job_manager, job_factory, connector):

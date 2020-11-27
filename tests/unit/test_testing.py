@@ -250,7 +250,7 @@ def test_finish_job_run(connector):
     job_row = connector.fetch_job_one(queues=None)
     id = job_row["id"]
 
-    connector.finish_job_run(job_id=id, status="finished")
+    connector.finish_job_run(job_id=id, status="finished", delete_job=False)
 
     assert connector.jobs[id]["attempts"] == 1
     assert connector.jobs[id]["status"] == "finished"

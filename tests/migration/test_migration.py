@@ -13,7 +13,8 @@ from procrastinate import aiopg_connector, schema
 @pytest.fixture
 def run_migrations(db_execute):
     def _(dbname):
-        migrations = sorted(pathlib.Path("procrastinate/sql/migrations").glob("*.sql"))
+        folder = pathlib.Path(__file__).parents[2] / "procrastinate/sql/migrations"
+        migrations = sorted(folder.glob("*.sql"))
 
         for migration in migrations:
             with db_execute(dbname) as execute:
