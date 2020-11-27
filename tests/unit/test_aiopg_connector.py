@@ -6,6 +6,11 @@ from procrastinate import aiopg_connector, exceptions
 from .conftest import AsyncMock
 
 
+@pytest.fixture
+def connector():
+    return aiopg_connector.AiopgConnector()
+
+
 @pytest.mark.asyncio
 async def test_adapt_pool_args_on_connect(mocker):
     called = []
@@ -132,15 +137,13 @@ async def test_wrap_query_exceptions_success(mocker):
         "_loop_notify",
     ],
 )
-def test_wrap_exceptions_applied(method_name):
-    connector = aiopg_connector.AiopgConnector()
+def test_wrap_exceptions_applied(method_name, connector):
     assert getattr(connector, method_name)._exceptions_wrapped is True
 
 
 @pytest.mark.asyncio
-async def test_listen_notify_pool_one_connection(mocker, caplog):
+async def test_listen_notify_pool_one_connection(mocker, caplog, connector):
     pool = mocker.Mock(maxsize=1)
-    connector = aiopg_connector.AiopgConnector()
     await connector.open_async(pool)
     caplog.clear()
 
@@ -157,8 +160,7 @@ def mock_async_create_pool(mocker):
 
 
 @pytest.mark.asyncio
-async def test_open_async_no_pool_specified(mock_async_create_pool):
-    connector = aiopg_connector.AiopgConnector()
+async def test_open_async_no_pool_specified(mock_async_create_pool, connector):
 
     await connector.open_async()
 
@@ -167,8 +169,9 @@ async def test_open_async_no_pool_specified(mock_async_create_pool):
 
 
 @pytest.mark.asyncio
-async def test_open_async_pool_argument_specified(pool, mock_async_create_pool):
-    connector = aiopg_connector.AiopgConnector()
+async def test_open_async_pool_argument_specified(
+    pool, mock_async_create_pool, connector
+):
 
     await connector.open_async(pool)
 
@@ -177,8 +180,21 @@ async def test_open_async_pool_argument_specified(pool, mock_async_create_pool):
     assert connector._pool == pool
 
 
-def test_get_pool():
-    connector = aiopg_connector.AiopgConnector()
-
+def test_get_pool(connector):
     with pytest.raises(exceptions.AppNotOpen):
         _ = connector.pool
+
+
+@pytest.mark.parametrize(
+    "query, has_arguments, expected",
+    [
+        ("a % b", False, "a %% b"),
+        ("a % b", True, "a % b"),
+        (12, False, 12),
+    ],
+)
+def test_prepare_for_interpolation(query, has_arguments, expected, connector):
+    result = connector._prepare_for_interpolation(
+        query=query, has_arguments=has_arguments
+    )
+    assert result == expected
