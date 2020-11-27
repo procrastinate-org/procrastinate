@@ -322,11 +322,9 @@ async def test_defer_job_violate_queueing_lock(pg_job_manager, job_factory):
                 task_kwargs={"c": "d"},
             )
         )
-        assert isinstance(excinfo.value.__cause__, psycopg2.errors.UniqueViolation)
-        assert (
-            excinfo.value.__cause__.diag.constraint_name
-            == "procrastinate_jobs_queueing_lock_idx"
-        )
+    cause = excinfo.value.__cause__
+    assert isinstance(cause, exceptions.UniqueViolation)
+    assert cause.constraint_name == "procrastinate_jobs_queueing_lock_idx"
 
 
 async def test_check_connection(pg_job_manager):
