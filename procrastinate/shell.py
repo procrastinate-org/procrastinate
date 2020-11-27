@@ -97,7 +97,8 @@ class ProcrastinateShell(cmd.Cmd):
 
         Example: retry 2
         """
-        print_job(self.job_manager.set_job_status(arg, status="todo"))  # type: ignore
+        output = self.job_manager.retry_job_return_info(int(arg))  # type: ignore
+        print_job(output)
 
     def do_cancel(self, arg: str) -> None:
         """
@@ -108,4 +109,5 @@ class ProcrastinateShell(cmd.Cmd):
 
         Example: cancel 3
         """
-        print_job(self.job_manager.set_job_status(arg, status="failed"))  # type: ignore
+        output = self.job_manager.cancel_job_return_info(int(arg))  # type: ignore
+        print_job(output)

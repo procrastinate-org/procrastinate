@@ -242,7 +242,10 @@ async def test_finish_job(get_all, pg_job_manager, job_factory):
     assert await get_all("procrastinate_jobs", "status", "attempts") == expected
 
 
-async def test_finish_job_status_error(get_all, pg_job_manager, job_factory):
+@pytest.mark.parametrize("delete_job", [False, True])
+async def test_finish_job_status_error(
+    get_all, pg_job_manager, job_factory, delete_job
+):
     job = job_factory(queue="queue_a")
     await pg_job_manager.defer_job_async(job)
 
@@ -261,7 +264,7 @@ async def test_finish_job_status_error(get_all, pg_job_manager, job_factory):
 
     with pytest.raises(exceptions.ConnectorException) as excinfo:
         await pg_job_manager.finish_job(
-            job=job, status=jobs.Status.FAILED, delete_job=False
+            job=job, status=jobs.Status.FAILED, delete_job=delete_job
         )
     assert isinstance(excinfo.value.__cause__, psycopg2.errors.RaiseException)
     assert (
@@ -500,8 +503,13 @@ async def test_list_tasks(fixture_jobs, pg_job_manager, kwargs, expected):
     ] == expected
 
 
-@pytest.mark.parametrize("status", ["doing", "succeeded", "failed"])
-async def test_set_job_status(fixture_jobs, pg_job_manager, status):
-    await pg_job_manager.set_job_status_async(1, status)
+async def test_retry_job_return_info(fixture_jobs, pg_job_manager):
+    await pg_job_manager.retry_job_return_info_async(job_id=3)
+    (job1,) = await pg_job_manager.list_jobs_async(id=3)
+    assert job1["status"] == "todo"
+
+
+async def test_cancel_job_return_info(fixture_jobs, pg_job_manager):
+    await pg_job_manager.cancel_job_return_info_async(job_id=1)
     (job1,) = await pg_job_manager.list_jobs_async(id=1)
-    assert job1["status"] == status
+    assert job1["status"] == "failed"

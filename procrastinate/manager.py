@@ -204,9 +204,17 @@ class JobManager:
             ``succeeded`` or ``failed``
         """
         assert job.id  # TODO remove this
+        await self.finish_job_by_id(job_id=job.id, status=status, delete_job=delete_job)
+
+    async def finish_job_by_id(
+        self,
+        job_id: int,
+        status: jobs.Status,
+        delete_job: bool,
+    ) -> None:
         await self.connector.execute_query_async(
             query=sql.queries["finish_job"],
-            job_id=job.id,
+            job_id=job_id,
             status=status.value,
             delete_job=delete_job,
         )
@@ -227,9 +235,17 @@ class JobManager:
             Otherwise, the job will be retried no sooner than this date & time.
             Should be timezone-aware (even if UTC)
         """
+        assert job.id  # TODO remove this
+        await self.retry_job_by_id(job_id=job.id, retry_at=retry_at)
+
+    async def retry_job_by_id(
+        self,
+        job_id: int,
+        retry_at: datetime.datetime,
+    ) -> None:
         await self.connector.execute_query_async(
             query=sql.queries["retry_job"],
-            job_id=job.id,
+            job_id=job_id,
             retry_at=retry_at,
         )
 
@@ -417,16 +433,13 @@ class JobManager:
             )
         ]
 
-    async def set_job_status_async(self, id: int, status: str) -> Dict[str, Any]:
+    async def retry_job_return_info_async(self, job_id: int) -> Dict[str, Any]:
         """
-        Set/reset the status of a specific job.
+        Retry a job, and return its information.
 
         Parameters
         ----------
-        id : ``int``
-            Job ID
-        status : ``str``
-            New job status (``todo``/``doing``/``succeeded``/``failed``)
+        job_id : ``int``
 
         Returns
         -------
@@ -434,14 +447,35 @@ class JobManager:
             A dictionary representing the job (``id``, ``queue``, ``task``,
             ``lock``, ``args``, ``status``, ``scheduled_at``, ``attempts``).
         """
-        await self.connector.execute_query_async(
-            query=sql.queries["set_job_status"], id=id, status=status
+        await self.retry_job_by_id(
+            job_id=job_id, retry_at=utils.utcnow().replace(microsecond=0)
         )
-        (result,) = await self.list_jobs_async(id=id)
+        (result,) = await self.list_jobs_async(id=job_id)
+        return result
+
+    async def cancel_job_return_info_async(self, job_id: int) -> Dict[str, Any]:
+        """
+        Finish a job, setting its status to ``failed``, and return its information.
+
+        Parameters
+        ----------
+        job_id : ``int``
+
+        Returns
+        -------
+        ``Dict[str, Any]``
+            A dictionary representing the job (``id``, ``queue``, ``task``,
+            ``lock``, ``args``, ``status``, ``scheduled_at``, ``attempts``).
+        """
+        await self.finish_job_by_id(
+            job_id=job_id, status=jobs.Status.FAILED, delete_job=False
+        )
+        (result,) = await self.list_jobs_async(id=job_id)
         return result
 
 
 utils.add_method_sync_api(cls=JobManager, method_name="list_jobs_async")
 utils.add_method_sync_api(cls=JobManager, method_name="list_queues_async")
 utils.add_method_sync_api(cls=JobManager, method_name="list_tasks_async")
-utils.add_method_sync_api(cls=JobManager, method_name="set_job_status_async")
+utils.add_method_sync_api(cls=JobManager, method_name="retry_job_return_info_async")
+utils.add_method_sync_api(cls=JobManager, method_name="cancel_job_return_info_async")
