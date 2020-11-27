@@ -27,7 +27,7 @@ How to...
     howto/deployment
     howto/migrations
     howto/monitoring
-    howto/remove_old_jobs
+    howto/delete_finished_jobs
     howto/connections
     howto/custom_json_encoder_decoder
     howto/schema

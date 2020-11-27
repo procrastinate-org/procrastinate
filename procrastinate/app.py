@@ -309,7 +309,7 @@ class App:
         delete_jobs : ``str``
             If ``always``, the worker will automatically delete all jobs on completion.
             If ``successful`` the worker will only delete successful jobs.
-            If ``never``, the worker will keep the jobs in database.
+            If ``never``, the worker will keep the jobs in the database.
             (defaults to ``never``)
         """
         self.perform_import_paths()
