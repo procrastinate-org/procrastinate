@@ -242,15 +242,64 @@ async def test_finish_job(get_all, pg_job_manager, job_factory):
     assert await get_all("procrastinate_jobs", "status", "attempts") == expected
 
 
-async def test_finish_job_retry(get_all, pg_job_manager, job_factory):
+async def test_finish_job_status_error(get_all, pg_job_manager, job_factory):
+    job = job_factory(queue="queue_a")
+    await pg_job_manager.defer_job_async(job)
+
+    job_rows = await get_all("procrastinate_jobs", "id", "status")
+    assert len(job_rows) == 1
+    assert job_rows[0]["status"] == "todo"
+
+    job_id = job_rows[0]["id"]
+    job = job.evolve(id=job_id)
+
+    await pg_job_manager.finish_job(
+        job=job, status=jobs.Status.FAILED, delete_job=False
+    )
+    job_rows = await get_all("procrastinate_jobs", "status", "attempts")
+    assert job_rows == [{"status": "failed", "attempts": 0}]
+
+    with pytest.raises(exceptions.ConnectorException) as excinfo:
+        await pg_job_manager.finish_job(
+            job=job, status=jobs.Status.FAILED, delete_job=False
+        )
+    assert isinstance(excinfo.value.__cause__, psycopg2.errors.RaiseException)
+    assert (
+        f'Job with id {job_id} was not found or not in "doing" or "todo" status'
+        in str(excinfo.value.__cause__)
+    )
+
+
+async def test_retry_job(get_all, pg_job_manager, job_factory):
     await pg_job_manager.defer_job_async(job_factory())
     job1 = await pg_job_manager.fetch_job(queues=None)
-    await pg_job_manager.finish_job(job=job1, status=jobs.Status.TODO, delete_job=False)
+    await pg_job_manager.retry_job(job=job1, retry_at=datetime.datetime.utcnow())
 
     job2 = await pg_job_manager.fetch_job(queues=None)
 
     assert job2.id == job1.id
     assert job2.attempts == job1.attempts + 1
+
+
+async def test_finish_job_bad_end_status(get_all, pg_job_manager, job_factory):
+    job = job_factory(queue="queue_a")
+    await pg_job_manager.defer_job_async(job)
+
+    job_rows = await get_all("procrastinate_jobs", "id", "status")
+    assert len(job_rows) == 1
+    assert job_rows[0]["status"] == "todo"
+
+    job_id = job_rows[0]["id"]
+    job = job.evolve(id=job_id)
+
+    with pytest.raises(exceptions.ConnectorException) as excinfo:
+        await pg_job_manager.finish_job(
+            job=job, status=jobs.Status.TODO, delete_job=False
+        )
+    assert isinstance(excinfo.value.__cause__, psycopg2.errors.RaiseException)
+    assert 'End status should be either "succeeded" or "failed"' in str(
+        excinfo.value.__cause__
+    )
 
 
 async def test_enum_synced(aiopg_connector):
