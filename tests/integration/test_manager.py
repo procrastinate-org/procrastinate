@@ -416,7 +416,17 @@ async def fixture_jobs(pg_job_manager, job_factory):
         job=j3, status=jobs.Status.SUCCEEDED, delete_job=False
     )
 
-    return [j1, j2, j3]
+    j4 = job_factory(
+        queue="q3",
+        lock="lock4",
+        queueing_lock="queueing_lock4",
+        task_name="task_bar",
+        task_kwargs={"key": "d"},
+    )
+    j4 = j4.evolve(id=await pg_job_manager.defer_job_async(job=j4))
+    await pg_job_manager.fetch_job(queues=["q3"])
+
+    return [j1, j2, j3, j4]
 
 
 async def test_list_jobs_dict(fixture_jobs, pg_job_manager):
@@ -437,7 +447,7 @@ async def test_list_jobs_dict(fixture_jobs, pg_job_manager):
 @pytest.mark.parametrize(
     "kwargs, expected",
     [
-        ({}, [1, 2, 3]),
+        ({}, [1, 2, 3, 4]),
         ({"id": 1}, [1]),
         ({"lock": "lock3"}, [3]),
         ({"queue": "q1", "task": "task_foo"}, [1]),
@@ -463,7 +473,7 @@ async def test_list_queues_dict(fixture_jobs, pg_job_manager):
 @pytest.mark.parametrize(
     "kwargs, expected",
     [
-        ({}, ["q1", "q2"]),
+        ({}, ["q1", "q2", "q3"]),
         ({"queue": "q2"}, ["q2"]),
         ({"task": "task_foo"}, ["q1", "q2"]),
         ({"status": "todo"}, ["q1"]),
@@ -479,9 +489,9 @@ async def test_list_queues(fixture_jobs, kwargs, expected, pg_job_manager):
 async def test_list_tasks_dict(fixture_jobs, pg_job_manager):
     assert (await pg_job_manager.list_tasks_async())[0] == {
         "name": "task_bar",
-        "jobs_count": 1,
+        "jobs_count": 2,
         "todo": 0,
-        "doing": 0,
+        "doing": 1,
         "succeeded": 0,
         "failed": 1,
     }
@@ -504,8 +514,8 @@ async def test_list_tasks(fixture_jobs, pg_job_manager, kwargs, expected):
 
 
 async def test_retry_job_return_info(fixture_jobs, pg_job_manager):
-    await pg_job_manager.retry_job_return_info_async(job_id=3)
-    (job1,) = await pg_job_manager.list_jobs_async(id=3)
+    await pg_job_manager.retry_job_return_info_async(job_id=4)
+    (job1,) = await pg_job_manager.list_jobs_async(id=4)
     assert job1["status"] == "todo"
 
 
