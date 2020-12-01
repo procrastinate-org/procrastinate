@@ -28,12 +28,9 @@ jobs:
         with:
           python-version: 3.x
       - name: Install dependencies
-        run: |
-          set -xeu
-          python -VV
-          pip install setuptools wheel
+        run: pip install build
       - name: Build the wheel
-        run: python setup.py sdist bdist_wheel
+        run: python -m build
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@master
         with:
