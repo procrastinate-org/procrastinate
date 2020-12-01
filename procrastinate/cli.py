@@ -21,8 +21,6 @@ CONTEXT_SETTINGS = {
     "auto_envvar_prefix": ENV_PREFIX,
 }
 
-LOG_FORMAT = os.environ.setdefault(f"{ENV_PREFIX}_LOG_FORMAT", logging.BASIC_FORMAT)
-
 
 def get_log_level(verbosity: int) -> int:
     """
@@ -32,14 +30,9 @@ def get_log_level(verbosity: int) -> int:
     return {0: logging.INFO, 1: logging.DEBUG}.get(min((1, verbosity)), 0)
 
 
-def click_set_verbosity(ctx: click.Context, param: click.Parameter, value: int) -> int:
-    set_verbosity(verbosity=value)
-    return value
-
-
-def set_verbosity(verbosity: int) -> None:
+def configure_logging(verbosity: int, format: str, style: str) -> None:
     level = get_log_level(verbosity=verbosity)
-    logging.basicConfig(level=level, format=LOG_FORMAT)
+    logging.basicConfig(level=level, format=format, style=style)
     level_name = logging.getLevelName(level)
     logger.debug(
         f"Log level set to {level_name}",
@@ -92,16 +85,27 @@ class MissingAppConnector(connector.BaseConnector):
 @click.option(
     "-v",
     "--verbose",
-    is_eager=True,
-    callback=click_set_verbosity,
     count=True,
     help="Use multiple times to increase verbosity",
+)
+@click.option(
+    "--log-format",
+    default=logging.BASIC_FORMAT,
+    help="Defines the format used for logging (see "
+    "https://docs.python.org/3/library/logging.html#logrecord-attributes)",
+)
+@click.option(
+    "--log-format-style",
+    default="%",
+    type=click.Choice("%{$"),
+    help="Defines the style for the log format string (see "
+    "https://docs.python.org/3/howto/logging-cookbook.html#use-of-alternative-formatting-styles)",
 )
 @click.version_option(
     procrastinate.__version__, "-V", "--version", prog_name=PROGRAM_NAME
 )
 @handle_errors()
-def cli(ctx: click.Context, app: str, **kwargs) -> None:
+def cli(ctx: click.Context, app: str, verbose, log_format, log_format_style) -> None:
     """
     Interact with a Procrastinate app. See subcommands for details.
 
@@ -109,6 +113,7 @@ def cli(ctx: click.Context, app: str, **kwargs) -> None:
     or PROCRASTINATE_COMMAND_UPPERCASE_NAME (examples: PROCRASTINATE_APP,
     PROCRASTINATE_DEFER_UNKNOWN, ...).
     """
+    configure_logging(verbosity=verbose, format=log_format, style=log_format_style)
     if app:
         app_obj = procrastinate.App.from_path(dotted_path=app)
     else:

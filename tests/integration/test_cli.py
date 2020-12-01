@@ -31,8 +31,12 @@ def test_version(entrypoint):
 
 def test_worker(entrypoint, click_app, mocker):
     click_app.run_worker = mocker.MagicMock()
+    log = mocker.patch("procrastinate.cli.configure_logging")
     result = entrypoint(
-        "--app yay worker --queues a,b --name=w1 --timeout=8.3 "
+        "--app yay "
+        "-vvv --log-format={message},yay! --log-format-style={ "
+        "worker "
+        " --queues a,b --name=w1 --timeout=8.3 "
         "--one-shot --concurrency=10 --no-listen-notify --delete-jobs=always"
     )
 
@@ -47,6 +51,7 @@ def test_worker(entrypoint, click_app, mocker):
         listen_notify=False,
         delete_jobs="always",
     )
+    log.assert_called_once_with(verbosity=3, format="{message},yay!", style="{")
 
 
 def test_schema_apply(entrypoint, click_app, mocker):
