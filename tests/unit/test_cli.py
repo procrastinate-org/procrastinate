@@ -22,7 +22,7 @@ def test_set_verbosity(mocker, caplog):
 
     cli.set_verbosity(1)
 
-    config.assert_called_once_with(level=logging.DEBUG)
+    config.assert_called_once_with(level=logging.DEBUG, format=logging.BASIC_FORMAT)
     records = [record for record in caplog.records if record.action == "set_log_level"]
     assert len(records) == 1
     assert records[0].value == "DEBUG"

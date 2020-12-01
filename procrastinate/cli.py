@@ -21,6 +21,8 @@ CONTEXT_SETTINGS = {
     "auto_envvar_prefix": ENV_PREFIX,
 }
 
+LOG_FORMAT = os.environ.setdefault(f"{ENV_PREFIX}_LOG_FORMAT", logging.BASIC_FORMAT)
+
 
 def get_log_level(verbosity: int) -> int:
     """
@@ -37,7 +39,7 @@ def click_set_verbosity(ctx: click.Context, param: click.Parameter, value: int) 
 
 def set_verbosity(verbosity: int) -> None:
     level = get_log_level(verbosity=verbosity)
-    logging.basicConfig(level=level)
+    logging.basicConfig(level=level, format=LOG_FORMAT)
     level_name = logging.getLevelName(level)
     logger.debug(
         f"Log level set to {level_name}",
