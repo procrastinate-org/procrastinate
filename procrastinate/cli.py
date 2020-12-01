@@ -21,7 +21,7 @@ CONTEXT_SETTINGS = {
     "auto_envvar_prefix": ENV_PREFIX,
 }
 
-LOG_FORMAT = os.environ.setdefault(f"{ENV_PREFIX}_LOG_FORMAT", "%(asctime)s %(levelname)s %(name)s:%(lineno)s %(message)s")
+LOG_FORMAT = os.environ.setdefault(f"{ENV_PREFIX}_LOG_FORMAT", logging.BASIC_FORMAT)
 
 
 def get_log_level(verbosity: int) -> int:
