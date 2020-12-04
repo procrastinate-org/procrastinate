@@ -253,7 +253,7 @@ async def test_finish_job_wrong_initial_status(
         await pg_job_manager.finish_job(
             job=job, status=jobs.Status.FAILED, delete_job=delete_job
         )
-    assert f'Job was not found or not in "doing" or "todo" status' in str(
+    assert 'Job was not found or not in "doing" or "todo" status' in str(
         excinfo.value.__cause__
     )
 
