@@ -122,7 +122,7 @@ class JobDeferrer:
         final_kwargs = self.job.task_kwargs.copy()
         final_kwargs.update(task_kwargs)
 
-        return attr.evolve(self.job, task_kwargs=final_kwargs)
+        return self.job.evolve(task_kwargs=final_kwargs)
 
     def _log_before_defer_job(self, job: Job) -> None:
         logger.debug(
