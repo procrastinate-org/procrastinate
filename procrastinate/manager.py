@@ -20,7 +20,7 @@ class JobManager:
     def __init__(self, connector: connector.BaseConnector):
         self.connector = connector
 
-    async def defer_job_async(self, job: jobs.Job) -> int:
+    async def defer_job_async(self, job: jobs.Job) -> jobs.Job:
         """
         Add a job in its queue for later processing by a worker.
 
@@ -30,8 +30,8 @@ class JobManager:
 
         Returns
         -------
-        ``int``
-            The primary key of the newly created job.
+        `jobs.Job`
+            A copy of the job instance with the id set.
         """
         # Make sure this code stays synchronized with .defer_job()
         try:
@@ -41,9 +41,9 @@ class JobManager:
         except exceptions.UniqueViolation as exc:
             self._raise_already_enqueued(exc=exc, queueing_lock=job.queueing_lock)
 
-        return result["id"]
+        return job.evolve(id=result["id"])
 
-    def defer_job(self, job: jobs.Job) -> int:
+    def defer_job(self, job: jobs.Job) -> jobs.Job:
         """
         Sync version of `defer_job_async`.
         """
@@ -54,7 +54,7 @@ class JobManager:
         except exceptions.UniqueViolation as exc:
             self._raise_already_enqueued(exc=exc, queueing_lock=job.queueing_lock)
 
-        return result["id"]
+        return job.evolve(id=result["id"])
 
     def _defer_job_query_kwargs(self, job: jobs.Job) -> Dict[str, Any]:
 

@@ -1,6 +1,6 @@
 import datetime
+import functools
 
-import psycopg2.errors
 import pytest
 
 from procrastinate import exceptions, jobs, manager
@@ -25,169 +25,173 @@ def get_all(aiopg_connector):
     return f
 
 
-@pytest.mark.parametrize(
-    "job_kwargs",
-    [
-        {"queue": "queue_a"},
-        {"queue": "queue_a", "scheduled_at": conftest.aware_datetime(2000, 1, 1)},
-    ],
-)
-async def test_fetch_job(pg_job_manager, job_factory, job_kwargs):
-    # Add a first started job
-    job = job_factory(id=2, **job_kwargs)
-    await pg_job_manager.defer_job_async(job_factory(queue="queue_a"))
-    await pg_job_manager.fetch_job(queues=None)
+@pytest.fixture
+def deferred_job_factory(deferred_job_factory, pg_job_manager):
+    return functools.partial(deferred_job_factory, job_manager=pg_job_manager)
 
-    # Now add the job we're testing
-    await pg_job_manager.defer_job_async(job)
 
-    assert await pg_job_manager.fetch_job(queues=["queue_a"]) == job
+@pytest.fixture
+def fetched_job_factory(deferred_job_factory, pg_job_manager):
+    async def factory(**kwargs):
+        job = await deferred_job_factory(**kwargs)
+        fetched_job = await pg_job_manager.fetch_job(queues=None)
+        # to make sure we do fetch the job we just deferred
+        assert fetched_job.id == job.id
+        return job
+
+    return factory
 
 
 @pytest.mark.parametrize(
-    "job_kwargs",
+    "job_kwargs, fetch_queues",
     [
-        # We won't see this one because of the lock
-        {"queue": "queue_a", "lock": "lock_1"},
-        # We won't see this one because of the queue
-        {"queue": "queue_b"},
-        # We won't see this one because of the scheduled date
-        {"queue": "queue_a", "scheduled_at": conftest.aware_datetime(2100, 1, 1)},
+        ({"queue": "queue_a"}, None),
+        ({"queue": "queue_a"}, ["queue_a"]),
+        ({"scheduled_at": conftest.aware_datetime(2000, 1, 1)}, None),
     ],
 )
-async def test_get_job_no_result(pg_job_manager, job_factory, job_kwargs):
-    job = job_factory(**job_kwargs)
-
-    # Add a first started job
-    await pg_job_manager.defer_job_async(job_factory(lock="lock_1"))
-    await pg_job_manager.fetch_job(queues=None)
-
-    # Now add the job we're testing
-    await pg_job_manager.defer_job_async(job)
-
-    assert await pg_job_manager.fetch_job(queues=["queue_a"]) is None
-
-
-async def test_get_stalled_jobs(get_all, pg_job_manager, aiopg_connector, job_factory):
-    await pg_job_manager.defer_job_async(
-        job_factory(queue="queue_a", task_name="task_1")
-    )
-    job_id = (await get_all("procrastinate_jobs", "id"))[0]["id"]
-
-    # No started job
-    assert await pg_job_manager.get_stalled_jobs(nb_seconds=3600) == []
-
-    # We start a job and fake its `started` state in the database
-    job = await pg_job_manager.fetch_job(queues=["queue_a"])
-    await aiopg_connector.execute_query_async(
-        "INSERT INTO procrastinate_events(job_id, type, at) VALUES "
-        "(%(job_id)s, 'started', NOW() - INTERVAL '30 minutes')",
-        job_id=job_id,
-    )
-
-    # Nb_seconds parameter
-    assert await pg_job_manager.get_stalled_jobs(nb_seconds=3600) == []
-    assert await pg_job_manager.get_stalled_jobs(nb_seconds=1800) == [job]
-
-    # Queue parameter
-    assert await pg_job_manager.get_stalled_jobs(nb_seconds=1800, queue="queue_a") == [
-        job
-    ]
-    assert await pg_job_manager.get_stalled_jobs(nb_seconds=1800, queue="queue_b") == []
-    # Task name parameter
-    assert await pg_job_manager.get_stalled_jobs(
-        nb_seconds=1800, task_name="task_1"
-    ) == [job]
-    assert (
-        await pg_job_manager.get_stalled_jobs(nb_seconds=1800, task_name="task_2") == []
-    )
-
-
-async def test_delete_old_jobs_job_is_not_finished(
-    get_all, pg_job_manager, aiopg_connector, job_factory
+async def test_fetch_job(
+    pg_job_manager,
+    deferred_job_factory,
+    job_kwargs,
+    fetch_queues,
 ):
-    await pg_job_manager.defer_job_async(job_factory(queue="queue_a"))
 
-    # No started job
-    await pg_job_manager.delete_old_jobs(nb_hours=0)
-    assert len(await get_all("procrastinate_jobs", "id")) == 1
+    # Now add the job we're testing
+    job = await deferred_job_factory(**job_kwargs)
 
-    # We start a job
-    job = await pg_job_manager.fetch_job(queues=["queue_a"])
-    # We back date the started event
+    assert await pg_job_manager.fetch_job(queues=fetch_queues) == job
+
+
+async def test_fetch_job_not_fetching_started_job(pg_job_manager, fetched_job_factory):
+    # Add a first started job
+    await fetched_job_factory()
+
+    assert await pg_job_manager.fetch_job(queues=None) is None
+
+
+async def test_fetch_job_not_fetching_locked_job(
+    pg_job_manager, deferred_job_factory, fetched_job_factory
+):
+    await fetched_job_factory(lock="lock_1")
+    await deferred_job_factory(lock="lock_1")
+
+    assert await pg_job_manager.fetch_job(queues=None) is None
+
+
+@pytest.mark.parametrize(
+    "job_kwargs, fetch_queues",
+    [
+        # We won't see this one because of the queue
+        ({"queue": "queue_b"}, ["queue_a"]),
+        # We won't see this one because of the scheduled date
+        ({"scheduled_at": conftest.aware_datetime(2100, 1, 1)}, None),
+    ],
+)
+async def test_get_job_no_result(
+    pg_job_manager, deferred_job_factory, job_kwargs, fetch_queues
+):
+    await deferred_job_factory(**job_kwargs)
+
+    assert await pg_job_manager.fetch_job(queues=fetch_queues) is None
+
+
+@pytest.mark.parametrize(
+    "filter_args",
+    [
+        {"nb_seconds": 1800},
+        {"nb_seconds": 1800, "queue": "queue_a"},
+        {"nb_seconds": 1800, "task_name": "task_1"},
+    ],
+)
+async def test_get_stalled_jobs_yes(
+    pg_job_manager, fetched_job_factory, aiopg_connector, filter_args
+):
+    job = await fetched_job_factory(queue="queue_a", task_name="task_1")
+
+    # We fake its started event timestamp
+    await aiopg_connector.execute_query_async(
+        f"UPDATE procrastinate_events SET at=at - INTERVAL '35 minutes'"
+        f"WHERE job_id={job.id}"
+    )
+
+    result = await pg_job_manager.get_stalled_jobs(**filter_args)
+    assert result == [job]
+
+
+@pytest.mark.parametrize(
+    "filter_args",
+    [
+        {"nb_seconds": 3600},
+        {"nb_seconds": 1800, "queue": "queue_b"},
+        {"nb_seconds": 1800, "task_name": "task_2"},
+    ],
+)
+async def test_get_stalled_jobs_no(
+    pg_job_manager, fetched_job_factory, aiopg_connector, filter_args
+):
+    job = await fetched_job_factory(queue="queue_a", task_name="task_1")
+
+    # We fake its started event timestamp
+    await aiopg_connector.execute_query_async(
+        f"UPDATE procrastinate_events SET at=at - INTERVAL '35 minutes'"
+        f"WHERE job_id={job.id}"
+    )
+
+    result = await pg_job_manager.get_stalled_jobs(**filter_args)
+    assert result == []
+
+
+async def test_delete_old_jobs_job_todo(
+    get_all,
+    pg_job_manager,
+    aiopg_connector,
+    deferred_job_factory,
+):
+    job = await deferred_job_factory(queue="queue_a")
+
+    # We fake its started event timestamp
     await aiopg_connector.execute_query_async(
         f"UPDATE procrastinate_events SET at=at - INTERVAL '2 hours'"
         f"WHERE job_id={job.id}"
     )
 
-    # The job is not finished so it's not deleted
     await pg_job_manager.delete_old_jobs(nb_hours=0)
     assert len(await get_all("procrastinate_jobs", "id")) == 1
 
 
-async def test_delete_old_jobs_multiple_jobs(
-    get_all, pg_job_manager, aiopg_connector, job_factory
+async def test_delete_old_jobs_job_doing(
+    get_all,
+    pg_job_manager,
+    aiopg_connector,
+    fetched_job_factory,
 ):
-    await pg_job_manager.defer_job_async(job_factory(queue="queue_a"))
-    await pg_job_manager.defer_job_async(job_factory(queue="queue_b"))
+    job = await fetched_job_factory(queue="queue_a")
 
-    # We start both jobs
-    job_a = await pg_job_manager.fetch_job(queues=["queue_a"])
-    job_b = await pg_job_manager.fetch_job(queues=["queue_b"])
-    # We finish both jobs
-    await pg_job_manager.finish_job(
-        job_a, status=jobs.Status.SUCCEEDED, delete_job=False
-    )
-    await pg_job_manager.finish_job(
-        job_b, status=jobs.Status.SUCCEEDED, delete_job=False
-    )
-    # We back date the events for job_a
+    # We fake its started event timestamp
     await aiopg_connector.execute_query_async(
         f"UPDATE procrastinate_events SET at=at - INTERVAL '2 hours'"
-        f"WHERE job_id={job_a.id}"
+        f"WHERE job_id={job.id}"
     )
 
-    # Only job_a is deleted
-    await pg_job_manager.delete_old_jobs(nb_hours=2)
-    rows = await get_all("procrastinate_jobs", "id")
-    assert len(rows) == 1
-    assert rows[0]["id"] == job_b.id
-
-
-async def test_delete_old_job_filter_on_end_date(
-    get_all, pg_job_manager, aiopg_connector, job_factory
-):
-    await pg_job_manager.defer_job_async(job_factory(queue="queue_a"))
-    # We start the job
-    job = await pg_job_manager.fetch_job(queues=["queue_a"])
-    # We finish the job
-    await pg_job_manager.finish_job(job, status=jobs.Status.SUCCEEDED, delete_job=False)
-    # We back date only the start event
-    await aiopg_connector.execute_query_async(
-        f"UPDATE procrastinate_events SET at=at - INTERVAL '2 hours'"
-        f"WHERE job_id={job.id} AND TYPE='started'"
-    )
-
-    # Job is not deleted since it finished recently
-    await pg_job_manager.delete_old_jobs(nb_hours=2)
-    rows = await get_all("procrastinate_jobs", "id")
-    assert len(rows) == 1
+    await pg_job_manager.delete_old_jobs(nb_hours=0)
+    assert len(await get_all("procrastinate_jobs", "id")) == 1
 
 
 @pytest.mark.parametrize(
-    "status, nb_hours, queue, include_error, should_delete",
+    "status, nb_hours, queue, include_error, expected_job_count",
     [
         # nb_hours
-        (jobs.Status.SUCCEEDED, 1, None, False, True),
-        (jobs.Status.SUCCEEDED, 3, None, False, False),
+        (jobs.Status.SUCCEEDED, 1, None, False, 0),
+        (jobs.Status.SUCCEEDED, 3, None, False, 1),
         # queue
-        (jobs.Status.SUCCEEDED, 1, "queue_a", False, True),
-        (jobs.Status.SUCCEEDED, 3, "queue_a", False, False),
-        (jobs.Status.SUCCEEDED, 1, "queue_b", False, False),
-        (jobs.Status.SUCCEEDED, 1, "queue_b", False, False),
+        (jobs.Status.SUCCEEDED, 1, "queue_a", False, 0),
+        (jobs.Status.SUCCEEDED, 3, "queue_a", False, 1),
+        (jobs.Status.SUCCEEDED, 1, "queue_b", False, 1),
+        (jobs.Status.SUCCEEDED, 1, "queue_b", False, 1),
         # include_error
-        (jobs.Status.FAILED, 1, None, False, False),
-        (jobs.Status.FAILED, 1, None, True, True),
+        (jobs.Status.FAILED, 1, None, False, 1),
+        (jobs.Status.FAILED, 1, None, True, 0),
     ],
 )
 async def test_delete_old_jobs_parameters(
@@ -198,16 +202,15 @@ async def test_delete_old_jobs_parameters(
     nb_hours,
     queue,
     include_error,
-    should_delete,
-    job_factory,
+    expected_job_count,
+    fetched_job_factory,
 ):
-    await pg_job_manager.defer_job_async(job_factory(queue="queue_a"))
+    job = await fetched_job_factory(queue="queue_a")
 
-    # We start a job
-    job = await pg_job_manager.fetch_job(queues=["queue_a"])
     # We finish the job
     await pg_job_manager.finish_job(job, status=status, delete_job=False)
-    # We back date its events
+
+    # We fake its started event timestamp
     await aiopg_connector.execute_query_async(
         f"UPDATE procrastinate_events SET at=at - INTERVAL '2 hours'"
         f"WHERE job_id={job.id}"
@@ -216,93 +219,68 @@ async def test_delete_old_jobs_parameters(
     await pg_job_manager.delete_old_jobs(
         nb_hours=nb_hours, queue=queue, include_error=include_error
     )
-    nb_jobs = len(await get_all("procrastinate_jobs", "id"))
-    if should_delete:
-        assert nb_jobs == 0
-    else:
-        assert nb_jobs == 1
+    jobs_count = len(await get_all("procrastinate_jobs", "id"))
+    assert jobs_count == expected_job_count
 
 
-async def test_finish_job(get_all, pg_job_manager, job_factory):
-    await pg_job_manager.defer_job_async(job_factory(queue="queue_a"))
-    job = await pg_job_manager.fetch_job(queues=["queue_a"])
+async def test_finish_job(get_all, pg_job_manager, fetched_job_factory):
+    job = await fetched_job_factory(queue="queue_a")
 
-    assert await get_all("procrastinate_jobs", "status") == [{"status": "doing"}]
-    events = await get_all("procrastinate_events", "type", "at")
-    events_started = list(filter(lambda e: e["type"] == "started", events))
-    assert len(events_started) == 1
-    started_at = events_started[0]["at"]
-    assert started_at.date() == datetime.datetime.utcnow().date()
-    assert await get_all("procrastinate_jobs", "attempts") == [{"attempts": 0}]
+    expected = [{"status": "doing", "attempts": 0}]
+    assert await get_all("procrastinate_jobs", "status", "attempts") == expected
 
     await pg_job_manager.finish_job(
         job=job, status=jobs.Status.SUCCEEDED, delete_job=False
     )
+
     expected = [{"status": "succeeded", "attempts": 1}]
     assert await get_all("procrastinate_jobs", "status", "attempts") == expected
 
 
 @pytest.mark.parametrize("delete_job", [False, True])
-async def test_finish_job_status_error(
-    get_all, pg_job_manager, job_factory, delete_job
+async def test_finish_job_wrong_initial_status(
+    pg_job_manager, fetched_job_factory, delete_job
 ):
-    job = job_factory(queue="queue_a")
-    await pg_job_manager.defer_job_async(job)
+    job = await fetched_job_factory(queue="queue_a")
 
-    job_rows = await get_all("procrastinate_jobs", "id", "status")
-    assert len(job_rows) == 1
-    assert job_rows[0]["status"] == "todo"
-
-    job_id = job_rows[0]["id"]
-    job = job.evolve(id=job_id)
-
+    # first finish_job to set the job as "failed"
     await pg_job_manager.finish_job(
         job=job, status=jobs.Status.FAILED, delete_job=False
     )
-    job_rows = await get_all("procrastinate_jobs", "status", "attempts")
-    assert job_rows == [{"status": "failed", "attempts": 0}]
 
     with pytest.raises(exceptions.ConnectorException) as excinfo:
         await pg_job_manager.finish_job(
             job=job, status=jobs.Status.FAILED, delete_job=delete_job
         )
-    assert isinstance(excinfo.value.__cause__, psycopg2.errors.RaiseException)
-    assert (
-        f'Job with id {job_id} was not found or not in "doing" or "todo" status'
-        in str(excinfo.value.__cause__)
+    assert f'Job was not found or not in "doing" or "todo" status' in str(
+        excinfo.value.__cause__
     )
 
 
-async def test_retry_job(get_all, pg_job_manager, job_factory):
-    await pg_job_manager.defer_job_async(job_factory())
-    job1 = await pg_job_manager.fetch_job(queues=None)
+@pytest.mark.parametrize("delete_job", [False, True])
+async def test_finish_job_wrong_end_status(
+    pg_job_manager, fetched_job_factory, delete_job
+):
+    job = await fetched_job_factory(queue="queue_a")
+
+    with pytest.raises(exceptions.ConnectorException) as excinfo:
+        await pg_job_manager.finish_job(
+            job=job, status=jobs.Status.TODO, delete_job=delete_job
+        )
+    assert 'End status should be either "succeeded" or "failed"' in str(
+        excinfo.value.__cause__
+    )
+
+
+async def test_retry_job(pg_job_manager, fetched_job_factory):
+    job1 = await fetched_job_factory(queue="queue_a")
+
     await pg_job_manager.retry_job(job=job1, retry_at=datetime.datetime.utcnow())
 
     job2 = await pg_job_manager.fetch_job(queues=None)
 
     assert job2.id == job1.id
     assert job2.attempts == job1.attempts + 1
-
-
-async def test_finish_job_bad_end_status(get_all, pg_job_manager, job_factory):
-    job = job_factory(queue="queue_a")
-    await pg_job_manager.defer_job_async(job)
-
-    job_rows = await get_all("procrastinate_jobs", "id", "status")
-    assert len(job_rows) == 1
-    assert job_rows[0]["status"] == "todo"
-
-    job_id = job_rows[0]["id"]
-    job = job.evolve(id=job_id)
-
-    with pytest.raises(exceptions.ConnectorException) as excinfo:
-        await pg_job_manager.finish_job(
-            job=job, status=jobs.Status.TODO, delete_job=False
-        )
-    assert isinstance(excinfo.value.__cause__, psycopg2.errors.RaiseException)
-    assert 'End status should be either "succeeded" or "failed"' in str(
-        excinfo.value.__cause__
-    )
 
 
 async def test_enum_synced(aiopg_connector):
@@ -329,7 +307,7 @@ async def test_defer_job(pg_job_manager, get_all, job_factory):
         queueing_lock="houba",
         task_kwargs={"a": 1, "b": 2},
     )
-    pk = await pg_job_manager.defer_job_async(job=job)
+    new_job = await pg_job_manager.defer_job_async(job=job)
 
     result = await get_all(
         "procrastinate_jobs",
@@ -342,7 +320,7 @@ async def test_defer_job(pg_job_manager, get_all, job_factory):
     )
     assert result == [
         {
-            "id": pk,
+            "id": new_job.id,
             "args": {"a": 1, "b": 2},
             "status": "todo",
             "lock": "sher",
@@ -392,7 +370,7 @@ async def fixture_jobs(pg_job_manager, job_factory):
         task_name="task_foo",
         task_kwargs={"key": "a"},
     )
-    j1 = j1.evolve(id=await pg_job_manager.defer_job_async(job=j1))
+    j1 = await pg_job_manager.defer_job_async(job=j1)
 
     j2 = job_factory(
         queue="q1",
@@ -401,7 +379,7 @@ async def fixture_jobs(pg_job_manager, job_factory):
         task_name="task_bar",
         task_kwargs={"key": "b"},
     )
-    j2 = j2.evolve(id=await pg_job_manager.defer_job_async(job=j2))
+    j2 = await pg_job_manager.defer_job_async(job=j2)
     await pg_job_manager.finish_job(job=j2, status=jobs.Status.FAILED, delete_job=False)
 
     j3 = job_factory(
@@ -411,7 +389,7 @@ async def fixture_jobs(pg_job_manager, job_factory):
         task_name="task_foo",
         task_kwargs={"key": "c"},
     )
-    j3 = j3.evolve(id=await pg_job_manager.defer_job_async(job=j3))
+    j3 = await pg_job_manager.defer_job_async(job=j3)
     await pg_job_manager.finish_job(
         job=j3, status=jobs.Status.SUCCEEDED, delete_job=False
     )
@@ -423,7 +401,7 @@ async def fixture_jobs(pg_job_manager, job_factory):
         task_name="task_bar",
         task_kwargs={"key": "d"},
     )
-    j4 = j4.evolve(id=await pg_job_manager.defer_job_async(job=j4))
+    j4 = await pg_job_manager.defer_job_async(job=j4)
     await pg_job_manager.fetch_job(queues=["q3"])
 
     return [j1, j2, j3, j4]

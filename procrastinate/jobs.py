@@ -144,14 +144,14 @@ class JobDeferrer:
         # Make sure this code stays synchronized with .defer()
         job = self.make_new_job(**task_kwargs)
         self._log_before_defer_job(job=job)
-        id = await self.job_manager.defer_job_async(job=job)
-        self._log_after_defer_job(job=job.evolve(id=id))
-        return id
+        job = await self.job_manager.defer_job_async(job=job)
+        self._log_after_defer_job(job=job)
+        return job.id
 
     def defer(self, **task_kwargs: types.JSONValue) -> int:
         # Make sure this code stays synchronized with .defer_async()
         job = self.make_new_job(**task_kwargs)
         self._log_before_defer_job(job=job)
-        id = self.job_manager.defer_job(job=job)
-        self._log_after_defer_job(job=job.evolve(id=id))
-        return id
+        job = self.job_manager.defer_job(job=job)
+        self._log_after_defer_job(job=job)
+        return job.id

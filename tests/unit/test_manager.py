@@ -10,13 +10,13 @@ pytestmark = pytest.mark.asyncio
 
 
 async def test_manager_defer_job(job_manager, job_factory, connector):
-    job_row = await job_manager.defer_job_async(
+    job = await job_manager.defer_job_async(
         job=job_factory(
             task_kwargs={"a": "b"}, queue="marsupilami", task_name="bla", lock="sher"
         )
     )
 
-    assert job_row == 1
+    assert job.id == 1
 
     assert connector.jobs == {
         1: {
