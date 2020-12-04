@@ -18,6 +18,7 @@ def test_job_get_context(job_factory, scheduled_at, context_scheduled_at):
 
     job = job_factory(
         id=12,
+        status="doing",
         queue="marsupilami",
         lock="sher",
         queueing_lock="houba",
@@ -29,6 +30,7 @@ def test_job_get_context(job_factory, scheduled_at, context_scheduled_at):
 
     assert job.log_context() == {
         "id": 12,
+        "status": "doing",
         "queue": "marsupilami",
         "lock": "sher",
         "queueing_lock": "houba",

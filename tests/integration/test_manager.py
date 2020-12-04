@@ -37,7 +37,7 @@ def fetched_job_factory(deferred_job_factory, pg_job_manager):
         fetched_job = await pg_job_manager.fetch_job(queues=None)
         # to make sure we do fetch the job we just deferred
         assert fetched_job.id == job.id
-        return job
+        return fetched_job
 
     return factory
 
@@ -60,7 +60,8 @@ async def test_fetch_job(
     # Now add the job we're testing
     job = await deferred_job_factory(**job_kwargs)
 
-    assert await pg_job_manager.fetch_job(queues=fetch_queues) == job
+    expected_job = job.evolve(status="doing")
+    assert await pg_job_manager.fetch_job(queues=fetch_queues) == expected_job
 
 
 async def test_fetch_job_not_fetching_started_job(pg_job_manager, fetched_job_factory):
@@ -409,17 +410,7 @@ async def fixture_jobs(pg_job_manager, job_factory):
 
 async def test_list_jobs_dict(fixture_jobs, pg_job_manager):
     j1, *_ = fixture_jobs
-    assert (await pg_job_manager.list_jobs_async())[0] == {
-        "id": j1.id,
-        "status": "todo",
-        "queue": j1.queue,
-        "task": j1.task_name,
-        "lock": j1.lock,
-        "queueing_lock": j1.queueing_lock,
-        "args": j1.task_kwargs,
-        "scheduled_at": j1.scheduled_at,
-        "attempts": j1.attempts,
-    }
+    assert (await pg_job_manager.list_jobs_async())[0] == j1
 
 
 @pytest.mark.parametrize(
@@ -434,7 +425,9 @@ async def test_list_jobs_dict(fixture_jobs, pg_job_manager):
     ],
 )
 async def test_list_jobs(fixture_jobs, kwargs, expected, pg_job_manager):
-    assert [e["id"] for e in await pg_job_manager.list_jobs_async(**kwargs)] == expected
+    assert [
+        job.id for job in await pg_job_manager.list_jobs_async(**kwargs)
+    ] == expected
 
 
 async def test_list_queues_dict(fixture_jobs, pg_job_manager):
@@ -489,15 +482,3 @@ async def test_list_tasks(fixture_jobs, pg_job_manager, kwargs, expected):
     assert [
         e["name"] for e in await pg_job_manager.list_tasks_async(**kwargs)
     ] == expected
-
-
-async def test_retry_job_return_info(fixture_jobs, pg_job_manager):
-    await pg_job_manager.retry_job_return_info_async(job_id=4)
-    (job1,) = await pg_job_manager.list_jobs_async(id=4)
-    assert job1["status"] == "todo"
-
-
-async def test_cancel_job_return_info(fixture_jobs, pg_job_manager):
-    await pg_job_manager.cancel_job_return_info_async(job_id=1)
-    (job1,) = await pg_job_manager.list_jobs_async(id=1)
-    assert job1["status"] == "failed"

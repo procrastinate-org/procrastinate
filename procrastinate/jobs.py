@@ -47,6 +47,8 @@ class Job:
     ----------
     id :
         Internal id uniquely identifying the job.
+    status :
+        Status of the job.
     queue :
         Queue name the job will be run in.
     lock :
@@ -64,6 +66,7 @@ class Job:
     """
 
     id: Optional[int] = None
+    status: Optional[str] = None
     queue: str
     lock: Optional[str]
     queueing_lock: Optional[str]
@@ -78,6 +81,7 @@ class Job:
     def from_row(cls, row: Dict[str, Any]) -> "Job":
         return cls(
             id=row["id"],
+            status=row["status"],
             lock=row["lock"],
             queueing_lock=row["queueing_lock"],
             task_name=row["task_name"],
@@ -86,6 +90,9 @@ class Job:
             queue=row["queue_name"],
             attempts=row["attempts"],
         )
+
+    def asdict(self) -> types.JSONDict:
+        return attr.asdict(self)
 
     def log_context(self) -> types.JSONDict:
         context = attr.asdict(self)

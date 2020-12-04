@@ -1,7 +1,7 @@
 import cmd
-from typing import Any, Dict
+from typing import Dict
 
-from procrastinate import manager
+from procrastinate import jobs, manager, utils
 
 
 def parse_argument(arg: str) -> Dict[str, str]:
@@ -9,13 +9,15 @@ def parse_argument(arg: str) -> Dict[str, str]:
     return {key: value for key, _, value in splitted_args}
 
 
-def print_job(job: Dict[str, Any], details: bool = False) -> None:
-    msg = f"#{job['id']} {job['task']} on {job['queue']} - [{job['status']}]"
+def print_job(job: jobs.Job, details: bool = False) -> None:
+    job_dict = job.asdict()
+    msg = f"#{job_dict['id']} {job_dict['task_name']} on {job_dict['queue']} "
+    msg += f"- [{job_dict['status']}]"
     if details:
         msg += (
-            f" (attempts={job['attempts']}, "
-            f"scheduled_at={job['scheduled_at']}, args={job['args']}, "
-            f"lock={job['lock']})"
+            f" (attempts={job_dict['attempts']}, "
+            f"scheduled_at={job_dict['scheduled_at']}, args={job_dict['task_kwargs']}, "
+            f"lock={job_dict['lock']})"
         )
     print(msg)
 
@@ -97,8 +99,12 @@ class ProcrastinateShell(cmd.Cmd):
 
         Example: retry 2
         """
-        output = self.job_manager.retry_job_return_info(int(arg))  # type: ignore
-        print_job(output)
+        job_id = int(arg)
+        self.job_manager.retry_job_by_id(
+            job_id=job_id, retry_at=utils.utcnow().replace(microsecond=0)
+        )
+        (job,) = self.job_manager.list_jobs(id=job_id)
+        print_job(job)
 
     def do_cancel(self, arg: str) -> None:
         """
@@ -109,5 +115,9 @@ class ProcrastinateShell(cmd.Cmd):
 
         Example: cancel 3
         """
-        output = self.job_manager.cancel_job_return_info(int(arg))  # type: ignore
-        print_job(output)
+        job_id = int(arg)
+        self.job_manager.finish_job_by_id(
+            job_id=job_id, status=jobs.Status.FAILED, delete_job=False
+        )
+        (job,) = self.job_manager.list_jobs(id=job_id)
+        print_job(job)

@@ -41,7 +41,7 @@ class JobManager:
         except exceptions.UniqueViolation as exc:
             self._raise_already_enqueued(exc=exc, queueing_lock=job.queueing_lock)
 
-        return job.evolve(id=result["id"])
+        return job.evolve(id=result["id"], status=jobs.Status.TODO.value)
 
     def defer_job(self, job: jobs.Job) -> jobs.Job:
         """
@@ -54,7 +54,7 @@ class JobManager:
         except exceptions.UniqueViolation as exc:
             self._raise_already_enqueued(exc=exc, queueing_lock=job.queueing_lock)
 
-        return job.evolve(id=result["id"])
+        return job.evolve(id=result["id"], status=jobs.Status.TODO.value)
 
     def _defer_job_query_kwargs(self, job: jobs.Job) -> Dict[str, Any]:
 
@@ -204,9 +204,11 @@ class JobManager:
             ``succeeded`` or ``failed``
         """
         assert job.id  # TODO remove this
-        await self.finish_job_by_id(job_id=job.id, status=status, delete_job=delete_job)
+        await self.finish_job_by_id_async(
+            job_id=job.id, status=status, delete_job=delete_job
+        )
 
-    async def finish_job_by_id(
+    async def finish_job_by_id_async(
         self,
         job_id: int,
         status: jobs.Status,
@@ -236,9 +238,9 @@ class JobManager:
             Should be timezone-aware (even if UTC)
         """
         assert job.id  # TODO remove this
-        await self.retry_job_by_id(job_id=job.id, retry_at=retry_at)
+        await self.retry_job_by_id_async(job_id=job.id, retry_at=retry_at)
 
-    async def retry_job_by_id(
+    async def retry_job_by_id_async(
         self,
         job_id: int,
         retry_at: datetime.datetime,
@@ -295,7 +297,7 @@ class JobManager:
         status: Optional[str] = None,
         lock: Optional[str] = None,
         queueing_lock: Optional[str] = None,
-    ) -> Iterable[Dict[str, Any]]:
+    ) -> Iterable[jobs.Job]:
         """
         List all procrastinate jobs given query filters.
 
@@ -316,32 +318,18 @@ class JobManager:
 
         Returns
         -------
-        ``List[Dict[str, Any]]``
-            A list of dictionaries representing jobs (``id``, ``queue``, ``task``,
-            ``lock``, ``args``, ``status``, ``scheduled_at``, ``attempts``).
+        ``Iterable[jobs.Job]``
         """
-        return [
-            {
-                "id": row["id"],
-                "queue": row["queue_name"],
-                "task": row["task_name"],
-                "lock": row["lock"],
-                "queueing_lock": row["queueing_lock"],
-                "args": row["args"],
-                "status": row["status"],
-                "scheduled_at": row["scheduled_at"],
-                "attempts": row["attempts"],
-            }
-            for row in await self.connector.execute_query_all_async(
-                query=sql.queries["list_jobs"],
-                id=id,
-                queue_name=queue,
-                task_name=task,
-                status=status,
-                lock=lock,
-                queueing_lock=queueing_lock,
-            )
-        ]
+        rows = await self.connector.execute_query_all_async(
+            query=sql.queries["list_jobs"],
+            id=id,
+            queue_name=queue,
+            task_name=task,
+            status=status,
+            lock=lock,
+            queueing_lock=queueing_lock,
+        )
+        return [jobs.Job.from_row(row) for row in rows]
 
     async def list_queues_async(
         self,
@@ -433,49 +421,9 @@ class JobManager:
             )
         ]
 
-    async def retry_job_return_info_async(self, job_id: int) -> Dict[str, Any]:
-        """
-        Retry a job, and return its information.
-
-        Parameters
-        ----------
-        job_id : ``int``
-
-        Returns
-        -------
-        ``Dict[str, Any]``
-            A dictionary representing the job (``id``, ``queue``, ``task``,
-            ``lock``, ``args``, ``status``, ``scheduled_at``, ``attempts``).
-        """
-        await self.retry_job_by_id(
-            job_id=job_id, retry_at=utils.utcnow().replace(microsecond=0)
-        )
-        (result,) = await self.list_jobs_async(id=job_id)
-        return result
-
-    async def cancel_job_return_info_async(self, job_id: int) -> Dict[str, Any]:
-        """
-        Finish a job, setting its status to ``failed``, and return its information.
-
-        Parameters
-        ----------
-        job_id : ``int``
-
-        Returns
-        -------
-        ``Dict[str, Any]``
-            A dictionary representing the job (``id``, ``queue``, ``task``,
-            ``lock``, ``args``, ``status``, ``scheduled_at``, ``attempts``).
-        """
-        await self.finish_job_by_id(
-            job_id=job_id, status=jobs.Status.FAILED, delete_job=False
-        )
-        (result,) = await self.list_jobs_async(id=job_id)
-        return result
-
 
 utils.add_method_sync_api(cls=JobManager, method_name="list_jobs_async")
 utils.add_method_sync_api(cls=JobManager, method_name="list_queues_async")
 utils.add_method_sync_api(cls=JobManager, method_name="list_tasks_async")
-utils.add_method_sync_api(cls=JobManager, method_name="retry_job_return_info_async")
-utils.add_method_sync_api(cls=JobManager, method_name="cancel_job_return_info_async")
+utils.add_method_sync_api(cls=JobManager, method_name="finish_job_by_id_async")
+utils.add_method_sync_api(cls=JobManager, method_name="retry_job_by_id_async")
