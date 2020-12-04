@@ -5,7 +5,7 @@ DECLARE
     _job_id bigint;
 BEGIN
     IF end_status NOT IN ('succeeded', 'failed') THEN
-        RAISE 'End status should be either "succeeded" or "failed"';
+        RAISE 'End status should be either "succeeded" or "failed" (job id: %)', job_id;
     END IF;
     IF delete_job THEN
         DELETE FROM procrastinate_jobs
@@ -23,8 +23,7 @@ BEGIN
         RETURNING id INTO _job_id;
     END IF;
     IF _job_id IS NULL THEN
-        RAISE 'Job with id % was not found or not in "doing" or "todo" status', job_id;
+        RAISE 'Job was not found or not in "doing" or "todo" status (job id: %)', job_id;
     END IF;
 END;
 $$;
-
