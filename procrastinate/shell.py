@@ -100,10 +100,10 @@ class ProcrastinateShell(cmd.Cmd):
         Example: retry 2
         """
         job_id = int(arg)
-        self.job_manager.retry_job_by_id(
+        self.job_manager.retry_job_by_id(  # type: ignore
             job_id=job_id, retry_at=utils.utcnow().replace(microsecond=0)
         )
-        (job,) = self.job_manager.list_jobs(id=job_id)
+        (job,) = self.job_manager.list_jobs(id=job_id)  # type: ignore
         print_job(job)
 
     def do_cancel(self, arg: str) -> None:
@@ -116,8 +116,8 @@ class ProcrastinateShell(cmd.Cmd):
         Example: cancel 3
         """
         job_id = int(arg)
-        self.job_manager.finish_job_by_id(
+        self.job_manager.finish_job_by_id(  # type: ignore
             job_id=job_id, status=jobs.Status.FAILED, delete_job=False
         )
-        (job,) = self.job_manager.list_jobs(id=job_id)
+        (job,) = self.job_manager.list_jobs(id=job_id)  # type: ignore
         print_job(job)

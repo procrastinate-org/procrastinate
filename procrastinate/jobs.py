@@ -153,6 +153,7 @@ class JobDeferrer:
         self._log_before_defer_job(job=job)
         job = await self.job_manager.defer_job_async(job=job)
         self._log_after_defer_job(job=job)
+        assert job.id  # for mypy
         return job.id
 
     def defer(self, **task_kwargs: types.JSONValue) -> int:
@@ -161,4 +162,5 @@ class JobDeferrer:
         self._log_before_defer_job(job=job)
         job = self.job_manager.defer_job(job=job)
         self._log_after_defer_job(job=job)
+        assert job.id  # for mypy
         return job.id
