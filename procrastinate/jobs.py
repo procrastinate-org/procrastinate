@@ -91,11 +91,11 @@ class Job:
             attempts=row["attempts"],
         )
 
-    def asdict(self) -> types.JSONDict:
+    def asdict(self) -> Dict[str, Any]:
         return attr.asdict(self)
 
     def log_context(self) -> types.JSONDict:
-        context = attr.asdict(self)
+        context = self.asdict()
 
         if context["scheduled_at"]:
             context["scheduled_at"] = context["scheduled_at"].isoformat()
