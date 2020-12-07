@@ -10,13 +10,13 @@ pytestmark = pytest.mark.asyncio
 
 
 async def test_manager_defer_job(job_manager, job_factory, connector):
-    job_row = await job_manager.defer_job_async(
+    job = await job_manager.defer_job_async(
         job=job_factory(
             task_kwargs={"a": "b"}, queue="marsupilami", task_name="bla", lock="sher"
         )
     )
 
-    assert job_row == 1
+    assert job.id == 1
 
     assert connector.jobs == {
         1: {
@@ -79,9 +79,10 @@ async def test_fetch_job_no_suitable_job(job_manager):
 
 
 async def test_fetch_job(job_manager, job_factory):
-    job = job_factory(id=1)
+    job = job_factory(id=None)
     await job_manager.defer_job_async(job=job)
-    assert await job_manager.fetch_job(queues=None) == job
+    expected_job = job.evolve(id=1, status="doing")
+    assert await job_manager.fetch_job(queues=None) == expected_job
 
 
 async def test_get_stalled_jobs_not_stalled(job_manager, job_factory):
@@ -91,11 +92,12 @@ async def test_get_stalled_jobs_not_stalled(job_manager, job_factory):
 
 
 async def test_get_stalled_jobs_stalled(job_manager, job_factory, connector):
-    job = job_factory(id=1)
+    job = job_factory()
     await job_manager.defer_job_async(job=job)
     await job_manager.fetch_job(queues=None)
     connector.events[1][-1]["at"] = conftest.aware_datetime(2000, 1, 1)
-    assert await job_manager.get_stalled_jobs(nb_seconds=1000) == [job]
+    expected_job = job.evolve(id=1, status="doing")
+    assert await job_manager.get_stalled_jobs(nb_seconds=1000) == [expected_job]
 
 
 @pytest.mark.parametrize(

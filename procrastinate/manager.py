@@ -20,7 +20,7 @@ class JobManager:
     def __init__(self, connector: connector.BaseConnector):
         self.connector = connector
 
-    async def defer_job_async(self, job: jobs.Job) -> int:
+    async def defer_job_async(self, job: jobs.Job) -> jobs.Job:
         """
         Add a job in its queue for later processing by a worker.
 
@@ -30,8 +30,8 @@ class JobManager:
 
         Returns
         -------
-        ``int``
-            The primary key of the newly created job.
+        `jobs.Job`
+            A copy of the job instance with the id set.
         """
         # Make sure this code stays synchronized with .defer_job()
         try:
@@ -41,9 +41,9 @@ class JobManager:
         except exceptions.UniqueViolation as exc:
             self._raise_already_enqueued(exc=exc, queueing_lock=job.queueing_lock)
 
-        return result["id"]
+        return job.evolve(id=result["id"], status=jobs.Status.TODO.value)
 
-    def defer_job(self, job: jobs.Job) -> int:
+    def defer_job(self, job: jobs.Job) -> jobs.Job:
         """
         Sync version of `defer_job_async`.
         """
@@ -54,7 +54,7 @@ class JobManager:
         except exceptions.UniqueViolation as exc:
             self._raise_already_enqueued(exc=exc, queueing_lock=job.queueing_lock)
 
-        return result["id"]
+        return job.evolve(id=result["id"], status=jobs.Status.TODO.value)
 
     def _defer_job_query_kwargs(self, job: jobs.Job) -> Dict[str, Any]:
 
@@ -204,9 +204,19 @@ class JobManager:
             ``succeeded`` or ``failed``
         """
         assert job.id  # TODO remove this
+        await self.finish_job_by_id_async(
+            job_id=job.id, status=status, delete_job=delete_job
+        )
+
+    async def finish_job_by_id_async(
+        self,
+        job_id: int,
+        status: jobs.Status,
+        delete_job: bool,
+    ) -> None:
         await self.connector.execute_query_async(
             query=sql.queries["finish_job"],
-            job_id=job.id,
+            job_id=job_id,
             status=status.value,
             delete_job=delete_job,
         )
@@ -227,9 +237,17 @@ class JobManager:
             Otherwise, the job will be retried no sooner than this date & time.
             Should be timezone-aware (even if UTC)
         """
+        assert job.id  # TODO remove this
+        await self.retry_job_by_id_async(job_id=job.id, retry_at=retry_at)
+
+    async def retry_job_by_id_async(
+        self,
+        job_id: int,
+        retry_at: datetime.datetime,
+    ) -> None:
         await self.connector.execute_query_async(
             query=sql.queries["retry_job"],
-            job_id=job.id,
+            job_id=job_id,
             retry_at=retry_at,
         )
 
@@ -279,7 +297,7 @@ class JobManager:
         status: Optional[str] = None,
         lock: Optional[str] = None,
         queueing_lock: Optional[str] = None,
-    ) -> Iterable[Dict[str, Any]]:
+    ) -> Iterable[jobs.Job]:
         """
         List all procrastinate jobs given query filters.
 
@@ -300,32 +318,18 @@ class JobManager:
 
         Returns
         -------
-        ``List[Dict[str, Any]]``
-            A list of dictionaries representing jobs (``id``, ``queue``, ``task``,
-            ``lock``, ``args``, ``status``, ``scheduled_at``, ``attempts``).
+        ``Iterable[jobs.Job]``
         """
-        return [
-            {
-                "id": row["id"],
-                "queue": row["queue_name"],
-                "task": row["task_name"],
-                "lock": row["lock"],
-                "queueing_lock": row["queueing_lock"],
-                "args": row["args"],
-                "status": row["status"],
-                "scheduled_at": row["scheduled_at"],
-                "attempts": row["attempts"],
-            }
-            for row in await self.connector.execute_query_all_async(
-                query=sql.queries["list_jobs"],
-                id=id,
-                queue_name=queue,
-                task_name=task,
-                status=status,
-                lock=lock,
-                queueing_lock=queueing_lock,
-            )
-        ]
+        rows = await self.connector.execute_query_all_async(
+            query=sql.queries["list_jobs"],
+            id=id,
+            queue_name=queue,
+            task_name=task,
+            status=status,
+            lock=lock,
+            queueing_lock=queueing_lock,
+        )
+        return [jobs.Job.from_row(row) for row in rows]
 
     async def list_queues_async(
         self,
@@ -417,31 +421,9 @@ class JobManager:
             )
         ]
 
-    async def set_job_status_async(self, id: int, status: str) -> Dict[str, Any]:
-        """
-        Set/reset the status of a specific job.
-
-        Parameters
-        ----------
-        id : ``int``
-            Job ID
-        status : ``str``
-            New job status (``todo``/``doing``/``succeeded``/``failed``)
-
-        Returns
-        -------
-        ``Dict[str, Any]``
-            A dictionary representing the job (``id``, ``queue``, ``task``,
-            ``lock``, ``args``, ``status``, ``scheduled_at``, ``attempts``).
-        """
-        await self.connector.execute_query_async(
-            query=sql.queries["set_job_status"], id=id, status=status
-        )
-        (result,) = await self.list_jobs_async(id=id)
-        return result
-
 
 utils.add_method_sync_api(cls=JobManager, method_name="list_jobs_async")
 utils.add_method_sync_api(cls=JobManager, method_name="list_queues_async")
 utils.add_method_sync_api(cls=JobManager, method_name="list_tasks_async")
-utils.add_method_sync_api(cls=JobManager, method_name="set_job_status_async")
+utils.add_method_sync_api(cls=JobManager, method_name="finish_job_by_id_async")
+utils.add_method_sync_api(cls=JobManager, method_name="retry_job_by_id_async")

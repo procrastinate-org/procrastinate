@@ -3,6 +3,8 @@ import pytest
 from procrastinate import manager
 from procrastinate import shell as shell_module
 
+from .. import conftest
+
 
 @pytest.fixture
 def shell(connector):
@@ -18,8 +20,22 @@ def test_EOF(shell):
 
 
 def test_list_jobs(shell, connector, capsys):
-    connector.defer_job_one("task1", "lock1", "queueing_lock1", {}, 0, "queue1")
-    connector.defer_job_one("task2", "lock2", "queueing_lock2", {}, 0, "queue2")
+    connector.defer_job_one(
+        "task1",
+        "lock1",
+        "queueing_lock1",
+        {},
+        conftest.aware_datetime(2000, 1, 1),
+        "queue1",
+    )
+    connector.defer_job_one(
+        "task2",
+        "lock2",
+        "queueing_lock2",
+        {},
+        conftest.aware_datetime(2000, 1, 1),
+        "queue2",
+    )
 
     shell.do_list_jobs("")
     captured = capsys.readouterr()
@@ -43,8 +59,22 @@ def test_list_jobs(shell, connector, capsys):
 
 
 def test_list_jobs_filters(shell, connector, capsys):
-    connector.defer_job_one("task1", "lock1", "queueing_lock1", {}, 0, "queue1")
-    connector.defer_job_one("task2", "lock2", "queueing_lock2", {}, 0, "queue2")
+    connector.defer_job_one(
+        "task1",
+        "lock1",
+        "queueing_lock1",
+        {},
+        conftest.aware_datetime(2000, 1, 1),
+        "queue1",
+    )
+    connector.defer_job_one(
+        "task2",
+        "lock2",
+        "queueing_lock2",
+        {},
+        conftest.aware_datetime(2000, 1, 1),
+        "queue2",
+    )
 
     shell.do_list_jobs("id=2 queue=queue2 task=task2 lock=lock2 status=todo")
     captured = capsys.readouterr()
@@ -68,19 +98,29 @@ def test_list_jobs_filters(shell, connector, capsys):
 
 def test_list_jobs_details(shell, connector, capsys):
     connector.defer_job_one(
-        "task1", "lock1", "queueing_lock1", {"x": 11}, 1000, "queue1"
+        "task1",
+        "lock1",
+        "queueing_lock1",
+        {"x": 11},
+        conftest.aware_datetime(1000, 1, 1),
+        "queue1",
     )
     connector.defer_job_one(
-        "task2", "lock2", "queueing_lock2", {"y": 22}, 2000, "queue2"
+        "task2",
+        "lock2",
+        "queueing_lock2",
+        {"y": 22},
+        conftest.aware_datetime(2000, 1, 1),
+        "queue2",
     )
 
     shell.do_list_jobs("details")
     captured = capsys.readouterr()
     assert captured.out.splitlines() == [
-        "#1 task1 on queue1 - [todo] (attempts=0, scheduled_at=1000, "
-        "args={'x': 11}, lock=lock1)",
-        "#2 task2 on queue2 - [todo] (attempts=0, scheduled_at=2000, "
-        "args={'y': 22}, lock=lock2)",
+        "#1 task1 on queue1 - [todo] (attempts=0, scheduled_at=1000-01-01 "
+        "00:00:00+00:00, args={'x': 11}, lock=lock1)",
+        "#2 task2 on queue2 - [todo] (attempts=0, scheduled_at=2000-01-01 "
+        "00:00:00+00:00, args={'y': 22}, lock=lock2)",
     ]
 
 
@@ -183,7 +223,14 @@ def test_list_tasks_empty(shell, connector, capsys):
 
 
 def test_retry(shell, connector, capsys):
-    connector.defer_job_one("task", "lock", "queueing_lock", {}, 0, "queue")
+    connector.defer_job_one(
+        "task",
+        "lock",
+        "queueing_lock",
+        {},
+        conftest.aware_datetime(2000, 1, 1),
+        "queue",
+    )
     connector.set_job_status_run(1, "failed")
 
     shell.do_list_jobs("id=1")
@@ -196,7 +243,14 @@ def test_retry(shell, connector, capsys):
 
 
 def test_cancel(shell, connector, capsys):
-    connector.defer_job_one("task", "lock", "queueing_lock", {}, 0, "queue")
+    connector.defer_job_one(
+        "task",
+        "lock",
+        "queueing_lock",
+        {},
+        conftest.aware_datetime(2000, 1, 1),
+        "queue",
+    )
 
     shell.do_list_jobs("id=1")
     captured = capsys.readouterr()

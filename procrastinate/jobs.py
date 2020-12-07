@@ -47,6 +47,8 @@ class Job:
     ----------
     id :
         Internal id uniquely identifying the job.
+    status :
+        Status of the job.
     queue :
         Queue name the job will be run in.
     lock :
@@ -64,6 +66,7 @@ class Job:
     """
 
     id: Optional[int] = None
+    status: Optional[str] = None
     queue: str
     lock: Optional[str]
     queueing_lock: Optional[str]
@@ -78,6 +81,7 @@ class Job:
     def from_row(cls, row: Dict[str, Any]) -> "Job":
         return cls(
             id=row["id"],
+            status=row["status"],
             lock=row["lock"],
             queueing_lock=row["queueing_lock"],
             task_name=row["task_name"],
@@ -87,8 +91,11 @@ class Job:
             attempts=row["attempts"],
         )
 
+    def asdict(self) -> Dict[str, Any]:
+        return attr.asdict(self)
+
     def log_context(self) -> types.JSONDict:
-        context = attr.asdict(self)
+        context = self.asdict()
 
         if context["scheduled_at"]:
             context["scheduled_at"] = context["scheduled_at"].isoformat()
@@ -122,7 +129,7 @@ class JobDeferrer:
         final_kwargs = self.job.task_kwargs.copy()
         final_kwargs.update(task_kwargs)
 
-        return attr.evolve(self.job, task_kwargs=final_kwargs)
+        return self.job.evolve(task_kwargs=final_kwargs)
 
     def _log_before_defer_job(self, job: Job) -> None:
         logger.debug(
@@ -144,14 +151,16 @@ class JobDeferrer:
         # Make sure this code stays synchronized with .defer()
         job = self.make_new_job(**task_kwargs)
         self._log_before_defer_job(job=job)
-        id = await self.job_manager.defer_job_async(job=job)
-        self._log_after_defer_job(job=job.evolve(id=id))
-        return id
+        job = await self.job_manager.defer_job_async(job=job)
+        self._log_after_defer_job(job=job)
+        assert job.id  # for mypy
+        return job.id
 
     def defer(self, **task_kwargs: types.JSONValue) -> int:
         # Make sure this code stays synchronized with .defer_async()
         job = self.make_new_job(**task_kwargs)
         self._log_before_defer_job(job=job)
-        id = self.job_manager.defer_job(job=job)
-        self._log_after_defer_job(job=job.evolve(id=id))
-        return id
+        job = self.job_manager.defer_job(job=job)
+        self._log_after_defer_job(job=job)
+        assert job.id  # for mypy
+        return job.id

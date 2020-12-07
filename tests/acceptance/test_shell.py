@@ -25,7 +25,6 @@ def test_shell(shell, defer):
     print("cancel 2", file=shell.stdin)
     print("cancel 3", file=shell.stdin)
     print("cancel 4", file=shell.stdin)
-    print("retry 3", file=shell.stdin)
 
     print("list_jobs", file=shell.stdin)
     print("list_jobs queue=other details", file=shell.stdin)
@@ -38,26 +37,25 @@ def test_shell(shell, defer):
     assert shell.stdout.readlines() == [
         "Welcome to the procrastinate shell.   Type help or ? to list commands.\n",
         "\n",
-        # cancel / retry
+        # cancel
         "procrastinate> #2 tests.acceptance.app.sum_task on default - [failed]\n",
         "procrastinate> #3 tests.acceptance.app.sum_task on other - [failed]\n",
         "procrastinate> #4 tests.acceptance.app.increment_task on default - [failed]\n",
-        "procrastinate> #3 tests.acceptance.app.sum_task on other - [todo]\n",
         # list_jobs
         "procrastinate> #1 tests.acceptance.app.sum_task on default - [todo]\n",
         "#2 tests.acceptance.app.sum_task on default - [failed]\n",
-        "#3 tests.acceptance.app.sum_task on other - [todo]\n",
+        "#3 tests.acceptance.app.sum_task on other - [failed]\n",
         "#4 tests.acceptance.app.increment_task on default - [failed]\n",
         # list_jobs queue=other details
-        "procrastinate> #3 tests.acceptance.app.sum_task on other - [todo] "
+        "procrastinate> #3 tests.acceptance.app.sum_task on other - [failed] "
         "(attempts=0, scheduled_at=None, args={'a': 1, 'b': 2}, lock=lock)\n",
         # list_queues
         "procrastinate> default: 3 jobs (todo: 1, succeeded: 0, failed: 2)\n",
-        "other: 1 jobs (todo: 1, succeeded: 0, failed: 0)\n",
+        "other: 1 jobs (todo: 0, succeeded: 0, failed: 1)\n",
         # list_tasks
         "procrastinate> tests.acceptance.app.increment_task: 1 jobs "
         "(todo: 0, succeeded: 0, failed: 1)\n",
-        "tests.acceptance.app.sum_task: 3 jobs " "(todo: 2, succeeded: 0, failed: 1)\n",
+        "tests.acceptance.app.sum_task: 3 jobs " "(todo: 1, succeeded: 0, failed: 2)\n",
         #
         "procrastinate> ",
     ]

@@ -14,12 +14,12 @@ SELECT procrastinate_defer_periodic_job(%(queue)s, %(lock)s, %(queueing_lock)s, 
 
 -- fetch_job --
 -- Get the first awaiting job
-SELECT id, task_name, lock, queueing_lock, args, scheduled_at, queue_name, attempts
+SELECT id, status, task_name, lock, queueing_lock, args, scheduled_at, queue_name, attempts
     FROM procrastinate_fetch_job(%(queues)s);
 
 -- select_stalled_jobs --
 -- Get running jobs that started more than a given time ago
-SELECT job.id, task_name, lock, queueing_lock, args, scheduled_at, queue_name, attempts, max(event.at) started_at
+SELECT job.id, status, task_name, lock, queueing_lock, args, scheduled_at, queue_name, attempts, max(event.at) started_at
     FROM procrastinate_jobs job
     JOIN procrastinate_events event
       ON event.job_id = job.id
@@ -149,8 +149,3 @@ SELECT task_name AS name,
   FROM jobs AS j
  GROUP BY name
  ORDER BY name;
-
--- set_job_status --
-UPDATE procrastinate_jobs
-   SET status = %(status)s
- WHERE id = %(id)s

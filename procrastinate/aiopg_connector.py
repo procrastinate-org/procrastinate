@@ -227,9 +227,22 @@ class AiopgConnector(connector.BaseAsyncConnector):
     # Because of this, it's easier to have 2 distinct methods for executing from
     # a pool or from a connection
 
+    def _prepare_for_interpolation(self, query, has_arguments):
+        # psycopg2 thinks ``%`` are for it to process. If we have ``%`` in our query,
+        # like in RAISE, we need it to be passed to the database as-is, which means
+        # we need to escape the % by doubling it.
+        return (
+            query
+            if has_arguments or not isinstance(query, str)
+            else query.replace("%", "%%")
+        )
+
     @wrap_exceptions
     @wrap_query_exceptions
     async def execute_query_async(self, query: str, **arguments: Any) -> None:
+        query = self._prepare_for_interpolation(
+            query=query, has_arguments=bool(arguments)
+        )
         with await self.pool.cursor() as cursor:
             await cursor.execute(query, self._wrap_json(arguments))
 
@@ -238,6 +251,9 @@ class AiopgConnector(connector.BaseAsyncConnector):
     async def _execute_query_connection(
         self, query: str, connection: aiopg.Connection, **arguments: Any
     ) -> None:
+        query = self._prepare_for_interpolation(
+            query=query, has_arguments=bool(arguments)
+        )
         async with connection.cursor() as cursor:
             await cursor.execute(query, self._wrap_json(arguments))
 
@@ -246,6 +262,9 @@ class AiopgConnector(connector.BaseAsyncConnector):
     async def execute_query_one_async(
         self, query: str, **arguments: Any
     ) -> Dict[str, Any]:
+        query = self._prepare_for_interpolation(
+            query=query, has_arguments=bool(arguments)
+        )
         with await self.pool.cursor() as cursor:
             await cursor.execute(query, self._wrap_json(arguments))
 
@@ -256,6 +275,9 @@ class AiopgConnector(connector.BaseAsyncConnector):
     async def execute_query_all_async(
         self, query: str, **arguments: Any
     ) -> List[Dict[str, Any]]:
+        query = self._prepare_for_interpolation(
+            query=query, has_arguments=bool(arguments)
+        )
         with await self.pool.cursor() as cursor:
             await cursor.execute(query, self._wrap_json(arguments))
 

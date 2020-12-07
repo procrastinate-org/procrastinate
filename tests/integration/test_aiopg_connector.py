@@ -114,6 +114,18 @@ async def test_execute_query(aiopg_connector):
     assert result == [{"obj_description": "foo"}]
 
 
+async def test_execute_query_no_interpolate(aiopg_connector):
+    result = await aiopg_connector.execute_query_one_async("SELECT '%(foo)s' as foo;")
+    assert result == {"foo": "%(foo)s"}
+
+
+async def test_execute_query_interpolate(aiopg_connector):
+    result = await aiopg_connector.execute_query_one_async(
+        "SELECT %(foo)s as foo;", foo="bar"
+    )
+    assert result == {"foo": "bar"}
+
+
 @pytest.mark.filterwarnings("error::ResourceWarning")
 async def test_execute_query_simultaneous(aiopg_connector):
     # two coroutines doing execute_query_async simulteneously
