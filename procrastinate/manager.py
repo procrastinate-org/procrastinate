@@ -132,12 +132,12 @@ class JobManager:
         task_name: Optional[str] = None,
     ) -> Iterable[jobs.Job]:
         """
-        Return all jobs that have been in ``todo`` state for more than a given time.
+        Return all jobs that have been in ``doing`` state for more than a given time.
 
         Parameters
         ----------
         nb_seconds : ``int``
-            Only jobs that have been in ``todo`` state for longer than this will be
+            Only jobs that have been in ``doing`` state for longer than this will be
             returned
         queue : ``Optional[str]``
             Filter by job queue name
