@@ -64,11 +64,7 @@ Here's an example
     sum.defer(a=3, b=5)
 
     # Somewhere in your program, run a worker
-    worker = procrastinate.Worker(
-        app=app,
-        queues=["sums"]
-    )
-    worker.run()
+    app.run_worker(queues=["sums"])
 
 The worker will run the job, which will create a text file
 named ``myfile`` with the result of the sum ``3 + 5`` (that's ``8``).
