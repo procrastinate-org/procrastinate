@@ -47,24 +47,32 @@ Here's an example
 .. code-block:: python
 
     # mycode.py
+    import procrastinate
 
     # Make an app in your code
-    app = procrastinate.App(connector=procrastinate.AiopgConnector())
+    app = procrastinate.App(connector=procrastinate.AiopgConnector(host="localhost", user="postgres", password="password"))
 
     # Open the connection to the database
-    app.open()
+    with app.open():
 
-    # Then define tasks
-    @app.task(queue="sums")
-    def sum(a, b):
-        with open("myfile", "w") as f:
-            f.write(str(a + b))
+        # Automatically apply the `procrastinate` schema to the database
+        try:
+            app.schema_manager.apply_schema()
+        except procrastinate.exceptions.ConnectorException:
+            # Schema has already been applied
+            pass
 
-    # Launch a job
-    sum.defer(a=3, b=5)
+        # Then define tasks
+        @app.task(queue="sums")
+        def sum(a, b):
+            with open("myfile", "w") as f:
+                f.write(str(a + b))
 
-    # Somewhere in your program, run a worker
-    app.run_worker(queues=["sums"])
+        # Launch a job
+        sum.defer(a=3, b=5)
+
+        # Somewhere in your program, run a worker
+        app.run_worker(queues=["sums"])
 
 The worker will run the job, which will create a text file
 named ``myfile`` with the result of the sum ``3 + 5`` (that's ``8``).
@@ -85,20 +93,38 @@ Lastly, you can use Procrastinate asynchronously too:
 
 .. code-block:: python
 
-    # Define asynchronous tasks using coroutine functions
-    @app.task(queue="sums")
-    async def sum(a, b):
-        await asyncio.sleep(a + b)
+    import asyncio
 
-    # Launch a job asynchronously
-    await sum.defer_async(a=3, b=5)
+    import procrastinate
 
-    # Somewhere in your program, run a worker asynchronously
-    worker = procrastinate.Worker(
-        app=app,
-        queues=["sums"]
-    )
-    await worker.run_async()
+    # Make an app in your code
+    app = procrastinate.App(connector=procrastinate.AiopgConnector(host="localhost", user="postgres", password="password"))
+
+    # Open the connection to the database `sync` once, to apply the
+    # database schema
+    with app.open():
+        # Automatically apply the `procrastinate` schema to the database
+        try:
+            app.schema_manager.apply_schema()
+        except procrastinate.exceptions.ConnectorException:
+            # Schema has already been applied
+            pass
+
+    # Open the connection to the database `async`
+    async with app.open_async():
+
+        # Define asynchronous tasks using coroutine functions
+        @app.task(queue="sums")
+        async def sum(a, b):
+            print('async task is running')
+            await asyncio.sleep(a + b)
+            print('async job is done')
+
+        # Launch a job asynchronously
+        await sum.defer_async(a=3, b=5)
+
+        # Somewhere in your program, run a worker asynchronously
+        await app.run_worker_async(queues=["sums"])
 
 There are quite a few interesting features that Procrastinate adds to the mix.
 You can head to the Quickstart section for a general tour or
