@@ -28,6 +28,7 @@ How to...
     howto/migrations
     howto/monitoring
     howto/delete_finished_jobs
+    howto/retry_stalled_jobs
     howto/connections
     howto/custom_json_encoder_decoder
     howto/schema

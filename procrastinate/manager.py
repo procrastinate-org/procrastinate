@@ -132,12 +132,12 @@ class JobManager:
         task_name: Optional[str] = None,
     ) -> Iterable[jobs.Job]:
         """
-        Return all jobs that have been in ``todo`` state for more than a given time.
+        Return all jobs that have been in ``doing`` state for more than a given time.
 
         Parameters
         ----------
         nb_seconds : ``int``
-            Only jobs that have been in ``todo`` state for longer than this will be
+            Only jobs that have been in ``doing`` state for longer than this will be
             returned
         queue : ``Optional[str]``
             Filter by job queue name
@@ -224,7 +224,7 @@ class JobManager:
     async def retry_job(
         self,
         job: jobs.Job,
-        retry_at: datetime.datetime,
+        retry_at: Optional[datetime.datetime] = None,
     ) -> None:
         """
         Indicates that a job should be retried later.
@@ -232,13 +232,15 @@ class JobManager:
         Parameters
         ----------
         job : `jobs.Job`
-        retry_at : ``datetime.datetime``
+        retry_at : ``Optional[datetime.datetime]``
             If set at present time or in the past, the job may be retried immediately.
             Otherwise, the job will be retried no sooner than this date & time.
-            Should be timezone-aware (even if UTC)
+            Should be timezone-aware (even if UTC). Defaults to present time.
         """
         assert job.id  # TODO remove this
-        await self.retry_job_by_id_async(job_id=job.id, retry_at=retry_at)
+        await self.retry_job_by_id_async(
+            job_id=job.id, retry_at=retry_at or utils.utcnow()
+        )
 
     async def retry_job_by_id_async(
         self,
