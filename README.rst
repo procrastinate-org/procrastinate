@@ -66,7 +66,7 @@ Here's an example:
         sum.defer(a=3, b=5)
 
         # Somewhere in your program (actually, often a different
-        # program than the one defering jobs for execution), run a worker
+        # program than the one deferring jobs for execution), run a worker
         app.run_worker(queues=["sums"])
 
 The worker will run the job, which will create a text file
