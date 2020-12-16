@@ -42,7 +42,7 @@ In other words, from your main code, you call specific functions (tasks) in a
 special way and instead of being run on the spot, they're scheduled to
 be run elsewhere, now or in the future.
 
-Here's an example
+Here's an example:
 
 .. code-block:: python
 
@@ -50,28 +50,23 @@ Here's an example
     import procrastinate
 
     # Make an app in your code
-    app = procrastinate.App(connector=procrastinate.AiopgConnector(host="localhost", user="postgres", password="password"))
+    app = procrastinate.App(connector=procrastinate.AiopgConnector())
+
+    # Then define tasks
+    @app.task(queue="sums")
+    def sum(a, b):
+        with open("myfile", "w") as f:
+            f.write(str(a + b))
 
     # Open the connection to the database
     with app.open():
-
-        # Automatically apply the `procrastinate` schema to the database
-        try:
-            app.schema_manager.apply_schema()
-        except procrastinate.exceptions.ConnectorException:
-            # Schema has already been applied
-            pass
-
-        # Then define tasks
-        @app.task(queue="sums")
-        def sum(a, b):
-            with open("myfile", "w") as f:
-                f.write(str(a + b))
-
         # Launch a job
+        # (make sure that the `procrastinate` schema was applied
+        #  _once_ before)
         sum.defer(a=3, b=5)
 
-        # Somewhere in your program, run a worker
+        # Somewhere in your program (actually, often a different
+        # program than the one defering jobs for execution), run a worker
         app.run_worker(queues=["sums"])
 
 The worker will run the job, which will create a text file
@@ -98,32 +93,25 @@ Lastly, you can use Procrastinate asynchronously too:
     import procrastinate
 
     # Make an app in your code
-    app = procrastinate.App(connector=procrastinate.AiopgConnector(host="localhost", user="postgres", password="password"))
+    app = procrastinate.App(connector=procrastinate.AiopgConnector())
 
-    # Open the connection to the database `sync` once, to apply the
-    # database schema
-    with app.open():
-        # Automatically apply the `procrastinate` schema to the database
-        try:
-            app.schema_manager.apply_schema()
-        except procrastinate.exceptions.ConnectorException:
-            # Schema has already been applied
-            pass
+    # Define asynchronous tasks using coroutine functions
+    @app.task(queue="sums")
+    async def sum(a, b):
+        print('async task is running')
+        await asyncio.sleep(a + b)
+        print('async job is done')
 
-    # Open the connection to the database `async`
+    # Open the connection to the database `async`,
     async with app.open_async():
-
-        # Define asynchronous tasks using coroutine functions
-        @app.task(queue="sums")
-        async def sum(a, b):
-            print('async task is running')
-            await asyncio.sleep(a + b)
-            print('async job is done')
-
         # Launch a job asynchronously
+        # (make sure that the `procrastinate` schema was applied
+        #  _once_ before)
         await sum.defer_async(a=3, b=5)
 
-        # Somewhere in your program, run a worker asynchronously
+        # Somewhere in your program (actually, often a different
+        # program than the one defering jobs for execution), run a
+        # worker asynchronously
         await app.run_worker_async(queues=["sums"])
 
 There are quite a few interesting features that Procrastinate adds to the mix.
