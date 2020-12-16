@@ -98,9 +98,7 @@ Lastly, you can use Procrastinate asynchronously too:
     # Define asynchronous tasks using coroutine functions
     @app.task(queue="sums")
     async def sum(a, b):
-        print('async task is running')
         await asyncio.sleep(a + b)
-        print('async job is done')
 
     # Open the connection to the database `async`,
     async with app.open_async():
