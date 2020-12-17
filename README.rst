@@ -58,15 +58,12 @@ Here's an example:
         with open("myfile", "w") as f:
             f.write(str(a + b))
 
-    # Open the connection to the database
     with app.open():
         # Launch a job
-        # (make sure that the `procrastinate` schema was applied
-        #  _once_ before)
         sum.defer(a=3, b=5)
 
-        # Somewhere in your program (actually, often a different
-        # program than the one deferring jobs for execution), run a worker
+        # Somewhere in your program, run a worker (actually, it's often a
+        # different program than the one deferring jobs for execution)
         app.run_worker(queues=["sums"])
 
 The worker will run the job, which will create a text file
@@ -95,21 +92,17 @@ Lastly, you can use Procrastinate asynchronously too:
     # Make an app in your code
     app = procrastinate.App(connector=procrastinate.AiopgConnector())
 
-    # Define asynchronous tasks using coroutine functions
+    # Define tasks using coroutine functions
     @app.task(queue="sums")
     async def sum(a, b):
         await asyncio.sleep(a + b)
 
-    # Open the connection to the database `async`,
     async with app.open_async():
-        # Launch a job asynchronously
-        # (make sure that the `procrastinate` schema was applied
-        #  _once_ before)
+        # Launch a job
         await sum.defer_async(a=3, b=5)
 
-        # Somewhere in your program (actually, often a different
-        # program than the one defering jobs for execution), run a
-        # worker asynchronously
+        # Somewhere in your program, run a worker (actually, it's often a
+        # different program than the one deferring jobs for execution)
         await app.run_worker_async(queues=["sums"])
 
 There are quite a few interesting features that Procrastinate adds to the mix.
