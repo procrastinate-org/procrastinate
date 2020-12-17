@@ -42,17 +42,15 @@ In other words, from your main code, you call specific functions (tasks) in a
 special way and instead of being run on the spot, they're scheduled to
 be run elsewhere, now or in the future.
 
-Here's an example
+Here's an example:
 
 .. code-block:: python
 
     # mycode.py
+    import procrastinate
 
     # Make an app in your code
     app = procrastinate.App(connector=procrastinate.AiopgConnector())
-
-    # Open the connection to the database
-    app.open()
 
     # Then define tasks
     @app.task(queue="sums")
@@ -60,11 +58,16 @@ Here's an example
         with open("myfile", "w") as f:
             f.write(str(a + b))
 
-    # Launch a job
-    sum.defer(a=3, b=5)
+    # Open the connection to the database
+    with app.open():
+        # Launch a job
+        # (make sure that the `procrastinate` schema was applied
+        #  _once_ before)
+        sum.defer(a=3, b=5)
 
-    # Somewhere in your program, run a worker
-    app.run_worker(queues=["sums"])
+        # Somewhere in your program (actually, often a different
+        # program than the one deferring jobs for execution), run a worker
+        app.run_worker(queues=["sums"])
 
 The worker will run the job, which will create a text file
 named ``myfile`` with the result of the sum ``3 + 5`` (that's ``8``).
@@ -85,20 +88,29 @@ Lastly, you can use Procrastinate asynchronously too:
 
 .. code-block:: python
 
+    import asyncio
+
+    import procrastinate
+
+    # Make an app in your code
+    app = procrastinate.App(connector=procrastinate.AiopgConnector())
+
     # Define asynchronous tasks using coroutine functions
     @app.task(queue="sums")
     async def sum(a, b):
         await asyncio.sleep(a + b)
 
-    # Launch a job asynchronously
-    await sum.defer_async(a=3, b=5)
+    # Open the connection to the database `async`,
+    async with app.open_async():
+        # Launch a job asynchronously
+        # (make sure that the `procrastinate` schema was applied
+        #  _once_ before)
+        await sum.defer_async(a=3, b=5)
 
-    # Somewhere in your program, run a worker asynchronously
-    worker = procrastinate.Worker(
-        app=app,
-        queues=["sums"]
-    )
-    await worker.run_async()
+        # Somewhere in your program (actually, often a different
+        # program than the one defering jobs for execution), run a
+        # worker asynchronously
+        await app.run_worker_async(queues=["sums"])
 
 There are quite a few interesting features that Procrastinate adds to the mix.
 You can head to the Quickstart section for a general tour or
