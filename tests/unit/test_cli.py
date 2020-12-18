@@ -15,14 +15,16 @@ def test_get_log_level(verbosity, log_level):
     assert cli.get_log_level(verbosity=verbosity) == getattr(logging, log_level)
 
 
-def test_set_verbosity(mocker, caplog):
+def test_configure_logging(mocker, caplog):
     config = mocker.patch("logging.basicConfig")
 
     caplog.set_level("DEBUG")
 
-    cli.set_verbosity(1)
+    cli.configure_logging(verbosity=1, format="{message}, yay!", style="{")
 
-    config.assert_called_once_with(level=logging.DEBUG, format=logging.BASIC_FORMAT)
+    config.assert_called_once_with(
+        level=logging.DEBUG, format="{message}, yay!", style="{"
+    )
     records = [record for record in caplog.records if record.action == "set_log_level"]
     assert len(records) == 1
     assert records[0].value == "DEBUG"
