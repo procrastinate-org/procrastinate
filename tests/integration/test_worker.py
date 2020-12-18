@@ -41,15 +41,18 @@ async def test_run(app, running_worker, caplog):
         "fetch_job",
     ]
 
-    assert [(r.levelname, r.action) for r in caplog.records] == [
-        ("DEBUG", "register_queue"),
-        ("DEBUG", "about_to_defer_job"),
-        ("INFO", "job_defer"),
-        ("DEBUG", "loaded_job_info"),
-        ("INFO", "start_job"),
-        ("INFO", "job_success"),
-        ("DEBUG", "finish_task"),
-        ("DEBUG", "waiting_for_jobs"),
+    logs = {r.action: r.levelname for r in caplog.records}
+    # remove the periodic_deferrer_no_task log record because that makes the test flaky
+    logs.pop("periodic_deferrer_no_task", None)
+    assert list(logs.items()) == [
+        ("register_queue", "DEBUG"),
+        ("about_to_defer_job", "DEBUG"),
+        ("job_defer", "INFO"),
+        ("loaded_job_info", "DEBUG"),
+        ("start_job", "INFO"),
+        ("job_success", "INFO"),
+        ("finish_task", "DEBUG"),
+        ("waiting_for_jobs", "DEBUG"),
     ]
 
 

@@ -60,7 +60,7 @@ events:
   +-------+---------------------------+-------------+
 
 - Log format: ``--log-format=`` / ``PROCRASTINATE_LOG_FORMAT=`` lets you control how
-  the log line will be formatted. It uses ``%``-style placeholders.
+  the log line will be formatted. It uses ``%``-style placeholders by default.
 
 - Log format style: ``--log-format-style=`` / ``PROCRASTINATE_LOG_FORMAT_STYLE=``
   lets you choose different styles for the log-format, such as ``{`` or ``$``.
