@@ -93,7 +93,7 @@ class InMemoryConnector(connector.BaseAsyncConnector):
     def defer_job_one(
         self, task_name, lock, queueing_lock, args, scheduled_at, queue
     ) -> JobRow:
-        if any(
+        if queueing_lock is not None and any(
             job for job in self.jobs.values() if job["queueing_lock"] == queueing_lock
         ):
             raise exceptions.UniqueViolation(

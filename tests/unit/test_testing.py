@@ -84,6 +84,26 @@ def test_defer_job_one(connector):
     assert connector.jobs[1] == job
 
 
+def test_defer_job_one_multiple_times(connector):
+    connector.defer_job_one(
+        task_name="mytask",
+        lock=None,
+        queueing_lock=None,
+        args={},
+        scheduled_at=None,
+        queue="default",
+    )
+    connector.defer_job_one(
+        task_name="mytask",
+        lock=None,
+        queueing_lock=None,
+        args={},
+        scheduled_at=None,
+        queue="default",
+    )
+    assert len(connector.jobs) == 2
+
+
 def test_current_locks(connector):
     connector.jobs = {
         1: {"status": "todo", "lock": "foo"},
