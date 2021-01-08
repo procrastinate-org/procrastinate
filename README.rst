@@ -79,7 +79,7 @@ Similarly, from the command line:
     procrastinate defer mycode.sum '{"a": 3, "b": 5}'
 
     # Run a worker
-    procrastinate worker sums
+    procrastinate worker -q sums
 
 Lastly, you can use Procrastinate asynchronously too:
 
