@@ -94,7 +94,8 @@ class InMemoryConnector(connector.BaseAsyncConnector):
         self, task_name, lock, queueing_lock, args, scheduled_at, queue
     ) -> JobRow:
         if queueing_lock is not None and any(
-            job['queueing_lock'] == queueing_lock and job['status'] == 'todo' for job in self.jobs.values()
+            job["queueing_lock"] == queueing_lock and job["status"] == "todo"
+            for job in self.jobs.values()
         ):
             raise exceptions.UniqueViolation(
                 constraint_name=connector.QUEUEING_LOCK_CONSTRAINT
