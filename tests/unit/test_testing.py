@@ -2,7 +2,7 @@ import asyncio
 
 import pytest
 
-from procrastinate import utils
+from procrastinate import utils, exceptions
 
 from .. import conftest
 
@@ -100,6 +100,41 @@ def test_defer_job_one_multiple_times(connector):
         args={},
         scheduled_at=None,
         queue="default",
+    )
+    assert len(connector.jobs) == 2
+
+
+def test_defer_same_job_with_queueing_lock_second_time_after_first_one_succeeded(connector):
+    job_data = {
+        "task_name": "mytask",
+        "lock": None,
+        "queueing_lock": "some-lock",
+        "args": {},
+        "scheduled_at": None,
+        "queue": "default",
+    }
+
+    # 1. Defer job with queueing-lock
+    job_row = connector.defer_job_one(
+        **job_data
+    )
+    assert len(connector.jobs) == 1
+
+    # 2. Defering a second time should fail, as first one
+    #    still in state `todo`
+    with pytest.raises(exceptions.AlreadyEnqueued):
+        connector.defer_job_one(
+            **job_data
+        )
+    assert len(connector.jobs) == 1
+
+    # 3. Finish first job
+    connector.finish_job_run(job_id=job_row['id'], status="finished", delete_job=False)
+
+    # 4. Defering a second time should work now,
+    #    as first job in state `finished`
+    connector.defer_job_one(
+        **job_data
     )
     assert len(connector.jobs) == 2
 
