@@ -122,7 +122,7 @@ def test_defer_same_job_with_queueing_lock_second_time_after_first_one_succeeded
 
     # 2. Defering a second time should fail, as first one
     #    still in state `todo`
-    with pytest.raises(exceptions.AlreadyEnqueued):
+    with pytest.raises(exceptions.UniqueViolation):
         connector.defer_job_one(
             **job_data
         )
