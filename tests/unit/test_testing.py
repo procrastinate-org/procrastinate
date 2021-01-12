@@ -2,7 +2,7 @@ import asyncio
 
 import pytest
 
-from procrastinate import utils, exceptions
+from procrastinate import exceptions, utils
 
 from .. import conftest
 
