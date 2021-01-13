@@ -528,3 +528,11 @@ After a new major version is released (e.g. ``2.0.0``), in preparation for the n
 minor release (``2.1.0``), the migration scripts in the ``future_migrations`` directory
 that remove the SQL compatibility code must be moved to the ``migrations`` directory.
 And the ``schema.sql`` file must be updated accordingly.
+
+.. note::
+
+    If you need to edit the name or body of a release in the GitHub UI, don't forget to
+    also rebuild the stable and latest doc on readthedocs__.
+    
+
+.. __: https://readthedocs.org/projects/procrastinate/
