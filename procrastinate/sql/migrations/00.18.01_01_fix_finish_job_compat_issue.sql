@@ -1,11 +1,6 @@
--- remove old procrastinate_finish_job functions
--- https://github.com/peopledoc/procrastinate/pull/336
-DROP FUNCTION IF EXISTS procrastinate_finish_job(integer, procrastinate_job_status, timestamp with time zone);
--- https://github.com/peopledoc/procrastinate/pull/354
-DROP FUNCTION IF EXISTS procrastinate_finish_job(integer, procrastinate_job_status);
--- https://github.com/peopledoc/procrastinate/pull/381
-DROP FUNCTION IF EXISTS procrastinate_finish_job(integer, procrastinate_job_status, timestamp with time zone, boolean);
-CREATE FUNCTION procrastinate_finish_job(job_id integer, end_status procrastinate_job_status, delete_job boolean) RETURNS void
+DROP FUNCTION IF EXISTS procrastinate_finish_job(integer, procrastinate_job_status, boolean);
+
+CREATE FUNCTION procrastinate_finish_job(job_id integer, end_status procrastinate_job_status, next_scheduled_at timestamp with time zone, delete_job boolean) RETURNS void
     LANGUAGE plpgsql
 AS $$
 DECLARE
