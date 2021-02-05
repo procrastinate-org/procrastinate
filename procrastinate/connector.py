@@ -53,7 +53,10 @@ class BaseConnector:
         raise exceptions.SyncConnectorConfigurationError
 
     def __del__(self):
-        self.close()
+        try:
+            self.close()
+        except NotImplementedError:
+            pass
 
 
 @utils.add_sync_api
