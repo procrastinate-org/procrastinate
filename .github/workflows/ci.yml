@@ -84,7 +84,7 @@ jobs:
         run: tox -e ${{ matrix.tox-env }}
         env:
           PGDATABASE: procrastinate
-          PGHOST: localhost
+          PGHOST: 127.0.0.1
           PGUSER: postgres
           PGPASSWORD: password
       - name: Upload coverage to Codecov
