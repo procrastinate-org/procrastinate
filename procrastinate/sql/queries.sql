@@ -48,7 +48,7 @@ WHERE id IN (
 
 -- finish_job --
 -- Finish a job, changing it from "doing" to "succeeded" or "failed"
-SELECT procrastinate_finish_job(%(job_id)s, %(status)s, %(delete_job)s);
+SELECT procrastinate_finish_job(%(job_id)s, %(status)s, NULL, %(delete_job)s);
 
 -- retry_job --
 -- Retry a job, changing it from "doing" to "todo"

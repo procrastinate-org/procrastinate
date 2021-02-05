@@ -200,7 +200,9 @@ END;
 $$;
 
 -- procrastinate_finish_job
-CREATE FUNCTION procrastinate_finish_job(job_id integer, end_status procrastinate_job_status, delete_job boolean) RETURNS void
+-- the next_scheduled_at argument is kept for compatibility reasons, it is to be
+-- removed after 1.0.0 is released
+CREATE FUNCTION procrastinate_finish_job(job_id integer, end_status procrastinate_job_status, next_scheduled_at timestamp with time zone, delete_job boolean) RETURNS void
     LANGUAGE plpgsql
 AS $$
 DECLARE
