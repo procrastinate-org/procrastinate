@@ -55,15 +55,14 @@ echo ""
 echo "Database is ready!"
 echo ""
 
+export PROCRASTINATE_APP=procrastinate_demo.app.app
+
 if ! pg_dump --schema-only --table=procrastinate_jobs 1>/dev/null 2>&1; then
     echo "Applying migrations"
     procrastinate schema --apply || return
 fi
 
 echo "Migrations applied!"
-
-
-export PROCRASTINATE_APP=procrastinate_demo.app.app
 
 alias htmlcov='python -m webbrowser file://$(pwd)/htmlcov/index.html'
 alias htmldoc='python -m webbrowser file://$(pwd)/docs/_build/html/index.html'
