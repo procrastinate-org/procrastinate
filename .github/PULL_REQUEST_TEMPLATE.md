@@ -7,4 +7,3 @@ Closes #<ticket number>
   - [ ] (not applicable?)
 - [ ] Documentation
   - [ ] (not applicable?)
-- [ ] Had a good time contributing?
