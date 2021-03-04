@@ -29,16 +29,15 @@ If your job is a coroutine, it will be awaited::
     async def my_task(a, b):
         await asyncio.sleep(3)
 
-    # Tasks being async or not can be awaited asynchronously or not
+With async tasks (such as ``my_task`` above), and with ``concurrency`` set to a value
+greater than ``1`` in the Procrastinate worker, the worker process may execute multiple
+jobs at the same time. See `./concurrency` for more information on how to configure
+Procrastinate workers for concurrent jobs.
+
+Note that tasks can be deferred asynchronously or synchronously, whether they are async
+or not::
+
+    # Note: tasks being async or not can be awaited asynchronously or not
     await my_task.defer_async(a=1, b=2)
     # or
     my_task.defer(a=1, b=2)
-
-As of today, jobs are still executed
-sequentially, so if you have 100 asynchronous jobs that each take 1 second doing
-asynchronous I/O, you would expect the complete queue to run in little over 1 second,
-and instead it will take 100 seconds.
-
-In the future, you will be able to process asynchronous jobs in parallel (see ticket__).
-
-__ https://github.com/peopledoc/procrastinate/issues/106
