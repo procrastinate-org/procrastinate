@@ -9,6 +9,7 @@ How to...
     howto/open_connection
     howto/tasks
     howto/defer
+    howto/context
     howto/worker
     howto/command_line
     howto/locks
