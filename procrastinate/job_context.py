@@ -1,9 +1,35 @@
+import time
 from typing import Any, Dict, Iterable, Optional
 
 import attr
 
 from procrastinate import app as app_module
 from procrastinate import jobs, tasks, types
+
+
+@attr.dataclass(kw_only=True)
+class JobResult:
+    start_timestamp: Optional[float] = None
+    end_timestamp: Optional[float] = None
+    result: Any = None
+
+    def duration(self, current_timestamp: float) -> Optional[float]:
+        if self.start_timestamp is None:
+            return None
+        return (self.end_timestamp or current_timestamp) - self.start_timestamp
+
+    def as_dict(self):
+        result = {}
+        if self.start_timestamp:
+            result.update(
+                {
+                    "start_timestamp": self.start_timestamp,
+                    "duration": self.duration(current_timestamp=time.time()),
+                }
+            )
+        if self.end_timestamp:
+            result.update({"end_timestamp": self.end_timestamp, "result": self.result})
+        return result
 
 
 @attr.dataclass(frozen=True, kw_only=True)
@@ -35,6 +61,7 @@ class JobContext:
     worker_id: Optional[int] = None
     job: Optional[jobs.Job] = None
     task: Optional[tasks.Task] = None
+    job_result: JobResult = attr.ib(factory=JobResult)
     additional_context: Dict = attr.ib(factory=dict)
 
     def log_extra(self, action: str, **kwargs: Any) -> types.JSONDict:
@@ -49,7 +76,7 @@ class JobContext:
         if self.job:
             extra["job"] = self.job.log_context()
 
-        return {**extra, **self.additional_context, **kwargs}
+        return {**extra, **self.job_result.as_dict(), **kwargs}
 
     def evolve(self, **update: Any) -> "JobContext":
         return attr.evolve(self, **update)
@@ -65,11 +92,9 @@ class JobContext:
         message = f"worker {self.worker_id}: "
         if self.job:
             message += self.job.call_string
-            start = self.additional_context.get("start_timestamp")
-            if start:
-                assert isinstance(start, float)
-                ago = current_timestamp - start
-                message += f" (started {ago:.3f} s ago)"
+            duration = self.job_result.duration(current_timestamp)
+            if duration is not None:
+                message += f" (started {duration:.3f} s ago)"
         else:
             message += "no current job"
 

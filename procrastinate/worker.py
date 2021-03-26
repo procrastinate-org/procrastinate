@@ -236,7 +236,8 @@ class Worker:
 
         context = self.context_for_worker(worker_id=worker_id, task=task)
 
-        start_time = context.additional_context["start_timestamp"] = time.time()
+        start_time = time.time()
+        context.job_result.start_timestamp = start_time
 
         self.logger.info(
             f"Starting job {job.call_string}",
@@ -279,13 +280,8 @@ class Worker:
         finally:
             end_time = time.time()
             duration = end_time - start_time
-            context.additional_context.update(
-                {
-                    "end_timestamp": end_time,
-                    "duration": duration,
-                    "result": task_result,
-                }
-            )
+            context.job_result.end_timestamp = end_time
+            context.job_result.result = task_result
 
             extra = context.log_extra(action=log_action)
 
