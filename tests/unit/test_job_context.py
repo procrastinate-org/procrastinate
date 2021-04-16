@@ -4,6 +4,45 @@ from procrastinate import job_context
 
 
 @pytest.mark.parametrize(
+    "job_result, expected",
+    [
+        (job_context.JobResult(), None),
+        (job_context.JobResult(start_timestamp=10), 20),
+        (job_context.JobResult(start_timestamp=10, end_timestamp=15), 5),
+    ],
+)
+def test_job_result_duration(job_result, expected):
+    assert job_result.duration(current_timestamp=30) == expected
+
+
+@pytest.mark.parametrize(
+    "job_result, expected",
+    [
+        (job_context.JobResult(), {}),
+        (
+            job_context.JobResult(start_timestamp=10),
+            {
+                "start_timestamp": 10,
+                "duration": 15,
+            },
+        ),
+        (
+            job_context.JobResult(start_timestamp=10, end_timestamp=15, result="foo"),
+            {
+                "start_timestamp": 10,
+                "end_timestamp": 15,
+                "duration": 5,
+                "result": "foo",
+            },
+        ),
+    ],
+)
+def test_job_result_as_dict(job_result, expected, mocker):
+    mocker.patch("time.time", return_value=25)
+    assert job_result.as_dict() == expected
+
+
+@pytest.mark.parametrize(
     "queues, result", [(None, "all queues"), (["foo", "bar"], "queues foo, bar")]
 )
 def test_queues_display(queues, result):
@@ -24,7 +63,6 @@ def test_log_extra():
     assert context.log_extra(action="foo", bar="baz") == {
         "action": "foo",
         "bar": "baz",
-        "ha": "ho",
         "worker": {"name": "a", "id": 2, "queues": None},
     }
 
@@ -61,6 +99,6 @@ def test_job_description_job_time(job_factory):
         worker_name="a",
         worker_id=2,
         job=job,
-        additional_context={"start_timestamp": 20.0},
+        job_result=job_context.JobResult(start_timestamp=20.0),
     ).job_description(current_timestamp=30.0)
     assert descr == "worker 2: some_task[12](a='b') (started 10.000 s ago)"

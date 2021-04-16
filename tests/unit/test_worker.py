@@ -23,6 +23,11 @@ def context(app):
     return _
 
 
+def test_worker_additional_context(app):
+    worker_obj = worker.Worker(app=app, additional_context={"foo": "bar"})
+    assert worker_obj.base_context.additional_context == {"foo": "bar"}
+
+
 async def test_run(test_worker, mocker, caplog):
     caplog.set_level("INFO")
 
@@ -315,16 +320,14 @@ async def test_run_job_pass_context(app):
         task_name="job",
         queue="yay",
     )
-    test_worker = worker.Worker(app, queues=["yay"], name="my_worker")
-    context = job_context.JobContext(
-        worker_name="my_worker",
-        worker_id=3,
-        worker_queues=["yay"],
-        job=job,
-        task=task_func,
+    test_worker = worker.Worker(
+        app, queues=["yay"], name="my_worker", additional_context={"foo": "bar"}
     )
-    test_worker.current_contexts[3] = context
+    context = test_worker.context_for_worker(worker_id=3)
+
     await test_worker.run_job(job=job, worker_id=3)
+
+    context = context.evolve(task=task_func)
 
     assert result == [
         context,
@@ -519,3 +522,36 @@ def test_context_for_worker_reset(app):
     context = test_worker.context_for_worker(worker_id=3, reset=True)
 
     assert context == expected
+
+
+def test_worker_copy_additional_context(app):
+    additional_context = {"foo": "bar"}
+    test_worker = worker.Worker(
+        app=app,
+        name="worker",
+        additional_context=additional_context,
+    )
+
+    # mutate the additional_context object and test that we have the original
+    # value in the worker
+    additional_context["foo"] = "baz"
+    assert test_worker.base_context.additional_context == {"foo": "bar"}
+
+
+def test_context_for_worker_with_additional_context(app):
+    additional_context = {"foo": "bar"}
+    test_worker = worker.Worker(
+        app=app,
+        name="worker",
+        additional_context=additional_context,
+    )
+
+    context1 = test_worker.context_for_worker(worker_id=3)
+
+    # mutate the additional_context object for one worker and test that it
+    # hasn't changed for other workers
+    context1.additional_context["foo"] = "baz"
+
+    context2 = test_worker.context_for_worker(worker_id=4)
+
+    assert context2.additional_context == {"foo": "bar"}

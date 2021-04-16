@@ -3,7 +3,7 @@ import contextlib
 import logging
 import time
 from enum import Enum
-from typing import Dict, Iterable, Optional, Set, Union
+from typing import Any, Dict, Iterable, Optional, Set, Union
 
 from procrastinate import app, exceptions, job_context, jobs, signals, tasks, utils
 
@@ -36,6 +36,7 @@ class Worker:
         timeout: float = WORKER_TIMEOUT,
         listen_notify: bool = True,
         delete_jobs: str = DeleteJobCondition.NEVER.value,
+        additional_context: Optional[Dict[str, Any]] = None,
     ):
         self.app = app
         self.queues = queues
@@ -57,7 +58,10 @@ class Worker:
             self.logger = logger
 
         self.base_context: job_context.JobContext = job_context.JobContext(
-            app=app, worker_name=self.worker_name, worker_queues=self.queues
+            app=app,
+            worker_name=self.worker_name,
+            worker_queues=self.queues,
+            additional_context=additional_context.copy() if additional_context else {},
         )
         self.current_contexts: Dict[int, job_context.JobContext] = {}
         self.stop_requested = False
@@ -75,6 +79,7 @@ class Worker:
         if reset or worker_id not in self.current_contexts:
             context = self.base_context
             kwargs["worker_id"] = worker_id
+            kwargs["additional_context"] = self.base_context.additional_context.copy()
         else:
             context = self.current_contexts[worker_id]
 
@@ -236,7 +241,8 @@ class Worker:
 
         context = self.context_for_worker(worker_id=worker_id, task=task)
 
-        start_time = context.additional_context["start_timestamp"] = time.time()
+        start_time = time.time()
+        context.job_result.start_timestamp = start_time
 
         self.logger.info(
             f"Starting job {job.call_string}",
@@ -279,13 +285,8 @@ class Worker:
         finally:
             end_time = time.time()
             duration = end_time - start_time
-            context.additional_context.update(
-                {
-                    "end_timestamp": end_time,
-                    "duration": duration,
-                    "result": task_result,
-                }
-            )
+            context.job_result.end_timestamp = end_time
+            context.job_result.result = task_result
 
             extra = context.log_extra(action=log_action)
 

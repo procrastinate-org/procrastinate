@@ -13,6 +13,7 @@ coroutine
 coroutines
 cron
 crons
+datetime
 deferrer
 deserialize
 deserializing
@@ -43,3 +44,4 @@ suboptimal
 sync
 th
 tox
+uppercased
