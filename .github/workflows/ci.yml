@@ -3,7 +3,7 @@ name: CI
 on:
   pull_request:
   push:
-    branches: 
+    branches:
       - 'master'
     tags:
       - '*'
@@ -44,6 +44,8 @@ jobs:
             tox-env: py37-tests
           - python-version: 3.8
             tox-env: py38-tests
+          - python-version: 3.9
+            tox-env: py39-tests
 
     name: Test (python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
