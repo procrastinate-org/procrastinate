@@ -7,4 +7,3 @@ Changelog
 .. changelog::
     :github: https://github.com/peopledoc/procrastinate/releases/
     :pypi: https://pypi.org/project/procrastinate/
-

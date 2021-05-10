@@ -110,19 +110,19 @@ class ChangelogDirective(Directive):
         session.headers["Authorization"] = f"token {token}"
         owner, repo = owner_repo.split("/")
         query = """
-        query {
-            repository(owner: "%(owner)s", name: "%(repo)s") {
-                releases(orderBy: {field: CREATED_AT, direction: DESC}, first:100) {
-                    nodes {
+        query {{
+            repository(owner: "{owner}", name: "{repo}") {{
+                releases(orderBy: {{field: CREATED_AT, direction: DESC}}, first:100) {{
+                    nodes {{
                         name, descriptionHTML, url, tagName, isDraft
-                    }
-                }
-            }
-        }
-        """ % {
-            "owner": owner,
-            "repo": repo,
-        }
+                    }}
+                }}
+            }}
+        }}
+        """.format(
+            owner=owner,
+            repo=repo,
+        )
         query = query.replace("\n", "")
 
         url = "https://api.github.com/graphql"
