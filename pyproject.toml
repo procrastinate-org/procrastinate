@@ -26,6 +26,7 @@ procrastinate = 'procrastinate.cli:main'
 
 [tool.poetry.dependencies]
 python = "^3.6"
+aiopg = "*"
 attrs = "*"
 click = "*"
 croniter = "*"
