@@ -26,6 +26,10 @@ the following assumptions:
 - Either ``psql`` and other ``libpq`` executables are available in the ``PATH`` or they
   are located in ``usr/local/opt/libpq/bin`` (``Homebrew``).
 
+The ``dev-env`` script will add the ``scripts`` folder to your path for the current
+shell, so in the following documentation, if you see ``scripts/foo``, you're welcome
+to call ``foo`` directly.
+
 Instructions for contribution
 -----------------------------
 
@@ -111,15 +115,11 @@ tool.
 
 .. _Pytest: https://docs.pytest.org/en/latest/
 
-If you don't know Tox_, have a look at their documentation, it's a very nice tool too.
-
-.. _Tox: https://tox.readthedocs.io/en/latest/
-
 To look at coverage in the browser after launching the tests, use:
 
 .. code-block:: console
 
-    $ python -m webbrowser htmlcov/index.html
+    $ scripts/htmlcov
 
 The automated test turn every warning into an error. This is deliberate. If the code
 fails because of a warning, you need to either fix it or explicitly ignore it. If you
@@ -183,15 +183,15 @@ Build with:
 
 .. code-block:: console
 
-    $ tox -e docs
-    $ python -m webbrowser docs/_build/html/index.html
+    $ scripts/docs
+    $ scripts/htmldoc
 
 Run spell checking on the documentation (optional):
 
 .. code-block:: console
 
     $ sudo apt install enchant
-    $ tox -e docs-spelling
+    $ scripts/docs-spelling
 
 Because of outdated software and version incompatibilities, spell checking is not
 checked in the CI, and we don't require people to run it in their PR. Though, it's
@@ -394,8 +394,7 @@ In the development setup described above, Procrastinate, its dependencies, and t
 development tools (``tox``, ``black``, ``pytest``, etc.) are installed in a virtual
 Python environment on the host system. Alternatively, they can be installed in a Docker
 image, and Procrastinate and all the development tools can be run in Docker containers.
-Docker is useful when you can't, or don't want to, install System requirements such as
-the ``libpq-dev`` package (required by the ``psycopg2`` dependency).
+Docker is useful when you can't, or don't want to, install system requirements.
 
 This section shows, through ``docker-compose`` command examples, how to test and run
 Procrastinate in Docker.
@@ -404,18 +403,17 @@ Build the ``procrastinate`` Docker image:
 
 .. code-block:: console
 
+    $ export UID GID
     $ docker-compose build procrastinate
 
 Run the automated tests:
 
 .. code-block:: console
 
-    $ export UID
-    $ export GID=$(id -g)
     $ docker-compose run --rm procrastinate pytest
 
 Docker Compose is configured (in ``docker-compose.yml``) to mount the local directory on
-the host system onto ``/procrastinate_dev`` in the container. This means that local
+the host system onto ``/src`` in the container. This means that local
 changes made to the Procrastinate code are visible in Procrastinate containers.
 
 The ``UID`` and ``GID`` environment variables are set and exported for the Procrastinate
