@@ -1,9 +1,13 @@
 version: '2.1'
 services:
   procrastinate:
-    build: .
+    build:
+      context: .
+      args:
+        UID: ${UID}
+        GID: ${GID}
     volumes:
-      - ".:/procrastinate_dev"
+      - ".:/src"
     command: ["procrastinate", "worker"]
     environment:
       PYTHONPATH: .
