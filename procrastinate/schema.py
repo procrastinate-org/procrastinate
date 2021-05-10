@@ -1,6 +1,11 @@
 import pathlib
+import sys
 
-import importlib_resources
+# https://github.com/pypa/twine/pull/551
+if sys.version_info[:2] < (3, 9):  # coverage: exclude
+    import importlib_resources
+else:  # coverage: exclude
+    import importlib.resources as importlib_resources
 
 from procrastinate import connector as connector_module
 

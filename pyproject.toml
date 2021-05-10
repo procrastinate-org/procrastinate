@@ -34,7 +34,7 @@ psycopg2-binary = "*"
 python-dateutil = "*"
 typing-extensions = "*"
 importlib-metadata = {version = "*", python = "<3.8"}
-importlib-resources = {version = "*", python = "<3.8"}
+importlib-resources = {version = "*", python = "<3.9"}
 Django = {version = ">=2.2", extras = ["django"]}
 
 [tool.poetry.dev-dependencies]
