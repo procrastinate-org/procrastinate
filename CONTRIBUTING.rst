@@ -533,6 +533,6 @@ And the ``schema.sql`` file must be updated accordingly.
 
     If you need to edit the name or body of a release in the GitHub UI, don't forget to
     also rebuild the stable and latest doc on readthedocs__.
-    
+
 
 .. __: https://readthedocs.org/projects/procrastinate/
