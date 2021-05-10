@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+set -eux
+
+poetry run pytest "$@"

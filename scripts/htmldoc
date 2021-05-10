@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+set -eux
+
+python -m webbrowser file://$(pwd)/docs/_build/html/index.html
