@@ -38,7 +38,7 @@ extensions = [
     "sphinx.ext.autodoc",
     "sphinx_autodoc_typehints",
     "sphinxcontrib.programoutput",
-    "changelog",
+    "sphinx_github_changelog",
 ]
 try:
     import sphinxcontrib.spelling  # noqa
@@ -96,4 +96,4 @@ html_theme_options = {
     "travis_button": True,
 }
 
-changelog_github_token = os.environ.get("CHANGELOG_GITHUB_TOKEN")
+sphinx_github_changelog_token = os.environ.get("CHANGELOG_GITHUB_TOKEN")
