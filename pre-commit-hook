@@ -1,3 +1,0 @@
-#!/bin/bash -eu
-
-tox -e format,check-lint
