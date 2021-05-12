@@ -1,5 +1,55 @@
-[build-system]
-requires = ["setuptools >= 40.6.0", "wheel", "setuptools-scm[toml]>=3.4"]
-build-backend = "setuptools.build_meta"
 
-[tool.setuptools_scm]
+[tool.poetry]
+name = "procrastinate"
+version = "0.0.0"
+description = "Postgres-based distributed task processing library"
+authors = ["PeopleDoc <joachim.jablon@people-doc.com>"]
+license = "MIT License"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.6",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "License :: OSI Approved :: MIT License",
+]
+readme = "README.rst"
+keywords = ["sphinx", "github", "releases", "changelog"]
+homepage = "https://procrastinate.readthedocs.io/"
+repository = "https://github.com/peopledoc/procrastinate/"
+documentation = "https://procrastinate.readthedocs.io/"
+
+[tool.poetry.scripts]
+procrastinate = 'procrastinate.cli:main'
+
+[tool.poetry.dependencies]
+python = "^3.6"
+aiopg = "*"
+attrs = "*"
+click = "*"
+croniter = "*"
+psycopg2-binary = "*"
+python-dateutil = "*"
+typing-extensions = "*"
+importlib-metadata = {version = "*", python = "<3.8"}
+importlib-resources = {version = "*", python = "<3.9"}
+Django = {version = ">=2.2", extras = ["django"]}
+
+[tool.poetry.dev-dependencies]
+dunamai = "*"
+migra = "*"
+pytest-asyncio = "*"
+pytest-click = "*"
+pytest-cov = "*"
+pytest-django = "*"
+pytest-mock = "*"
+Sphinx = "*"
+sphinx-github-changelog = "*"
+sphinx-autodoc-typehints = "*"
+sphinxcontrib-programoutput = "*"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

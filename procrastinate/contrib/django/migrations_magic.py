@@ -6,8 +6,13 @@ from importlib import abc, machinery
 from typing import Iterable, Iterator, Optional, Tuple
 
 import attr
-import importlib_resources
 from django.db import migrations
+
+# https://github.com/pypa/twine/pull/551
+if sys.version_info[:2] < (3, 9):  # coverage: exclude
+    import importlib_resources
+else:  # coverage: exclude
+    import importlib.resources as importlib_resources
 
 # For a thorough explaination of what this package does, see README.md in the same
 # folder

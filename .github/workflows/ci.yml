@@ -3,58 +3,35 @@ name: CI
 on:
   pull_request:
   push:
-    branches: 
+    branches:
       - 'master'
     tags:
       - '*'
 
 jobs:
-  check-lint:
+  build:
+
     strategy:
       matrix:
         include:
-          - name: code
-            tox-env: check-lint
-          - name: documentation
-            tox-env: docs
+          - python_version: 3.6
+            script: tests
+          - python_version: 3.7
+            script: tests
+          - python_version: 3.8
+            script: tests
+          - python_version: 3.9
+            script: tests
 
-    name: Check ${{ matrix.name }}
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: Set up Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: 3.x
-      - name: Install dependencies
-        run: |
-          set -xeu
-          python -VV
-          pip install tox
-      - name: Check ${{ matrix.name }}
-        run: tox -e ${{ matrix.tox-env }}
-
-  tests:
-    strategy:
-      matrix:
-        include:
-          - python-version: 3.6
-            tox-env: py36-tests
-          - python-version: 3.7
-            tox-env: py37-tests
-          - python-version: 3.8
-            tox-env: py38-tests
-
-    name: Test (python ${{ matrix.python-version }})
+    name: "py${{ matrix.python_version }} / ${{ matrix.script }}"
     runs-on: ubuntu-latest
 
     services:
       postgres:
         image: postgres:12
-        env:
-          POSTGRES_DB: procrastinate
-          POSTGRES_PASSWORD: password
         # Set health checks to wait until postgres has started
+        env:
+          POSTGRES_PASSWORD: postgres
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -64,40 +41,45 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
+
       - name: Set up Python
+        id: setup-python
         uses: actions/setup-python@v2
         with:
-          python-version: ${{ matrix.python-version }}
-      - name: Cache pip
+          python_version: ${{ matrix.python_version }}
+
+      - name: Pip, Pre-commit & Poetry caches
         uses: actions/cache@v2
         with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('setup.cfg') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
-      - name: Install dependencies
-        run: |
-          set -xeu
-          python -VV
-          pip install tox coverage
-      - name: Run tox targets for ${{ matrix.python-version }}
-        run: tox -e ${{ matrix.tox-env }}
+          path: |
+            ~/.cache/
+          key: ${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('poetry.lock') }}-${{ hashFiles('.pre-commit-config.yaml') }}
+
+      - name: Install Poetry
+        run: pip install poetry
+
+      - name: Install Dev dependencies
+        run: poetry install
+
+      - name: Run ${{ matrix.script }}
+        run: scripts/${{ matrix.script }}
         env:
-          PGDATABASE: procrastinate
-          PGHOST: 127.0.0.1
+          PYTEST_ADDOPTS: "--cov-report=xml"
+          PGHOST: localhost
           PGUSER: postgres
-          PGPASSWORD: password
+          PGPASSWORD: postgres
+
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v1
+        if: ${{ matrix.script == 'tests' }}
         with:
+          token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: true
 
   report-status:
     name: success
     runs-on: ubuntu-latest
-    needs:
-      - check-lint
-      - tests
+    needs: build
     steps:
       - name: Report success
         run: echo 'Success !'

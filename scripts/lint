@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+set -eux
+
+# If you want more details on the underlying command, refer to ../.pre-commit-config.yaml
+pre-commit run --all-files --show-diff-on-failure "$@"

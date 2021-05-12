@@ -37,12 +37,12 @@ def on_stop(callback: Callable[[], None]):
 
     uninstalled = False
     loop: Optional[asyncio.AbstractEventLoop]
-    if sys.version_info < (3, 7):
+    if sys.version_info < (3, 7):  # coverage: exclude
         if asyncio.Task.current_task():
             loop = asyncio.get_event_loop()
         else:
             loop = None
-    else:
+    else:  # coverage: exclude
         try:
             loop = asyncio.get_running_loop()
         except RuntimeError:
