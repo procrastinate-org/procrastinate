@@ -184,7 +184,7 @@ class App:
             )
             self._register(task)
 
-            return functools.update_wrapper(task, func)
+            return functools.update_wrapper(task, func, updated=())
 
         if _func is None:  # Called as @app.task(...)
             return _wrap

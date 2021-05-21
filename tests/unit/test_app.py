@@ -53,7 +53,7 @@ def test_app_task_aliases(app, mocker):
     assert app.tasks["d"] is wrapped
 
 
-def test_app_task_implicit(app, mocker):
+def test_app_task_implicit(app):
     @app.task
     def wrapped():
         return "foo"
@@ -65,6 +65,19 @@ def test_app_task_implicit(app, mocker):
     assert "default" == registered_task.queue
     assert registered_task is wrapped
     assert registered_task.func is wrapped.__wrapped__
+
+
+def test_app_task_dont_read_function_attributes(app):
+    # This is a weird one. It's a regression test. At some point, we noted that,
+    # due to the slightly wrong usage of update_wrapper, the attributes on the
+    # decorated function were copied on the task. This led to surprising
+    # behaviour. This test is just here to make sure it doesn't happen again.
+    def wrapped():
+        return "foo"
+
+    wrapped.pass_context = True
+    task = app.task(wrapped)
+    assert task.pass_context is False
 
 
 def test_app_register_builtins(app):
