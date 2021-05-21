@@ -1,7 +1,6 @@
 import asyncio
 import datetime
 import logging
-import uuid
 from typing import Any, Dict, Iterable, Optional
 
 from procrastinate import connector, exceptions, jobs, sql, utils
@@ -62,7 +61,7 @@ class JobManager:
             "query": sql.queries["defer_job"],
             "task_name": job.task_name,
             "queue": job.queue,
-            "lock": job.lock or str(uuid.uuid4()),
+            "lock": job.lock,
             "queueing_lock": job.queueing_lock,
             "args": job.task_kwargs,
             "scheduled_at": job.scheduled_at,

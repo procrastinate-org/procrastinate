@@ -142,7 +142,9 @@ class InMemoryConnector(connector.BaseAsyncConnector):
 
     @property
     def current_locks(self) -> Iterable[str]:
-        return {job["lock"] for job in self.jobs.values() if job["status"] == "doing"}
+        return {
+            job["lock"] for job in self.jobs.values() if job["status"] == "doing"
+        } - {None}
 
     @property
     def finished_jobs(self) -> List[JobRow]:

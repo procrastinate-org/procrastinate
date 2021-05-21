@@ -156,7 +156,9 @@ BEGIN
                 NOT EXISTS (
                     SELECT 1
                         FROM procrastinate_jobs AS earlier_jobs
-                        WHERE earlier_jobs.lock = jobs.lock
+                        WHERE
+                            jobs.lock IS NOT NULL
+                            AND earlier_jobs.lock = jobs.lock
                             AND earlier_jobs.status IN ('todo', 'doing')
                             AND earlier_jobs.id < jobs.id)
                 AND jobs.status = 'todo'
