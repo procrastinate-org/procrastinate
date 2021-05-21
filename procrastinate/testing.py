@@ -243,6 +243,14 @@ class InMemoryConnector(connector.BaseAsyncConnector):
             stats = Counter(job["status"] for job in task_jobs)
             yield {"name": task, "jobs_count": len(task_jobs), "stats": stats}
 
+    def list_locks_all(self, **kwargs):
+        jobs = list(self.list_jobs_all(**kwargs))
+        locks = sorted({job["lock"] for job in jobs})
+        for lock in locks:
+            lock_jobs = [job for job in jobs if job["lock"] == lock]
+            stats = Counter(job["status"] for job in lock_jobs)
+            yield {"name": lock, "jobs_count": len(lock_jobs), "stats": stats}
+
     def set_job_status_run(self, id, status):
         id = int(id)
         self.jobs[id]["status"] = status

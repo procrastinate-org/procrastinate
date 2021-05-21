@@ -477,6 +477,26 @@ async def test_list_tasks_dict(fixture_jobs, pg_job_manager):
     }
 
 
+async def test_list_locks_dict(fixture_jobs, job_factory, pg_job_manager):
+    pg_job_manager.defer_job_async(
+        job=job_factory(
+            queue="q3",
+            lock=None,
+            queueing_lock="queueing_lock3",
+            task_name="task_foo",
+            task_kwargs={"key": "a"},
+        )
+    )
+    assert (await pg_job_manager.list_locks_async())[0] == {
+        "name": "lock1",
+        "jobs_count": 1,
+        "todo": 1,
+        "doing": 0,
+        "succeeded": 0,
+        "failed": 0,
+    }
+
+
 @pytest.mark.parametrize(
     "kwargs, expected",
     [

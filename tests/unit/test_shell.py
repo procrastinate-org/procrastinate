@@ -137,8 +137,8 @@ def test_list_queues(shell, connector, capsys):
     shell.do_list_queues("")
     captured = capsys.readouterr()
     assert captured.out.splitlines() == [
-        "queue1: 1 jobs (todo: 1, succeeded: 0, failed: 0)",
-        "queue2: 1 jobs (todo: 1, succeeded: 0, failed: 0)",
+        "queue1: 1 jobs (todo: 1, doing: 0, succeeded: 0, failed: 0)",
+        "queue2: 1 jobs (todo: 1, doing: 0, succeeded: 0, failed: 0)",
     ]
     assert connector.queries == [
         (
@@ -155,7 +155,7 @@ def test_list_queues_filters(shell, connector, capsys):
     shell.do_list_queues("queue=queue2 task=task2 lock=lock2 status=todo")
     captured = capsys.readouterr()
     assert captured.out.splitlines() == [
-        "queue2: 1 jobs (todo: 1, succeeded: 0, failed: 0)",
+        "queue2: 1 jobs (todo: 1, doing: 0, succeeded: 0, failed: 0)",
     ]
     assert connector.queries == [
         (
@@ -183,8 +183,8 @@ def test_list_tasks(shell, connector, capsys):
     shell.do_list_tasks("")
     captured = capsys.readouterr()
     assert captured.out.splitlines() == [
-        "task1: 1 jobs (todo: 1, succeeded: 0, failed: 0)",
-        "task2: 1 jobs (todo: 1, succeeded: 0, failed: 0)",
+        "task1: 1 jobs (todo: 1, doing: 0, succeeded: 0, failed: 0)",
+        "task2: 1 jobs (todo: 1, doing: 0, succeeded: 0, failed: 0)",
     ]
     assert connector.queries == [
         (
@@ -201,7 +201,7 @@ def test_list_tasks_filters(shell, connector, capsys):
     shell.do_list_tasks("queue=queue2 task=task2 lock=lock2 status=todo")
     captured = capsys.readouterr()
     assert captured.out.splitlines() == [
-        "task2: 1 jobs (todo: 1, succeeded: 0, failed: 0)",
+        "task2: 1 jobs (todo: 1, doing: 0, succeeded: 0, failed: 0)",
     ]
     assert connector.queries == [
         (
@@ -218,6 +218,52 @@ def test_list_tasks_filters(shell, connector, capsys):
 
 def test_list_tasks_empty(shell, connector, capsys):
     shell.do_list_tasks("")
+    captured = capsys.readouterr()
+    assert captured.out == ""
+
+
+def test_list_locks(shell, connector, capsys):
+    connector.defer_job_one("task1", "lock1", "queueing_lock1", {}, 0, "queue1")
+    connector.defer_job_one("task2", "lock2", "queueing_lock2", {}, 0, "queue2")
+
+    shell.do_list_locks("")
+    captured = capsys.readouterr()
+    assert captured.out.splitlines() == [
+        "lock1: 1 jobs (todo: 1, doing: 0, succeeded: 0, failed: 0)",
+        "lock2: 1 jobs (todo: 1, doing: 0, succeeded: 0, failed: 0)",
+    ]
+    assert connector.queries == [
+        (
+            "list_locks",
+            {"queue_name": None, "task_name": None, "lock": None, "status": None},
+        )
+    ]
+
+
+def test_list_locks_filters(shell, connector, capsys):
+    connector.defer_job_one("task1", "lock1", "queueing_lock1", {}, 0, "queue1")
+    connector.defer_job_one("task2", "lock2", "queueing_lock2", {}, 0, "queue2")
+
+    shell.do_list_locks("queue=queue2 task=task2 lock=lock2 status=todo")
+    captured = capsys.readouterr()
+    assert captured.out.splitlines() == [
+        "lock2: 1 jobs (todo: 1, doing: 0, succeeded: 0, failed: 0)",
+    ]
+    assert connector.queries == [
+        (
+            "list_locks",
+            {
+                "queue_name": "queue2",
+                "task_name": "task2",
+                "lock": "lock2",
+                "status": "todo",
+            },
+        )
+    ]
+
+
+def test_list_locks_empty(shell, connector, capsys):
+    shell.do_list_locks("")
     captured = capsys.readouterr()
     assert captured.out == ""
 
