@@ -10,7 +10,7 @@ repos:
   - id: check-added-large-files
 
 - repo: https://github.com/psf/black
-  rev: "21.5b1"
+  rev: "21.5b2"
   hooks:
   - id: black
 
@@ -32,7 +32,7 @@ repos:
     args: ["--ignore-missing-imports", "--scripts-are-modules"]
 
 - repo: https://github.com/asottile/pyupgrade
-  rev: "v2.18.2"
+  rev: "v2.19.0"
   hooks:
   - id: pyupgrade
 
