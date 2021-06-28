@@ -20,9 +20,12 @@ if ! which pg_isready; then
     fi
 fi
 
+export UID=$(id -u)
+export GID=$(id -g)
+
 if ! pg_isready ; then
     echo "Starting database"
-    export PGDATABASE=procrastinate PGHOST=localhost PGUSER=postgres PGPASSWORD=password
+    export PGDATABASE=procrastinate PGHOST=127.0.0.1 PGUSER=postgres PGPASSWORD=password
     docker-compose up -d postgres || return
     sleep 3
 fi
@@ -33,7 +36,6 @@ echo ""
 
 export PROCRASTINATE_APP=procrastinate_demo.app.app
 export PATH="/scripts/:$PATH"
-export UID GID
 source $(poetry env info -p)/bin/activate
 
 if ! pg_dump --schema-only --table=procrastinate_jobs 1>/dev/null 2>&1; then
