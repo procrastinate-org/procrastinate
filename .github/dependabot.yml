@@ -1,0 +1,13 @@
+version: 2
+
+updates:
+
+  - package-ecosystem: pip
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: friday
+      time: "09:00"
+      timezone: Europe/Paris
+    labels:
+      - "PR type: dependencies"
