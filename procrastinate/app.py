@@ -8,7 +8,7 @@ from procrastinate import retry as retry_module
 from procrastinate import schema, utils
 
 if TYPE_CHECKING:
-    from procrastinate import tasks, worker
+    from procrastinate import blueprints, tasks, worker
 
 logger = logging.getLogger(__name__)
 
@@ -199,6 +199,9 @@ class App:
             Cron-like string. Optionally add a 6th column for seconds.
         """
         return self.periodic_deferrer.periodic_decorator(cron=cron)
+
+    def register_blueprint(self, blueprint: "blueprints.Blueprint") -> None:
+        blueprint.register(self)
 
     def _register(self, task: "tasks.Task") -> None:
         self.tasks[task.name] = task
