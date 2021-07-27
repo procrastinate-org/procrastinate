@@ -2,7 +2,7 @@ from procrastinate import blueprints, retry
 
 
 def test_app_task_explicit(app, mocker):
-    bp = blueprints.BluePrint()
+    bp = blueprints.Blueprint()
 
     @bp.task(
         name="foobar",

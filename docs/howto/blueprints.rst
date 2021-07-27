@@ -5,9 +5,9 @@ You can use blueprints to break up your tasks.
 
 Firstly use blueprints to create a task collection::
 
-    from procrastinate import blueprints
+    from procrastinate import Blueprint
 
-    bp = blueprints.BluePrint()
+    bp = Blueprint()
 
     @bp.task()
     def mytask(argument, other_argument):

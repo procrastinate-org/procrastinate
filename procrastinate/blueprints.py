@@ -7,7 +7,7 @@ if TYPE_CHECKING:
     from procrastinate import app, tasks
 
 
-class BluePrint:
+class Blueprint:
     def __init__(self):
         self.tasks = {}
 

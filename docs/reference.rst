@@ -79,3 +79,9 @@ Django
 ------
 
 .. autofunction:: procrastinate.contrib.django.connector_params
+
+
+Blueprints
+----------
+
+.. autoclass:: procrastinate.blueprints.Blueprint
