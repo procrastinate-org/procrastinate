@@ -3,7 +3,7 @@ import logging
 from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, List, Optional, Set
 
 from procrastinate import connector as connector_module
-from procrastinate import exceptions, jobs, manager
+from procrastinate import exceptions, jobs, manager, protocols
 from procrastinate import retry as retry_module
 from procrastinate import schema, utils
 
@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class App:
+class App(protocols.TaskCreator):
     """
     The App is the main entry point for procrastinate integration.
 

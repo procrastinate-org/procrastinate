@@ -1,13 +1,13 @@
 import functools
 from typing import TYPE_CHECKING, Any, Callable, List, Optional
 
-from procrastinate import jobs, retry
+from procrastinate import jobs, protocols, retry
 
 if TYPE_CHECKING:
     from procrastinate import app, tasks
 
 
-class Blueprint:
+class Blueprint(protocols.TaskCreator):
     def __init__(self):
         self.tasks = {}
 
