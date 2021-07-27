@@ -16,6 +16,7 @@ class Blueprint(protocols.TaskCreator):
 
     def register(self, app: "app.App") -> None:
         for task in self.tasks.values():
+            task.app = app
             app._register(task)
 
     def task(
@@ -35,7 +36,7 @@ class Blueprint(protocols.TaskCreator):
 
             task = tasks.Task(
                 func,
-                app=self,
+                app=None,  # Causes a mypy error
                 queue=queue,
                 lock=lock,
                 queueing_lock=queueing_lock,
