@@ -72,7 +72,7 @@ class Task:
         self,
         func: Callable,
         *,
-        app: app.App,
+        app: Optional[app.App],
         # task naming
         name: Optional[str] = None,
         aliases: Optional[List[str]] = None,
@@ -167,6 +167,9 @@ class Task:
         ValueError
             If you try to define both schedule_at and schedule_in
         """
+        if self.app is None:
+            raise AssertionError("Tried to configure task whilst self.app was None")
+
         return configure_task(
             name=self.name,
             job_manager=self.app.job_manager,

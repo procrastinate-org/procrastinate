@@ -36,7 +36,7 @@ class Blueprint(protocols.TaskCreator):
 
             task = tasks.Task(
                 func,
-                app=None,  # Causes a mypy error
+                app=None,
                 queue=queue,
                 lock=lock,
                 queueing_lock=queueing_lock,
