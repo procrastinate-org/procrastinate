@@ -63,16 +63,13 @@ class App:
             Typically an `AiopgConnector`. It will be responsible for all communications
             with the database. Mandatory.
         import_paths :
-            List of python dotted paths of modules to import, to make sure
-            that the workers know about all possible tasks.
-            If you fail to add a path here and a worker encounters
-            a task defined at that path, the task will be loaded on the
-            fly and run, but you will get a warning.
-            You don't need to specify paths that you know have already
-            been imported, though it doesn't hurt.
-            A `App.task` that has a custom "name" parameter, that is not
-            imported and whose module path is not in this list will
-            fail to run.
+            List of python dotted paths of modules to import, to make sure that
+            the workers know about all possible tasks. If there are tasks in a
+            module that is neither imported as a side effect of importing the
+            App, nor specified in this list, and a worker encounters a task
+            defined in that module, the task will fail (`TaskNotFound`). While
+            it is not mandatory to specify paths to modules that you know have
+            already been imported, it's a good idea to do so.
         worker_defaults :
             All the values passed here will override the default values sent when
             launching a worker. See `App.run_worker` for details.
