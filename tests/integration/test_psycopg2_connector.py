@@ -91,6 +91,24 @@ def test_execute_query(psycopg2_connector):
     assert result == [{"obj_description": "foo"}]
 
 
+def test_execute_query_percent(psycopg2_connector):
+    psycopg2_connector.execute_query("SELECT '%'")
+    result = psycopg2_connector.execute_query_one("SELECT '%'")
+    assert result == {"?column?": "%"}
+
+    result = psycopg2_connector.execute_query_all("SELECT '%'")
+    assert result == [{"?column?": "%"}]
+
+
+def test_execute_query_arg(psycopg2_connector):
+    psycopg2_connector.execute_query("SELECT %(arg)s", arg=1)
+    result = psycopg2_connector.execute_query_one("SELECT %(arg)s", arg=1)
+    assert result == {"?column?": 1}
+
+    result = psycopg2_connector.execute_query_all("SELECT %(arg)s", arg=1)
+    assert result == [{"?column?": 1}]
+
+
 def test_close(psycopg2_connector):
     pool = psycopg2_connector._pool
     psycopg2_connector.close()
