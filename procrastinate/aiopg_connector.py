@@ -327,15 +327,19 @@ class AiopgConnector(connector.BaseAsyncConnector):
     ) -> None:
         # We'll leave this loop with a CancelledError, when we get cancelled
         while True:
-            # because of https://github.com/aio-libs/aiopg/issues/249,
-            # we could get stuck in here forever if the connection closes.
-            # That's why we need timeout and if connection is closed, reopen
-            # a new one.
+            # because of https://github.com/aio-libs/aiopg/issues/249 for
+            # aiopg<1.3.0, we could get stuck in here forever if the connection
+            # closes. That's why we need timeout and if connection is closed,
+            # reopen a new one.
             if connection.closed:
                 return
             try:
                 await asyncio.wait_for(connection.notifies.get(), timeout)
             except asyncio.TimeoutError:
+                continue
+            except psycopg2.Error:
+                # aiopg>=1.3.1 will raise if the connection is closed while
+                # we wait
                 continue
 
             event.set()
