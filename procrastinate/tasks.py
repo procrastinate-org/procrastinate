@@ -9,15 +9,6 @@ from procrastinate import types, utils
 logger = logging.getLogger(__name__)
 
 
-def load_task(path: str) -> "Task":
-    try:
-        task = utils.load_from_path(path, Task)
-    except exceptions.LoadFromPathError as exc:
-        raise exceptions.TaskNotFound(f"Task at {path} cannot be imported: {str(exc)}")
-
-    return task
-
-
 def configure_task(
     *,
     name: str,

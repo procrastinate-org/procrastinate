@@ -1,6 +1,6 @@
 import pytest
 
-from procrastinate import exceptions, tasks, utils
+from procrastinate import tasks, utils
 
 from .. import conftest
 
@@ -113,28 +113,3 @@ def test_task_get_retry_exception(app, mocker):
     exception = ValueError()
     assert task.get_retry_exception(exception=exception, job=job) is mock.return_value
     mock.assert_called_with(exception=exception, attempts=0)
-
-
-def test_load_task_not_found():
-    with pytest.raises(exceptions.TaskNotFound):
-        tasks.load_task("foobarbaz")
-
-
-def test_load_task_not_a_task():
-    with pytest.raises(exceptions.TaskNotFound):
-        tasks.load_task("json.loads")
-
-
-some_task = None
-
-
-def test_load_task(app):
-    global some_task
-
-    @app.task
-    def task_func():
-        return "foo"
-
-    some_task = task_func
-
-    assert tasks.load_task("tests.unit.test_tasks.some_task") == some_task
