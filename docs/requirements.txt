@@ -3,7 +3,7 @@
 # the readthedocs build and poetry: readthedocs cannot install poetry's dev
 # dependencies.
 .
-Sphinx
+Sphinx==3.*
 sphinx-github-changelog
 sphinx-autodoc-typehints
 sphinxcontrib-programoutput
