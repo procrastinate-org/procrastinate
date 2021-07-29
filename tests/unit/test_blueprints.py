@@ -1,3 +1,5 @@
+import pytest
+
 from procrastinate import blueprints, retry
 
 
@@ -44,3 +46,14 @@ def test_app_task_implicit(app):
     assert "default" == registered_task.queue
     assert registered_task is wrapped
     assert registered_task.func is wrapped.__wrapped__
+
+
+def test_app_task_configure_before_binding_not_allowed(app):
+    bp = blueprints.Blueprint()
+
+    @bp.task()
+    def wrapped():
+        return "foo"
+
+    with pytest.raises(AssertionError):
+        wrapped.configure()
