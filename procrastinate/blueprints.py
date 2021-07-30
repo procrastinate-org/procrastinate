@@ -8,6 +8,35 @@ if TYPE_CHECKING:
 
 
 class Blueprint(protocols.TaskCreator):
+    """
+    A Blueprint provides a way to declare tasks that can be registered on an
+    :class:`~procrastinate.App` later::
+
+        bp = Blueprint()
+
+        ... declare tasks ...
+
+        app.register(bp)
+
+    Notes
+    -----
+    Calling a blueprint task before the it is bound to an app will raise an
+    Assertion error::
+
+        bp = Blueprint()
+
+        @bp.task
+        def my_task():
+            ...
+
+        my_task.defer()
+
+        >> AssertionError: Tried to configure task whilst self.app was None
+
+
+
+    """
+
     def __init__(self):
         self.tasks = {}
 
@@ -31,6 +60,59 @@ class Blueprint(protocols.TaskCreator):
         lock: Optional[str] = None,
         queueing_lock: Optional[str] = None,
     ) -> Any:
+        """
+        Like :meth:`App.task <procrastinate.App.task>` except tasks **are not** bound to
+        an app until the blueprint is registered on an app.
+
+        Declare a function as a task as you normally would::
+
+            @bp.task(...)
+            def my_task(args):
+                ...
+
+        Un-configured task decorator will use default values for all parameters::
+
+            @bp.task
+            def my_task(args):
+                ...
+
+
+        Parameters
+        ----------
+        _func :
+            The decorated function
+        queue :
+            The name of the queue in which jobs from this task will be launched, if
+            the queue is not overridden at launch.
+            Default is ``"default"``.
+            When a worker is launched, it can listen to specific queues, or to all
+            queues.
+        lock :
+            Default value for the ``lock`` (see `Task.defer`).
+        queueing_lock:
+            Default value for the ``queueing_lock`` (see `Task.defer`).
+        name :
+            Name of the task, by default the full dotted path to the decorated function.
+            if the function is nested or dynamically defined, it is important to give
+            it a unique name, and to make sure the module that defines this function
+            is listed in the ``import_paths`` of the `procrastinate.App`.
+        aliases:
+            Additional names for the task.
+            The main use case is to gracefully rename tasks by moving the old
+            name to aliases (these tasks can have been scheduled in a distant
+            future, so the aliases can remain for a long time).
+        retry :
+            Details how to auto-retry the task if it fails. Can be:
+
+            - A ``boolean``: will either not retry or retry indefinitely
+            - An ``int``: the number of retries before it gives up
+            - A `procrastinate.RetryStrategy` instance for complex cases
+
+            Default is no retry.
+        pass_context :
+            Passes the task execution context in the task as first
+        """
+
         def _wrap(func: Callable[..., "tasks.Task"]):
             from procrastinate import tasks
 

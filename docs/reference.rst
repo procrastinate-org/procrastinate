@@ -85,3 +85,4 @@ Blueprints
 ----------
 
 .. autoclass:: procrastinate.blueprints.Blueprint
+    :members: task
