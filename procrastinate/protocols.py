@@ -1,4 +1,6 @@
-from typing import Any, Callable, List, Optional, Protocol
+from typing import Any, Callable, List, Optional
+
+from typing_extensions import Protocol
 
 from procrastinate import retry
 
