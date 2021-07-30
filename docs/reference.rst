@@ -60,7 +60,7 @@ Exceptions
 
 .. automodule:: procrastinate.exceptions
     :members: ProcrastinateException, LoadFromPathError,
-              ConnectorException, AlreadyEnqueued, AppNotOpen
+              ConnectorException, AlreadyEnqueued, AppNotOpen, TaskNotFound
 
 Job statuses
 ------------

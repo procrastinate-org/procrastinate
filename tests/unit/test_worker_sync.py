@@ -15,50 +15,20 @@ def context():
     return job_context.JobContext()
 
 
-def test_worker_load_task_known_missing(test_worker):
-    test_worker.known_missing_tasks.add("foobarbaz")
-    with pytest.raises(exceptions.TaskNotFound):
-        test_worker.load_task("foobarbaz", worker_id=2)
-
-
-def test_worker_load_task_known_task(app, test_worker, context):
-    @app.task
-    def task_func():
-        pass
-
-    assert (
-        test_worker.load_task("tests.unit.test_worker_sync.task_func", worker_id=2)
-        == task_func
-    )
-
-
-def test_worker_load_task_new_missing(test_worker):
+def test_worker_find_task_missing(test_worker):
 
     with pytest.raises(exceptions.TaskNotFound):
-        test_worker.load_task("foobarbaz", worker_id=2)
-
-    assert test_worker.known_missing_tasks == {"foobarbaz"}
+        test_worker.find_task("foobarbaz")
 
 
-unknown_task = None
-
-
-def test_worker_load_task_unknown_task(app, caplog):
-    global unknown_task
+def test_worker_find_task(app):
     test_worker = worker.Worker(app=app, queues=["yay"])
 
-    @app.task
+    @app.task(name="foo")
     def task_func():
         pass
 
-    unknown_task = task_func
-
-    assert (
-        test_worker.load_task("tests.unit.test_worker_sync.unknown_task", worker_id=2)
-        == task_func
-    )
-
-    assert [record for record in caplog.records if record.action == "load_dynamic_task"]
+    assert test_worker.find_task("foo") == task_func
 
 
 def test_stop(test_worker, caplog):

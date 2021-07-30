@@ -3,7 +3,7 @@ import contextlib
 import logging
 import time
 from enum import Enum
-from typing import Any, Dict, Iterable, Optional, Set, Union
+from typing import Any, Dict, Iterable, Optional, Union
 
 from procrastinate import app, exceptions, job_context, jobs, signals, tasks, utils
 
@@ -48,8 +48,6 @@ class Worker:
         self.listen_notify = listen_notify
         self.delete_jobs = DeleteJobCondition(delete_jobs)
 
-        # Handling the info about the currently running task.
-        self.known_missing_tasks: Set[str] = set()
         self.job_manager = self.app.job_manager
 
         if name:
@@ -57,6 +55,7 @@ class Worker:
         else:
             self.logger = logger
 
+        # Handling the info about the currently running task.
         self.base_context: job_context.JobContext = job_context.JobContext(
             app=app,
             worker_name=self.worker_name,
@@ -207,37 +206,16 @@ class Worker:
             # Remove job information from the current context
             self.context_for_worker(worker_id=worker_id, reset=True)
 
-    def load_task(self, task_name: str, worker_id: int) -> tasks.Task:
-        if task_name in self.known_missing_tasks:
-            raise exceptions.TaskNotFound(f"Cancelling job for {task_name} (not found)")
-
+    def find_task(self, task_name: str) -> tasks.Task:
         try:
-            # Simple case: the task is already known
             return self.app.tasks[task_name]
         except KeyError:
-            pass
-
-        # Will raise if not found or not a task
-        try:
-            task = tasks.load_task(task_name)
-        except exceptions.ProcrastinateException:
-            self.known_missing_tasks.add(task_name)
-            raise
-
-        context = self.context_for_worker(worker_id=worker_id)
-
-        self.logger.warning(
-            f"Task at {task_name} was not registered, it's been loaded dynamically.",
-            extra=context.log_extra(action="load_dynamic_task", task_name=task_name),
-        )
-
-        self.app.tasks[task_name] = task
-        return task
+            raise exceptions.TaskNotFound
 
     async def run_job(self, job: jobs.Job, worker_id: int) -> None:
         task_name = job.task_name
 
-        task = self.load_task(task_name=task_name, worker_id=worker_id)
+        task = self.find_task(task_name=task_name)
 
         context = self.context_for_worker(worker_id=worker_id, task=task)
 
