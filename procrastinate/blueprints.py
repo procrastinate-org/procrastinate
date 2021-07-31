@@ -15,33 +15,52 @@ class Blueprint:
     A Blueprint provides a way to declare tasks that can be registered on an
     `App` later::
 
-        bp = Blueprint()
+        # Create blueprint for all tasks related to the cat
+        cat_blueprint = Blueprint()
 
-        ... declare tasks ...
+        # Declare tasks
+        @cat_blueprint.task(lock="...")
+        def feed_cat():
+            ...
 
-        app.register(bp)
+        # Register blueprint (will register ``cat:path.to.feed_cat``)
+        app.add_tasks_from(cat_blueprint, namespace="cat")
 
-    Notes
-    -----
-    Deffering a blueprint task before the it is bound to an app will raise an
-    UnboundTaskError::
+    A blueprint can add tasks from another blueprint::
 
-        bp = Blueprint()
+        blueprint_a, blueprint_b = Blueprint(), Blueprint()
 
-        @bp.task
+        @blueprint_b.task(lock="...")
         def my_task():
             ...
 
-        my_task.defer()
+        blueprint_a.add_tasks_from(blueprint_b, namespace="b")
 
-        >> AssertionError: Tried to configure task whilst self.app was None
+        # Registers task "a:b:path.to.my_task"
+        app.add_tasks_from(blueprint_a, namespace="a")
 
+    Raises
+    ------
+    TaskNotRegistered:
+        Calling a blueprint task before the it is bound to an `App` will raise a
+        `TaskNotRegistered` error::
 
+            blueprint = Blueprint()
 
+            # Declare tasks
+            @blueprint.task
+            def my_task():
+                ...
+
+            >>> my_task.defer()
+
+            Traceback (most recent call last):
+                File "..."
+            `TaskNotRegistered`: ...
     """
 
     def __init__(self):
-        self.tasks = {}
+        self.tasks: Dict[str, "tasks.Task"] = {}
         self._check_stack()
 
     def _check_stack(self):
@@ -86,21 +105,19 @@ class Blueprint:
         queueing_lock: Optional[str] = None,
     ) -> Any:
         """
-        Like :meth:`App.task <procrastinate.App.task>` except tasks **are not** bound to
-        an app until the blueprint is registered on an app.
+        Declare a function as a task. This method is meant to be used as a decorator::
 
-        Declare a function as a task as you normally would::
-
-            @bp.task(...)
+            @app.task(...)
             def my_task(args):
                 ...
 
-        Un-configured task decorator will use default values for all parameters::
+        or::
 
-            @bp.task
+            @app.task
             def my_task(args):
                 ...
 
+        The second form will use the default value for all parameters.
 
         Parameters
         ----------
