@@ -1,6 +1,7 @@
 import inspect
 
 from procrastinate import App, Blueprint
+from procrastinate.protocols import TaskCreator
 
 
 # def test_task_signatures(app, mocker):
@@ -12,4 +13,8 @@ def test_task_signatures():
     This is further enforced with protocols.TaskCreator and mypy checks.
     """
 
-    assert inspect.signature(Blueprint.task) == inspect.signature(App.task)
+    # Check that both App.task and Blueprint.task implement Taskcreator.task
+    assert inspect.signature(App.task) == inspect.signature(TaskCreator.task)
+    assert inspect.signature(Blueprint.task) == inspect.signature(TaskCreator.task)
+    # Sanity check
+    assert inspect.signature(App.task) == inspect.signature(Blueprint.task)
