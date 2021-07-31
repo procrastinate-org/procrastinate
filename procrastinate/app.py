@@ -3,17 +3,17 @@ import logging
 from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, List, Optional, Set
 
 from procrastinate import connector as connector_module
-from procrastinate import exceptions, jobs, manager
+from procrastinate import exceptions, jobs, manager, protocols
 from procrastinate import retry as retry_module
 from procrastinate import schema, utils
 
 if TYPE_CHECKING:
-    from procrastinate import tasks, worker
+    from procrastinate import blueprints, tasks, worker
 
 logger = logging.getLogger(__name__)
 
 
-class App:
+class App(protocols.TaskCreator):
     """
     The App is the main entry point for procrastinate integration.
 
@@ -199,6 +199,9 @@ class App:
             Cron-like string. Optionally add a 6th column for seconds.
         """
         return self.periodic_deferrer.periodic_decorator(cron=cron)
+
+    def register_blueprint(self, blueprint: "blueprints.Blueprint") -> None:
+        blueprint.register(self)
 
     def _register(self, task: "tasks.Task") -> None:
         self.tasks[task.name] = task

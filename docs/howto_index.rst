@@ -33,3 +33,4 @@ How to...
     howto/connections
     howto/custom_json_encoder_decoder
     howto/schema
+    howto/blueprints

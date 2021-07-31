@@ -60,7 +60,8 @@ Exceptions
 
 .. automodule:: procrastinate.exceptions
     :members: ProcrastinateException, LoadFromPathError,
-              ConnectorException, AlreadyEnqueued, AppNotOpen, TaskNotFound
+              ConnectorException, AlreadyEnqueued, AppNotOpen, TaskNotFound,
+              UnboundTaskError
 
 Job statuses
 ------------
@@ -79,3 +80,10 @@ Django
 ------
 
 .. autofunction:: procrastinate.contrib.django.connector_params
+
+
+Blueprints
+----------
+
+.. autoclass:: procrastinate.blueprints.Blueprint
+    :members: task

@@ -38,9 +38,16 @@ sync_app = procrastinate.App(
 sync_app.open()
 
 
-@app.task(queue="default")
+# Check that tasks can be added from blueprints
+bp = procrastinate.Blueprint()
+
+
+@bp.task(queue="default")
 def sum_task(a, b):
     print(a + b)
+
+
+app.register_blueprint(bp)
 
 
 @app.task(queue="default")
