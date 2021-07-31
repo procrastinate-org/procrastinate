@@ -85,7 +85,22 @@ class Blueprint:
             )
 
     def _register_task(self, task: "tasks.Task") -> None:
-        self.tasks[task.name] = task
+        to_add = {}
+        if task.name in self.tasks:
+            raise exceptions.TaskAlreadyRegistered(
+                f"A task called {task.name} was already registered."
+            )
+        to_add[task.name] = task
+
+        for alias in task.aliases:
+            if alias in self.tasks:
+                raise exceptions.TaskAlreadyRegistered(
+                    f"A task with alias {alias} was already registered"
+                )
+
+            to_add[alias] = task
+
+        self.tasks.update(to_add)
 
     def register(self, app: "app.App") -> None:
         for task in self.tasks.values():
