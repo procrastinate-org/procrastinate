@@ -18,6 +18,20 @@ class TaskNotFound(ProcrastinateException):
     """
 
 
+class UnboundTaskError(ProcrastinateException):
+    """
+    The `Task` was used before it was bound to an `App`.
+    If the task was defined on a `Blueprint`, ensure that you called
+    `App.add_tasks_from` before deferring the task.
+    """
+
+
+class TaskAlreadyRegistered(ProcrastinateException):
+    """
+    A task with this name was already registered.
+    """
+
+
 class JobError(ProcrastinateException):
     """
     Job ended with an exception.
@@ -88,14 +102,6 @@ class SyncConnectorConfigurationError(ProcrastinateException):
     A synchronous connector (probably Psycopg2Connector) was used, but the operation
     needs an asynchronous connector (AiopgConnector). Please check your App
     configuration.
-    """
-
-
-class UnboundTaskError(ProcrastinateException):
-    """
-    The `Task` was used before it was bound to an `App`.
-    If the task is defined on a Blueprint ensure it is registered on an App
-    before it is used.
     """
 
 

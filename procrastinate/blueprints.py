@@ -6,9 +6,9 @@ from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional
 from procrastinate import exceptions, jobs, retry, utils
 
 if TYPE_CHECKING:
-    from procrastinate import app, tasks
-logger = logging.getLogger(__name__)
     from procrastinate import tasks
+
+logger = logging.getLogger(__name__)
 
 
 class Blueprint:
@@ -42,9 +42,9 @@ class Blueprint:
 
     Raises
     ------
-    TaskNotRegistered:
+    UnboundTaskError:
         Calling a blueprint task before the it is bound to an `App` will raise a
-        `TaskNotRegistered` error::
+        `UnboundTaskError` error::
 
             blueprint = Blueprint()
 
@@ -57,7 +57,7 @@ class Blueprint:
 
             Traceback (most recent call last):
                 File "..."
-            `TaskNotRegistered`: ...
+            `UnboundTaskError`: ...
     """
 
     def __init__(self):
