@@ -103,6 +103,19 @@ class Blueprint:
 
         self.tasks.update(to_add)
 
+    def add_task_alias(self, task: "tasks.Task", alias: str):
+        """
+        Add an alias to a task. This can be useful if a task was in a given
+        Blueprint and moves to a different blueprint.
+
+        Parameters
+        ----------
+        task : tasks.Task
+            Task to alias
+        alias : str
+            New alias (including potential namespace, separated with ``:``)
+        """
+        self.tasks[alias] = task
 
     def add_tasks_from(self, blueprint: "Blueprint", *, namespace: str) -> None:
         """
