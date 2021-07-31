@@ -21,7 +21,7 @@ class Blueprint(protocols.TaskCreator):
     Notes
     -----
     Deffering a blueprint task before the it is bound to an app will raise an
-    Assertion error::
+    UnboundTaskError::
 
         bp = Blueprint()
 

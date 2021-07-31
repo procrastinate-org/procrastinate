@@ -168,7 +168,9 @@ class Task:
             If you try to define both schedule_at and schedule_in
         """
         if self.app is None:
-            raise AssertionError("Tried to configure task whilst self.app was None")
+            raise exceptions.UnboundTaskError(
+                "Tried to configure task whilst self.app was None"
+            )
 
         return configure_task(
             name=self.name,

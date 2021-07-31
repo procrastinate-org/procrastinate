@@ -1,6 +1,6 @@
 import pytest
 
-from procrastinate import blueprints, retry
+from procrastinate import blueprints, exceptions, retry
 
 
 def test_app_task_explicit(app, mocker):
@@ -55,5 +55,5 @@ def test_app_task_configure_before_binding_not_allowed(app):
     def wrapped():
         return "foo"
 
-    with pytest.raises(AssertionError):
+    with pytest.raises(exceptions.UnboundTaskError):
         wrapped.configure()
