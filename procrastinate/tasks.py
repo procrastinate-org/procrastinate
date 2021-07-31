@@ -2,7 +2,8 @@ import datetime
 import logging
 from typing import Any, Callable, Dict, List, Optional
 
-from procrastinate import app, exceptions, jobs, manager
+from procrastinate import app as app_module
+from procrastinate import blueprints, exceptions, jobs, manager
 from procrastinate import retry as retry_module
 from procrastinate import types, utils
 
@@ -72,7 +73,7 @@ class Task:
         self,
         func: Callable,
         *,
-        app: Optional[app.App],
+        blueprint: blueprints.Blueprint,
         # task naming
         name: Optional[str] = None,
         aliases: Optional[List[str]] = None,
@@ -85,7 +86,7 @@ class Task:
         queueing_lock: Optional[str] = None,
     ):
         self.queue = queue
-        self.app = app
+        self.blueprint = blueprint
         self.func: Callable = func
         self.aliases = aliases if aliases else []
         self.retry_strategy = retry_module.get_retry_strategy(retry)
@@ -177,12 +178,14 @@ class Task:
         ValueError
             If you try to define both schedule_at and schedule_in
         """
-        if self.app is None:
+        if not isinstance(self.blueprint, app_module.App):
             raise exceptions.UnboundTaskError
+
+        app = self.blueprint
 
         return configure_task(
             name=self.name,
-            job_manager=self.app.job_manager,
+            job_manager=app.job_manager,
             lock=lock if lock is not None else self.lock,
             queueing_lock=(
                 queueing_lock if queueing_lock is not None else self.queueing_lock

@@ -86,10 +86,12 @@ class Blueprint:
             )
 
     def _register_task(self, task: "tasks.Task") -> None:
+        from procrastinate import tasks
+
         # Each call to _add_task may raise TaskAlreadyRegistered.
         # We're using an intermediary dict to make sure that if the registration
         # is interrupted midway though, self.tasks is left unmodified.
-        to_add = {}
+        to_add: Dict[str, tasks.Task] = {}
         self._add_task(task=task, name=task.name, to=to_add)
 
         for alias in task.aliases:
@@ -150,9 +152,11 @@ class Blueprint:
             raise exceptions.TaskAlreadyRegistered(
                 f"A namespace named {namespace} was already registered"
             )
-        # Modify existing tasks and other blueprint to add the namespace
+        # Modify existing tasks and other blueprint to add the namespace, and
+        # set the blueprint
         for task in set(blueprint.tasks.values()):
             task.add_namespace(namespace)
+            task.blueprint = self
         blueprint.tasks = new_tasks
 
         # Finally, add the namespaced tasks to this namespace
@@ -226,7 +230,7 @@ class Blueprint:
 
             task = tasks.Task(
                 func,
-                app=None,
+                blueprint=self,
                 queue=queue,
                 lock=lock,
                 queueing_lock=queueing_lock,
