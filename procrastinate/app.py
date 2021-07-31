@@ -101,7 +101,6 @@ class App(protocols.TaskCreator):
         self.connector = connector
         self.tasks: Dict[str, "tasks.Task"] = {}
         self.builtin_tasks: Dict[str, "tasks.Task"] = {}
-        self.queues: Set[str] = set()
         self.import_paths = import_paths or []
         self.worker_defaults = worker_defaults or {}
         periodic_defaults = periodic_defaults or {}
@@ -260,13 +259,6 @@ class App(protocols.TaskCreator):
         self.tasks[task.name] = task
         for alias in task.aliases:
             self.tasks[alias] = task
-        queue = task.queue
-        if queue not in self.queues:
-            logger.debug(
-                f"Registering queue {queue}",
-                extra={"action": "register_queue", "queue": queue},
-            )
-            self.queues.add(queue)
 
     def _register_builtin_tasks(self) -> None:
         from procrastinate import builtin_tasks
