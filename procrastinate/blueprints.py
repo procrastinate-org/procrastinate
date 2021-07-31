@@ -1,13 +1,16 @@
 import functools
+import logging
+import sys
 from typing import TYPE_CHECKING, Any, Callable, List, Optional
 
-from procrastinate import jobs, protocols, retry
+from procrastinate import exceptions, jobs, retry, utils
 
 if TYPE_CHECKING:
     from procrastinate import app, tasks
+logger = logging.getLogger(__name__)
 
 
-class Blueprint(protocols.TaskCreator):
+class Blueprint:
     """
     A Blueprint provides a way to declare tasks that can be registered on an
     `App` later::
@@ -39,6 +42,28 @@ class Blueprint(protocols.TaskCreator):
 
     def __init__(self):
         self.tasks = {}
+        self._check_stack()
+
+    def _check_stack(self):
+        # Emit a warning if the app is defined in the __main__ module
+        try:
+            name = utils.caller_module_name()
+        except exceptions.CallerModuleUnknown:
+            logger.warning(
+                "Unable to determine where the app was defined. "
+                "See https://procrastinate.readthedocs.io/en/stable/discussions.html#top-level-app .",
+                extra={"action": "app_location_unknown"},
+                exc_info=True,
+            )
+
+        if name == "__main__":
+            logger.warning(
+                f"{type(self).__name__} is instantiated in the main Python module "
+                f"({sys.argv[0]}). "
+                "See https://procrastinate.readthedocs.io/en/stable/discussions.html#top-level-app .",
+                extra={"action": "app_defined_in___main__"},
+                exc_info=True,
+            )
 
     def _register_task(self, task: "tasks.Task") -> None:
         self.tasks[task.name] = task
@@ -46,7 +71,7 @@ class Blueprint(protocols.TaskCreator):
     def register(self, app: "app.App") -> None:
         for task in self.tasks.values():
             task.app = app
-            app._register(task)
+            app._register_task(task)
 
     def task(
         self,
