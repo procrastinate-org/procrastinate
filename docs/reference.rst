@@ -34,6 +34,7 @@ Builtin tasks
 
 Procrastinate has builtin tasks that are all available from the CLI.
 For all tasks, the context argument will be passed automatically.
+The name of the tasks will be: ``builtin:procrastinate.builtin.<task_name>``
 
 .. automodule:: procrastinate.builtin_tasks
     :members:

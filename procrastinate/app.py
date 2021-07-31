@@ -7,7 +7,7 @@ from procrastinate import connector as connector_module
 from procrastinate import exceptions, jobs, manager, schema, utils
 
 if TYPE_CHECKING:
-    from procrastinate import tasks, worker
+    from procrastinate import worker
 
 logger = logging.getLogger(__name__)
 
@@ -26,9 +26,6 @@ class App(blueprints.Blueprint):
     tasks : ``Dict[str, tasks.Task]``
         The mapping of all tasks known by the app. Only procrastinate is expected to
         make changes to this mapping.
-    builtin_tasks : ``Dict[str, tasks.Task]``
-        The mapping of builtin tasks. Use it to programmatically access builtin tasks,
-        to defer them.
     job_manager : `manager.JobManager`
         The `JobManager` linked to the application
     """
@@ -87,7 +84,6 @@ class App(blueprints.Blueprint):
         super().__init__()
 
         self.connector = connector
-        self.builtin_tasks: Dict[str, "tasks.Task"] = {}
         self.import_paths = import_paths or []
         self.worker_defaults = worker_defaults or {}
         periodic_defaults = periodic_defaults or {}
@@ -135,7 +131,14 @@ class App(blueprints.Blueprint):
     def _register_builtin_tasks(self) -> None:
         from procrastinate import builtin_tasks
 
-        builtin_tasks.register_builtin_tasks(self)
+        self.add_tasks_from(builtin_tasks.builtin, namespace="builtin")
+
+        # New tasks will be "builtin:procrastinate.builtin_tasks.remove_old_jobs"
+        # but for compatibility, we can keep the old name around.
+        self.add_task_alias(
+            task=builtin_tasks.remove_old_jobs,
+            alias="procrastinate.builtin_tasks.remove_old_jobs",
+        )
 
     def configure_task(
         self, name: str, *, allow_unknown: bool = True, **kwargs: Any

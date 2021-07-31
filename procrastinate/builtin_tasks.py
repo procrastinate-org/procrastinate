@@ -1,8 +1,11 @@
 from typing import Optional
 
-from procrastinate import job_context
+from procrastinate import blueprints, job_context
+
+builtin = blueprints.Blueprint()
 
 
+@builtin.task(pass_context=True, queue="builtin")
 async def remove_old_jobs(
     context: job_context.JobContext,
     *,
@@ -28,14 +31,4 @@ async def remove_old_jobs(
     assert context.app
     await context.app.job_manager.delete_old_jobs(
         nb_hours=max_hours, queue=queue, include_error=remove_error
-    )
-
-
-# Register your builtin tasks here
-def register_builtin_tasks(app) -> None:
-    app.builtin_tasks["remove_old_jobs"] = app.task(
-        remove_old_jobs,
-        queue="builtin",
-        name="procrastinate.builtin_tasks.remove_old_jobs",
-        pass_context=True,
     )
