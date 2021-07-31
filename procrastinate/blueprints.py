@@ -10,7 +10,7 @@ if TYPE_CHECKING:
 class Blueprint(protocols.TaskCreator):
     """
     A Blueprint provides a way to declare tasks that can be registered on an
-    :class:`~procrastinate.App` later::
+    `App` later::
 
         bp = Blueprint()
 
@@ -20,7 +20,7 @@ class Blueprint(protocols.TaskCreator):
 
     Notes
     -----
-    Calling a blueprint task before the it is bound to an app will raise an
+    Deffering a blueprint task before the it is bound to an app will raise an
     Assertion error::
 
         bp = Blueprint()
