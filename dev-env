@@ -35,7 +35,7 @@ echo "Database is ready!"
 echo ""
 
 export PROCRASTINATE_APP=procrastinate_demo.app.app
-export PATH="/scripts/:$PATH"
+export PATH="$(pwd)/scripts/:$PATH"
 source $(poetry env info -p)/bin/activate
 
 if ! pg_dump --schema-only --table=procrastinate_jobs 1>/dev/null 2>&1; then
