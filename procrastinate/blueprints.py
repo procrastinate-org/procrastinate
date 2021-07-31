@@ -86,24 +86,30 @@ class Blueprint:
             )
 
     def _register_task(self, task: "tasks.Task") -> None:
+        # Each call to _add_task may raise TaskAlreadyRegistered.
+        # We're using an intermediary dict to make sure that if the registration
+        # is interrupted midway though, self.tasks is left unmodified.
         to_add = {}
-        if task.name in self.tasks:
-            raise exceptions.TaskAlreadyRegistered(
-                f"A task named {task.name} was already registered"
-            )
-        to_add[task.name] = task
+        self._add_task(task=task, name=task.name, to=to_add)
 
         for alias in task.aliases:
-            if alias in self.tasks:
-                raise exceptions.TaskAlreadyRegistered(
-                    f"A task with alias {alias} was already registered"
-                )
-
-            to_add[alias] = task
+            self._add_task(task=task, name=alias, to=to_add)
 
         self.tasks.update(to_add)
 
-    def add_task_alias(self, task: "tasks.Task", alias: str):
+    def _add_task(
+        self, task: "tasks.Task", name: str, to: Optional[dict] = None
+    ) -> None:
+
+        if name in self.tasks:
+            raise exceptions.TaskAlreadyRegistered(
+                f"A task named {name} was already registered"
+            )
+
+        result_dict = self.tasks if to is None else to
+        result_dict[name] = task
+
+    def add_task_alias(self, task: "tasks.Task", alias: str) -> None:
         """
         Add an alias to a task. This can be useful if a task was in a given
         Blueprint and moves to a different blueprint.
@@ -115,7 +121,7 @@ class Blueprint:
         alias : str
             New alias (including potential namespace, separated with ``:``)
         """
-        self.tasks[alias] = task
+        self._add_task(task=task, name=alias)
 
     def add_tasks_from(self, blueprint: "Blueprint", *, namespace: str) -> None:
         """
