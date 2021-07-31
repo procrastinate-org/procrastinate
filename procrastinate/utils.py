@@ -457,3 +457,7 @@ async def run_tasks(
 
     if exception_records:
         raise exceptions.RunTaskError from exception_records[0].exc
+
+
+def add_namespace(name: str, namespace: str) -> str:
+    return f"{namespace}:{name}"

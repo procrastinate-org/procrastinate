@@ -94,6 +94,16 @@ class Task:
         self.lock = lock
         self.queueing_lock = queueing_lock
 
+    def add_namespace(self, namespace: str) -> None:
+        """
+        Prefix the given namespace to the name and aliases of the task.
+        """
+        self.name = utils.add_namespace(name=self.name, namespace=namespace)
+        self.aliases = [
+            utils.add_namespace(name=alias, namespace=namespace)
+            for alias in self.aliases
+        ]
+
     def __call__(self, *args, **kwargs: types.JSONValue) -> Any:
         return self.func(*args, **kwargs)
 
