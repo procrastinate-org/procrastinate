@@ -137,7 +137,8 @@ def test_importer_path_hook(importer):
 
 
 def test_importer_path_hook_other_package(importer):
-    assert importer.path_hook("/some/other/path") is None
+    with pytest.raises(ImportError):
+        importer.path_hook("/some/other/path")
 
 
 @pytest.fixture
