@@ -55,7 +55,7 @@ class ProcrastinateMigrationsImporter(abc.MetaPathFinder, abc.Loader):
     def path_hook(self, path: str) -> Optional["ProcrastinateMigrationsImporter"]:
         if path == VIRTUAL_PATH:
             return self
-        return None
+        raise ImportError
 
 
 def load():

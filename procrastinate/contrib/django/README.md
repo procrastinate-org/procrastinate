@@ -62,12 +62,12 @@ sure we can recognize easily. That's what we do with `VIRTUAL_PATH`.
 
 Step B: Ok, we've returned a module for `p.c.d.migrations`, now Django will be running
 `pkgutil.iter_modules` on our module's `__path__` (`VIRTUAL_PATH`). This results in
-Python calling all the callables in sys.path_hooks with our path until one doesn't raise
-ImportError. The default path hooks will all fail, we need our own hook. That's why in
-the load() function mentionned below, we also added our importer's path_hook method to
-sys.path_hook. We get called and check that the path is the VIRTUAL_PATH that we set
+Python calling all the callables in `sys.path_hooks` with our path until one doesn't raise
+`ImportError`. The default path hooks will all fail, we need our own hook. That's why in
+the `load()` function mentionned below, we also added our importer's `path_hook` method to
+`sys.path_hook`. We get called and check that the path is the `VIRTUAL_PATH` that we set
 earlier. The path hook needs to return a Finder object suitable for listing its
-submodules, so that would be self.
+submodules, so that would be `self`
 
 Now Python will call a non-standard method on our finder: `iter_modules`
 (https://docs.python.org/3/library/pkgutil.html?highlight=iter_modules#`pkgutil.iter_modules`)
