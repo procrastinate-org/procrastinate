@@ -151,7 +151,7 @@ SELECT task_name AS name,
  ORDER BY name;
 
 -- list_locks --
--- Get list of locks and number of jobs per task
+-- Get list of locks and number of jobs per lock
 WITH jobs AS (
    SELECT id,
           queue_name,
