@@ -19,7 +19,7 @@ jobs:
         id: setup-python
         uses: actions/setup-python@v2
         with:
-          python_version: ${{ matrix.python_version }}
+          python-version: ${{ matrix.python_version }}
 
       - name: Pip, Pre-commit & Poetry caches
         uses: actions/cache@v2
