@@ -6,6 +6,7 @@ import importlib
 import inspect
 import logging
 import pathlib
+import traceback
 import types
 from typing import Any, Awaitable, Callable, Iterable, Optional, Type, TypeVar
 
@@ -55,6 +56,20 @@ def import_all(import_paths: Iterable[str]) -> None:
             extra={"action": "import_module", "module_name": import_path},
         )
         importlib.import_module(import_path)
+
+
+def check_stack(main_module: str = "__main__") -> None:
+    try:
+        stack = traceback.walk_stack(None)
+        next(stack)
+        parent = next(stack)
+        frame = traceback.StackSummary(parent, capture_locals=True)
+        if frame[0].f_locals.get("__name__") == main_module:
+            logger.warning(
+                "The Procrastinate app is instantiated in the main Python module, this may cause issues"
+            )
+    except Exception:
+        pass
 
 
 def add_sync_api(cls: Type) -> Type:
