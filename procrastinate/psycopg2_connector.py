@@ -16,8 +16,7 @@ logger = logging.getLogger(__name__)
 
 def wrap_exceptions(func: Callable) -> Callable:
     """
-    Wrap psycopg2 errors as connector exceptions
-    This decorator is expected to be used on coroutine functions only
+    Wrap psycopg2 errors as connector exceptions.
     """
 
     @functools.wraps(func)
