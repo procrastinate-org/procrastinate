@@ -148,7 +148,7 @@ class Worker:
     async def wait_for_job(self, timeout: float):
         assert self.notify_event
         self.logger.debug(
-            f"Waiting for new jobs on " f"{self.base_context.queues_display}",
+            f"Waiting for new jobs on {self.base_context.queues_display}",
             extra=self.base_context.log_extra(
                 action="waiting_for_jobs", queues=self.queues
             ),
