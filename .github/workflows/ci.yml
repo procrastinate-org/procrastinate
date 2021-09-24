@@ -59,7 +59,7 @@ jobs:
         run: pip install poetry
 
       - name: Install Dev dependencies
-        run: poetry install
+        run: poetry install --extras "django sqlalchemy"
 
       - name: Run ${{ matrix.script }}
         run: scripts/${{ matrix.script }}
