@@ -36,9 +36,31 @@ situation::
 
 
 How does it work?
------------------
+~~~~~~~~~~~~~~~~~
 
 The synchronous connector will use a ``psycopg2.pool.ThreadedConnectionPool`` (see
 psycopg2 documentation__), which should fit most workflows.
 
 .. __: https://www.psycopg.org/docs/pool.html#psycopg2.pool.ThreadedConnectionPool
+
+
+``SQLAlchemyPsycopg2Connector``
+-------------------------------
+
+If you use SQLAlchemy in your synchronous application, you may want to use an
+`SQLAlchemyPsycopg2Connector` from the ``contrib.sqlalchemy`` module instead. The
+advantage over using a `Psycopg2Connector` is that Procrastinate can use the same
+SQLAchemy engine (and connection pool) as the rest of your application, thereby
+minimizing the number of database connections.
+
+::
+
+    from sqlalchemy import create_engine
+
+    from procrastinate import App
+    from procrastinate.contrib.sqlalchemy import SQLAlchemyPsycopg2Connector
+
+    engine = create_engine("postgresql+psycopg2://", echo=True)
+
+    app = App(connector=SQLAlchemyPsycopg2Connector())
+    app.open(engine)

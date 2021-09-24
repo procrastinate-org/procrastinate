@@ -82,6 +82,12 @@ Django
 .. autofunction:: procrastinate.contrib.django.connector_params
 
 
+SQLAlchemy
+----------
+
+.. autoclass:: procrastinate.contrib.sqlalchemy.SQLAlchemyPsycopg2Connector
+
+
 Blueprints
 ----------
 

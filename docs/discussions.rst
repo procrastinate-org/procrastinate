@@ -176,9 +176,10 @@ Procrastinate supports two ways of doing synchronous I/O:
   jobs, from within the workers.
 
 If you use an `AiopgConnector`, then you will use the "mixed" mode. You can have the
-classic mode by using a `Psycopg2Connector` as your App's connector. In that case, you
-will be restricted to a few operations, including deferring tasks and applying the
-schema. This is recommended for synchronous multi-threaded apps only that defer jobs.
+classic mode by using a `Psycopg2Connector` (or an `SQLAlchemyPsycopg2Connector` from
+the ``contrib.sqlalchemy`` module) as your App's connector. In that case, you will be
+restricted to a few operations, including deferring tasks and applying the schema. This
+is recommended for synchronous multi-threaded apps only that defer jobs.
 
 See `howto/sync_defer`.
 

@@ -1,6 +1,16 @@
 import functools
 import logging
-from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, List, Optional, Set
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Dict,
+    Iterable,
+    List,
+    Optional,
+    Set,
+    Union,
+)
 
 from procrastinate import connector as connector_module
 from procrastinate import exceptions, jobs, manager, protocols
@@ -326,8 +336,13 @@ class App(protocols.TaskCreator):
     def schema_manager(self) -> schema.SchemaManager:
         return schema.SchemaManager(connector=self.connector)
 
-    def open(self, pool: Optional[connector_module.Pool] = None) -> "App":
-        self.connector.open(pool)
+    def open(
+        self,
+        pool_or_engine: Optional[
+            Union[connector_module.Pool, connector_module.Engine]
+        ] = None,
+    ) -> "App":
+        self.connector.open(pool_or_engine)
         return self
 
     def close(self) -> None:
