@@ -2,10 +2,8 @@
 # so that readthedocs can work. This is due to an incompatibility between
 # the readthedocs build and poetry: readthedocs cannot install poetry's dev
 # dependencies.
-.
+.[django,sqlachemy]
 Sphinx==3.*
 sphinx-github-changelog
 sphinx-autodoc-typehints
 sphinxcontrib-programoutput
-sqlalchemy>=1.4,<2.0.0
-django>=2.2
