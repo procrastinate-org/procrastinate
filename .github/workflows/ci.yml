@@ -64,20 +64,54 @@ jobs:
       - name: Run ${{ matrix.script }}
         run: scripts/${{ matrix.script }}
         env:
-          PYTEST_ADDOPTS: "--cov-report=xml"
+          COVERAGE_FILE: ".coverage.${{ matrix.python_version }}"
           PGHOST: localhost
           PGUSER: postgres
           PGPASSWORD: postgres
 
-      - name: Display coverage
-        uses: ewjoachim/coverage-comment-action@v1
+      - name: Store coverage file
+        uses: actions/upload-artifact@v2
         with:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          name: coverage
+          path: .coverage.${{ matrix.python_version }}
 
   report-status:
     name: success
     runs-on: ubuntu-latest
     needs: build
     steps:
+
       - name: Report success
         run: echo 'Success !'
+
+  coverage:
+    name: Coverage
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions/download-artifact@v2
+        id: download
+        with:
+          name: 'coverage'
+
+      - name: Set up Python
+        id: setup-python
+        uses: actions/setup-python@v2
+
+      # There's no assurance that this will be the same version as the coverage
+      # in poetry.lock, but this should not be a problem.
+      - name: Install PyCoverage
+        run: pip install coverage
+
+      - name: Combine coverage files
+        run: coverage combine
+
+      - name: Produce coverage.xml
+        run: coverage xml
+
+      - name: Display coverage
+        uses: ewjoachim/coverage-comment-action@v1
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
