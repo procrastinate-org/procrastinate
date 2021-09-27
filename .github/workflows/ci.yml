@@ -69,12 +69,10 @@ jobs:
           PGUSER: postgres
           PGPASSWORD: postgres
 
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v1
-        if: ${{ matrix.script == 'tests' }}
+      - name: Display coverage
+        uses: ewjoachim/coverage-comment-action@v1
         with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          fail_ci_if_error: true
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   report-status:
     name: success
