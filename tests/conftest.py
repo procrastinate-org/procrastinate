@@ -19,6 +19,9 @@ from procrastinate import app as app_module
 from procrastinate import jobs
 from procrastinate import psycopg2_connector as psycopg2_connector_module
 from procrastinate import schema, testing
+from procrastinate.contrib.sqlalchemy import (
+    psycopg2_connector as sqlalchemy_psycopg2_connector_module,
+)
 
 # Just ensuring the tests are not polluted by environment
 for key in os.environ:
@@ -101,6 +104,13 @@ def connection_params(setup_db, db_factory):
 
 
 @pytest.fixture
+def sqlalchemy_engine_dsn(setup_db, db_factory):
+    db_factory(dbname="procrastinate_test", template=setup_db)
+
+    yield "postgresql+psycopg2:///procrastinate_test"
+
+
+@pytest.fixture
 async def connection(connection_params):
     async with aiopg.connect(**connection_params) as connection:
         yield connection
@@ -117,6 +127,13 @@ def not_opened_psycopg2_connector(connection_params):
 
 
 @pytest.fixture
+def not_opened_sqlalchemy_psycopg2_connector(sqlalchemy_engine_dsn):
+    yield sqlalchemy_psycopg2_connector_module.SQLAlchemyPsycopg2Connector(
+        dsn=sqlalchemy_engine_dsn, echo=True
+    )
+
+
+@pytest.fixture
 async def aiopg_connector(not_opened_aiopg_connector):
     await not_opened_aiopg_connector.open_async()
     yield not_opened_aiopg_connector
@@ -128,6 +145,13 @@ def psycopg2_connector(not_opened_psycopg2_connector):
     not_opened_psycopg2_connector.open()
     yield not_opened_psycopg2_connector
     not_opened_psycopg2_connector.close()
+
+
+@pytest.fixture
+def sqlalchemy_psycopg2_connector(not_opened_sqlalchemy_psycopg2_connector):
+    not_opened_sqlalchemy_psycopg2_connector.open()
+    yield not_opened_sqlalchemy_psycopg2_connector
+    not_opened_sqlalchemy_psycopg2_connector.close()
 
 
 @pytest.fixture

@@ -6,7 +6,8 @@ from procrastinate import exceptions, utils
 QUEUEING_LOCK_CONSTRAINT = "procrastinate_jobs_queueing_lock_idx"
 
 
-Pool = Any  # The connection pool can be any pool object compatible with the database.
+Pool = Any
+Engine = Any
 
 
 class BaseConnector:

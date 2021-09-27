@@ -22,4 +22,4 @@ if ! which pre-commit || ! which poetry; then
 fi
 
 pre-commit install
-poetry install
+poetry install --extras "django sqlalchemy"

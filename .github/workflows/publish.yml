@@ -32,7 +32,7 @@ jobs:
         run: pip install poetry
 
       - name: Install Dev dependencies
-        run: poetry install
+        run: poetry install --extras "django sqlalchemy"
 
       - name: Wait for tests to succeed
         uses: fountainhead/action-wait-for-check@v1.0.0

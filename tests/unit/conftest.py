@@ -21,3 +21,8 @@ class AsyncMock(MagicMock):
 @pytest.fixture
 def pool():
     return MagicMock()
+
+
+@pytest.fixture
+def engine():
+    return MagicMock()

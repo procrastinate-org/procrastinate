@@ -35,7 +35,12 @@ python-dateutil = "*"
 typing-extensions = "*"
 importlib-metadata = {version = "*", python = "<3.8"}
 importlib-resources = {version = "*", python = "<3.9"}
-Django = {version = ">=2.2", extras = ["django"]}
+django = {version = ">=2.2", optional = true}
+sqlalchemy = {version = "^1.4", optional = true}
+
+[tool.poetry.extras]
+django = ["django"]
+sqlalchemy = ["sqlalchemy"]
 
 [tool.poetry.dev-dependencies]
 dunamai = "*"
