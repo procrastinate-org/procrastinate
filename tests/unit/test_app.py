@@ -82,28 +82,15 @@ def test_app_task_dont_read_function_attributes(app):
 
 
 def test_app_register_builtins(app):
-    assert app.queues == {"builtin"}
     assert "procrastinate.builtin_tasks.remove_old_jobs" in app.tasks
-    assert "remove_old_jobs" in app.builtin_tasks
+    assert "builtin:procrastinate.builtin_tasks.remove_old_jobs" in app.tasks
 
 
 def test_app_register(app):
-    task = tasks.Task(task_func, app=app, queue="queue", name="bla")
+    task = tasks.Task(task_func, blueprint=app, queue="queue", name="bla")
 
-    app._register(task)
+    app._register_task(task)
 
-    assert app.queues == {"queue", "builtin"}
-    assert "bla" in app.tasks
-    assert app.tasks["bla"] == task
-
-
-def test_app_register_queue_already_exists(app):
-    app.queues.add("queue")
-    task = tasks.Task(task_func, app=app, queue="queue", name="bla")
-
-    app._register(task)
-
-    assert app.queues == {"queue", "builtin"}
     assert "bla" in app.tasks
     assert app.tasks["bla"] == task
 

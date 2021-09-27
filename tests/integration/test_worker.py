@@ -45,7 +45,6 @@ async def test_run(app, running_worker, caplog):
     # remove the periodic_deferrer_no_task log record because that makes the test flaky
     logs.pop("periodic_deferrer_no_task", None)
     assert list(logs.items()) == [
-        ("register_queue", "DEBUG"),
         ("about_to_defer_job", "DEBUG"),
         ("job_defer", "INFO"),
         ("loaded_job_info", "DEBUG"),

@@ -193,7 +193,7 @@ async def test_run_job_log_result(caplog, app):
         result.append(s)
         return s
 
-    task = tasks.Task(task_func, app=app, queue="yay", name="job")
+    task = tasks.Task(task_func, blueprint=app, queue="yay", name="job")
 
     app.tasks = {"task_func": task}
 
@@ -251,7 +251,7 @@ async def test_run_job_error(app):
     def job(a, b):  # pylint: disable=unused-argument
         raise ValueError("nope")
 
-    task = tasks.Task(job, app=app, queue="yay", name="job")
+    task = tasks.Task(job, blueprint=app, queue="yay", name="job")
     task.func = job
 
     app.tasks = {"job": task}
@@ -273,7 +273,7 @@ async def test_run_job_retry(app):
     def job(a, b):  # pylint: disable=unused-argument
         raise ValueError("nope")
 
-    task = tasks.Task(job, app=app, queue="yay", name="job", retry=True)
+    task = tasks.Task(job, blueprint=app, queue="yay", name="job", retry=True)
     task.func = job
 
     app.tasks = {"job": task}

@@ -16,7 +16,7 @@ from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 
 from procrastinate import aiopg_connector as aiopg_connector_module
 from procrastinate import app as app_module
-from procrastinate import jobs
+from procrastinate import builtin_tasks, jobs
 from procrastinate import psycopg2_connector as psycopg2_connector_module
 from procrastinate import schema, testing
 from procrastinate.contrib.sqlalchemy import (
@@ -168,7 +168,15 @@ def connector():
 
 
 @pytest.fixture
-def not_opened_app(connector):
+def reset_builtin_task_names():
+    builtin_tasks.remove_old_jobs.name = "procrastinate.builtin_tasks.remove_old_jobs"
+    builtin_tasks.builtin.tasks = {
+        task.name: task for task in builtin_tasks.builtin.tasks.values()
+    }
+
+
+@pytest.fixture
+def not_opened_app(connector, reset_builtin_task_names):
     return app_module.App(connector=connector)
 
 
