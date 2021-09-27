@@ -3,7 +3,7 @@
 name = "procrastinate"
 version = "0.0.0"
 description = "Postgres-based distributed task processing library"
-authors = ["PeopleDoc <joachim.jablon@people-doc.com>"]
+authors = ["Joachim Jablon", "Eric Lemoine"]
 license = "MIT License"
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -18,7 +18,7 @@ classifiers = [
 readme = "README.rst"
 keywords = ["sphinx", "github", "releases", "changelog"]
 homepage = "https://procrastinate.readthedocs.io/"
-repository = "https://github.com/peopledoc/procrastinate/"
+repository = "https://github.com/procrastinate-org/procrastinate/"
 documentation = "https://procrastinate.readthedocs.io/"
 
 [tool.poetry.scripts]

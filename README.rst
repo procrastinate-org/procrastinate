@@ -9,28 +9,28 @@ Procrastinate: PostgreSQL-based Task Queue for Python
     :target: https://pypi.org/pypi/procrastinate
     :alt: Deployed to PyPI
 
-.. image:: https://img.shields.io/github/stars/peopledoc/procrastinate?logo=github
-    :target: https://github.com/peopledoc/procrastinate/
+.. image:: https://img.shields.io/github/stars/procrastinate-org/procrastinate?logo=github
+    :target: https://github.com/procrastinate-org/procrastinate/
     :alt: GitHub Repository
 
-.. image:: https://img.shields.io/github/workflow/status/peopledoc/procrastinate/CI?logo=github
-    :target: https://github.com/peopledoc/procrastinate/actions?workflow=CI
+.. image:: https://img.shields.io/github/workflow/status/procrastinate-org/procrastinate/CI?logo=github
+    :target: https://github.com/procrastinate-org/procrastinate/actions?workflow=CI
     :alt: Continuous Integration
 
 .. image:: https://img.shields.io/readthedocs/procrastinate?logo=read-the-docs&logoColor=white
     :target: http://procrastinate.readthedocs.io/en/latest/?badge=latest
     :alt: Documentation
 
-.. image:: https://img.shields.io/endpoint?logo=codecov&logoColor=white&url=https://raw.githubusercontent.com/wiki/peopledoc/procrastinate/coverage-comment-badge.json
+.. image:: https://img.shields.io/endpoint?logo=codecov&logoColor=white&url=https://raw.githubusercontent.com/wiki/procrastinate-org/procrastinate/coverage-comment-badge.json
     :target: https://github.com/marketplace/actions/coverage-comment
     :alt: Coverage
 
-.. image:: https://img.shields.io/github/license/peopledoc/procrastinate?logo=open-source-initiative&logoColor=white
-    :target: https://github.com/peopledoc/procrastinate/blob/master/LICENSE
+.. image:: https://img.shields.io/github/license/procrastinate-org/procrastinate?logo=open-source-initiative&logoColor=white
+    :target: https://github.com/procrastinate-org/procrastinate/blob/master/LICENSE
     :alt: MIT License
 
 .. image:: https://img.shields.io/badge/Contributor%20Covenant-v1.4%20adopted-ff69b4.svg
-    :target: https://github.com/peopledoc/procrastinate/blob/master/LICENSE/CODE_OF_CONDUCT.md
+    :target: https://github.com/procrastinate-org/procrastinate/blob/master/LICENSE/CODE_OF_CONDUCT.md
     :alt: Contributor Covenant
 
 
@@ -109,7 +109,7 @@ There are quite a few interesting features that Procrastinate adds to the mix.
 You can head to the Quickstart section for a general tour or
 to the How-To sections for specific features. The Discussion
 section should hopefully answer your questions. Otherwise,
-feel free to open an `issue <https://github.com/peopledoc/procrastinate/issues>`_.
+feel free to open an `issue <https://github.com/procrastinate-org/procrastinate/issues>`_.
 
 The project is still quite early-stage and will probably evolve.
 
@@ -130,4 +130,4 @@ If you encounter a bug, or want to get in touch, you're always welcome to open a
 ticket_.
 
 .. _docs: http://procrastinate.readthedocs.io/en/latest
-.. _ticket: https://github.com/peopledoc/procrastinate/issues/new
+.. _ticket: https://github.com/procrastinate-org/procrastinate/issues/new

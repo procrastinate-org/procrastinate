@@ -293,7 +293,7 @@ the 2 APIs will stay synchronized in the future no matter what. Want to know mor
 this? Here are a few resources:
 
 - How we generate our sync API:
-  https://github.com/peopledoc/procrastinate/blob/master/procrastinate/utils.py
+  https://github.com/procrastinate-org/procrastinate/blob/master/procrastinate/utils.py
 - An interesting talk on the issues that appear when trying to make codebases compatible
   with sync **and** async callers: "Just add await" from Andrew Godwin:
   https://www.youtube.com/watch?v=oMHrDy62kgE
@@ -305,12 +305,14 @@ have to be maintained in parallel.
 How stable is Procrastinate?
 ----------------------------
 
-More and more stable. There are still a few things we would like to do before we start
-advertising the project, and it's now used in production in non-critical projects in
-our company (see `peopledoc`).
+More and more stable. We've started mentionning the project around, and it's
+now used in production in real projects.
 
-We'd love if you were to try out Procrastinate in a non-production non-critical
-project of yours and provide us with feedback.
+That being said, we'd like to develop real monitoring tools before we call this
+really ready for production.
+
+We'd love if you were to try out Procrastinate in a project of yours and
+provide us with feedback.
 
 
 Wasn't this project named "Cabbage" ?
@@ -324,17 +326,11 @@ name felt quite adapted too. Also, now you know why the project is named this wa
 
 .. _peopledoc:
 
-Thanks PeopleDoc
-----------------
+Thanks PeopleDoc / UKG
+----------------------
 
-This project was almost entirely created by PeopleDoc employees on their
+This project was largely created by PeopleDoc employees on their
 working time. Let's take this opportunity to thank PeopleDoc for funding
 `Open Source projects`__ like this!
 
 .. __: https://github.com/peopledoc/
-
-If this makes you want to know more about this company, check our website_
-or our `job offerings`_ !
-
-.. _website: https://www.people-doc.com/
-.. _`job offerings`: https://www.people-doc.com/company/careers

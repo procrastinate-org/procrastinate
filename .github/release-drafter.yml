@@ -16,7 +16,7 @@ template: |
   ## Migrations
 
   None (TODO: replace if there are migrations)
-  https://github.com/peopledoc/procrastinate/tree/master/procrastinate/sql/migrations
+  https://github.com/procrastinate-org/procrastinate/tree/master/procrastinate/sql/migrations
 
   ## TODO: please categorize
 

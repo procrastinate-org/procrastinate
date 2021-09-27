@@ -87,7 +87,7 @@ master_doc = "index"
 html_theme_options = {
     "description": "Python/PostgreSQL task processing library",
     "sidebar_width": "235px",
-    "github_user": "peopledoc",
+    "github_user": "procrastinate-org",
     "github_repo": "procrastinate",
     "badge_branch": "master",
     "github_banner": True,
