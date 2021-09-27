@@ -90,7 +90,6 @@ html_theme_options = {
     "github_user": "peopledoc",
     "github_repo": "procrastinate",
     "badge_branch": "master",
-    "codecov_button": True,
     "github_banner": True,
     "github_button": True,
     "travis_button": True,

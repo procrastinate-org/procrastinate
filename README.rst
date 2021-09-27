@@ -21,8 +21,8 @@ Procrastinate: PostgreSQL-based Task Queue for Python
     :target: http://procrastinate.readthedocs.io/en/latest/?badge=latest
     :alt: Documentation
 
-.. image:: https://img.shields.io/codecov/c/github/peopledoc/procrastinate?logo=codecov&logoColor=white
-    :target: https://codecov.io/gh/peopledoc/procrastinate
+.. image:: https://img.shields.io/endpoint?logo=codecov&logoColor=white&url=https://raw.githubusercontent.com/wiki/peopledoc/procrastinate/coverage-comment-badge.json
+    :target: https://github.com/marketplace/actions/coverage-comment
     :alt: Coverage
 
 .. image:: https://img.shields.io/github/license/peopledoc/procrastinate?logo=open-source-initiative&logoColor=white
