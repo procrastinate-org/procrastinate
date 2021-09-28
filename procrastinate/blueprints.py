@@ -86,6 +86,11 @@ class Blueprint:
             )
 
     def _register_task(self, task: "tasks.Task") -> None:
+        """
+        Register the task into the blueprint task registry.
+        Raises exceptions.TaskAlreadyRegistered if the task name
+        or an alias already exists in the registry
+        """
         from procrastinate import tasks
 
         # Each call to _add_task may raise TaskAlreadyRegistered.
@@ -102,6 +107,10 @@ class Blueprint:
     def _add_task(
         self, task: "tasks.Task", name: str, to: Optional[dict] = None
     ) -> None:
+        # Add a task to a dict of task while making
+        # sure a task of the same name was not already in self.tasks.
+        # This lets us prepare a dict of tasks we might add while not adding
+        # them until we're 100% sure there's no clash.
 
         if name in self.tasks:
             raise exceptions.TaskAlreadyRegistered(

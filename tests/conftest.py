@@ -16,7 +16,7 @@ from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 
 from procrastinate import aiopg_connector as aiopg_connector_module
 from procrastinate import app as app_module
-from procrastinate import builtin_tasks, jobs
+from procrastinate import blueprints, builtin_tasks, jobs
 from procrastinate import psycopg2_connector as psycopg2_connector_module
 from procrastinate import schema, testing
 from procrastinate.contrib.sqlalchemy import (
@@ -184,6 +184,11 @@ def not_opened_app(connector, reset_builtin_task_names):
 def app(not_opened_app):
     with not_opened_app.open() as app:
         yield app
+
+
+@pytest.fixture
+def blueprint():
+    return blueprints.Blueprint()
 
 
 @pytest.fixture
