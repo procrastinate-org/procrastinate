@@ -242,7 +242,7 @@ the series. And, finally, ``very_short_description_of_your_changes`` is a very s
 description of the changes (wow). It is important to use underscores between the
 different parts, and between words in the short description.
 
-.. _`Procrastinate releases`: https://github.com/peopledoc/procrastinate/releases
+.. _`Procrastinate releases`: https://github.com/procrastinate-org/procrastinate/releases
 
 For example, let's say the latest released version of Procrastinate is ``1.0.1``, and
 that the ``migrations`` directory already includes a migration script whose serial
