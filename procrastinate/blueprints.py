@@ -127,9 +127,9 @@ class Blueprint:
 
         Parameters
         ----------
-        task : tasks.Task
+        task :
             Task to alias
-        alias : str
+        alias :
             New alias (including potential namespace, separated with ``:``)
         """
         self._add_task(task=task, name=alias)

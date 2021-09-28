@@ -6,7 +6,7 @@ App
 
 .. autoclass:: procrastinate.App
     :members: open, open_async, task, run_worker, run_worker_async, configure_task,
-              from_path, with_connector
+              from_path, add_tasks_from, add_task_alias, with_connector
 
 Connectors
 ----------
@@ -28,6 +28,13 @@ When tasks are created with argument ``pass_context``, they are provided a
 
 .. autoclass:: procrastinate.JobContext
     :members: app, worker_name, worker_queues, job, task
+
+Blueprints
+----------
+
+.. autoclass:: procrastinate.blueprints.Blueprint
+    :members: task, add_tasks_from, add_task_alias
+
 
 Builtin tasks
 -------------
@@ -87,10 +94,3 @@ SQLAlchemy
 ----------
 
 .. autoclass:: procrastinate.contrib.sqlalchemy.SQLAlchemyPsycopg2Connector
-
-
-Blueprints
-----------
-
-.. autoclass:: procrastinate.blueprints.Blueprint
-    :members: task
