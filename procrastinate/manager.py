@@ -21,7 +21,7 @@ class JobManager:
     def __init__(self, connector: connector.BaseConnector):
         self.connector = connector
 
-    async def defer_job_async(self, job: jobs.Job) -> jobs.Job:
+    async def defer_job_async(self, job: "jobs.Job") -> "jobs.Job":
         """
         Add a job in its queue for later processing by a worker.
 
@@ -44,7 +44,7 @@ class JobManager:
 
         return job.evolve(id=result["id"], status=jobs.Status.TODO.value)
 
-    def defer_job(self, job: jobs.Job) -> jobs.Job:
+    def defer_job(self, job: "jobs.Job") -> "jobs.Job":
         """
         Sync version of `defer_job_async`.
         """
@@ -57,7 +57,7 @@ class JobManager:
 
         return job.evolve(id=result["id"], status=jobs.Status.TODO.value)
 
-    def _defer_job_query_kwargs(self, job: jobs.Job) -> Dict[str, Any]:
+    def _defer_job_query_kwargs(self, job: "jobs.Job") -> Dict[str, Any]:
 
         return {
             "query": sql.queries["defer_job"],
@@ -98,7 +98,7 @@ class JobManager:
 
         return result["id"]
 
-    async def fetch_job(self, queues: Optional[Iterable[str]]) -> Optional[jobs.Job]:
+    async def fetch_job(self, queues: Optional[Iterable[str]]) -> Optional["jobs.Job"]:
         """
         Select a job in the queue, and mark it as doing.
         The worker selecting a job is then responsible for running it, and then
@@ -131,7 +131,7 @@ class JobManager:
         nb_seconds: int,
         queue: Optional[str] = None,
         task_name: Optional[str] = None,
-    ) -> Iterable[jobs.Job]:
+    ) -> Iterable["jobs.Job"]:
         """
         Return all jobs that have been in ``doing`` state for more than a given time.
 
@@ -191,8 +191,8 @@ class JobManager:
 
     async def finish_job(
         self,
-        job: jobs.Job,
-        status: jobs.Status,
+        job: "jobs.Job",
+        status: "jobs.Status",
         delete_job: bool,
     ) -> None:
         """
@@ -212,7 +212,7 @@ class JobManager:
     async def finish_job_by_id_async(
         self,
         job_id: int,
-        status: jobs.Status,
+        status: "jobs.Status",
         delete_job: bool,
     ) -> None:
         await self.connector.execute_query_async(
@@ -224,7 +224,7 @@ class JobManager:
 
     async def retry_job(
         self,
-        job: jobs.Job,
+        job: "jobs.Job",
         retry_at: Optional[datetime.datetime] = None,
     ) -> None:
         """
@@ -300,7 +300,7 @@ class JobManager:
         status: Optional[str] = None,
         lock: Optional[str] = None,
         queueing_lock: Optional[str] = None,
-    ) -> Iterable[jobs.Job]:
+    ) -> Iterable["jobs.Job"]:
         """
         List all procrastinate jobs given query filters.
 

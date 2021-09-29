@@ -55,7 +55,7 @@ class JobContext:
         Current `Task` instance
     """
 
-    app: Optional[app_module.App] = None
+    app: Optional["app_module.App"] = None
     worker_name: Optional[str] = None
     worker_queues: Optional[Iterable[str]] = None
     worker_id: Optional[int] = None

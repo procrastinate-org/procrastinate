@@ -9,7 +9,7 @@ import attr
 from procrastinate import types
 
 if TYPE_CHECKING:
-    from procrastinate import manager  # noqa
+    from procrastinate import manager
 
 logger = logging.getLogger(__name__)
 

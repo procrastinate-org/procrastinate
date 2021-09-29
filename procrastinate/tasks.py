@@ -73,7 +73,7 @@ class Task:
         self,
         func: Callable,
         *,
-        blueprint: blueprints.Blueprint,
+        blueprint: "blueprints.Blueprint",
         # task naming
         name: Optional[str] = None,
         aliases: Optional[List[str]] = None,

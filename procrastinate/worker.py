@@ -27,7 +27,7 @@ class DeleteJobCondition(Enum):
 class Worker:
     def __init__(
         self,
-        app: app.App,
+        app: "app.App",
         queues: Optional[Iterable[str]] = None,
         name: Optional[str] = None,
         concurrency: int = WORKER_CONCURRENCY,
