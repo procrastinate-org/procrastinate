@@ -153,31 +153,28 @@ SELECT task_name AS name,
 -- list_locks --
 -- Get list of locks and number of jobs per lock
 WITH jobs AS (
-   SELECT id,
-          queue_name,
-          task_name,
-          lock,
-          args,
-          status,
-          scheduled_at,
-          attempts
-     FROM procrastinate_jobs
-    WHERE (%(queue_name)s IS NULL OR queue_name = %(queue_name)s)
-      AND (%(task_name)s IS NULL OR task_name = %(task_name)s)
-      AND (%(status)s IS NULL OR status = %(status)s)
-      AND (%(lock)s IS NULL OR lock = %(lock)s)
+  SELECT
+    id,
+    lock,
+    status
+  FROM procrastinate_jobs
+  WHERE (%(queue_name)s IS NULL OR queue_name = %(queue_name)s)
+  AND (%(task_name)s IS NULL OR task_name = %(task_name)s)
+  AND (%(status)s IS NULL OR status = %(status)s)
+  AND (%(lock)s IS NULL OR lock = %(lock)s)
+  AND lock IS NOT NULL
+), locks AS (
+  SELECT
+    lock,
+    status,
+    count(id) AS jobs_count
+  FROM jobs
+  GROUP BY lock, status
 )
-SELECT lock AS name,
-       COUNT(id) AS jobs_count,
-       (WITH stats AS (
-           SELECT status,
-                  COUNT(*) AS jobs_count
-             FROM jobs
-            WHERE lock = j.lock
-            GROUP BY status
-           )
-           SELECT json_object_agg(status, jobs_count) FROM stats
-       ) AS stats
-  FROM jobs AS j
- GROUP BY name
- ORDER BY name;
+SELECT
+  lock AS name,
+  sum(jobs_count) AS jobs_count,
+  json_object_agg(status, jobs_count) AS stats
+FROM locks
+GROUP BY name
+ORDER BY name;

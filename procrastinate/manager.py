@@ -430,7 +430,7 @@ class JobManager:
         lock: Optional[str] = None,
     ) -> Iterable[Dict[str, Any]]:
         """
-        List all locks and number of jobs per status for each lock.
+        List all locks and number of jobs per lock for each lock value.
 
         Parameters
         ----------
@@ -457,9 +457,6 @@ class JobManager:
             status=status,
             lock=lock,
         ):
-            if row["name"] is None:
-                # https://github.com/peopledoc/procrastinate/issues/400
-                continue
             result.append(
                 {
                     "name": row["name"],
