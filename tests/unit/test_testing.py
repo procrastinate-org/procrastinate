@@ -289,6 +289,29 @@ def test_fetch_job_one(connector):
     assert connector.fetch_job_one(queues=["marsupilami"])["id"] == 5
 
 
+def test_fetch_job_one_none_lock(connector):
+    """Testing that 2 jobs with locks "None" don't block one another"""
+    connector.defer_job_one(
+        task_name="mytask",
+        args={},
+        queue="default",
+        scheduled_at=None,
+        lock=None,
+        queueing_lock=None,
+    )
+    connector.defer_job_one(
+        task_name="mytask",
+        args={},
+        queue="default",
+        scheduled_at=None,
+        lock=None,
+        queueing_lock=None,
+    )
+
+    assert connector.fetch_job_one(queues=None)["id"] == 1
+    assert connector.fetch_job_one(queues=None)["id"] == 2
+
+
 def test_finish_job_run(connector):
     connector.defer_job_one(
         task_name="mytask",

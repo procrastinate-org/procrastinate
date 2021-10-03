@@ -80,6 +80,15 @@ async def test_fetch_job_not_fetching_locked_job(
     assert await pg_job_manager.fetch_job(queues=None) is None
 
 
+async def test_fetch_job_spacial_case_none_lock(
+    pg_job_manager, deferred_job_factory, fetched_job_factory
+):
+    await fetched_job_factory(lock=None)
+    job = await deferred_job_factory(lock=None)
+
+    assert (await pg_job_manager.fetch_job(queues=None)).id == job.id
+
+
 @pytest.mark.parametrize(
     "job_kwargs, fetch_queues",
     [
@@ -89,7 +98,7 @@ async def test_fetch_job_not_fetching_locked_job(
         ({"scheduled_at": conftest.aware_datetime(2100, 1, 1)}, None),
     ],
 )
-async def test_get_job_no_result(
+async def test_fetch_job_no_result(
     pg_job_manager, deferred_job_factory, job_kwargs, fetch_queues
 ):
     await deferred_job_factory(**job_kwargs)
