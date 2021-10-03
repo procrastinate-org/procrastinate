@@ -64,3 +64,23 @@ minimizing the number of database connections.
 
     app = App(connector=SQLAlchemyPsycopg2Connector())
     app.open(engine)
+
+
+Having multiple apps
+--------------------
+
+If you need to have multiple connectors interact with the tasks, you can
+create multiple synchronized apps with `App.with_connector`::
+
+    import procrastinate
+
+
+    app = procrastinate.App(
+        connector=procrastinate.AiopgConnector(...),
+    )
+
+    sync_app = app.with_connector(
+        connector=procrastinate.Psycopg2Connector(...),
+    )
+
+If you do this, you can then register or defer tasks on either app.
