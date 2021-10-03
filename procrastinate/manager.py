@@ -7,6 +7,8 @@ from procrastinate import connector, exceptions, jobs, sql, utils
 
 logger = logging.getLogger(__name__)
 
+QUEUEING_LOCK_CONSTRAINT = "procrastinate_jobs_queueing_lock_idx"
+
 
 def get_channel_for_queues(queues: Optional[Iterable[str]] = None) -> Iterable[str]:
     if queues is None:
@@ -70,7 +72,7 @@ class JobManager:
     def _raise_already_enqueued(
         self, exc: exceptions.UniqueViolation, queueing_lock: Optional[str]
     ):
-        if exc.constraint_name == connector.QUEUEING_LOCK_CONSTRAINT:
+        if exc.constraint_name == QUEUEING_LOCK_CONSTRAINT:
             raise exceptions.AlreadyEnqueued(
                 "Job cannot be enqueued: there is already a job in the queue "
                 f"with the queueing lock {queueing_lock}"
