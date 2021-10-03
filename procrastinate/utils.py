@@ -6,7 +6,6 @@ import importlib
 import inspect
 import logging
 import pathlib
-import traceback
 import types
 from typing import Any, Awaitable, Callable, Iterable, Optional, Type, TypeVar
 
@@ -58,18 +57,23 @@ def import_all(import_paths: Iterable[str]) -> None:
         importlib.import_module(import_path)
 
 
-def check_stack(main_module: str = "__main__") -> None:
+def caller_module_name(prefix: str = "procrastinate") -> str:
+    """
+    Returns the module name of the first module of the stack that isn't under ``prefix``.
+    If any problem occurs, raise `AppLocationUnknown`.
+    """
+
     try:
-        stack = traceback.walk_stack(None)
-        next(stack)
-        parent = next(stack)
-        frame = traceback.StackSummary(parent, capture_locals=True)
-        if frame[0].f_locals.get("__name__") == main_module:
-            logger.warning(
-                "The Procrastinate app is instantiated in the main Python module, this may cause issues"
-            )
-    except Exception:
-        pass
+        frame = inspect.currentframe()
+        while True:
+            assert frame  # Could crash here
+            name = frame.f_globals["__name__"]  # ... or here
+            if not name.startswith(f"{prefix}."):
+                break
+            frame = frame.f_back
+        return name
+    except Exception as exc:
+        raise exceptions.AppLocationUnknown from exc
 
 
 def add_sync_api(cls: Type) -> Type:

@@ -1,5 +1,6 @@
 import functools
 import logging
+import sys
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -95,6 +96,8 @@ class App(protocols.TaskCreator):
         """
         from procrastinate import periodic
 
+        self._check_stack()
+
         self.connector = connector
         self.tasks: Dict[str, "tasks.Task"] = {}
         self.builtin_tasks: Dict[str, "tasks.Task"] = {}
@@ -109,6 +112,25 @@ class App(protocols.TaskCreator):
         )
 
         self._register_builtin_tasks()
+
+    def _check_stack(self):
+        # Emit a warning if the app is defined in the __main__ module
+        try:
+            if utils.caller_module_name() == "__main__":
+                logger.warning(
+                    "The Procrastinate app is instantiated in the main Python module "
+                    f"({sys.argv[0]}). "
+                    "See https://procrastinate.readthedocs.io/en/stable/discussions.html#top-level-app .",
+                    extra={"action": "app_defined_in___main__"},
+                    exc_info=True,
+                )
+        except exceptions.AppLocationUnknown:
+            logger.warning(
+                "Unable to determine where the app was defined. "
+                "See https://procrastinate.readthedocs.io/en/stable/discussions.html#top-level-app .",
+                extra={"action": "app_location_unknown"},
+                exc_info=True,
+            )
 
     def task(
         self,
