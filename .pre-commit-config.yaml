@@ -32,11 +32,11 @@ repos:
     args: ["--ignore-missing-imports", "--scripts-are-modules"]
 
 - repo: https://github.com/asottile/pyupgrade
-  rev: "v2.26.0"
+  rev: "v2.29.0"
   hooks:
   - id: pyupgrade
 
 - repo: https://github.com/PyCQA/doc8
-  rev: "0.9.0"
+  rev: "0.9.1"
   hooks:
   - id: doc8
