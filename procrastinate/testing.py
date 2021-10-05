@@ -1,5 +1,6 @@
 import asyncio
 import datetime
+import json
 from collections import Counter
 from itertools import count
 from typing import Any, Dict, Iterable, List, Optional, Tuple
@@ -129,17 +130,18 @@ class InMemoryConnector(connector.BaseAsyncConnector):
         return job_row
 
     def defer_periodic_job_one(
-        self, queue, task_name, defer_timestamp, lock, queueing_lock
+        self, queue, task_name, kwargs_string, defer_timestamp, lock, queueing_lock
     ):
         if self.periodic_defers.get(task_name) == defer_timestamp:
             return {"id": None}
         self.periodic_defers[task_name] = defer_timestamp
+        args = {**json.loads(kwargs_string), "timestamp": defer_timestamp}
         return self.defer_job_one(
             task_name=task_name,
             queue=queue,
             lock=lock,
             queueing_lock=queueing_lock,
-            args={"timestamp": defer_timestamp},
+            args=args,
             scheduled_at=None,
         )
 

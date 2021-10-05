@@ -1,7 +1,8 @@
 import asyncio
 import datetime
+import json
 import logging
-from typing import Any, Dict, Iterable, Optional
+from typing import Any, Dict, FrozenSet, Iterable, Optional, Tuple
 
 from procrastinate import connector, exceptions, jobs, sql, utils
 
@@ -79,11 +80,17 @@ class JobManager:
             ) from exc
         raise exc
 
-    async def defer_periodic_job(self, task, defer_timestamp) -> Optional[int]:
+    async def defer_periodic_job(
+        self,
+        task,
+        kwargs: FrozenSet[Tuple[str, Any]],
+        defer_timestamp: int,
+    ) -> Optional[int]:
         """
         Defer a periodic job, ensuring that no other worker will defer a job for the
         same timestamp.
         """
+        kwargs_string = json.dumps({**dict(kwargs), "timestamp": defer_timestamp})
         try:
             result = await self.connector.execute_query_one_async(
                 query=sql.queries["defer_periodic_job"],
@@ -92,6 +99,7 @@ class JobManager:
                 lock=task.lock,
                 queueing_lock=task.queueing_lock,
                 defer_timestamp=defer_timestamp,
+                kwargs_string=kwargs_string,
             )
         except exceptions.UniqueViolation as exc:
             self._raise_already_enqueued(exc=exc, queueing_lock=task.queueing_lock)

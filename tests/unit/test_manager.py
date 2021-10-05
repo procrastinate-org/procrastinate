@@ -176,7 +176,7 @@ async def test_defer_periodic_job(job_manager, connector, app):
     def foo(timestamp):
         pass
 
-    result = await job_manager.defer_periodic_job(foo, 1234567890)
+    result = await job_manager.defer_periodic_job(foo, frozenset(), 1234567890)
     assert result == 1
 
 
@@ -185,9 +185,9 @@ async def test_defer_periodic_job_unique_violation(job_manager, connector, app):
     def foo(timestamp):
         pass
 
-    await job_manager.defer_periodic_job(foo, 1234567890)
+    await job_manager.defer_periodic_job(foo, frozenset(), 1234567890)
     with pytest.raises(exceptions.AlreadyEnqueued):
-        await job_manager.defer_periodic_job(foo, 1234567891)
+        await job_manager.defer_periodic_job(foo, frozenset(), 1234567891)
 
 
 def test_raise_already_enqueued_right_constraint(job_manager):

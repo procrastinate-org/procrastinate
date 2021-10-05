@@ -31,7 +31,7 @@ def test_register_task(periodic_deferrer, task):
     periodic_deferrer.register_task(task=task, cron="0 0 * * *")
 
     assert periodic_deferrer.periodic_tasks == [
-        periodic.PeriodicTask(task=task, cron="0 0 * * *")
+        periodic.PeriodicTask(task=task, cron="0 0 * * *", kwargs=frozenset())
     ]
 
 
@@ -39,7 +39,7 @@ def test_schedule_decorator(periodic_deferrer, task):
     periodic_deferrer.periodic_decorator(cron="0 0 * * *")(task)
 
     assert periodic_deferrer.periodic_tasks == [
-        periodic.PeriodicTask(task=task, cron="0 0 * * *")
+        periodic.PeriodicTask(task=task, cron="0 0 * * *", kwargs=frozenset())
     ]
 
 
@@ -67,7 +67,7 @@ def test_get_previous_tasks(periodic_deferrer, cron_task, task):
     cron_task(cron="* * * * *")
 
     assert list(periodic_deferrer.get_previous_tasks(at=3600 * 24 - 1)) == [
-        (task, 3600 * 24 - 60)
+        (task, frozenset(), 3600 * 24 - 60)
     ]
 
 
@@ -170,13 +170,14 @@ async def test_wait_next_tick(periodic_deferrer, mocker):
 @pytest.mark.asyncio
 async def test_defer_jobs(periodic_deferrer, task, connector, caplog):
     caplog.set_level("DEBUG")
-    await periodic_deferrer.defer_jobs([(task, 1)])
+    await periodic_deferrer.defer_jobs([(task, frozenset(), 1)])
 
     assert connector.queries == [
         (
             "defer_periodic_job",
             {
                 "queue": "default",
+                "kwargs_string": '{"defer_timestamp": 1}',
                 "defer_timestamp": 1,
                 "lock": None,
                 "queueing_lock": None,
@@ -192,13 +193,14 @@ async def test_defer_jobs_already(periodic_deferrer, task, connector, caplog):
     caplog.set_level("DEBUG")
     connector.periodic_defers[task.name] = 1
 
-    await periodic_deferrer.defer_jobs([(task, 1)])
+    await periodic_deferrer.defer_jobs([(task, frozenset(), 1)])
 
     assert connector.queries == [
         (
             "defer_periodic_job",
             {
                 "queue": "default",
+                "kwargs_string": '{"defer_timestamp": 1}',
                 "defer_timestamp": 1,
                 "lock": None,
                 "queueing_lock": None,
@@ -219,7 +221,7 @@ async def test_defer_jobs_queueing_lock(periodic_deferrer, app, connector, caplo
 
     caplog.clear()
 
-    await periodic_deferrer.defer_jobs([(foo, 1), (foo, 2)])
+    await periodic_deferrer.defer_jobs([(foo, frozenset(), 1), (foo, frozenset(), 2)])
 
     assert [r.action for r in caplog.records] == [
         "periodic_task_deferred",

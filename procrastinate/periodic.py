@@ -2,7 +2,7 @@ import asyncio
 import functools
 import logging
 import time
-from typing import Dict, Iterable, List, Optional, Tuple
+from typing import Any, Dict, FrozenSet, Iterable, List, Optional, Tuple
 
 import attr
 import croniter
@@ -18,13 +18,14 @@ MARGIN = 0.5  # seconds
 
 logger = logging.getLogger(__name__)
 
-TaskAtTime = Tuple[tasks.Task, int]
+TaskAtTime = Tuple[tasks.Task, FrozenSet[Tuple[str, Any]], int]
 
 
 @attr.dataclass(frozen=True)
 class PeriodicTask:
     task: tasks.Task
     cron: str
+    kwargs: FrozenSet[Tuple[str, Any]]
 
     @functools.lru_cache(maxsize=1)
     def croniter(self) -> croniter.croniter:
@@ -39,7 +40,7 @@ class PeriodicDeferrer:
         self.last_defers: Dict[str, int] = {}
         self.max_delay = max_delay
 
-    def periodic_decorator(self, cron: str):
+    def periodic_decorator(self, cron: str, **kwargs: Dict[str, Any]):
         """
         Decorator over a task definition that registers that task for periodic
         launch. This decorator should not be used directly, ``@app.periodic()`` is meant
@@ -47,7 +48,7 @@ class PeriodicDeferrer:
         """
 
         def wrapper(task: tasks.Task):
-            self.register_task(task=task, cron=cron)
+            self.register_task(task=task, cron=cron, **kwargs)
             return task
 
         return wrapper
@@ -70,7 +71,9 @@ class PeriodicDeferrer:
 
     # Internal methods
 
-    def register_task(self, task: tasks.Task, cron: str) -> PeriodicTask:
+    def register_task(
+        self, task: tasks.Task, cron: str, **kwargs: Dict[str, Any]
+    ) -> PeriodicTask:
         logger.info(
             f"Registering task {task.name} to run periodically with cron {cron}",
             extra={
@@ -79,7 +82,11 @@ class PeriodicDeferrer:
                 "cron": cron,
             },
         )
-        periodic_task = PeriodicTask(task=task, cron=cron)
+        periodic_task = PeriodicTask(
+            task=task,
+            cron=cron,
+            kwargs=frozenset(kwargs.items()),
+        )
         self.periodic_tasks.append(periodic_task)
         return periodic_task
 
@@ -104,13 +111,14 @@ class PeriodicDeferrer:
         """
         for periodic_task in self.periodic_tasks:
             task = periodic_task.task
+            kwargs = periodic_task.kwargs
             name = task.name
 
             for timestamp in self.get_timestamps(
                 periodic_task=periodic_task, since=self.last_defers.get(name), until=at
             ):
                 self.last_defers[name] = timestamp
-                yield task, timestamp
+                yield task, kwargs, timestamp
 
     def get_timestamps(
         self, periodic_task: PeriodicTask, since: Optional[int], until: float
@@ -150,10 +158,10 @@ class PeriodicDeferrer:
         Try deferring all tasks that might need deferring. The database will keep us
         from deferring the same task for the same scheduled time multiple times.
         """
-        for task, timestamp in jobs_to_defer:
+        for task, kwargs, timestamp in jobs_to_defer:
             try:
                 job_id = await self.job_manager.defer_periodic_job(
-                    task=task, defer_timestamp=timestamp
+                    task=task, kwargs=kwargs, defer_timestamp=timestamp
                 )
             except exceptions.AlreadyEnqueued:
                 logger.debug(
