@@ -149,6 +149,7 @@ def add_method_sync_api(*, cls: Type, method_name: str, suffix: str = "_async"):
 
     # Save this new method on the class
     wrapper.__name__ = sync_name
+    final_wrapper.__doc__ = final_wrapper.__doc__ or ""
     final_wrapper.__doc__ += SYNC_ADDENDUM.format(method_name)
     setattr(cls, sync_name, final_wrapper)
 

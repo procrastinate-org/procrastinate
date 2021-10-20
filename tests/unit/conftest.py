@@ -6,7 +6,7 @@ import pytest
 class AsyncMock(MagicMock):
     """Provides a Mock object that can be awaited.
 
-    Unfortunately AsyncMock does not natively exists before python3.7.
+    Unfortunately AsyncMock does not natively exists before python3.8.
     """
 
     def __init__(self):
