@@ -36,9 +36,9 @@ def test_wrap_query_exceptions_reached_max_tries(mocker, pool_args, called_count
         func(connector)
 
     assert len(called) == called_count
-    assert str(
-        excinfo.value
-    ) == "Could not get a valid connection after {} tries".format(called_count)
+
+    expected = f"Could not get a valid connection after {called_count} tries"
+    assert str(excinfo.value) == expected
 
 
 def test_wrap_query_exceptions_unhandled_exception(mocker):
