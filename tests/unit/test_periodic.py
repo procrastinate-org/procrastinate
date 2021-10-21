@@ -177,7 +177,7 @@ async def test_defer_jobs(periodic_deferrer, task, connector, caplog):
             "defer_periodic_job",
             {
                 "queue": "default",
-                "kwargs_string": '{"defer_timestamp": 1}',
+                "kwargs_string": '{"timestamp": 1}',
                 "defer_timestamp": 1,
                 "lock": None,
                 "queueing_lock": None,
@@ -200,7 +200,7 @@ async def test_defer_jobs_already(periodic_deferrer, task, connector, caplog):
             "defer_periodic_job",
             {
                 "queue": "default",
-                "kwargs_string": '{"defer_timestamp": 1}',
+                "kwargs_string": '{"timestamp": 1}',
                 "defer_timestamp": 1,
                 "lock": None,
                 "queueing_lock": None,
