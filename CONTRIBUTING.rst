@@ -121,12 +121,6 @@ To look at coverage in the browser after launching the tests, use:
 
     $ scripts/htmlcov
 
-The automated test turn every warning into an error. This is deliberate. If the code
-fails because of a warning, you need to either fix it or explicitly ignore it. If you
-didn't introduce the warning yourself, but it came as part of a third party upgrade,
-please let us know and feel free to temporarily comment out the ``error`` line in
-``setup.cfg`` under ``filterwarnings``.
-
 Keep your code clean
 ^^^^^^^^^^^^^^^^^^^^
 
@@ -148,25 +142,12 @@ don't have to, but... Learn it, it's really cool !
 
 .. _`interactive rebase`: https://git-scm.com/book/en/v2/Git-Tools-Rewriting-History
 
-You can also install a ``pre-commit``
-hook which makes sure that all your commits are created clean:
+You can also use ``pre-commit`` which makes sure that all your commits are created
+clean:
 
 .. code-block:: console
 
-    cat > .git/hooks/pre-commit <<EOF
-    #!/bin/bash -e
-    exec ./pre-commit-hook
-    EOF
-    chmod +x .git/hooks/pre-commit
-
-If ``tox`` is installed inside your ``virtualenv``, you may want to activate the
-``virtualenv`` in ``.git/hooks/pre-commit``:
-
-.. code-block:: bash
-
-    #!/bin/bash -e
-    source /path/to/venv/bin/activate
-    exec ./pre-commit-hook
+    scripts/bootstrap
 
 This will keep you from creating a commit if there's a linting problem.
 
@@ -183,8 +164,8 @@ Build with:
 
 .. code-block:: console
 
-    $ scripts/docs
-    $ scripts/htmldoc
+    $ scripts/docs  # build the html doc
+    $ scripts/htmldoc  # browse the doc in you browser
 
 Run spell checking on the documentation (optional):
 
@@ -202,8 +183,8 @@ If you need to add words to the spell checking dictionary, it's in
 ``docs/spelling_wordlist.txt``. Make sure the file is alphabetically sorted.
 
 If Sphinx's console output is localized and you would rather have it in English,
-use the environment variable ``LC_ALL=C.utf-8`` (either exported or attached to the
-tox process)
+(which make google-based debugging much easier), use the environment variable
+``export LC_ALL=C.utf-8``
 
 Migrations
 ----------
