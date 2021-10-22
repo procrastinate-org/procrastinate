@@ -142,7 +142,7 @@ don't have to, but... Learn it, it's really cool !
 
 .. _`interactive rebase`: https://git-scm.com/book/en/v2/Git-Tools-Rewriting-History
 
-You can also use ``pre-commit`` which makes sure that all your commits are created 
+You can also use ``pre-commit`` which makes sure that all your commits are created
 clean:
 
 .. code-block:: console
