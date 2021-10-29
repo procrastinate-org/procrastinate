@@ -1,6 +1,6 @@
 [[package]]
 name = "aiopg"
-version = "1.3.1"
+version = "1.3.2"
 description = "Postgres integration with asyncio."
 category = "main"
 optional = false
@@ -751,8 +751,8 @@ content-hash = "8be1cc5cd326fcd5a6e09e2d16ab2af95a09a4a5c82490ebf0eb27f41cd39e96
 
 [metadata.files]
 aiopg = [
-    {file = "aiopg-1.3.1-py3-none-any.whl", hash = "sha256:7a3fb1eb399ab0bb0335ddca66b51de31f6bb2251b5af2a45e7fec20040e5eac"},
-    {file = "aiopg-1.3.1.tar.gz", hash = "sha256:837fb1cbc84fc95be78e4b1a1e3ff176eee836051b957304b10b18ee30f999b6"},
+    {file = "aiopg-1.3.2-py3-none-any.whl", hash = "sha256:42f9e49bc7fe7b1f46cd9208c0ffc0bba4384a3eb11dda8eabe22c530048eb6d"},
+    {file = "aiopg-1.3.2.tar.gz", hash = "sha256:864df77edb9897cea6318a0d2e61f9b08692f2f0a150b7051fc2bde0997b23fd"},
 ]
 alabaster = [
     {file = "alabaster-0.7.12-py2.py3-none-any.whl", hash = "sha256:446438bdcca0e05bd45ea2de1668c1d9b032e1a9154c2c259092d77031ddd359"},
