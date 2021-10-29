@@ -63,4 +63,4 @@ echo "- htmldoc: Opens the locally built sphinx documentation in your browser"
 echo "- lint: Run code formatters & linters"
 echo "- docs: Build doc"
 echo ""
-echo "Quit the poetry shell with deactivate"
+echo 'Quit the poetry shell with the command `deactivate`'
