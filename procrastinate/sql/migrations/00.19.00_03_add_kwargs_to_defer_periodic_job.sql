@@ -1,4 +1,3 @@
-DROP FUNCTION IF EXISTS procrastinate_defer_periodic_job;
 CREATE FUNCTION procrastinate_defer_periodic_job(
     _queue_name character varying,
     _lock character varying,

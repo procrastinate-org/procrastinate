@@ -1,8 +1,11 @@
 -- remove old procrastinate_finish_job functions
+
 -- https://github.com/procrastinate-org/procrastinate/pull/336
 DROP FUNCTION IF EXISTS procrastinate_finish_job(integer, procrastinate_job_status, timestamp with time zone);
+
 -- https://github.com/procrastinate-org/procrastinate/pull/354
 DROP FUNCTION IF EXISTS procrastinate_finish_job(integer, procrastinate_job_status);
+
 -- https://github.com/procrastinate-org/procrastinate/pull/381
 DROP FUNCTION IF EXISTS procrastinate_finish_job(integer, procrastinate_job_status, timestamp with time zone, boolean);
 CREATE FUNCTION procrastinate_finish_job(job_id integer, end_status procrastinate_job_status, delete_job boolean) RETURNS void
@@ -34,3 +37,6 @@ BEGIN
     END IF;
 END;
 $$;
+
+-- https://github.com/procrastinate-org/procrastinate/pull/471
+DROP FUNCTION IF EXISTS procrastinate_defer_periodic_job;
