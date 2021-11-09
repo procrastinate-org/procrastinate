@@ -83,6 +83,7 @@ class JobManager:
     async def defer_periodic_job(
         self,
         task,
+        name_suffix: str,
         kwargs: FrozenSet[Tuple[str, Any]],
         defer_timestamp: int,
     ) -> Optional[int]:
@@ -99,6 +100,7 @@ class JobManager:
                 lock=task.lock,
                 queueing_lock=task.queueing_lock,
                 defer_timestamp=defer_timestamp,
+                name_suffix=name_suffix,
                 kwargs_string=kwargs_string,
             )
         except exceptions.UniqueViolation as exc:

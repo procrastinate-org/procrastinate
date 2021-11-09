@@ -93,7 +93,7 @@ class InMemoryConnector(connector.BaseAsyncConnector):
     # End of BaseConnector methods
 
     def defer_job_one(
-        self, task_name, lock, queueing_lock, args, scheduled_at, queue
+        self, task_name, lock, queueing_lock, args, scheduled_at, queue, name_suffix=""
     ) -> JobRow:
         if queueing_lock is not None and any(
             job["queueing_lock"] == queueing_lock and job["status"] == "todo"
@@ -111,6 +111,7 @@ class InMemoryConnector(connector.BaseAsyncConnector):
             "id": id,
             "queue_name": queue,
             "task_name": task_name,
+            "name_suffix": name_suffix,
             "lock": lock,
             "queueing_lock": queueing_lock,
             "args": args,
@@ -130,7 +131,14 @@ class InMemoryConnector(connector.BaseAsyncConnector):
         return job_row
 
     def defer_periodic_job_one(
-        self, queue, task_name, kwargs_string, defer_timestamp, lock, queueing_lock
+        self,
+        queue,
+        task_name,
+        kwargs_string,
+        defer_timestamp,
+        lock,
+        queueing_lock,
+        name_suffix="",
     ):
         if self.periodic_defers.get(task_name) == defer_timestamp:
             return {"id": None}
@@ -143,6 +151,7 @@ class InMemoryConnector(connector.BaseAsyncConnector):
             queueing_lock=queueing_lock,
             args=args,
             scheduled_at=None,
+            name_suffix=name_suffix,
         )
 
     @property

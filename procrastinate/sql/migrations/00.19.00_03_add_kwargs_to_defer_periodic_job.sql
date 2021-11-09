@@ -1,9 +1,21 @@
+ALTER TABLE procrastinate_periodic_defers
+ADD name_suffix character varying(128) NOT NULL DEFAULT '';
+
+ALTER TABLE procrastinate_periodic_defers
+DROP CONSTRAINT procrastinate_periodic_defers_unique;
+
+ALTER TABLE procrastinate_periodic_defers
+ADD CONSTRAINT procrastinate_periodic_defers_unique
+UNIQUE (task_name, name_suffix, defer_timestamp, queue_name);
+
+
 CREATE FUNCTION procrastinate_defer_periodic_job(
     _queue_name character varying,
     _lock character varying,
     _queueing_lock character varying,
     _task_name character varying,
     _defer_timestamp bigint,
+    _name_suffix character varying,
     _kwargs_string character varying
 ) RETURNS bigint
     LANGUAGE plpgsql
@@ -14,8 +26,8 @@ DECLARE
 BEGIN
 
     INSERT
-        INTO procrastinate_periodic_defers (task_name, queue_name, defer_timestamp)
-        VALUES (_task_name, _queue_name, _defer_timestamp)
+        INTO procrastinate_periodic_defers (task_name, name_suffix, queue_name, defer_timestamp)
+        VALUES (_task_name, _name_suffix, _queue_name, _defer_timestamp)
         ON CONFLICT DO NOTHING
         RETURNING id into _defer_id;
 
