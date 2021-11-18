@@ -422,9 +422,57 @@ class JobManager:
             )
         ]
 
+    async def list_locks_async(
+        self,
+        queue: Optional[str] = None,
+        task: Optional[str] = None,
+        status: Optional[str] = None,
+        lock: Optional[str] = None,
+    ) -> Iterable[Dict[str, Any]]:
+        """
+        List all locks and number of jobs per lock for each lock value.
+
+        Parameters
+        ----------
+        queue : ``str``
+            Filter by job queue name
+        task : ``str``
+            Filter by job task name
+        status : ``str``
+            Filter by job status (``todo``/``doing``/``succeeded``/``failed``)
+        lock : ``str``
+            Filter by job lock
+
+        Returns
+        -------
+        ``List[Dict[str, Any]]``
+            A list of dictionaries representing locks stats (``name``, ``jobs_count``,
+            ``todo``, ``doing``, ``succeeded``, ``failed``).
+        """
+        result = []
+        for row in await self.connector.execute_query_all_async(
+            query=sql.queries["list_locks"],
+            queue_name=queue,
+            task_name=task,
+            status=status,
+            lock=lock,
+        ):
+            result.append(
+                {
+                    "name": row["name"],
+                    "jobs_count": row["jobs_count"],
+                    "todo": row["stats"].get("todo", 0),
+                    "doing": row["stats"].get("doing", 0),
+                    "succeeded": row["stats"].get("succeeded", 0),
+                    "failed": row["stats"].get("failed", 0),
+                }
+            )
+        return result
+
 
 utils.add_method_sync_api(cls=JobManager, method_name="list_jobs_async")
 utils.add_method_sync_api(cls=JobManager, method_name="list_queues_async")
 utils.add_method_sync_api(cls=JobManager, method_name="list_tasks_async")
+utils.add_method_sync_api(cls=JobManager, method_name="list_locks_async")
 utils.add_method_sync_api(cls=JobManager, method_name="finish_job_by_id_async")
 utils.add_method_sync_api(cls=JobManager, method_name="retry_job_by_id_async")

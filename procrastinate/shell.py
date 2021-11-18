@@ -38,7 +38,7 @@ class ProcrastinateShell(cmd.Cmd):
 
     def do_list_jobs(self, arg: str) -> None:
         """
-        List procrastinate jobs.
+        List jobs.
         Usage: list_jobs [id=ID] [queue=QUEUE_NAME] [task=TASK_NAME] [status=STATUS]
                          [lock=LOCK] [queueing_lock=QUEUEING_LOCK] [details]
 
@@ -54,7 +54,7 @@ class ProcrastinateShell(cmd.Cmd):
 
     def do_list_queues(self, arg: str) -> None:
         """
-        List procrastinate queues: get queues names and number of jobs per queue.
+        List queues: get queue names and number of jobs per queue.
         Usage: list_queues [queue=QUEUE_NAME] [task=TASK_NAME] [status=STATUS]
                            [lock=LOCK]
 
@@ -67,27 +67,49 @@ class ProcrastinateShell(cmd.Cmd):
             print(
                 f"{queue['name']}: {queue['jobs_count']} jobs ("
                 f"todo: {queue['todo']}, "
+                f"doing: {queue['doing']}, "
                 f"succeeded: {queue['succeeded']}, "
                 f"failed: {queue['failed']})"
             )
 
     def do_list_tasks(self, arg: str) -> None:
         """
-        List procrastinate tasks: get tasks names and number of jobs per task.
+        List tasks: get task names and number of jobs per task.
         Usage: list_tasks [queue=QUEUE_NAME] [task=TASK_NAME] [status=STATUS]
                           [lock=LOCK]
 
         Jobs can be filtered by queue name, task name, status and lock.
 
-        Example: list_queues queue=default status=failed
+        Example: list_tasks queue=default status=failed
         """
         kwargs = parse_argument(arg)
         for task in self.job_manager.list_tasks(**kwargs):  # type: ignore
             print(
                 f"{task['name']}: {task['jobs_count']} jobs ("
                 f"todo: {task['todo']}, "
+                f"doing: {task['doing']}, "
                 f"succeeded: {task['succeeded']}, "
                 f"failed: {task['failed']})"
+            )
+
+    def do_list_locks(self, arg: str) -> None:
+        """
+        List locks: get lock names and number of jobs per task.
+        Usage: list_locks [queue=QUEUE_NAME] [task=TASK_NAME] [status=STATUS]
+                          [lock=LOCK]
+
+        Jobs can be filtered by queue name, task name, status and lock.
+
+        Example: list_locks queue=default status=todo
+        """
+        kwargs = parse_argument(arg)
+        for lock in self.job_manager.list_locks(**kwargs):  # type: ignore
+            print(
+                f"{lock['name']}: {lock['jobs_count']} jobs ("
+                f"todo: {lock['todo']}, "
+                f"doing: {lock['doing']}, "
+                f"succeeded: {lock['succeeded']}, "
+                f"failed: {lock['failed']})"
             )
 
     def do_retry(self, arg: str) -> None:
