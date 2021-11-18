@@ -57,6 +57,25 @@ def import_all(import_paths: Iterable[str]) -> None:
         importlib.import_module(import_path)
 
 
+def caller_module_name(prefix: str = "procrastinate") -> str:
+    """
+    Returns the module name of the first module of the stack that isn't under ``prefix``.
+    If any problem occurs, raise `CallerModuleUnknown`.
+    """
+
+    try:
+        frame = inspect.currentframe()
+        while True:
+            assert frame  # Could crash here
+            name = frame.f_globals["__name__"]  # ... or here
+            if not name.startswith(f"{prefix}."):
+                break
+            frame = frame.f_back
+        return name
+    except Exception as exc:
+        raise exceptions.CallerModuleUnknown from exc
+
+
 def add_sync_api(cls: Type) -> Type:
     """
     Applying this decorator to a class with async methods named "<name>_async"

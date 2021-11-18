@@ -359,3 +359,13 @@ async def test_awaitable_context_enter_exit(mock_awaitable_context):
     assert return_value == 1
     assert mock_awaitable_context._open_coro().was_awaited
     assert mock_awaitable_context._close_coro().was_awaited
+
+
+def test_caller_module_name():
+    assert utils.caller_module_name() == __name__
+
+
+def test_check_stack_failure(mocker):
+    mocker.patch("inspect.currentframe", return_value=None)
+    with pytest.raises(exceptions.CallerModuleUnknown):
+        assert utils.caller_module_name()

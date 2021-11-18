@@ -72,6 +72,31 @@ some projects that really stand out, to name a few:
 .. _Dramatiq: https://dramatiq.io/
 .. _dramatiq-pg: https://pypi.org/project/dramatiq-pg/
 
+.. _top-level-app:
+
+Defining your app at the top level of your program
+--------------------------------------------------
+
+It can be tempting to define your procrastinate app at the top level of your
+application, and in many cases, this will be the perfect place, but you need
+to be aware of several caveats:
+
+- Your app needs to know about your tasks. This either means that all the tasks
+  must be defined in the same module as the app, or that you need to correctly
+  submit the ``import_paths`` argument of `App` to point to all the modules
+  that define a task (or that importing the module containing your app should,
+  as a side effect, import all modules containing all of your tasks, but that
+  last possibility is more error-prone).
+- If your procrastinate app is defined in the module (let's call it
+  ``that_module.py``) in which ``__name__ == "__main__"`` (which means you
+  launch your program with either ``python that_module.py`` or ``python -m
+  that_module``), AND if your tasks are defined in a different module which
+  does ``import that_module``, then you will end up with two distinct instances
+  of your app (``__main__.app`` and ``that_module.app``) and you will likely
+  run into problems. The best thing to do in this case is to create a dedicated
+  module for your app (or to put everything in the same module, but this
+  doesn't scale well).
+
 .. _discussion-locks:
 
 About locks

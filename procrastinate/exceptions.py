@@ -97,3 +97,9 @@ class UnboundTaskError(ProcrastinateException):
     If the task is defined on a Blueprint ensure it is registered on an App
     before it is used.
     """
+
+
+class CallerModuleUnknown(ProcrastinateException):
+    """
+    Unable to determine the module name of the caller.
+    """

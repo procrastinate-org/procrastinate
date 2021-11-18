@@ -1,4 +1,5 @@
 import asyncio
+import collections
 
 import pytest
 
@@ -251,3 +252,49 @@ async def test_close_async(app, mock_connector_close_async):
     await app.close_async()
 
     mock_connector_close_async.assert_called_once_with()
+
+
+def test_check_stack(app, caplog):
+    caplog.set_level("WARNING")
+
+    app._check_stack()
+
+    assert caplog.records == []
+
+
+def test_check_stack_main(app, mocker, caplog):
+    caplog.set_level("WARNING")
+    mocker.patch("procrastinate.utils.caller_module_name", return_value="__main__")
+
+    app._check_stack()
+
+    records = collections.Counter(r.action for r in caplog.records)
+    assert records == {"app_defined_in___main__": 1}
+
+
+def test_check_stack_error(app, mocker, caplog):
+    caplog.set_level("WARNING")
+    mocker.patch(
+        "procrastinate.utils.caller_module_name",
+        side_effect=exceptions.CallerModuleUnknown,
+    )
+
+    app._check_stack()
+
+    records = collections.Counter(r.action for r in caplog.records)
+    assert records == {"app_location_unknown": 1}
+
+
+def test_check_stack_is_called(mocker, connector):
+    # It's a bit ugly but we want one test to fail if __init__ doesn't
+    # call _check_stack
+    called = []
+
+    class MyApp(app_module.App):
+        def _check_stack(self):
+            called.append(True)
+            return "foo"
+
+    MyApp(connector=connector)
+
+    assert called == [True]
