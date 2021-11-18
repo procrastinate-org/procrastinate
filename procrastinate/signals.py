@@ -1,7 +1,6 @@
 import asyncio
 import logging
 import signal
-import sys
 import threading
 from contextlib import contextmanager
 from typing import Any, Callable, Optional
@@ -37,16 +36,10 @@ def on_stop(callback: Callable[[], None]):
 
     uninstalled = False
     loop: Optional[asyncio.AbstractEventLoop]
-    if sys.version_info < (3, 7):  # coverage: exclude
-        if asyncio.Task.current_task():
-            loop = asyncio.get_event_loop()
-        else:
-            loop = None
-    else:  # coverage: exclude
-        try:
-            loop = asyncio.get_running_loop()
-        except RuntimeError:
-            loop = None
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        loop = None
 
     def uninstall_and_callback(*args) -> None:
         nonlocal uninstalled

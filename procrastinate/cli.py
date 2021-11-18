@@ -128,7 +128,11 @@ def cli(ctx: click.Context, app: str, verbose, log_format, log_format_style) -> 
     ctx.default_map = {"worker": worker_defaults}
 
 
-@cli.resultcallback()
+# result_callback for click >=8.0, resultcallback for click <8.1
+result_callback = getattr(cli, "result_callback") or cli.resultcallback
+
+
+@result_callback()
 @click.pass_obj
 def close_connection(procrastinate_app: procrastinate.App, *args, **kwargs):
     # There's an internal click param named app, we can't name our variable "app" too.

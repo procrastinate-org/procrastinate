@@ -41,7 +41,6 @@ async def main_async():
 if __name__ == "__main__":
     logging.basicConfig(level="DEBUG")
     if app.USE_ASYNC:
-        asyncio.get_event_loop().run_until_complete(main_async())
-        # asyncio.run(main_async())  # Python 3.7+
+        asyncio.run(main_async())
     else:
         main()

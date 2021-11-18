@@ -35,6 +35,7 @@ repos:
   rev: "v2.29.0"
   hooks:
   - id: pyupgrade
+    args: [ --py37-plus ]
 
 - repo: https://github.com/PyCQA/doc8
   rev: "0.10.1"

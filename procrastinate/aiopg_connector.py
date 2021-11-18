@@ -71,7 +71,7 @@ def wrap_query_exceptions(coro: CoroutineFunction) -> CoroutineFunction:
                     continue
                 raise exc
         raise exceptions.ConnectorException(
-            "Could not get a valid connection after {} tries".format(max_tries)
+            f"Could not get a valid connection after {max_tries} tries"
         ) from final_exc
 
     return wrapped
