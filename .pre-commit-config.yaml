@@ -28,8 +28,16 @@ repos:
   rev: "v0.910-1"
   hooks:
   - id: mypy
-    files: ^sphinx_github_changelog/
-    args: ["--ignore-missing-imports", "--scripts-are-modules"]
+    files: ^procrastinate/
+    args: []
+    additional_dependencies:
+    - "django-types"
+    - "sqlalchemy[mypy]"
+    - "types-attrs"
+    - "types-click"
+    - "types-croniter"
+    - "types-psycopg2"
+    - "types-python-dateutil"
 
 - repo: https://github.com/asottile/pyupgrade
   rev: "v2.29.1"
