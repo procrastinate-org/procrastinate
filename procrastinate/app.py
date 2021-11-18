@@ -124,7 +124,7 @@ class App(protocols.TaskCreator):
                     extra={"action": "app_defined_in___main__"},
                     exc_info=True,
                 )
-        except exceptions.AppLocationUnknown:
+        except exceptions.CallerModuleUnknown:
             logger.warning(
                 "Unable to determine where the app was defined. "
                 "See https://procrastinate.readthedocs.io/en/stable/discussions.html#top-level-app .",

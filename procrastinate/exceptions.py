@@ -99,8 +99,7 @@ class UnboundTaskError(ProcrastinateException):
     """
 
 
-class AppLocationUnknown(ProcrastinateException):
+class CallerModuleUnknown(ProcrastinateException):
     """
-    Unable to determine where the app was defined.
-    See https://procrastinate.readthedocs.io/en/stable/discussions.html#top-level-app
+    Unable to determine the module name of the caller.
     """

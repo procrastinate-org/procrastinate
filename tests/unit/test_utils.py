@@ -367,5 +367,5 @@ def test_caller_module_name():
 
 def test_check_stack_failure(mocker):
     mocker.patch("inspect.currentframe", return_value=None)
-    with pytest.raises(exceptions.AppLocationUnknown):
+    with pytest.raises(exceptions.CallerModuleUnknown):
         assert utils.caller_module_name()

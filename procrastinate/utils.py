@@ -60,7 +60,7 @@ def import_all(import_paths: Iterable[str]) -> None:
 def caller_module_name(prefix: str = "procrastinate") -> str:
     """
     Returns the module name of the first module of the stack that isn't under ``prefix``.
-    If any problem occurs, raise `AppLocationUnknown`.
+    If any problem occurs, raise `CallerModuleUnknown`.
     """
 
     try:
@@ -73,7 +73,7 @@ def caller_module_name(prefix: str = "procrastinate") -> str:
             frame = frame.f_back
         return name
     except Exception as exc:
-        raise exceptions.AppLocationUnknown from exc
+        raise exceptions.CallerModuleUnknown from exc
 
 
 def add_sync_api(cls: Type) -> Type:

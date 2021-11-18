@@ -276,7 +276,7 @@ def test_check_stack_error(app, mocker, caplog):
     caplog.set_level("WARNING")
     mocker.patch(
         "procrastinate.utils.caller_module_name",
-        side_effect=exceptions.AppLocationUnknown,
+        side_effect=exceptions.CallerModuleUnknown,
     )
 
     app._check_stack()
