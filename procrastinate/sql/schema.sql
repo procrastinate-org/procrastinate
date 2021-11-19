@@ -95,8 +95,8 @@ CREATE FUNCTION procrastinate_defer_periodic_job(
     _lock character varying,
     _queueing_lock character varying,
     _task_name character varying,
-    _defer_timestamp bigint,
     _name_suffix character varying,
+    _defer_timestamp bigint,
     _kwargs_string character varying
 ) RETURNS bigint
     LANGUAGE plpgsql
