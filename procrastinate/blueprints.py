@@ -66,6 +66,7 @@ class Blueprint:
 
     def _check_stack(self):
         # Emit a warning if the app is defined in the __main__ module
+        name = None
         try:
             name = utils.caller_module_name()
         except exceptions.CallerModuleUnknown:
