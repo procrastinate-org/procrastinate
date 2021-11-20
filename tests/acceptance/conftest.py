@@ -18,6 +18,7 @@ def process_env(connection_params):
                 "PROCRASTINATE_VERBOSE": "3",
                 "PROCRASTINATE_DEFER_UNKNOWN": "True",
                 "PGDATABASE": connection_params["dbname"],
+                "PYTHONUNBUFFERED": "1",
             }
         )
         return env
