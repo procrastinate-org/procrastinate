@@ -2,7 +2,7 @@ import uuid
 
 import pytest
 
-from procrastinate import connector, exceptions, jobs
+from procrastinate import exceptions, jobs, manager
 
 from .. import conftest
 
@@ -192,7 +192,7 @@ async def test_defer_periodic_job_unique_violation(job_manager, connector, app):
 
 def test_raise_already_enqueued_right_constraint(job_manager):
     class UniqueViolation(Exception):
-        constraint_name = connector.QUEUEING_LOCK_CONSTRAINT
+        constraint_name = manager.QUEUEING_LOCK_CONSTRAINT
 
     with pytest.raises(exceptions.AlreadyEnqueued) as exc_info:
         job_manager._raise_already_enqueued(exc=UniqueViolation(), queueing_lock="foo")

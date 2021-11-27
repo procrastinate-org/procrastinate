@@ -3,9 +3,6 @@ from typing import Any, Callable, Dict, Iterable, List, Optional
 
 from procrastinate import exceptions, utils
 
-QUEUEING_LOCK_CONSTRAINT = "procrastinate_jobs_queueing_lock_idx"
-
-
 Pool = Any
 Engine = Any
 

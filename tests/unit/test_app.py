@@ -4,7 +4,7 @@ import collections
 import pytest
 
 from procrastinate import app as app_module
-from procrastinate import exceptions, retry, tasks
+from procrastinate import exceptions, retry, tasks, testing
 
 from .. import conftest
 from .conftest import AsyncMock
@@ -298,3 +298,27 @@ def test_check_stack_is_called(mocker, connector):
     MyApp(connector=connector)
 
     assert called == [True]
+
+
+def test_with_connector(app, connector):
+    new_connector = testing.InMemoryConnector()
+    new_app = app.with_connector(connector=new_connector)
+    assert new_app is not app
+
+    @app.task(name="foo")
+    def foo():
+        pass
+
+    @new_app.task(name="bar")
+    def bar():
+        pass
+
+    assert app.tasks == new_app.tasks
+    assert {"foo", "bar"} <= set(app.tasks)
+
+    assert app.connector == connector
+    assert new_app.connector == new_connector
+
+    assert app.worker_defaults == new_app.worker_defaults
+    assert app.import_paths == new_app.import_paths
+    assert app.periodic_deferrer is new_app.periodic_deferrer

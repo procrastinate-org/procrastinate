@@ -97,8 +97,10 @@ class InMemoryConnector(connector.BaseAsyncConnector):
             job["queueing_lock"] == queueing_lock and job["status"] == "todo"
             for job in self.jobs.values()
         ):
+            from . import manager
+
             raise exceptions.UniqueViolation(
-                constraint_name=connector.QUEUEING_LOCK_CONSTRAINT
+                constraint_name=manager.QUEUEING_LOCK_CONSTRAINT
             )
 
         id = next(self.job_counter)

@@ -132,6 +132,27 @@ class App(protocols.TaskCreator):
                 exc_info=True,
             )
 
+    def with_connector(self, connector: connector_module.BaseConnector) -> "App":
+        """
+        Create another app instance sychronized with this one, with a different
+        connector. For all things regarding periodic tasks, the original app
+        (and its original connector) will be used, even when the new app's
+        methods are used.
+
+        Returns
+        -------
+        `App`
+            A new compatible app.
+        """
+        app = App(
+            connector=connector,
+            import_paths=self.import_paths,
+            worker_defaults=self.worker_defaults,
+        )
+        app.tasks = self.tasks
+        app.periodic_deferrer = self.periodic_deferrer
+        return app
+
     def task(
         self,
         _func: Optional[Callable] = None,
