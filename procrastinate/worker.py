@@ -1,5 +1,4 @@
 import asyncio
-import contextlib
 import logging
 import time
 from enum import Enum
@@ -88,19 +87,15 @@ class Worker:
 
         return context
 
-    def listener(self):
+    async def listener(self):
         assert self.notify_event
-        return utils.task_context(
-            awaitable=self.job_manager.listen_for_jobs(
-                event=self.notify_event, queues=self.queues
-            ),
-            name="listener",
+        return await self.job_manager.listen_for_jobs(
+            event=self.notify_event,
+            queues=self.queues,
         )
 
-    def periodic_deferrer(self):
-        return utils.task_context(
-            awaitable=self.app.periodic_deferrer.worker(), name="periodic_deferrer"
-        )
+    async def periodic_deferrer(self):
+        return await self.app.periodic_deferrer.worker()
 
     async def run(self) -> None:
         self.notify_event = asyncio.Event()
@@ -113,18 +108,18 @@ class Worker:
             ),
         )
 
-        with contextlib.ExitStack() as stack:
+        with signals.on_stop(self.stop):
+            side_coros = [self.periodic_deferrer()]
             if self.wait and self.listen_notify:
-                stack.enter_context(self.listener())
+                side_coros.append(self.listener())
 
-            stack.enter_context(self.periodic_deferrer())
-            stack.enter_context(signals.on_stop(self.stop))
-
-            await asyncio.gather(
-                *(
+            await utils.run_tasks(
+                main_coros=(
                     self.single_worker(worker_id=worker_id)
                     for worker_id in range(self.concurrency)
-                )
+                ),
+                side_coros=side_coros,
+                graceful_stop_callback=self.stop,
             )
 
         self.logger.info(
