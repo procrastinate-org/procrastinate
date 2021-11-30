@@ -1,6 +1,6 @@
 import functools
 import re
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Dict, List, Mapping, Optional
 
 import psycopg2.errors
 import sqlalchemy
@@ -61,7 +61,7 @@ class SQLAlchemyPsycopg2Connector(connector.BaseConnector):
     def __init__(
         self,
         *,
-        dsn: Optional[str] = None,
+        dsn: str = "postgresql://",
         json_dumps: Optional[Callable] = None,
         json_loads: Optional[Callable] = None,
         **kwargs: Any,
@@ -95,7 +95,7 @@ class SQLAlchemyPsycopg2Connector(connector.BaseConnector):
         self.json_loads = json_loads
         self._engine: Optional[sqlalchemy.engine.Engine] = None
         self._engine_dsn = dsn
-        self._engine_args = kwargs
+        self._engine_kwargs = kwargs
         self._engine_externally_set = False
 
     @wrap_exceptions
@@ -113,16 +113,16 @@ class SQLAlchemyPsycopg2Connector(connector.BaseConnector):
             self._engine_externally_set = True
             self._engine = engine
         else:
-            self._engine = self._create_engine(self._engine_dsn, self._engine_args)
+            self._engine = self._create_engine(self._engine_dsn, self._engine_kwargs)
 
     @staticmethod
     def _create_engine(
-        dsn: str, engine_args: Dict[str, Any]
+        dsn: str, engine_kwargs: Dict[str, Any]
     ) -> sqlalchemy.engine.Engine:
         """
         Create an SQLAlchemy engine.
         """
-        return sqlalchemy.create_engine(dsn, **engine_args)
+        return sqlalchemy.create_engine(url=dsn, **engine_kwargs)
 
     @wrap_exceptions
     def close(self) -> None:
@@ -157,20 +157,22 @@ class SQLAlchemyPsycopg2Connector(connector.BaseConnector):
 
     @wrap_exceptions
     @wrap_query_exceptions
-    def execute_query_one(self, query: str, **arguments: Any) -> Dict[str, Any]:
+    def execute_query_one(self, query: str, **arguments: Any) -> Mapping[str, Any]:
         with self.engine.begin() as connection:
             cursor_result = connection.exec_driver_sql(
                 PERCENT_PATTERN.sub("%%", query), self._wrap_json(arguments)
             )
-            cursor_result = cursor_result.mappings()
-            return cursor_result.fetchone()
+            mapping = cursor_result.mappings()
+            return mapping.fetchone()
 
     @wrap_exceptions
     @wrap_query_exceptions
-    def execute_query_all(self, query: str, **arguments: Any) -> Dict[str, Any]:
+    def execute_query_all(
+        self, query: str, **arguments: Any
+    ) -> List[Mapping[str, Any]]:
         with self.engine.begin() as connection:
             cursor_result = connection.exec_driver_sql(
                 PERCENT_PATTERN.sub("%%", query), self._wrap_json(arguments)
             )
-            cursor_result = cursor_result.mappings()
-            return cursor_result.all()
+            mapping = cursor_result.mappings()
+            return mapping.all()
