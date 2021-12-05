@@ -31,13 +31,12 @@ repos:
     files: ^procrastinate/
     args: []
     additional_dependencies:
-    - "django-types"
-    - "sqlalchemy[mypy]"
-    - "types-attrs"
-    - "types-click"
-    - "types-croniter"
-    - "types-psycopg2"
-    - "types-python-dateutil"
+    - attrs==21.2.0
+    - click==8.0.3
+    - sqlalchemy[mypy]==1.4.27
+    - types-croniter==1.0.3
+    - types-psycopg2==2.9.4
+    - types-python-dateutil==2.8.3
 
 - repo: https://github.com/asottile/pyupgrade
   rev: "v2.29.1"

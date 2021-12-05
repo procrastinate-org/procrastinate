@@ -474,6 +474,21 @@ section. If you need information on how to work with asynchronous Python, check 
 - The official documentation: https://docs.python.org/3/library/asyncio.html
 - A more accessible guide by Brad Solomon: https://realpython.com/async-io-python/
 
+Things that could be done more cleanly
+--------------------------------------
+
+As much as we'd like for our boilerplate to be perfect, there are still
+small things that can be improved:
+
+- Because ReadTheDocs doesn't support installing package using poetry, the 2
+  possible ways of handling the problem would be to use extra dependencies for
+  docs, or repeat our deps twice, we've gone ahead with the second solution.
+  For now, it's purely manual, though we should automate it.
+- Same with mypy dependencies in pre-commit, we need to duplicate them. Though
+  this time, there is a script (``scripts/typing-package-versions``) that gives
+  you the lines to paste in ``.pre-commit-config.yaml``. It's still expected to
+  be done manually though.
+
 Core contributor additional documentation
 -----------------------------------------
 
