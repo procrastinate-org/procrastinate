@@ -387,7 +387,7 @@ async def run_tasks(
             "Main coroutine error, initiating remaining coroutines stop. "
             f"Cause: {exc!r}",
             extra={
-                "action": "run_task_stop_requested",
+                "action": "run_tasks_stop_requested",
             },
         )
         if graceful_stop_callback:
@@ -443,7 +443,7 @@ async def run_tasks(
     for exception_record in exception_records:
         if sys.version_info < (3, 8):
             message = f"{exception_record.exc!r}"
-            action = "run_task_error"
+            action = "run_tasks_error"
         else:
             name = exception_record.task.get_name()
             message = f"{name} error: {exception_record.exc!r}"
