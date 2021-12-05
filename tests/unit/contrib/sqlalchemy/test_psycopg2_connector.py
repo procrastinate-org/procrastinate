@@ -131,7 +131,7 @@ def test_open_no_pool_specified(mock_create_engine):
 
     assert connector._engine_externally_set is False
     mock_create_engine.assert_called_once_with(
-        connector._engine_dsn, connector._engine_args
+        connector._engine_dsn, connector._engine_kwargs
     )
 
 

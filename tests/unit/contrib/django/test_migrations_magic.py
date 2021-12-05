@@ -1,4 +1,3 @@
-import pathlib
 import sys
 import types
 
@@ -12,17 +11,19 @@ def test_version_from_string():
     assert migrations_magic.version_from_string("1.2.3") == (1, 2, 3)
 
 
-def test_procrastinate_migration_from_path():
+def test_procrastinate_migration_from_file():
 
-    path = "b/00.11.00_03_add_procrastinate_periodic_defers.sql"
-
-    migration = migrations_magic.ProcrastinateMigration.from_path(pathlib.Path(path))
+    migration = migrations_magic.ProcrastinateMigration.from_file(
+        filename="b/00.11.00_03_add_procrastinate_periodic_defers.sql",
+        contents="foo",
+    )
 
     assert migration == migrations_magic.ProcrastinateMigration(
         filename="00.11.00_03_add_procrastinate_periodic_defers.sql",
         name="add_procrastinate_periodic_defers",
         version=(0, 11, 0),
         index=3,
+        contents="foo",
     )
 
 
@@ -35,8 +36,9 @@ def test_make_migration(mocker):
     previous = mocker.Mock()
     previous.name = "0001_foo"
     migration = migrations_magic.make_migration(
-        sql_migration=migrations_magic.ProcrastinateMigration.from_path(
-            path=pathlib.Path("a/00.08.01_01_add_queueing_lock_column.sql")
+        sql_migration=migrations_magic.ProcrastinateMigration.from_file(
+            filename="a/00.08.01_01_add_queueing_lock_column.sql",
+            contents="SELECT 1;",
         ),
         previous_migration=previous,
         counter=iter([2]),
@@ -45,13 +47,14 @@ def test_make_migration(mocker):
     assert migration.dependencies == [("procrastinate", "0001_foo")]
     assert migration.initial is False
     assert len(migration.operations) == 1
-    assert migration.operations[0].sql.startswith("-- add a queueing_lock column")
+    assert migration.operations[0].sql == "SELECT 1;"
 
 
 def test_make_migration_initial():
     migration = migrations_magic.make_migration(
-        sql_migration=migrations_magic.ProcrastinateMigration.from_path(
-            path=pathlib.Path("a/00.00.00_01_initial.sql")
+        sql_migration=migrations_magic.ProcrastinateMigration.from_file(
+            filename="a/00.00.00_01_initial.sql",
+            contents="SELECT 1;",
         ),
         previous_migration=None,
         counter=iter([1]),
@@ -59,22 +62,18 @@ def test_make_migration_initial():
     assert migration.name == "0001_initial"
     assert migration.dependencies == []
     assert migration.initial is True
+    assert migration.operations[0].sql == "SELECT 1;"
 
 
-def test_get_sql(app):
-    migration_name = "00.00.00_01_initial.sql"
-    migration = migrations_magic.get_sql(migration_name)
-
+def test_list_migration_files():
+    migrations = dict(migrations_magic.list_migration_files())
+    migration = migrations["00.00.00_01_initial.sql"]
     assert migration.startswith(
         "CREATE EXTENSION IF NOT EXISTS plpgsql WITH SCHEMA pg_catalog;"
     )
     assert len(migration.splitlines()) == 187
 
-
-def test_list_migration_files():
-    names = {e.name for e in migrations_magic.list_migration_files()}
-    assert "00.00.00_01_initial.sql" in names
-    assert "__init__.py" not in names
+    assert "__init__.py" not in migrations
 
 
 @pytest.fixture

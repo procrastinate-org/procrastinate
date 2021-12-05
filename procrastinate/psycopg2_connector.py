@@ -2,7 +2,7 @@ import contextlib
 import functools
 import logging
 import re
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Dict, Iterator, Optional
 
 import psycopg2
 import psycopg2.errors
@@ -181,7 +181,7 @@ class Psycopg2Connector(connector.BaseConnector):
         }
 
     @contextlib.contextmanager
-    def _connection(self) -> psycopg2.extensions.connection:
+    def _connection(self) -> Iterator[psycopg2.extensions.connection]:
         # in case of an admin shutdown (Postgres error code 57P01) we do not
         # rollback the connection or put the connection back to the pool as
         # this will cause a psycopg2.InterfaceError exception

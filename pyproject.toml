@@ -30,31 +30,39 @@ aiopg = "*"
 attrs = "*"
 click = "*"
 croniter = "*"
-psycopg2-binary = "*"
-python-dateutil = "*"
-typing-extensions = "*"
+django = {version = ">=2.2", optional = true}
 importlib-metadata = {version = "*", python = "<3.8"}
 importlib-resources = {version = "*", python = "<3.9"}
-django = {version = ">=2.2", optional = true}
+psycopg2-binary = "*"
+python-dateutil = "*"
 sqlalchemy = {version = "^1.4", optional = true}
+typing-extensions = "*"
 
 [tool.poetry.extras]
 django = ["django"]
 sqlalchemy = ["sqlalchemy"]
 
 [tool.poetry.dev-dependencies]
+black = {version = "*", allow-prereleases = true}
 dunamai = "*"
+flake8 = "*"
 migra = "*"
+mypy = "*"
 pytest-asyncio = "*"
 pytest-click = "*"
 pytest-cov = "*"
 pytest-django = "*"
 pytest-mock = "*"
 Sphinx = "3.*"
-sphinx-github-changelog = "*"
 sphinx-autodoc-typehints = "*"
+sphinx-github-changelog = "*"
 sphinxcontrib-programoutput = "*"
-types-croniter = "^1.0.2"
+sqlalchemy = {extras = ["mypy"], version = "*"}
+types-croniter = "*"
+types-psycopg2 = "*"
+types-python-dateutil = "*"
+SQLAlchemy = {extras = ["mypy"], version = "^1.4.27"}
+tomlkit = "^0.7.2"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

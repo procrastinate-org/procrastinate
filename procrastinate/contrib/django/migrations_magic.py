@@ -3,7 +3,7 @@ import pathlib
 import sys
 import types
 from importlib import abc, machinery
-from typing import Iterable, Iterator, Optional, Tuple
+from typing import Iterable, Iterator, Optional, Tuple, Type
 
 import attr
 from django.db import migrations
@@ -67,15 +67,14 @@ def load():
     sys.path_hooks.append(importer.path_hook)
 
 
-def get_sql(filename) -> str:
-    return importlib_resources.read_text("procrastinate.sql.migrations", filename)
-
-
-def list_migration_files() -> Iterable[pathlib.Path]:
+def list_migration_files() -> Iterable[Tuple[str, str]]:
+    """
+    Returns a list of filenames and file contents for all migration files
+    """
     return [
-        p
+        (p.name, p.read_text())
         for p in importlib_resources.files("procrastinate.sql.migrations").iterdir()
-        if p.suffix == ".sql"
+        if p.name.endswith(".sql")
     ]
 
 
@@ -89,21 +88,27 @@ class ProcrastinateMigration:
     name: str
     version: Tuple
     index: int
+    contents: str
 
     @classmethod
-    def from_path(cls, path: pathlib.Path) -> "ProcrastinateMigration":
+    def from_file(cls, filename: str, contents: str) -> "ProcrastinateMigration":
+        path = pathlib.PurePath(filename)
         version_str, index, name = path.stem.split("_", 2)
         return cls(
             filename=path.name,
             name=name,
             version=version_from_string(version_str=version_str),
             index=int(index),
+            contents=contents,
         )
 
 
 def get_all_migrations() -> Iterable[ProcrastinateMigration]:
     all_files = list_migration_files()
-    migrations = [ProcrastinateMigration.from_path(path=e) for e in all_files]
+    migrations = [
+        ProcrastinateMigration.from_file(filename=filename, contents=contents)
+        for filename, contents in all_files
+    ]
 
     return sorted(migrations, key=lambda x: (x.version, x.index))
 
@@ -126,12 +131,12 @@ def make_migrations(
 
 def make_migration(
     sql_migration: ProcrastinateMigration,
-    previous_migration: Optional[migrations.Migration],
+    previous_migration: Optional[Type[migrations.Migration]],
     counter: Iterator[int],
-):
+) -> Type[migrations.Migration]:
     class NewMigration(migrations.Migration):
         initial = previous_migration is None
-        operations = [migrations.RunSQL(sql=get_sql(filename=sql_migration.filename))]
+        operations = [migrations.RunSQL(sql=sql_migration.contents)]
         name = f"{next(counter):04d}_{sql_migration.name}"
 
         if previous_migration:
