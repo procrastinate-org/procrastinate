@@ -103,3 +103,7 @@ class CallerModuleUnknown(ProcrastinateException):
     """
     Unable to determine the module name of the caller.
     """
+
+
+class RunTaskError(ProcrastinateException):
+    """One of the specified coroutines ended with an exception"""
