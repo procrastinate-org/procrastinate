@@ -1,30 +1,18 @@
 import functools
 import logging
-import sys
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    Dict,
-    Iterable,
-    List,
-    Optional,
-    Set,
-    Union,
-)
+from typing import TYPE_CHECKING, Any, Dict, Iterable, Optional, Union
 
+from procrastinate import blueprints
 from procrastinate import connector as connector_module
-from procrastinate import exceptions, jobs, manager, protocols
-from procrastinate import retry as retry_module
-from procrastinate import schema, utils
+from procrastinate import exceptions, jobs, manager, schema, utils
 
 if TYPE_CHECKING:
-    from procrastinate import blueprints, tasks, worker
+    from procrastinate import worker
 
 logger = logging.getLogger(__name__)
 
 
-class App(protocols.TaskCreator):
+class App(blueprints.Blueprint):
     """
     The App is the main entry point for procrastinate integration.
 
@@ -38,9 +26,6 @@ class App(protocols.TaskCreator):
     tasks : ``Dict[str, tasks.Task]``
         The mapping of all tasks known by the app. Only procrastinate is expected to
         make changes to this mapping.
-    builtin_tasks : ``Dict[str, tasks.Task]``
-        The mapping of builtin tasks. Use it to programmatically access builtin tasks,
-        to defer them.
     job_manager : `manager.JobManager`
         The `JobManager` linked to the application
     """
@@ -96,12 +81,9 @@ class App(protocols.TaskCreator):
         """
         from procrastinate import periodic
 
-        self._check_stack()
+        super().__init__()
 
         self.connector = connector
-        self.tasks: Dict[str, "tasks.Task"] = {}
-        self.builtin_tasks: Dict[str, "tasks.Task"] = {}
-        self.queues: Set[str] = set()
         self.import_paths = import_paths or []
         self.worker_defaults = worker_defaults or {}
         periodic_defaults = periodic_defaults or {}
@@ -112,25 +94,6 @@ class App(protocols.TaskCreator):
         )
 
         self._register_builtin_tasks()
-
-    def _check_stack(self):
-        # Emit a warning if the app is defined in the __main__ module
-        try:
-            if utils.caller_module_name() == "__main__":
-                logger.warning(
-                    "The Procrastinate app is instantiated in the main Python module "
-                    f"({sys.argv[0]}). "
-                    "See https://procrastinate.readthedocs.io/en/stable/discussions.html#top-level-app .",
-                    extra={"action": "app_defined_in___main__"},
-                    exc_info=True,
-                )
-        except exceptions.CallerModuleUnknown:
-            logger.warning(
-                "Unable to determine where the app was defined. "
-                "See https://procrastinate.readthedocs.io/en/stable/discussions.html#top-level-app .",
-                extra={"action": "app_location_unknown"},
-                exc_info=True,
-            )
 
     def with_connector(self, connector: connector_module.BaseConnector) -> "App":
         """
@@ -153,94 +116,6 @@ class App(protocols.TaskCreator):
         app.periodic_deferrer = self.periodic_deferrer
         return app
 
-    def task(
-        self,
-        _func: Optional[Callable] = None,
-        *,
-        name: Optional[str] = None,
-        aliases: Optional[List[str]] = None,
-        retry: retry_module.RetryValue = False,
-        pass_context: bool = False,
-        queue: str = jobs.DEFAULT_QUEUE,
-        lock: Optional[str] = None,
-        queueing_lock: Optional[str] = None,
-    ) -> Any:
-        """
-        Declare a function as a task. This method is meant to be used as a decorator::
-
-            @app.task(...)
-            def my_task(args):
-                ...
-
-        or::
-
-            @app.task
-            def my_task(args):
-                ...
-
-        The second form will use the default value for all parameters.
-
-        Parameters
-        ----------
-        _func :
-            The decorated function
-        queue :
-            The name of the queue in which jobs from this task will be launched, if
-            the queue is not overridden at launch.
-            Default is ``"default"``.
-            When a worker is launched, it can listen to specific queues, or to all
-            queues.
-        lock :
-            Default value for the ``lock`` (see `Task.defer`).
-        queueing_lock:
-            Default value for the ``queueing_lock`` (see `Task.defer`).
-        name :
-            Name of the task, by default the full dotted path to the decorated function.
-            if the function is nested or dynamically defined, it is important to give
-            it a unique name, and to make sure the module that defines this function
-            is listed in the ``import_paths`` of the `procrastinate.App`.
-        aliases:
-            Additional names for the task.
-            The main use case is to gracefully rename tasks by moving the old
-            name to aliases (these tasks can have been scheduled in a distant
-            future, so the aliases can remain for a long time).
-        retry :
-            Details how to auto-retry the task if it fails. Can be:
-
-            - A ``boolean``: will either not retry or retry indefinitely
-            - An ``int``: the number of retries before it gives up
-            - A `procrastinate.RetryStrategy` instance for complex cases
-
-            Default is no retry.
-        pass_context :
-            Passes the task execution context in the task as first
-        """
-        # Because of https://github.com/python/mypy/issues/3157, this function
-        # is quite impossible to type consistently, so, we're just using "Any"
-
-        def _wrap(func: Callable[..., "tasks.Task"]):
-            from procrastinate import tasks
-
-            task = tasks.Task(
-                func,
-                app=self,
-                queue=queue,
-                lock=lock,
-                queueing_lock=queueing_lock,
-                name=name,
-                aliases=aliases,
-                retry=retry,
-                pass_context=pass_context,
-            )
-            self._register(task)
-
-            return functools.update_wrapper(task, func, updated=())
-
-        if _func is None:  # Called as @app.task(...)
-            return _wrap
-
-        return _wrap(_func)  # Called as @app.task
-
     def periodic(self, *, cron: str):
         """
         Task decorator, marks task as being scheduled for periodic deferring (see
@@ -253,25 +128,17 @@ class App(protocols.TaskCreator):
         """
         return self.periodic_deferrer.periodic_decorator(cron=cron)
 
-    def register_blueprint(self, blueprint: "blueprints.Blueprint") -> None:
-        blueprint.register(self)
-
-    def _register(self, task: "tasks.Task") -> None:
-        self.tasks[task.name] = task
-        for alias in task.aliases:
-            self.tasks[alias] = task
-        queue = task.queue
-        if queue not in self.queues:
-            logger.debug(
-                f"Registering queue {queue}",
-                extra={"action": "register_queue", "queue": queue},
-            )
-            self.queues.add(queue)
-
     def _register_builtin_tasks(self) -> None:
         from procrastinate import builtin_tasks
 
-        builtin_tasks.register_builtin_tasks(self)
+        self.add_tasks_from(builtin_tasks.builtin, namespace="builtin")
+
+        # New tasks will be "builtin:procrastinate.builtin_tasks.remove_old_jobs"
+        # but for compatibility, we can keep the old name around.
+        self.add_task_alias(
+            task=builtin_tasks.remove_old_jobs,
+            alias="procrastinate.builtin_tasks.remove_old_jobs",
+        )
 
     def configure_task(
         self, name: str, *, allow_unknown: bool = True, **kwargs: Any

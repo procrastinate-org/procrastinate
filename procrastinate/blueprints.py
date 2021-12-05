@@ -1,52 +1,176 @@
 import functools
-from typing import TYPE_CHECKING, Any, Callable, List, Optional
+import logging
+import sys
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional
 
-from procrastinate import jobs, protocols, retry
+from procrastinate import exceptions, jobs, retry, utils
 
 if TYPE_CHECKING:
-    from procrastinate import app, tasks
+    from procrastinate import tasks
+
+logger = logging.getLogger(__name__)
 
 
-class Blueprint(protocols.TaskCreator):
+class Blueprint:
     """
     A Blueprint provides a way to declare tasks that can be registered on an
     `App` later::
 
-        bp = Blueprint()
+        # Create blueprint for all tasks related to the cat
+        cat_blueprint = Blueprint()
 
-        ... declare tasks ...
+        # Declare tasks
+        @cat_blueprint.task(lock="...")
+        def feed_cat():
+            ...
 
-        app.register(bp)
+        # Register blueprint (will register ``cat:path.to.feed_cat``)
+        app.add_tasks_from(cat_blueprint, namespace="cat")
 
-    Notes
-    -----
-    Deffering a blueprint task before the it is bound to an app will raise an
-    UnboundTaskError::
+    A blueprint can add tasks from another blueprint::
 
-        bp = Blueprint()
+        blueprint_a, blueprint_b = Blueprint(), Blueprint()
 
-        @bp.task
+        @blueprint_b.task(lock="...")
         def my_task():
             ...
 
-        my_task.defer()
+        blueprint_a.add_tasks_from(blueprint_b, namespace="b")
 
-        >> AssertionError: Tried to configure task whilst self.app was None
+        # Registers task "a:b:path.to.my_task"
+        app.add_tasks_from(blueprint_a, namespace="a")
 
+    Raises
+    ------
+    UnboundTaskError:
+        Calling a blueprint task before the it is bound to an `App` will raise a
+        `UnboundTaskError` error::
 
+            blueprint = Blueprint()
 
+            # Declare tasks
+            @blueprint.task
+            def my_task():
+                ...
+
+            >>> my_task.defer()
+
+            Traceback (most recent call last):
+                File "..."
+            `UnboundTaskError`: ...
     """
 
     def __init__(self):
-        self.tasks = {}
+        self.tasks: Dict[str, "tasks.Task"] = {}
+        self._check_stack()
+
+    def _check_stack(self):
+        # Emit a warning if the app is defined in the __main__ module
+        name = None
+        try:
+            name = utils.caller_module_name()
+        except exceptions.CallerModuleUnknown:
+            logger.warning(
+                "Unable to determine where the app was defined. "
+                "See https://procrastinate.readthedocs.io/en/stable/discussions.html#top-level-app .",
+                extra={"action": "app_location_unknown"},
+                exc_info=True,
+            )
+
+        if name == "__main__":
+            logger.warning(
+                f"{type(self).__name__} is instantiated in the main Python module "
+                f"({sys.argv[0]}). "
+                "See https://procrastinate.readthedocs.io/en/stable/discussions.html#top-level-app .",
+                extra={"action": "app_defined_in___main__"},
+                exc_info=True,
+            )
 
     def _register_task(self, task: "tasks.Task") -> None:
-        self.tasks[task.name] = task
+        """
+        Register the task into the blueprint task registry.
+        Raises exceptions.TaskAlreadyRegistered if the task name
+        or an alias already exists in the registry
+        """
+        from procrastinate import tasks
 
-    def register(self, app: "app.App") -> None:
-        for task in self.tasks.values():
-            task.app = app
-            app._register(task)
+        # Each call to _add_task may raise TaskAlreadyRegistered.
+        # We're using an intermediary dict to make sure that if the registration
+        # is interrupted midway though, self.tasks is left unmodified.
+        to_add: Dict[str, tasks.Task] = {}
+        self._add_task(task=task, name=task.name, to=to_add)
+
+        for alias in task.aliases:
+            self._add_task(task=task, name=alias, to=to_add)
+
+        self.tasks.update(to_add)
+
+    def _add_task(
+        self, task: "tasks.Task", name: str, to: Optional[dict] = None
+    ) -> None:
+        # Add a task to a dict of task while making
+        # sure a task of the same name was not already in self.tasks.
+        # This lets us prepare a dict of tasks we might add while not adding
+        # them until we're 100% sure there's no clash.
+
+        if name in self.tasks:
+            raise exceptions.TaskAlreadyRegistered(
+                f"A task named {name} was already registered"
+            )
+
+        result_dict = self.tasks if to is None else to
+        result_dict[name] = task
+
+    def add_task_alias(self, task: "tasks.Task", alias: str) -> None:
+        """
+        Add an alias to a task. This can be useful if a task was in a given
+        Blueprint and moves to a different blueprint.
+
+        Parameters
+        ----------
+        task :
+            Task to alias
+        alias :
+            New alias (including potential namespace, separated with ``:``)
+        """
+        self._add_task(task=task, name=alias)
+
+    def add_tasks_from(self, blueprint: "Blueprint", *, namespace: str) -> None:
+        """
+        Copies over all tasks from a different blueprint, prefixing their names
+        with the given namespace (using ``:`` as namespace separator).
+
+        Parameters
+        ----------
+        blueprint :
+            Blueprint to copy tasks from
+        namespace :
+            All task names (but not aliases) will be prefixed by this name,
+            uniqueness will be enforced.
+
+        Raises
+        ------
+        TaskAlreadyRegistered:
+            When trying to use a namespace that has already been used before
+        """
+        # Compute new task names
+        new_tasks = {
+            utils.add_namespace(name=name, namespace=namespace): task
+            for name, task in blueprint.tasks.items()
+        }
+        if set(self.tasks) & set(new_tasks):
+            raise exceptions.TaskAlreadyRegistered(
+                f"A namespace named {namespace} was already registered"
+            )
+        # Modify existing tasks and other blueprint to add the namespace, and
+        # set the blueprint
+        for task in set(blueprint.tasks.values()):
+            task.add_namespace(namespace)
+            task.blueprint = self
+        blueprint.tasks = new_tasks
+
+        # Finally, add the namespaced tasks to this namespace
+        self.tasks.update(new_tasks)
 
     def task(
         self,
@@ -61,21 +185,19 @@ class Blueprint(protocols.TaskCreator):
         queueing_lock: Optional[str] = None,
     ) -> Any:
         """
-        Like :meth:`App.task <procrastinate.App.task>` except tasks **are not** bound to
-        an app until the blueprint is registered on an app.
+        Declare a function as a task. This method is meant to be used as a decorator::
 
-        Declare a function as a task as you normally would::
-
-            @bp.task(...)
+            @app.task(...)
             def my_task(args):
                 ...
 
-        Un-configured task decorator will use default values for all parameters::
+        or::
 
-            @bp.task
+            @app.task
             def my_task(args):
                 ...
 
+        The second form will use the default value for all parameters.
 
         Parameters
         ----------
@@ -118,7 +240,7 @@ class Blueprint(protocols.TaskCreator):
 
             task = tasks.Task(
                 func,
-                app=None,
+                blueprint=self,
                 queue=queue,
                 lock=lock,
                 queueing_lock=queueing_lock,

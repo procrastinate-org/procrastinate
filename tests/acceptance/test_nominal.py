@@ -45,6 +45,7 @@ def test_nominal(defer, worker):
     defer("increment_task", a=3)
 
     stdout, stderr = worker()
+    print(stdout, stderr)
 
     assert stdout.splitlines() == ["Launching a worker on all queues", "12", "7", "4"]
     assert stderr.startswith("DEBUG:procrastinate.")
@@ -52,18 +53,22 @@ def test_nominal(defer, worker):
     defer("product_task", a=5, b=4)
 
     stdout, stderr = worker("default")
+    print(stdout, stderr)
     assert "20" not in stdout
 
     stdout, stderr = worker("product_queue")
+    print(stdout, stderr)
     assert stdout.splitlines() == ["Launching a worker on product_queue", "20"]
 
     defer("two_fails")
     stdout, stderr = worker()
+    print(stdout, stderr)
     assert "Print something to stdout" in stdout
     assert stderr.count("Exception: This should fail") == 2
 
     defer("multiple_exception_failures")
     stdout, stderr = worker()
+    print(stdout, stderr)
     assert (
         stdout
         == """Launching a worker on all queues

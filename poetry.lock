@@ -932,7 +932,7 @@ sqlalchemy = ["sqlalchemy"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7"
-content-hash = "539bd244c28225a55d321efc7542223c511648d2d54fa9eeb7ee3c984509b5cb"
+content-hash = "6d621fbd0944291702ec60a105a64ff169e6c954fc27fcf87ea147d3d8d375bf"
 
 [metadata.files]
 aiopg = [

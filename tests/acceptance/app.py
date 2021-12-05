@@ -47,7 +47,8 @@ def sum_task(a, b):
     print(a + b)
 
 
-app.register_blueprint(bp)
+app.add_tasks_from(bp, namespace="ns")
+app.add_task_alias(sum_task, "tests.acceptance.app.sum_task")
 
 
 @app.task(queue="default")

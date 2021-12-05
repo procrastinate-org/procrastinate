@@ -34,7 +34,7 @@ From the CLI
 
 .. code-block:: console
 
-    $ procrastinate defer procrastinate.builtin_tasks.remove_old_jobs max_hours=72
+    $ procrastinate defer builtin:procrastinate.builtin_tasks.remove_old_jobs max_hours=72
 
 For more information about this task's parameter,
 see :py:func:`~procrastinate.builtin_tasks.remove_old_jobs`
@@ -53,18 +53,26 @@ See also the `periodic launch <cron>` section for related information.
 In Python code
 ^^^^^^^^^^^^^^
 
+Import the following module:
+
 .. code-block:: python
 
-    app.builtin_tasks["remove_old_jobs"].defer(max_hours=72)
+    from procrastinate import builtin_tasks
 
-You can access the builtin task through `App.builtin_tasks`.
+Then:
+
+.. code-block:: python
+
+    builtin_tasks.remove_old_jobs.defer(max_hours=72)
+
+You can access the builtin task through ``procrastinate.builtin_tasks``.
 The parameters are the same than when accessing the task through the CLI.
 
 For example, to use a queueing lock:
 
 .. code-block:: python
 
-    deferrer = app.builtin_tasks["remove_old_jobs"].configure(queueing_lock="remove_old_jobs")
+    deferrer = builtin_tasks.remove_old_jobs.configure(queueing_lock="remove_old_jobs")
     deferrer.defer(max_hours=72)
 
 The call to ``defer`` will raise an `AlreadyEnqueued` exception if there already is
@@ -79,7 +87,7 @@ tasks" functionality. This is how you can make ``remove_old_jobs`` periodic:
     @app.periodic(cron="0 4 * * *")
     @app.task(queueing_lock="remove_old_jobs", pass_context=True)
     async def remove_old_jobs(context, timestamp):
-        return await app.builtin_tasks["remove_old_jobs"](
+        return await builtin_tasks.remove_old_jobs(
             context=context,
             max_hours=72,
             remove_error=True,

@@ -10,7 +10,7 @@ def task_func():
 
 
 def test_task_init_with_no_name(app):
-    task = tasks.Task(task_func, app=app, queue="queue")
+    task = tasks.Task(task_func, blueprint=app, queue="queue")
 
     assert task.func is task_func
     assert task.name == "tests.unit.test_tasks.task_func"
@@ -18,7 +18,7 @@ def test_task_init_with_no_name(app):
 
 @pytest.mark.asyncio
 async def test_task_defer_async(app, connector):
-    task = tasks.Task(task_func, app=app, queue="queue")
+    task = tasks.Task(task_func, blueprint=app, queue="queue")
 
     await task.defer_async(c=3)
 
@@ -79,7 +79,7 @@ def test_configure_task_schedule_in_and_schedule_at(job_manager):
 
 
 def test_task_configure(app):
-    task = tasks.Task(task_func, app=app, queue="queue")
+    task = tasks.Task(task_func, blueprint=app, queue="queue")
 
     job = task.configure(lock="sher", task_kwargs={"yay": "ho"}).job
 
@@ -90,7 +90,7 @@ def test_task_configure(app):
 
 
 def test_task_configure_override_queue(app):
-    task = tasks.Task(task_func, app=app, queue="queue")
+    task = tasks.Task(task_func, blueprint=app, queue="queue")
 
     job = task.configure(queue="other_queue").job
 
@@ -98,7 +98,7 @@ def test_task_configure_override_queue(app):
 
 
 def test_task_get_retry_exception_none(app):
-    task = tasks.Task(task_func, app=app, queue="queue")
+    task = tasks.Task(task_func, blueprint=app, queue="queue")
     job = task.configure().job
 
     assert task.get_retry_exception(exception=None, job=job) is None
@@ -107,7 +107,7 @@ def test_task_get_retry_exception_none(app):
 def test_task_get_retry_exception(app, mocker):
     mock = mocker.patch("procrastinate.retry.RetryStrategy.get_retry_exception")
 
-    task = tasks.Task(task_func, app=app, queue="queue", retry=10)
+    task = tasks.Task(task_func, blueprint=app, queue="queue", retry=10)
     job = task.configure().job
 
     exception = ValueError()

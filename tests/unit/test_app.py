@@ -4,7 +4,7 @@ import collections
 import pytest
 
 from procrastinate import app as app_module
-from procrastinate import exceptions, retry, tasks, testing
+from procrastinate import exceptions, tasks, testing
 
 from .. import conftest
 from .conftest import AsyncMock
@@ -17,55 +17,6 @@ def task_func():
 def test_app_no_connector():
     with pytest.raises(TypeError):
         app_module.App()
-
-
-def test_app_task_explicit(app, mocker):
-    @app.task(
-        name="foobar",
-        queue="bar",
-        lock="sher",
-        queueing_lock="baz",
-        retry=True,
-        pass_context=True,
-    )
-    def wrapped():
-        return "foo"
-
-    assert wrapped() == "foo"
-    assert app.tasks["foobar"].name == "foobar"
-    assert app.tasks["foobar"].queue == "bar"
-    assert app.tasks["foobar"].lock == "sher"
-    assert app.tasks["foobar"].queueing_lock == "baz"
-    assert isinstance(app.tasks["foobar"].retry_strategy, retry.RetryStrategy)
-    assert app.tasks["foobar"].pass_context is True
-    assert app.tasks["foobar"] is wrapped
-    assert app.tasks["foobar"].func is wrapped.__wrapped__
-
-
-def test_app_task_aliases(app, mocker):
-    @app.task(name="b", aliases=["c", "d"])
-    def wrapped():
-        pass
-
-    assert "b" == app.tasks["b"].name
-    assert ["c", "d"] == app.tasks["b"].aliases
-    assert app.tasks["b"] is wrapped
-    assert app.tasks["c"] is wrapped
-    assert app.tasks["d"] is wrapped
-
-
-def test_app_task_implicit(app):
-    @app.task
-    def wrapped():
-        return "foo"
-
-    registered_task = app.tasks["tests.unit.test_app.wrapped"]
-
-    assert "foo" == wrapped()
-    assert "tests.unit.test_app.wrapped" == registered_task.name
-    assert "default" == registered_task.queue
-    assert registered_task is wrapped
-    assert registered_task.func is wrapped.__wrapped__
 
 
 def test_app_task_dont_read_function_attributes(app):
@@ -82,28 +33,15 @@ def test_app_task_dont_read_function_attributes(app):
 
 
 def test_app_register_builtins(app):
-    assert app.queues == {"builtin"}
     assert "procrastinate.builtin_tasks.remove_old_jobs" in app.tasks
-    assert "remove_old_jobs" in app.builtin_tasks
+    assert "builtin:procrastinate.builtin_tasks.remove_old_jobs" in app.tasks
 
 
 def test_app_register(app):
-    task = tasks.Task(task_func, app=app, queue="queue", name="bla")
+    task = tasks.Task(task_func, blueprint=app, queue="queue", name="bla")
 
-    app._register(task)
+    app._register_task(task)
 
-    assert app.queues == {"queue", "builtin"}
-    assert "bla" in app.tasks
-    assert app.tasks["bla"] == task
-
-
-def test_app_register_queue_already_exists(app):
-    app.queues.add("queue")
-    task = tasks.Task(task_func, app=app, queue="queue", name="bla")
-
-    app._register(task)
-
-    assert app.queues == {"queue", "builtin"}
     assert "bla" in app.tasks
     assert app.tasks["bla"] == task
 
