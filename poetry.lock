@@ -189,14 +189,6 @@ argon2 = ["argon2-cffi (>=19.1.0)"]
 bcrypt = ["bcrypt"]
 
 [[package]]
-name = "django-types"
-version = "0.10.0"
-description = "Type stubs for Django"
-category = "dev"
-optional = false
-python-versions = ">=3.6.2,<4.0.0"
-
-[[package]]
 name = "docutils"
 version = "0.16"
 description = "Docutils -- Python Documentation Utilities"
@@ -861,25 +853,17 @@ optional = false
 python-versions = ">=3.6"
 
 [[package]]
+name = "tomlkit"
+version = "0.7.2"
+description = "Style preserving TOML library"
+category = "dev"
+optional = false
+python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
+
+[[package]]
 name = "typed-ast"
 version = "1.4.3"
 description = "a fork of Python 2 and 3 ast modules with type comment support"
-category = "dev"
-optional = false
-python-versions = "*"
-
-[[package]]
-name = "types-attrs"
-version = "19.1.0"
-description = "Typing stubs for attrs"
-category = "dev"
-optional = false
-python-versions = "*"
-
-[[package]]
-name = "types-click"
-version = "7.1.8"
-description = "Typing stubs for click"
 category = "dev"
 optional = false
 python-versions = "*"
@@ -948,7 +932,7 @@ sqlalchemy = ["sqlalchemy"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7"
-content-hash = "2029f040a9518f06b9955f01db218d34ecd837b49eeb1bf00e0f56107edeb2b3"
+content-hash = "539bd244c28225a55d321efc7542223c511648d2d54fa9eeb7ee3c984509b5cb"
 
 [metadata.files]
 aiopg = [
@@ -1055,10 +1039,6 @@ croniter = [
 django = [
     {file = "Django-3.2.9-py3-none-any.whl", hash = "sha256:e22c9266da3eec7827737cde57694d7db801fedac938d252bf27377cec06ed1b"},
     {file = "Django-3.2.9.tar.gz", hash = "sha256:51284300f1522ffcdb07ccbdf676a307c6678659e1284f0618e5a774127a6a08"},
-]
-django-types = [
-    {file = "django-types-0.10.0.tar.gz", hash = "sha256:75aa26cfa627a05781e8805fc34c43f227503e4444455abca20b693a62d00894"},
-    {file = "django_types-0.10.0-py3-none-any.whl", hash = "sha256:7ca4d0363106045c72b626fccd32a7837f6cbebcc30a42b5042e3a623ab3ca63"},
 ]
 docutils = [
     {file = "docutils-0.16-py2.py3-none-any.whl", hash = "sha256:0c5b78adfbf7762415433f5515cd5c9e762339e23369dbe8000d84a4bf4ab3af"},
@@ -1517,6 +1497,10 @@ tomli = [
     {file = "tomli-1.2.2-py3-none-any.whl", hash = "sha256:f04066f68f5554911363063a30b108d2b5a5b1a010aa8b6132af78489fe3aade"},
     {file = "tomli-1.2.2.tar.gz", hash = "sha256:c6ce0015eb38820eaf32b5db832dbc26deb3dd427bd5f6556cf0acac2c214fee"},
 ]
+tomlkit = [
+    {file = "tomlkit-0.7.2-py2.py3-none-any.whl", hash = "sha256:173ad840fa5d2aac140528ca1933c29791b79a374a0861a80347f42ec9328117"},
+    {file = "tomlkit-0.7.2.tar.gz", hash = "sha256:d7a454f319a7e9bd2e249f239168729327e4dd2d27b17dc68be264ad1ce36754"},
+]
 typed-ast = [
     {file = "typed_ast-1.4.3-cp35-cp35m-manylinux1_i686.whl", hash = "sha256:2068531575a125b87a41802130fa7e29f26c09a2833fea68d9a40cf33902eba6"},
     {file = "typed_ast-1.4.3-cp35-cp35m-manylinux1_x86_64.whl", hash = "sha256:c907f561b1e83e93fad565bac5ba9c22d96a54e7ea0267c708bffe863cbe4075"},
@@ -1548,13 +1532,6 @@ typed-ast = [
     {file = "typed_ast-1.4.3-cp39-cp39-win32.whl", hash = "sha256:209596a4ec71d990d71d5e0d312ac935d86930e6eecff6ccc7007fe54d703808"},
     {file = "typed_ast-1.4.3-cp39-cp39-win_amd64.whl", hash = "sha256:9c6d1a54552b5330bc657b7ef0eae25d00ba7ffe85d9ea8ae6540d2197a3788c"},
     {file = "typed_ast-1.4.3.tar.gz", hash = "sha256:fb1bbeac803adea29cedd70781399c99138358c26d05fcbd23c13016b7f5ec65"},
-]
-types-attrs = [
-    {file = "types_attrs-19.1.0-py2.py3-none-any.whl", hash = "sha256:d11acf7a2531a7c52a740c30fa3eb8d01d3066c10d34c01ff5e59502caac5352"},
-]
-types-click = [
-    {file = "types-click-7.1.8.tar.gz", hash = "sha256:b6604968be6401dc516311ca50708a0a28baa7a0cb840efd7412f0dbbff4e092"},
-    {file = "types_click-7.1.8-py3-none-any.whl", hash = "sha256:8cb030a669e2e927461be9827375f83c16b8178c365852c060a34e24871e7e81"},
 ]
 types-croniter = [
     {file = "types-croniter-1.0.3.tar.gz", hash = "sha256:955d9ca3efaf99f0f76d6607a1f5b8a9cc4051e26dc34b4a3d69dfa29571758e"},
