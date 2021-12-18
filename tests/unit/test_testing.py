@@ -79,7 +79,6 @@ def test_defer_job_one(connector):
             "status": "todo",
             "scheduled_at": None,
             "attempts": 0,
-            "name_suffix": "",
         }
     }
     assert connector.jobs[1] == job

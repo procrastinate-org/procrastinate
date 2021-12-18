@@ -1,11 +1,10 @@
 import asyncio
 import datetime
-import json
 from collections import Counter
 from itertools import count
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
-from procrastinate import connector, exceptions, schema, sql, utils
+from procrastinate import connector, exceptions, schema, sql, types, utils
 
 JobRow = Dict[str, Any]
 EventRow = Dict[str, Any]
@@ -42,7 +41,7 @@ class InMemoryConnector(connector.BaseAsyncConnector):
         self.queries: List[Tuple[str, Dict[str, Any]]] = []
         self.notify_event = None
         self.notify_channels = []
-        self.periodic_defers: Dict[str, int] = {}
+        self.periodic_defers: Dict[Tuple[str, str], int] = {}
         self.table_exists = True
         self.states: List[str] = []
 
@@ -93,7 +92,13 @@ class InMemoryConnector(connector.BaseAsyncConnector):
     # End of BaseConnector methods
 
     def defer_job_one(
-        self, task_name, lock, queueing_lock, args, scheduled_at, queue, name_suffix=""
+        self,
+        task_name: str,
+        lock: Optional[str],
+        queueing_lock: Optional[str],
+        args: types.JSONDict,
+        scheduled_at: Optional[datetime.datetime],
+        queue: str,
     ) -> JobRow:
         if queueing_lock is not None and any(
             job["queueing_lock"] == queueing_lock and job["status"] == "todo"
@@ -111,7 +116,6 @@ class InMemoryConnector(connector.BaseAsyncConnector):
             "id": id,
             "queue_name": queue,
             "task_name": task_name,
-            "name_suffix": name_suffix,
             "lock": lock,
             "queueing_lock": queueing_lock,
             "args": args,
@@ -132,18 +136,19 @@ class InMemoryConnector(connector.BaseAsyncConnector):
 
     def defer_periodic_job_one(
         self,
-        queue,
-        task_name,
-        kwargs_string,
-        defer_timestamp,
-        lock,
-        queueing_lock,
-        name_suffix="",
+        queue: str,
+        task_name: str,
+        args: types.JSONDict,
+        defer_timestamp: int,
+        lock: Optional[str],
+        queueing_lock: Optional[str],
+        name_suffix: str,
     ):
-        if self.periodic_defers.get(task_name) == defer_timestamp:
+        # If the periodic task has already been deferred for this timestamp
+        if self.periodic_defers.get((task_name, name_suffix)) == defer_timestamp:
             return {"id": None}
-        self.periodic_defers[task_name] = defer_timestamp
-        args = {**json.loads(kwargs_string), "timestamp": defer_timestamp}
+
+        self.periodic_defers[(task_name, name_suffix)] = defer_timestamp
         return self.defer_job_one(
             task_name=task_name,
             queue=queue,
@@ -151,7 +156,6 @@ class InMemoryConnector(connector.BaseAsyncConnector):
             queueing_lock=queueing_lock,
             args=args,
             scheduled_at=None,
-            name_suffix=name_suffix,
         )
 
     @property

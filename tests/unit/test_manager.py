@@ -29,7 +29,6 @@ async def test_manager_defer_job(job_manager, job_factory, connector):
             "scheduled_at": None,
             "status": "todo",
             "task_name": "bla",
-            "name_suffix": "",
         }
     }
 
@@ -177,17 +176,27 @@ async def test_defer_periodic_job(job_manager, connector, app):
     def foo(timestamp):
         pass
 
-    result = await job_manager.defer_periodic_job(foo, "", frozenset(), 1234567890)
+    result = await job_manager.defer_periodic_job(
+        task=foo, name_suffix="", kwargs={}, defer_timestamp=1234567890
+    )
     assert result == 1
 
 
 async def test_defer_periodic_job_with_suffixes(job_manager, connector, app):
-    @app.task(queueing_lock="bla")
+    @app.task
     def foo(timestamp):
         pass
 
-    await job_manager.defer_periodic_job(foo, "1", frozenset(), 1234567890)
-    await job_manager.defer_periodic_job(foo, "2", frozenset(), 1234567890)
+    result = [
+        await job_manager.defer_periodic_job(
+            task=foo, name_suffix="1", kwargs={}, defer_timestamp=1234567890
+        ),
+        await job_manager.defer_periodic_job(
+            task=foo, name_suffix="2", kwargs={}, defer_timestamp=1234567890
+        ),
+    ]
+
+    assert result == [1, 2]
 
 
 async def test_defer_periodic_job_unique_violation(job_manager, connector, app):
@@ -195,9 +204,13 @@ async def test_defer_periodic_job_unique_violation(job_manager, connector, app):
     def foo(timestamp):
         pass
 
-    await job_manager.defer_periodic_job(foo, "", frozenset(), 1234567890)
+    await job_manager.defer_periodic_job(
+        task=foo, name_suffix="", kwargs={}, defer_timestamp=1234567890
+    )
     with pytest.raises(exceptions.AlreadyEnqueued):
-        await job_manager.defer_periodic_job(foo, "", frozenset(), 1234567891)
+        await job_manager.defer_periodic_job(
+            task=foo, name_suffix="", kwargs={}, defer_timestamp=1234567891
+        )
 
 
 def test_raise_already_enqueued_right_constraint(job_manager):
