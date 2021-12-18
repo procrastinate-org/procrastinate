@@ -1,8 +1,9 @@
 import asyncio
 import functools
 import logging
+import sys
 import time
-from typing import Any, Dict, FrozenSet, Iterable, List, Optional, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 import attr
 import croniter
@@ -18,7 +19,12 @@ MARGIN = 0.5  # seconds
 
 logger = logging.getLogger(__name__)
 
-TaskAtTime = Tuple[tasks.Task, str, FrozenSet[Tuple[str, Any]], int]
+TaskAtTime = Tuple[tasks.Task, str, Dict[str, Any], int]
+
+if sys.version_info < (3, 8):
+    cached_property = property
+else:
+    cached_property = functools.cached_property
 
 
 @attr.dataclass(frozen=True)
@@ -26,9 +32,9 @@ class PeriodicTask:
     task: tasks.Task
     cron: str
     name_suffix: str
-    kwargs: FrozenSet[Tuple[str, Any]]
+    kwargs: Dict[str, Any]
 
-    @functools.lru_cache(maxsize=1)
+    @cached_property
     def croniter(self) -> croniter.croniter:
         return croniter.croniter(self.cron)
 
@@ -90,7 +96,7 @@ class PeriodicDeferrer:
             task=task,
             cron=cron,
             name_suffix=name_suffix,
-            kwargs=frozenset(kwargs.items()),  # type: ignore
+            kwargs=kwargs,
         )
         self.periodic_tasks.append(periodic_task)
         return periodic_task
@@ -102,7 +108,7 @@ class PeriodicDeferrer:
         If now is not passed, the current timestamp is used.
         """
         next_timestamp = min(
-            pt.croniter().get_next(ret_type=float, start_time=at)  # type: ignore
+            pt.croniter.get_next(ret_type=float, start_time=at)  # type: ignore
             for pt in self.periodic_tasks
         )
         return next_timestamp - at
@@ -128,7 +134,7 @@ class PeriodicDeferrer:
     def get_timestamps(
         self, periodic_task: PeriodicTask, since: Optional[int], until: float
     ) -> Iterable[int]:
-        cron_iterator = periodic_task.croniter()
+        cron_iterator = periodic_task.croniter
         if since:
             # For some reason, mypy can't wrap its head around this statement.
             # You're welcome to tell us why (or how to fix it).
