@@ -142,13 +142,13 @@ class InMemoryConnector(connector.BaseAsyncConnector):
         defer_timestamp: int,
         lock: Optional[str],
         queueing_lock: Optional[str],
-        name_suffix: str,
+        periodic_id: str,
     ):
         # If the periodic task has already been deferred for this timestamp
-        if self.periodic_defers.get((task_name, name_suffix)) == defer_timestamp:
+        if self.periodic_defers.get((task_name, periodic_id)) == defer_timestamp:
             return {"id": None}
 
-        self.periodic_defers[(task_name, name_suffix)] = defer_timestamp
+        self.periodic_defers[(task_name, periodic_id)] = defer_timestamp
         return self.defer_job_one(
             task_name=task_name,
             queue=queue,

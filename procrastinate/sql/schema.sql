@@ -41,8 +41,8 @@ CREATE TABLE procrastinate_periodic_defers (
     defer_timestamp bigint,
     job_id bigint REFERENCES procrastinate_jobs(id) NULL,
     queue_name character varying(128) NOT NULL,
-    name_suffix character varying(128) NOT NULL DEFAULT '',
-    CONSTRAINT procrastinate_periodic_defers_unique UNIQUE (task_name, name_suffix, queue_name, defer_timestamp)
+    periodic_id character varying(128) NOT NULL DEFAULT '',
+    CONSTRAINT procrastinate_periodic_defers_unique UNIQUE (task_name, periodic_id, queue_name, defer_timestamp)
 );
 
 CREATE TABLE procrastinate_events (
@@ -95,7 +95,7 @@ CREATE FUNCTION procrastinate_defer_periodic_job(
     _lock character varying,
     _queueing_lock character varying,
     _task_name character varying,
-    _name_suffix character varying,
+    _periodic_id character varying,
     _defer_timestamp bigint,
     _args jsonb
 ) RETURNS bigint
@@ -107,8 +107,8 @@ DECLARE
 BEGIN
 
     INSERT
-        INTO procrastinate_periodic_defers (task_name, name_suffix, queue_name, defer_timestamp)
-        VALUES (_task_name, _name_suffix, _queue_name, _defer_timestamp)
+        INTO procrastinate_periodic_defers (task_name, periodic_id, queue_name, defer_timestamp)
+        VALUES (_task_name, _periodic_id, _queue_name, _defer_timestamp)
         ON CONFLICT DO NOTHING
         RETURNING id into _defer_id;
 

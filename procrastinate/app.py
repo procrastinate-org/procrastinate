@@ -116,7 +116,7 @@ class App(blueprints.Blueprint):
         app.periodic_deferrer = self.periodic_deferrer
         return app
 
-    def periodic(self, *, cron: str, name_suffix: str = "", **kwargs: Dict[str, Any]):
+    def periodic(self, *, cron: str, periodic_id: str = "", **kwargs: Dict[str, Any]):
         """
         Task decorator, marks task as being scheduled for periodic deferring (see
         `howto/cron`).
@@ -125,11 +125,11 @@ class App(blueprints.Blueprint):
         ----------
         cron :
             Cron-like string. Optionally add a 6th column for seconds.
-        name_suffix :
+        periodic_id :
             Task name suffix. Used to distinct periodic tasks with different kwargs.
         """
         return self.periodic_deferrer.periodic_decorator(
-            cron=cron, name_suffix=name_suffix, **kwargs
+            cron=cron, periodic_id=periodic_id, **kwargs
         )
 
     def _register_builtin_tasks(self) -> None:

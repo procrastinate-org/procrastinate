@@ -22,24 +22,24 @@ def task(app):
 @pytest.fixture
 def cron_task(periodic_deferrer, task):
     def _(cron="0 0 * * *"):
-        return periodic_deferrer.register_task(task=task, cron=cron, name_suffix="")
+        return periodic_deferrer.register_task(task=task, cron=cron, periodic_id="")
 
     return _
 
 
 def test_register_task(periodic_deferrer, task):
-    periodic_deferrer.register_task(task=task, cron="0 0 * * *", name_suffix="")
+    periodic_deferrer.register_task(task=task, cron="0 0 * * *", periodic_id="")
 
     assert periodic_deferrer.periodic_tasks == [
-        periodic.PeriodicTask(task=task, cron="0 0 * * *", name_suffix="", kwargs={})
+        periodic.PeriodicTask(task=task, cron="0 0 * * *", periodic_id="", kwargs={})
     ]
 
 
 def test_schedule_decorator(periodic_deferrer, task):
-    periodic_deferrer.periodic_decorator(cron="0 0 * * *", name_suffix="")(task)
+    periodic_deferrer.periodic_decorator(cron="0 0 * * *", periodic_id="")(task)
 
     assert periodic_deferrer.periodic_tasks == [
-        periodic.PeriodicTask(task=task, cron="0 0 * * *", name_suffix="", kwargs={})
+        periodic.PeriodicTask(task=task, cron="0 0 * * *", periodic_id="", kwargs={})
     ]
 
 
@@ -143,7 +143,7 @@ async def test_worker_loop(job_manager, mocker, task):
             return next(counter)
 
     mock_deferrer = MockPeriodicDeferrer(job_manager=job_manager)
-    mock_deferrer.register_task(task=task, cron="* * * * *", name_suffix="")
+    mock_deferrer.register_task(task=task, cron="* * * * *", periodic_id="")
     with pytest.raises(ValueError):
         await mock_deferrer.worker()
 
@@ -182,7 +182,7 @@ async def test_defer_jobs(periodic_deferrer, task, connector, caplog):
                 "lock": None,
                 "queueing_lock": None,
                 "task_name": task.name,
-                "name_suffix": "",
+                "periodic_id": "",
             },
         )
     ]
@@ -190,7 +190,7 @@ async def test_defer_jobs(periodic_deferrer, task, connector, caplog):
 
 
 @pytest.mark.asyncio
-async def test_defer_jobs_different_name_suffix(
+async def test_defer_jobs_different_periodic_id(
     periodic_deferrer, task, connector, caplog
 ):
     caplog.set_level("DEBUG")
@@ -208,7 +208,7 @@ async def test_defer_jobs_different_name_suffix(
                 "lock": None,
                 "queueing_lock": None,
                 "task_name": task.name,
-                "name_suffix": "bar",
+                "periodic_id": "bar",
             },
         )
     ]
@@ -232,7 +232,7 @@ async def test_defer_jobs_already(periodic_deferrer, task, connector, caplog):
                 "lock": None,
                 "queueing_lock": None,
                 "task_name": task.name,
-                "name_suffix": "foo",
+                "periodic_id": "foo",
             },
         )
     ]

@@ -82,7 +82,7 @@ class JobManager:
     async def defer_periodic_job(
         self,
         task,
-        name_suffix: str,
+        periodic_id: str,
         kwargs: Dict[str, Any],
         defer_timestamp: int,
     ) -> Optional[int]:
@@ -99,7 +99,7 @@ class JobManager:
                 lock=task.lock,
                 queueing_lock=task.queueing_lock,
                 defer_timestamp=defer_timestamp,
-                name_suffix=name_suffix,
+                periodic_id=periodic_id,
                 args=kwargs,
             )
         except exceptions.UniqueViolation as exc:
