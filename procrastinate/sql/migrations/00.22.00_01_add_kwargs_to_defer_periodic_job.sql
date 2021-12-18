@@ -2,12 +2,11 @@ ALTER TABLE procrastinate_periodic_defers
 ADD IF NOT EXISTS name_suffix character varying(128) NOT NULL DEFAULT '';
 
 ALTER TABLE procrastinate_periodic_defers
-DROP CONSTRAINT procrastinate_periodic_defers_unique;
+    DROP CONSTRAINT IF EXISTS procrastinate_periodic_defers_unique;
 
 ALTER TABLE procrastinate_periodic_defers
-ADD CONSTRAINT procrastinate_periodic_defers_unique UNIQUE (task_name, name_suffix, queue_name, defer_timestamp);
+    ADD CONSTRAINT procrastinate_periodic_defers_unique UNIQUE (task_name, name_suffix, queue_name, defer_timestamp);
 
-DROP FUNCTION IF EXISTS procrastinate_defer_periodic_job;
 CREATE FUNCTION procrastinate_defer_periodic_job(
     _queue_name character varying,
     _lock character varying,
@@ -15,7 +14,7 @@ CREATE FUNCTION procrastinate_defer_periodic_job(
     _task_name character varying,
     _name_suffix character varying,
     _defer_timestamp bigint,
-    _kwargs_string character varying
+    _args jsonb
 ) RETURNS bigint
     LANGUAGE plpgsql
 AS $$
@@ -40,7 +39,7 @@ BEGIN
                 _task_name,
                 _lock,
                 _queueing_lock,
-                _kwargs_string::jsonb,
+                _args,
                 NULL
             )
         WHERE id = _defer_id
