@@ -96,7 +96,7 @@ class PeriodicDeferrer:
             )
 
         logger.info(
-            f"Registering task {task.name} with suffix {periodic_id} to run "
+            f"Registering task {task.name} with periodic id {periodic_id!r} to run "
             f"periodically with cron {cron}",
             extra={
                 "action": "registering_periodic_task",
