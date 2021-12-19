@@ -89,9 +89,7 @@ class App(blueprints.Blueprint):
         periodic_defaults = periodic_defaults or {}
 
         self.job_manager = manager.JobManager(connector=self.connector)
-        self.periodic_deferrer = periodic.PeriodicDeferrer(
-            job_manager=self.job_manager, **periodic_defaults
-        )
+        self.periodic_deferrer = periodic.PeriodicDeferrer(**periodic_defaults)
 
         self._register_builtin_tasks()
 

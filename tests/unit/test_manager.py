@@ -171,45 +171,48 @@ async def test_listen_for_jobs(job_manager, connector, mocker, queues, channels)
     assert connector.notify_channels == channels
 
 
-async def test_defer_periodic_job(job_manager, connector, app):
+@pytest.fixture
+def configure(app):
     @app.task
     def foo(timestamp):
         pass
 
-    result = await job_manager.defer_periodic_job(
-        task=foo, periodic_id="", configure_kwargs={}, defer_timestamp=1234567890
+    return foo.configure
+
+
+async def test_defer_periodic_job(configure):
+    deferrer = configure()
+
+    result = await deferrer.job_manager.defer_periodic_job(
+        job=deferrer.job, periodic_id="", defer_timestamp=1234567890
     )
     assert result == 1
 
 
-async def test_defer_periodic_job_with_suffixes(job_manager, connector, app):
-    @app.task
-    def foo(timestamp):
-        pass
+async def test_defer_periodic_job_with_suffixes(configure):
+    deferrer = configure()
 
     result = [
-        await job_manager.defer_periodic_job(
-            task=foo, periodic_id="1", configure_kwargs={}, defer_timestamp=1234567890
+        await deferrer.job_manager.defer_periodic_job(
+            job=deferrer.job, periodic_id="1", defer_timestamp=1234567890
         ),
-        await job_manager.defer_periodic_job(
-            task=foo, periodic_id="2", configure_kwargs={}, defer_timestamp=1234567890
+        await deferrer.job_manager.defer_periodic_job(
+            job=deferrer.job, periodic_id="2", defer_timestamp=1234567890
         ),
     ]
 
     assert result == [1, 2]
 
 
-async def test_defer_periodic_job_unique_violation(job_manager, connector, app):
-    @app.task(queueing_lock="bla")
-    def foo(timestamp):
-        pass
+async def test_defer_periodic_job_unique_violation(configure):
+    deferrer = configure(queueing_lock="bla")
 
-    await job_manager.defer_periodic_job(
-        task=foo, periodic_id="", configure_kwargs={}, defer_timestamp=1234567890
+    await deferrer.job_manager.defer_periodic_job(
+        job=deferrer.job, periodic_id="", defer_timestamp=1234567890
     )
     with pytest.raises(exceptions.AlreadyEnqueued):
-        await job_manager.defer_periodic_job(
-            task=foo, periodic_id="", configure_kwargs={}, defer_timestamp=1234567891
+        await deferrer.job_manager.defer_periodic_job(
+            job=deferrer.job, periodic_id="", defer_timestamp=1234567891
         )
 
 

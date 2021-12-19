@@ -8,7 +8,7 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple
 import attr
 import croniter
 
-from procrastinate import exceptions, manager, tasks
+from procrastinate import exceptions, tasks
 
 # The maximum delay after which tasks will be considered as
 # outdated, and ignored.
@@ -41,9 +41,8 @@ TaskAtTime = Tuple[PeriodicTask, int]
 
 
 class PeriodicDeferrer:
-    def __init__(self, job_manager: manager.JobManager, max_delay: float = MAX_DELAY):
+    def __init__(self, max_delay: float = MAX_DELAY):
         self.periodic_tasks: List[PeriodicTask] = []
-        self.job_manager = job_manager
         # {(task_name, periodic_id): defer_timestamp}
         self.last_defers: Dict[Tuple[str, str], int] = {}
         self.max_delay = max_delay
@@ -199,11 +198,11 @@ class PeriodicDeferrer:
                 "defer_timestamp": timestamp,
                 "kwargs": configure_kwargs,
             }
+            job_deferrer = task.configure(**configure_kwargs)
             try:
-                job_id = await self.job_manager.defer_periodic_job(
-                    task=task,
+                job_id = await job_deferrer.job_manager.defer_periodic_job(
+                    job=job_deferrer.job,
                     periodic_id=periodic_id,
-                    configure_kwargs=configure_kwargs,
                     defer_timestamp=timestamp,
                 )
             except exceptions.AlreadyEnqueued:
