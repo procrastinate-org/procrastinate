@@ -7,7 +7,6 @@ import types
 import pytest
 
 from procrastinate import exceptions, utils
-from tests.unit.conftest import AsyncMock
 
 
 def test_load_from_path():
@@ -529,30 +528,35 @@ def test_parse_datetime(input, expected):
 
 
 @pytest.fixture
-def mock_awaitable_context():
-    open_mock, close_mock = AsyncMock(), AsyncMock()
-    return utils.AwaitableContext(
-        open_coro=lambda: open_mock, close_coro=lambda: close_mock, return_value=1
-    )
+def awaitable_context():
+    awaited = []
+
+    async def open():
+        awaited.append("open")
+
+    async def close():
+        awaited.append("closed")
+
+    context = utils.AwaitableContext(open_coro=open, close_coro=close, return_value=1)
+    context.awaited = awaited
+    return context
 
 
 @pytest.mark.asyncio
-async def test_awaitable_context_await(mock_awaitable_context):
-    return_value = await mock_awaitable_context
+async def test_awaitable_context_await(awaitable_context):
+    return_value = await awaitable_context
 
     assert return_value == 1
-    assert mock_awaitable_context._open_coro().was_awaited
-    assert not mock_awaitable_context._close_coro().was_awaited
+    assert awaitable_context.awaited == ["open"]
 
 
 @pytest.mark.asyncio
-async def test_awaitable_context_enter_exit(mock_awaitable_context):
-    async with mock_awaitable_context as return_value:
+async def test_awaitable_context_enter_exit(awaitable_context):
+    async with awaitable_context as return_value:
         pass
 
     assert return_value == 1
-    assert mock_awaitable_context._open_coro().was_awaited
-    assert mock_awaitable_context._close_coro().was_awaited
+    assert awaitable_context.awaited == ["open", "closed"]
 
 
 def test_caller_module_name():

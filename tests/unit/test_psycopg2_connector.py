@@ -102,9 +102,10 @@ def test_open_no_pool_specified(mock_create_pool):
     mock_create_pool.assert_called_once_with(connector._pool_args)
 
 
-def test_open_pool_argument_specified(pool, mock_create_pool):
+def test_open_pool_argument_specified(mock_create_pool, mocker):
     connector = psycopg2_connector.Psycopg2Connector()
 
+    pool = mocker.MagicMock()
     connector.open(pool)
 
     assert connector._pool_externally_set is True

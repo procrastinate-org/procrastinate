@@ -43,6 +43,7 @@ class InMemoryConnector(connector.BaseAsyncConnector):
         self.notify_channels = []
         self.periodic_defers: Dict[str, int] = {}
         self.table_exists = True
+        self.states: List[str] = []
 
     def generic_execute(self, query, suffix, **arguments) -> Any:
         """
@@ -77,16 +78,16 @@ class InMemoryConnector(connector.BaseAsyncConnector):
         self.notify_channels = channels
 
     def open(self, pool: Optional[connector.Pool] = None) -> None:
-        pass
+        self.states.append("open")
 
     async def open_async(self, pool: Optional[connector.Pool] = None) -> None:
-        pass
+        self.states.append("open_async")
 
     def close(self) -> None:
-        pass
+        self.states.append("closed")
 
     async def close_async(self) -> None:
-        pass
+        self.states.append("closed_async")
 
     # End of BaseConnector methods
 
