@@ -1,11 +1,15 @@
-ALTER TABLE procrastinate_periodic_defers
-ADD IF NOT EXISTS periodic_id character varying(128) NOT NULL DEFAULT '';
+ALTER TABLE "procrastinate_periodic_defers"
+    ADD COLUMN IF NOT EXISTS "periodic_id" character varying(128) NOT NULL DEFAULT '';
 
-ALTER TABLE procrastinate_periodic_defers
+-- Column kept for backwards compatibility, will be removed in the future.
+ALTER TABLE "procrastinate_periodic_defers"
+    ALTER COLUMN "queue_name" DROP NOT NULL;
+
+ALTER TABLE "procrastinate_periodic_defers"
     DROP CONSTRAINT IF EXISTS procrastinate_periodic_defers_unique;
 
-ALTER TABLE procrastinate_periodic_defers
-    ADD CONSTRAINT procrastinate_periodic_defers_unique UNIQUE (task_name, periodic_id, defer_timestamp);
+ALTER TABLE "procrastinate_periodic_defers"
+    ADD CONSTRAINT procrastinate_periodic_defers_unique UNIQUE ("task_name", "periodic_id", "defer_timestamp");
 
 CREATE FUNCTION procrastinate_defer_periodic_job(
     _queue_name character varying,
@@ -24,8 +28,8 @@ DECLARE
 BEGIN
 
     INSERT
-        INTO procrastinate_periodic_defers (task_name, periodic_id, queue_name, defer_timestamp)
-        VALUES (_task_name, _periodic_id, _queue_name, _defer_timestamp)
+        INTO procrastinate_periodic_defers (task_name, periodic_id, defer_timestamp)
+        VALUES (_task_name, _periodic_id, _defer_timestamp)
         ON CONFLICT DO NOTHING
         RETURNING id into _defer_id;
 
@@ -51,7 +55,7 @@ BEGIN
             SELECT id
             FROM procrastinate_periodic_defers
             WHERE procrastinate_periodic_defers.task_name = _task_name
-            AND procrastinate_periodic_defers.queue_name = _queue_name
+            AND procrastinate_periodic_defers.periodic_id = _periodic_id
             AND procrastinate_periodic_defers.defer_timestamp < _defer_timestamp
             ORDER BY id
             FOR UPDATE
