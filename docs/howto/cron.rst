@@ -1,8 +1,8 @@
 Launch a task periodically
 ==========================
 
-Procrastinate offers a way to schedule periodic deferring of tasks. It uses the
-`Unix cron`_ syntax::
+Procrastinate offers a way to schedule periodic deferring of tasks, with
+`App.periodic`. It uses the `Unix cron`_ syntax::
 
     # scheduled at the 0th minute of each hour
     @app.periodic(cron="0 * * * *")
@@ -49,9 +49,6 @@ Timestamp argument
 By default, periodic tasks receive a single integer argument, named
 ``timestamp``. it represents the `Unix timestamp`__ of the date/time it was
 scheduled for (which might be arbitrarily far in the past).
-
-You can add other arguments when defining the periodic task, they will be passed
-to the underlying task.
 
 .. __: https://en.wikipedia.org/wiki/Unix_time
 
