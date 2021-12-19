@@ -5,7 +5,7 @@ ALTER TABLE procrastinate_periodic_defers
     DROP CONSTRAINT IF EXISTS procrastinate_periodic_defers_unique;
 
 ALTER TABLE procrastinate_periodic_defers
-    ADD CONSTRAINT procrastinate_periodic_defers_unique UNIQUE (task_name, periodic_id, queue_name, defer_timestamp);
+    ADD CONSTRAINT procrastinate_periodic_defers_unique UNIQUE (task_name, periodic_id, defer_timestamp);
 
 CREATE FUNCTION procrastinate_defer_periodic_job(
     _queue_name character varying,

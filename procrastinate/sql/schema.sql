@@ -42,7 +42,7 @@ CREATE TABLE procrastinate_periodic_defers (
     job_id bigint REFERENCES procrastinate_jobs(id) NULL,
     queue_name character varying(128) NOT NULL,
     periodic_id character varying(128) NOT NULL DEFAULT '',
-    CONSTRAINT procrastinate_periodic_defers_unique UNIQUE (task_name, periodic_id, queue_name, defer_timestamp)
+    CONSTRAINT procrastinate_periodic_defers_unique UNIQUE (task_name, periodic_id, defer_timestamp)
 );
 
 CREATE TABLE procrastinate_events (
