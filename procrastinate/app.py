@@ -127,6 +127,8 @@ class App(blueprints.Blueprint):
             Cron-like string. Optionally add a 6th column for seconds.
         periodic_id :
             Task name suffix. Used to distinct periodic tasks with different kwargs.
+        **kwargs :
+            Additional parameters are passed to `Task.configure`.
         """
         return self.periodic_deferrer.periodic_decorator(
             cron=cron, periodic_id=periodic_id, **kwargs
