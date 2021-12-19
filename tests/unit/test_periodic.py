@@ -2,7 +2,7 @@ import itertools
 
 import pytest
 
-from procrastinate import periodic
+from procrastinate import exceptions, periodic
 
 
 @pytest.fixture
@@ -39,6 +39,27 @@ def test_register_task(periodic_deferrer, task):
             task=task, cron="0 0 * * *", periodic_id="", configure_kwargs={}
         )
     ]
+
+
+def test_register_task_already_registered(periodic_deferrer, task):
+    periodic_deferrer.register_task(
+        task=task, cron="0 0 * * *", periodic_id="foo", configure_kwargs={}
+    )
+    with pytest.raises(exceptions.TaskAlreadyRegistered):
+        periodic_deferrer.register_task(
+            task=task, cron="0 0 * * *", periodic_id="foo", configure_kwargs={}
+        )
+
+
+def test_register_task_different_id(periodic_deferrer, task):
+    periodic_deferrer.register_task(
+        task=task, cron="0 0 * * *", periodic_id="foo", configure_kwargs={}
+    )
+
+    periodic_deferrer.register_task(
+        task=task, cron="0 0 * * *", periodic_id="bar", configure_kwargs={}
+    )
+    assert len(periodic_deferrer.periodic_tasks) == 2
 
 
 def test_schedule_decorator(periodic_deferrer, task):
