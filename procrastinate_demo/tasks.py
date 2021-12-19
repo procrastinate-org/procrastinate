@@ -27,7 +27,7 @@ def random_fail():
 
 
 # 6th * means "every second of the minute"
-@app.periodic(cron="* * * * * *", some_argument="some_value")
+@app.periodic(cron="* * * * * *", task_kwargs={"some_argument": "some_value"})
 @app.task
 def tick(timestamp: int, some_argument: str):
     return timestamp, some_argument
