@@ -135,9 +135,10 @@ def test_open_no_pool_specified(mock_create_engine):
     )
 
 
-def test_open_pool_argument_specified(engine, mock_create_engine):
+def test_open_pool_argument_specified(mock_create_engine, mocker):
     connector = sqlalchemy_psycopg2_connector.SQLAlchemyPsycopg2Connector()
 
+    engine = mocker.MagicMock()
     connector.open(engine)
 
     assert connector._engine_externally_set is True

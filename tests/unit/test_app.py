@@ -7,7 +7,6 @@ from procrastinate import app as app_module
 from procrastinate import exceptions, tasks, testing
 
 from .. import conftest
-from .conftest import AsyncMock
 
 
 def task_func():
@@ -122,74 +121,57 @@ def test_app_periodic(app):
 
 
 @pytest.fixture
-def mock_connector_open(app, mocker):
-    return mocker.patch.object(app.connector, "open")
+def pool(mocker):
+    return mocker.MagicMock()
 
 
-@pytest.fixture
-def mock_connector_close(app, mocker):
-    return mocker.patch.object(app.connector, "close")
-
-
-@pytest.fixture
-def mock_connector_open_async(app, mocker):
-    return mocker.patch.object(app.connector, "open_async", return_value=AsyncMock())
-
-
-@pytest.fixture
-def mock_connector_close_async(app, mocker):
-    return mocker.patch.object(app.connector, "close_async", return_value=AsyncMock())
-
-
-def test_enter_exit(not_opened_app, pool, mock_connector_open, mock_connector_close):
+def test_enter_exit(not_opened_app, pool, connector):
 
     with not_opened_app.open(pool) as app:
         pass
 
-    mock_connector_open.assert_called_once_with(pool)
-    mock_connector_close.assert_called_once_with()
+    assert connector.states == ["open", "closed"]
     assert app is not_opened_app  # checks that open returns the app instance
 
 
-def test_open(not_opened_app, pool, mock_connector_open):
+def test_open(not_opened_app, pool, connector):
     app = not_opened_app.open(pool)
 
-    mock_connector_open.assert_called_once_with(pool)
+    assert connector.states == ["open"]
     assert app is not_opened_app  # checks that open returns the app instance
 
 
-def test_close(app, mock_connector_close):
+def test_close(app, connector):
+    connector.reset()
+
     app.close()
 
-    mock_connector_close.assert_called_once_with()
+    assert connector.states == ["closed"]
 
 
 @pytest.mark.asyncio
-async def test_async_enter_exit(
-    not_opened_app, pool, mock_connector_open_async, mock_connector_close_async
-):
+async def test_async_enter_exit(not_opened_app, pool, connector):
     async with not_opened_app.open_async(pool) as app:
         pass
 
-    mock_connector_open_async.assert_called_once_with(pool=pool)
-    mock_connector_close_async.assert_called_once_with()
+    assert connector.states == ["open_async", "closed_async"]
     assert app is not_opened_app  # checks that open_async returns the app instance
 
 
 @pytest.mark.asyncio
-async def test_open_async(not_opened_app, pool, mock_connector_open_async):
+async def test_open_async(not_opened_app, pool, connector):
     app = await not_opened_app.open_async(pool)
 
-    mock_connector_open_async.assert_called_once_with(pool=pool)
+    assert connector.states == ["open_async"]
     assert app is not_opened_app  # checks that open_async returns the app instance
 
 
 @pytest.mark.asyncio
-async def test_close_async(app, mock_connector_close_async):
-
+async def test_close_async(app, connector):
+    connector.reset()
     await app.close_async()
 
-    mock_connector_close_async.assert_called_once_with()
+    assert connector.states == ["closed_async"]
 
 
 def test_check_stack(app, caplog):

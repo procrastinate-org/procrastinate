@@ -1,9 +1,9 @@
+import collections
+
 import psycopg2
 import pytest
 
 from procrastinate import aiopg_connector, exceptions
-
-from .conftest import AsyncMock
 
 
 @pytest.fixture
@@ -152,32 +152,46 @@ async def test_listen_notify_pool_one_connection(mocker, caplog, connector):
     assert {e.action for e in caplog.records} == {"listen_notify_disabled"}
 
 
+# mocker and async don't play very well together (yet), so it's easier to create
+# stubs
 @pytest.fixture
-def mock_async_create_pool(mocker):
-    return mocker.patch.object(
-        aiopg_connector.AiopgConnector, "_create_pool", return_value=AsyncMock()
-    )
+def fake_connector(mocker):
+    class FakePool:
+        _free = collections.deque()
+
+        def terminate(self):
+            pass
+
+    class FakeConnector(aiopg_connector.AiopgConnector):
+        create_pool_called = False
+        create_pool_args = None
+
+        async def _create_pool(self, pool_args):
+            self.create_pool_called = True
+            self.create_pool_args = pool_args
+            return FakePool()
+
+    return FakeConnector()
 
 
 @pytest.mark.asyncio
-async def test_open_async_no_pool_specified(mock_async_create_pool, connector):
+async def test_open_async_no_pool_specified(fake_connector):
 
-    await connector.open_async()
+    await fake_connector.open_async()
 
-    assert connector._pool_externally_set is False
-    mock_async_create_pool.assert_called_once_with(connector._pool_args)
+    assert fake_connector._pool_externally_set is False
+    assert fake_connector.create_pool_called is True
+    assert fake_connector.create_pool_args == fake_connector._pool_args
 
 
 @pytest.mark.asyncio
-async def test_open_async_pool_argument_specified(
-    pool, mock_async_create_pool, connector
-):
+async def test_open_async_pool_argument_specified(fake_connector):
+    pool = object()
+    await fake_connector.open_async(pool)
 
-    await connector.open_async(pool)
-
-    assert connector._pool_externally_set is True
-    mock_async_create_pool.assert_not_called()
-    assert connector._pool == pool
+    assert fake_connector._pool_externally_set is True
+    assert fake_connector.create_pool_called is False
+    assert fake_connector._pool == pool
 
 
 def test_get_pool(connector):
