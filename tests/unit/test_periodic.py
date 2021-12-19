@@ -31,14 +31,14 @@ def cron_task(periodic_deferrer, task):
 
 def test_register_task(periodic_deferrer, task):
     periodic_deferrer.register_task(
-        task=task, cron="0 0 * * *", periodic_id="", configure_kwargs={}
+        task=task, cron="0 0 * * *", periodic_id="foo", configure_kwargs={}
     )
 
-    assert periodic_deferrer.periodic_tasks == [
-        periodic.PeriodicTask(
-            task=task, cron="0 0 * * *", periodic_id="", configure_kwargs={}
+    assert periodic_deferrer.periodic_tasks == {
+        (task.name, "foo"): periodic.PeriodicTask(
+            task=task, cron="0 0 * * *", periodic_id="foo", configure_kwargs={}
         )
-    ]
+    }
 
 
 def test_register_task_already_registered(periodic_deferrer, task):
@@ -63,11 +63,11 @@ def test_register_task_different_id(periodic_deferrer, task):
 
 
 def test_schedule_decorator(periodic_deferrer, task):
-    periodic_deferrer.periodic_decorator(cron="0 0 * * *", periodic_id="")(task)
+    periodic_deferrer.periodic_decorator(cron="0 0 * * *", periodic_id="foo")(task)
 
-    assert periodic_deferrer.periodic_tasks == [
+    assert list(periodic_deferrer.periodic_tasks.values()) == [
         periodic.PeriodicTask(
-            task=task, cron="0 0 * * *", periodic_id="", configure_kwargs={}
+            task=task, cron="0 0 * * *", periodic_id="foo", configure_kwargs={}
         )
     ]
 

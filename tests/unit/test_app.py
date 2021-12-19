@@ -111,13 +111,13 @@ def test_app_configure_task_unkown_not_allowed(app):
 
 
 def test_app_periodic(app):
-    @app.periodic(cron="0 * * * 1")
+    @app.periodic(cron="0 * * * 1", periodic_id="foo")
     @app.task
     def yay(timestamp):
         pass
 
     assert len(app.periodic_deferrer.periodic_tasks) == 1
-    assert app.periodic_deferrer.periodic_tasks[0].task == yay
+    assert app.periodic_deferrer.periodic_tasks[yay.name, "foo"].task == yay
 
 
 @pytest.fixture

@@ -3,7 +3,7 @@ import functools
 import logging
 import sys
 import time
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from typing import Any, Dict, Iterable, Optional, Tuple
 
 import attr
 import croniter
@@ -42,7 +42,7 @@ TaskAtTime = Tuple[PeriodicTask, int]
 
 class PeriodicDeferrer:
     def __init__(self, max_delay: float = MAX_DELAY):
-        self.periodic_tasks: List[PeriodicTask] = []
+        self.periodic_tasks: Dict[Tuple[str, str], PeriodicTask] = {}
         # {(task_name, periodic_id): defer_timestamp}
         self.last_defers: Dict[Tuple[str, str], int] = {}
         self.max_delay = max_delay
@@ -87,11 +87,8 @@ class PeriodicDeferrer:
         periodic_id: str,
         configure_kwargs: Dict[str, Any],
     ) -> PeriodicTask:
-        if any(
-            pt
-            for pt in self.periodic_tasks
-            if pt.task is task and pt.periodic_id == periodic_id
-        ):
+        key = (task.name, periodic_id)
+        if key in self.periodic_tasks:
             raise exceptions.TaskAlreadyRegistered(
                 "A periodic task was already registed with the same periodic_id "
                 f"({periodic_id!r}). Please use a different periodic_id for multiple "
@@ -110,13 +107,12 @@ class PeriodicDeferrer:
             },
         )
 
-        periodic_task = PeriodicTask(
+        self.periodic_tasks[key] = periodic_task = PeriodicTask(
             task=task,
             cron=cron,
             periodic_id=periodic_id,
             configure_kwargs=configure_kwargs,
         )
-        self.periodic_tasks.append(periodic_task)
         return periodic_task
 
     def get_next_tick(self, at: float):
@@ -127,7 +123,7 @@ class PeriodicDeferrer:
         """
         next_timestamp = min(
             pt.croniter.get_next(ret_type=float, start_time=at)  # type: ignore
-            for pt in self.periodic_tasks
+            for pt in self.periodic_tasks.values()
         )
         return next_timestamp - at
 
@@ -138,16 +134,13 @@ class PeriodicDeferrer:
         Tasks that should have been deferred more than self.max_delay seconds ago are
         ignored.
         """
-        for periodic_task in self.periodic_tasks:
-            task = periodic_task.task
-            identifier = (task.name, periodic_task.periodic_id)
-
+        for key, periodic_task in self.periodic_tasks.items():
             for timestamp in self.get_timestamps(
                 periodic_task=periodic_task,
-                since=self.last_defers.get(identifier),
+                since=self.last_defers.get(key),
                 until=at,
             ):
-                self.last_defers[identifier] = timestamp
+                self.last_defers[key] = timestamp
                 yield periodic_task, timestamp
 
     def get_timestamps(
