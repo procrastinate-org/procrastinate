@@ -19,8 +19,6 @@ MARGIN = 0.5  # seconds
 
 logger = logging.getLogger(__name__)
 
-TaskAtTime = Tuple[tasks.Task, str, Dict[str, Any], int]
-
 if sys.version_info < (3, 8):
     cached_property = property
 else:
@@ -32,19 +30,22 @@ class PeriodicTask:
     task: tasks.Task
     cron: str
     periodic_id: str
-    kwargs: Dict[str, Any]
+    configure_kwargs: Dict[str, Any]
 
     @cached_property
     def croniter(self) -> croniter.croniter:
         return croniter.croniter(self.cron)
 
 
+TaskAtTime = Tuple[PeriodicTask, int]
+
+
 class PeriodicDeferrer:
     def __init__(self, job_manager: manager.JobManager, max_delay: float = MAX_DELAY):
         self.periodic_tasks: List[PeriodicTask] = []
         self.job_manager = job_manager
-        # {task_name: defer_timestamp}
-        self.last_defers: Dict[str, int] = {}
+        # {(task_name, periodic_id): defer_timestamp}
+        self.last_defers: Dict[Tuple[str, str], int] = {}
         self.max_delay = max_delay
 
     def periodic_decorator(self, cron: str, periodic_id: str, **kwargs):
@@ -55,7 +56,9 @@ class PeriodicDeferrer:
         """
 
         def wrapper(task: tasks.Task):
-            self.register_task(task=task, cron=cron, periodic_id=periodic_id, **kwargs)
+            self.register_task(
+                task=task, cron=cron, periodic_id=periodic_id, configure_kwargs=kwargs
+            )
             return task
 
         return wrapper
@@ -79,8 +82,23 @@ class PeriodicDeferrer:
     # Internal methods
 
     def register_task(
-        self, task: tasks.Task, cron: str, periodic_id: str, **kwargs
+        self,
+        task: tasks.Task,
+        cron: str,
+        periodic_id: str,
+        configure_kwargs: Dict[str, Any],
     ) -> PeriodicTask:
+        if any(
+            pt
+            for pt in self.periodic_tasks
+            if pt.task is task and pt.periodic_id == periodic_id
+        ):
+            raise exceptions.TaskAlreadyRegistered(
+                "A periodic task was already registed with the same periodic_id "
+                f"({periodic_id!r}). Please use a different periodic_id for multiple "
+                "schedules of the same task."
+            )
+
         logger.info(
             f"Registering task {task.name} with suffix {periodic_id} to run "
             f"periodically with cron {cron}",
@@ -89,14 +107,15 @@ class PeriodicDeferrer:
                 "task": task.name,
                 "cron": cron,
                 "periodic_id": periodic_id,
-                "kwargs": kwargs,
+                "kwargs": str(configure_kwargs),
             },
         )
+
         periodic_task = PeriodicTask(
             task=task,
             cron=cron,
             periodic_id=periodic_id,
-            kwargs=kwargs,
+            configure_kwargs=configure_kwargs,
         )
         self.periodic_tasks.append(periodic_task)
         return periodic_task
@@ -122,14 +141,15 @@ class PeriodicDeferrer:
         """
         for periodic_task in self.periodic_tasks:
             task = periodic_task.task
-            kwargs = periodic_task.kwargs
-            name = f"{task.name}_{periodic_task.periodic_id}"
+            identifier = (task.name, periodic_task.periodic_id)
 
             for timestamp in self.get_timestamps(
-                periodic_task=periodic_task, since=self.last_defers.get(name), until=at
+                periodic_task=periodic_task,
+                since=self.last_defers.get(identifier),
+                until=at,
             ):
-                self.last_defers[name] = timestamp
-                yield task, periodic_task.periodic_id, kwargs, timestamp
+                self.last_defers[identifier] = timestamp
+                yield periodic_task, timestamp
 
     def get_timestamps(
         self, periodic_task: PeriodicTask, since: Optional[int], until: float
@@ -169,12 +189,21 @@ class PeriodicDeferrer:
         Try deferring all tasks that might need deferring. The database will keep us
         from deferring the same task for the same scheduled time multiple times.
         """
-        for task, periodic_id, kwargs, timestamp in jobs_to_defer:
+        for periodic_task, timestamp in jobs_to_defer:
+            task = periodic_task.task
+            periodic_id = periodic_task.periodic_id
+            configure_kwargs = periodic_task.configure_kwargs
+            description = {
+                "task_name": task.name,
+                "periodic_id": periodic_id,
+                "defer_timestamp": timestamp,
+                "kwargs": configure_kwargs,
+            }
             try:
                 job_id = await self.job_manager.defer_periodic_job(
                     task=task,
                     periodic_id=periodic_id,
-                    kwargs=kwargs,
+                    configure_kwargs=configure_kwargs,
                     defer_timestamp=timestamp,
                 )
             except exceptions.AlreadyEnqueued:
@@ -184,11 +213,8 @@ class PeriodicDeferrer:
                     f"a job in the queue with the queueing lock {task.queueing_lock}",
                     extra={
                         "action": "skip_periodic_task_queueing_lock",
-                        "task_name": task.name,
-                        "periodic_id": periodic_id,
-                        "kwargs": kwargs,
-                        "defer_timestamp": timestamp,
                         "queueing_lock": task.queueing_lock,
+                        **description,
                     },
                 )
                 continue
@@ -199,11 +225,8 @@ class PeriodicDeferrer:
                     f"{timestamp} with id {job_id}",
                     extra={
                         "action": "periodic_task_deferred",
-                        "task": task.name,
-                        "periodic_id": periodic_id,
-                        "kwargs": kwargs,
-                        "timestamp": timestamp,
                         "job_id": job_id,
+                        **description,
                     },
                 )
             else:
@@ -212,10 +235,7 @@ class PeriodicDeferrer:
                     f"deferred for timestamp {timestamp}",
                     extra={
                         "action": "periodic_task_already_deferred",
-                        "task": task.name,
-                        "periodic_id": periodic_id,
-                        "kwargs": kwargs,
-                        "timestamp": timestamp,
+                        **description,
                     },
                 )
 

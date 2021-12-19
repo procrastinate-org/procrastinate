@@ -22,16 +22,22 @@ def task(app):
 @pytest.fixture
 def cron_task(periodic_deferrer, task):
     def _(cron="0 0 * * *"):
-        return periodic_deferrer.register_task(task=task, cron=cron, periodic_id="")
+        return periodic_deferrer.register_task(
+            task=task, cron=cron, periodic_id="", configure_kwargs={}
+        )
 
     return _
 
 
 def test_register_task(periodic_deferrer, task):
-    periodic_deferrer.register_task(task=task, cron="0 0 * * *", periodic_id="")
+    periodic_deferrer.register_task(
+        task=task, cron="0 0 * * *", periodic_id="", configure_kwargs={}
+    )
 
     assert periodic_deferrer.periodic_tasks == [
-        periodic.PeriodicTask(task=task, cron="0 0 * * *", periodic_id="", kwargs={})
+        periodic.PeriodicTask(
+            task=task, cron="0 0 * * *", periodic_id="", configure_kwargs={}
+        )
     ]
 
 
@@ -39,14 +45,24 @@ def test_schedule_decorator(periodic_deferrer, task):
     periodic_deferrer.periodic_decorator(cron="0 0 * * *", periodic_id="")(task)
 
     assert periodic_deferrer.periodic_tasks == [
-        periodic.PeriodicTask(task=task, cron="0 0 * * *", periodic_id="", kwargs={})
+        periodic.PeriodicTask(
+            task=task, cron="0 0 * * *", periodic_id="", configure_kwargs={}
+        )
     ]
 
 
 @pytest.mark.parametrize(
     "cron, expected",
     [
-        ("0 0 0 * *", 3600 * 24),
+        # ┌───────────── minute (0 - 59)
+        # │ ┌───────────── hour (0 - 23)
+        # │ │ ┌───────────── day of the month (1 - 31)
+        # │ │ │ ┌───────────── month (1 - 12)
+        # │ │ │ │ ┌───────────── day of the week (0 - 6) (Sunday to Saturday;
+        # │ │ │ │ │                                   7 is also Sunday on some systems)
+        # │ │ │ │ │
+        # │ │ │ │ │
+        ("0 0 1 * *", 31 * 3600 * 24),
         ("0 0 * * *", 3600 * 24),
         ("0 * * * *", 3600),
         ("* * * * *", 60),
@@ -55,7 +71,6 @@ def test_schedule_decorator(periodic_deferrer, task):
 )
 def test_get_next_tick(periodic_deferrer, cron_task, cron, expected):
 
-    cron_task(cron="0 0 * * *")
     cron_task(cron=cron)
 
     # Making things easier, we'll compute things next to timestamp 0
@@ -67,7 +82,12 @@ def test_get_previous_tasks(periodic_deferrer, cron_task, task):
     cron_task(cron="* * * * *")
 
     assert list(periodic_deferrer.get_previous_tasks(at=3600 * 24 - 1)) == [
-        (task, "", {}, 3600 * 24 - 60)
+        (
+            periodic.PeriodicTask(
+                task=task, cron="* * * * *", periodic_id="", configure_kwargs={}
+            ),
+            3600 * 24 - 60,
+        )
     ]
 
 
@@ -143,7 +163,9 @@ async def test_worker_loop(job_manager, mocker, task):
             return next(counter)
 
     mock_deferrer = MockPeriodicDeferrer(job_manager=job_manager)
-    mock_deferrer.register_task(task=task, cron="* * * * *", periodic_id="")
+    mock_deferrer.register_task(
+        task=task, cron="* * * * *", periodic_id="", configure_kwargs={}
+    )
     with pytest.raises(ValueError):
         await mock_deferrer.worker()
 
@@ -170,19 +192,29 @@ async def test_wait_next_tick(periodic_deferrer, mocker):
 @pytest.mark.asyncio
 async def test_defer_jobs(periodic_deferrer, task, connector, caplog):
     caplog.set_level("DEBUG")
-    await periodic_deferrer.defer_jobs([(task, "", {}, 1)])
+
+    pt = periodic.PeriodicTask(
+        task=task,
+        cron="* * * * *",
+        periodic_id="foo",
+        configure_kwargs={
+            "task_kwargs": {"a": "b"},
+            "lock": "bar",
+        },
+    )
+    await periodic_deferrer.defer_jobs([(pt, 1)])
 
     assert connector.queries == [
         (
             "defer_periodic_job",
             {
                 "queue": "default",
-                "args": {"timestamp": 1},
+                "args": {"timestamp": 1, "a": "b"},
                 "defer_timestamp": 1,
-                "lock": None,
+                "lock": "bar",
                 "queueing_lock": None,
                 "task_name": task.name,
-                "periodic_id": "",
+                "periodic_id": "foo",
             },
         )
     ]
@@ -196,7 +228,11 @@ async def test_defer_jobs_different_periodic_id(
     caplog.set_level("DEBUG")
     connector.periodic_defers[(task.name, "foo")] = 1
 
-    await periodic_deferrer.defer_jobs([(task, "bar", {}, 1)])
+    pt = periodic.PeriodicTask(
+        task=task, cron="* * * * *", periodic_id="bar", configure_kwargs={}
+    )
+
+    await periodic_deferrer.defer_jobs([(pt, 1)])
 
     assert connector.queries == [
         (
@@ -220,7 +256,11 @@ async def test_defer_jobs_already(periodic_deferrer, task, connector, caplog):
     caplog.set_level("DEBUG")
     connector.periodic_defers[(task.name, "foo")] = 1
 
-    await periodic_deferrer.defer_jobs([(task, "foo", {}, 1)])
+    pt = periodic.PeriodicTask(
+        task=task, cron="* * * * *", periodic_id="foo", configure_kwargs={}
+    )
+
+    await periodic_deferrer.defer_jobs([(pt, 1)])
 
     assert connector.queries == [
         (
@@ -240,16 +280,25 @@ async def test_defer_jobs_already(periodic_deferrer, task, connector, caplog):
 
 
 @pytest.mark.asyncio
-async def test_defer_jobs_queueing_lock(periodic_deferrer, app, connector, caplog):
+async def test_defer_jobs_queueing_lock(periodic_deferrer, task, caplog):
     caplog.set_level("DEBUG")
 
-    @app.task(queueing_lock="sher")
-    def foo(timestamp):
-        pass
+    pt1 = periodic.PeriodicTask(
+        task=task,
+        cron="* * * * *",
+        periodic_id="foo",
+        configure_kwargs={"queueing_lock": "bar"},
+    )
+
+    pt2 = periodic.PeriodicTask(
+        task=task,
+        cron="* * * * *",
+        periodic_id="foo",
+        configure_kwargs={"queueing_lock": "bar"},
+    )
 
     caplog.clear()
-
-    await periodic_deferrer.defer_jobs([(foo, "", {}, 1), (foo, "", {}, 2)])
+    await periodic_deferrer.defer_jobs([(pt1, 1), (pt2, 2)])
 
     assert [r.action for r in caplog.records] == [
         "periodic_task_deferred",

@@ -177,7 +177,7 @@ async def test_defer_periodic_job(job_manager, connector, app):
         pass
 
     result = await job_manager.defer_periodic_job(
-        task=foo, periodic_id="", kwargs={}, defer_timestamp=1234567890
+        task=foo, periodic_id="", configure_kwargs={}, defer_timestamp=1234567890
     )
     assert result == 1
 
@@ -189,10 +189,10 @@ async def test_defer_periodic_job_with_suffixes(job_manager, connector, app):
 
     result = [
         await job_manager.defer_periodic_job(
-            task=foo, periodic_id="1", kwargs={}, defer_timestamp=1234567890
+            task=foo, periodic_id="1", configure_kwargs={}, defer_timestamp=1234567890
         ),
         await job_manager.defer_periodic_job(
-            task=foo, periodic_id="2", kwargs={}, defer_timestamp=1234567890
+            task=foo, periodic_id="2", configure_kwargs={}, defer_timestamp=1234567890
         ),
     ]
 
@@ -205,11 +205,11 @@ async def test_defer_periodic_job_unique_violation(job_manager, connector, app):
         pass
 
     await job_manager.defer_periodic_job(
-        task=foo, periodic_id="", kwargs={}, defer_timestamp=1234567890
+        task=foo, periodic_id="", configure_kwargs={}, defer_timestamp=1234567890
     )
     with pytest.raises(exceptions.AlreadyEnqueued):
         await job_manager.defer_periodic_job(
-            task=foo, periodic_id="", kwargs={}, defer_timestamp=1234567891
+            task=foo, periodic_id="", configure_kwargs={}, defer_timestamp=1234567891
         )
 
 

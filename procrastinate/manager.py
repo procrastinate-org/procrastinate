@@ -1,9 +1,12 @@
 import asyncio
 import datetime
 import logging
-from typing import Any, Dict, Iterable, Optional
+from typing import TYPE_CHECKING, Any, Dict, Iterable, Optional
 
 from procrastinate import connector, exceptions, jobs, sql, utils
+
+if TYPE_CHECKING:
+    from procrastinate import tasks
 
 logger = logging.getLogger(__name__)
 
@@ -81,26 +84,30 @@ class JobManager:
 
     async def defer_periodic_job(
         self,
-        task,
+        task: "tasks.Task",
         periodic_id: str,
-        kwargs: Dict[str, Any],
+        configure_kwargs: Dict[str, Any],
         defer_timestamp: int,
     ) -> Optional[int]:
         """
         Defer a periodic job, ensuring that no other worker will defer a job for the
         same timestamp.
         """
-        kwargs["timestamp"] = defer_timestamp
+        configure_kwargs.setdefault("task_kwargs", {})
+        configure_kwargs["task_kwargs"]["timestamp"] = defer_timestamp
+        job_deferrer = task.configure(**configure_kwargs)
+        job = job_deferrer.job
+        # schedule_at and schedule_in are meaningless in this context, we ignore them
         try:
             result = await self.connector.execute_query_one_async(
                 query=sql.queries["defer_periodic_job"],
                 task_name=task.name,
-                queue=task.queue,
-                lock=task.lock,
-                queueing_lock=task.queueing_lock,
                 defer_timestamp=defer_timestamp,
                 periodic_id=periodic_id,
-                args=kwargs,
+                queue=job.queue,
+                lock=job.lock,
+                queueing_lock=job.queueing_lock,
+                args=job.task_kwargs,
             )
         except exceptions.UniqueViolation as exc:
             self._raise_already_enqueued(exc=exc, queueing_lock=task.queueing_lock)
