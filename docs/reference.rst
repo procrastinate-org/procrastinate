@@ -6,7 +6,7 @@ App
 
 .. autoclass:: procrastinate.App
     :members: open, open_async, task, run_worker, run_worker_async, configure_task,
-              from_path, add_tasks_from, add_task_alias, with_connector
+              from_path, add_tasks_from, add_task_alias, with_connector, periodic
 
 Connectors
 ----------

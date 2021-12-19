@@ -1,8 +1,8 @@
 Launch a task periodically
 ==========================
 
-Procrastinate offers a way to schedule periodic deferring of tasks. It uses the
-`Unix cron`_ syntax::
+Procrastinate offers a way to schedule periodic deferring of tasks, with
+`App.periodic`. It uses the `Unix cron`_ syntax::
 
     # scheduled at the 0th minute of each hour
     @app.periodic(cron="0 * * * *")
@@ -43,45 +43,58 @@ When using periodic tasks there are a few things to know:
   but a task that is more than 10 minutes late will not be deferred. This value is
   configurable in the `App`.
 
-Periodic task arguments
------------------------
+Timestamp argument
+------------------
 
-Periodic tasks receive a single integer argument, named ``timestamp``. it represents the
-`Unix timestamp`__ of the date/time it was scheduled for (which might be arbitrarily far
-in the past).
+By default, periodic tasks receive a single integer argument, named
+``timestamp``. it represents the `Unix timestamp`__ of the date/time it was
+scheduled for (which might be arbitrarily far in the past).
 
 .. __: https://en.wikipedia.org/wiki/Unix_time
 
-Queue, lock, queuing lock
--------------------------
+Scheduling a job multiple times with multiple arguments
+-------------------------------------------------------
 
-Procrastinate itself takes care of deferring the periodic jobs, which means you don't
-have to opportunity to specify a given queue, lock or queueing lock at defer time.
-Fortunately, you can define all of those on the task itself, provided that you
-plan to have the same value for every job::
+It's possible to pass additional arguments to `App.periodic`, they will be used
+to configure the periodic task. Arguments are identical to `Task.configure`.
 
-    @app.periodic(cron="*/5 * * * *")
-    @app.task(
-        queue="healthchecks",
-        lock="healthchecks",
-        queueing_lock="healthchecks"
-    )
-    def run_healthchecks(timestamp: int):
+This can let you add multiple periodic schedules for a single task. If you do
+that, you will need to pass a ``periodic_id`` argument to `App.periodic`, which
+will be used by Procrastinate to distiguish the different schedules of the same
+task.
+
+Of course, you can also use arguments on `App.task` which will be common to all
+schedules.
+
+::
+
+    @app.task(lock="do_something_lock")
+    def do_something(timestamp: int, value: int):
         ...
 
-The value of those parameters is static, but you could put different values on different
-workers. If the same task is periodically deferred to different queues, each job will be
-independent::
+    app.periodic(
+        cron="*/5 * * * *",
+        queue="foo",
+        task_kwargs={"value": 1},
+        periodic_id="foo",
+    )(do_something)
 
-    @app.periodic(cron="*/5 * * * *")
-    @app.task(
-        queue=f"healthchecks_{my_worker_id}",
-    )
-    def run_healthchecks(timestamp: int):
-        ...
+    app.periodic(
+        cron="*/8 * * * *",
+        queue="bar",
+        task_kwargs={"value": 2},
+        periodic_id="bar",
+    )(do_something)
 
-In this setup, each worker (with differing values of ``my_worker_id``) would defer their
-own healthcheck jobs, independently from other workers.
+In the example below, the ``do_something`` task would be deferred every 5
+minutes on the queue ``"foo"`` with ``value=1`` **and** every 8 minutes on the
+queue ``"bar"`` with ``value=2``. And either way, it would be deferred with the
+lock ``"do_something_lock"``.
+
+.. note::
+
+    The arguments ``schedule_in`` and ``schedule_at`` of `Task.configure` would be
+    confusing in this context, so they're ignored.
 
 Using cron
 ----------

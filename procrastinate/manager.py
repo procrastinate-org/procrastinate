@@ -79,22 +79,31 @@ class JobManager:
             ) from exc
         raise exc
 
-    async def defer_periodic_job(self, task, defer_timestamp) -> Optional[int]:
+    async def defer_periodic_job(
+        self,
+        job: "jobs.Job",
+        periodic_id: str,
+        defer_timestamp: int,
+    ) -> Optional[int]:
         """
         Defer a periodic job, ensuring that no other worker will defer a job for the
         same timestamp.
         """
+        job.task_kwargs["timestamp"] = defer_timestamp
+        # schedule_at and schedule_in are meaningless in this context, we ignore them
         try:
             result = await self.connector.execute_query_one_async(
                 query=sql.queries["defer_periodic_job"],
-                task_name=task.name,
-                queue=task.queue,
-                lock=task.lock,
-                queueing_lock=task.queueing_lock,
+                task_name=job.task_name,
                 defer_timestamp=defer_timestamp,
+                periodic_id=periodic_id,
+                queue=job.queue,
+                lock=job.lock,
+                queueing_lock=job.queueing_lock,
+                args=job.task_kwargs,
             )
         except exceptions.UniqueViolation as exc:
-            self._raise_already_enqueued(exc=exc, queueing_lock=task.queueing_lock)
+            self._raise_already_enqueued(exc=exc, queueing_lock=job.queueing_lock)
 
         return result["id"]
 
