@@ -4,9 +4,10 @@ import datetime
 import json
 import logging
 import os
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Dict, Optional, Union
 
 import click
+from typing_extensions import Literal
 
 import procrastinate
 from procrastinate import connector, exceptions, jobs, shell, types, utils, worker
@@ -30,7 +31,10 @@ def get_log_level(verbosity: int) -> int:
     return {0: logging.INFO, 1: logging.DEBUG}.get(min((1, verbosity)), 0)
 
 
-def configure_logging(verbosity: int, format: str, style: str) -> None:
+Style = Union[Literal["%"], Literal["{"], Literal["$"]]
+
+
+def configure_logging(verbosity: int, format: str, style: Style) -> None:
     level = get_log_level(verbosity=verbosity)
     logging.basicConfig(level=level, format=format, style=style)
     level_name = logging.getLevelName(level)
@@ -105,7 +109,13 @@ class MissingAppConnector(connector.BaseConnector):
     procrastinate.__version__, "-V", "--version", prog_name=PROGRAM_NAME
 )
 @handle_errors()
-def cli(ctx: click.Context, app: str, verbose, log_format, log_format_style) -> None:
+def cli(
+    ctx: click.Context,
+    app: str,
+    verbose: int,
+    log_format: str,
+    log_format_style: Style,
+) -> None:
     """
     Interact with a Procrastinate app. See subcommands for details.
 
