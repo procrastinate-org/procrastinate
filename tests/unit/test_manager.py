@@ -181,23 +181,29 @@ def configure(app):
 
 
 async def test_defer_periodic_job(configure):
-    deferrer = configure()
+    deferrer = configure(task_kwargs={"timestamp": 1234567890})
 
     result = await deferrer.job_manager.defer_periodic_job(
-        job=deferrer.job, periodic_id="", defer_timestamp=1234567890
+        job=deferrer.job,
+        periodic_id="",
+        defer_timestamp=1234567890,
     )
     assert result == 1
 
 
 async def test_defer_periodic_job_with_suffixes(configure):
-    deferrer = configure()
+    deferrer = configure(task_kwargs={"timestamp": 1234567890})
 
     result = [
         await deferrer.job_manager.defer_periodic_job(
-            job=deferrer.job, periodic_id="1", defer_timestamp=1234567890
+            job=deferrer.job,
+            periodic_id="1",
+            defer_timestamp=1234567890,
         ),
         await deferrer.job_manager.defer_periodic_job(
-            job=deferrer.job, periodic_id="2", defer_timestamp=1234567890
+            job=deferrer.job,
+            periodic_id="2",
+            defer_timestamp=1234567890,
         ),
     ]
 
@@ -205,14 +211,39 @@ async def test_defer_periodic_job_with_suffixes(configure):
 
 
 async def test_defer_periodic_job_unique_violation(configure):
-    deferrer = configure(queueing_lock="bla")
+    deferrer1 = configure(
+        queueing_lock="bla",
+        task_kwargs={"timestamp": 1234567890},
+    )
+    deferrer2 = configure(
+        queueing_lock="bla",
+        task_kwargs={"timestamp": 1234567891},
+    )
 
-    await deferrer.job_manager.defer_periodic_job(
-        job=deferrer.job, periodic_id="", defer_timestamp=1234567890
+    await deferrer1.job_manager.defer_periodic_job(
+        job=deferrer1.job,
+        periodic_id="",
+        defer_timestamp=1234567890,
     )
     with pytest.raises(exceptions.AlreadyEnqueued):
+        await deferrer2.job_manager.defer_periodic_job(
+            job=deferrer2.job,
+            periodic_id="",
+            defer_timestamp=1234567891,
+        )
+
+
+async def test_defer_periodic_job_wrong_timestamp(configure):
+    deferrer = configure(
+        queueing_lock="bla",
+        task_kwargs={"timestamp": 1000000000},
+    )
+
+    with pytest.raises(exceptions.InvalidTimestamp):
         await deferrer.job_manager.defer_periodic_job(
-            job=deferrer.job, periodic_id="", defer_timestamp=1234567891
+            job=deferrer.job,
+            periodic_id="",
+            defer_timestamp=1234567890,
         )
 
 

@@ -148,9 +148,7 @@ class PeriodicDeferrer:
     ) -> Iterable[int]:
         cron_iterator = periodic_task.croniter
         if since:
-            # For some reason, mypy can't wrap its head around this statement.
-            # You're welcome to tell us why (or how to fix it).
-            timestamp = cron_iterator.set_current(start_time=since)  # type: ignore
+            timestamp = cron_iterator.set_current(start_time=since)
             while True:
                 timestamp = round(cron_iterator.get_next(ret_type=float))
                 if timestamp > until:
@@ -158,15 +156,17 @@ class PeriodicDeferrer:
                 yield timestamp
 
         else:
-            cron_iterator.set_current(start_time=until)  # type: ignore
+            cron_iterator.set_current(start_time=until)
             timestamp = round(cron_iterator.get_prev(ret_type=float))
             delay = until - timestamp
 
             if delay > self.max_delay:
                 logger.debug(
-                    "Ignoring periodic task scheduled more than "
-                    f"{self.max_delay} s ago ({delay:.0f} s)",
+                    f"Ignoring periodic task {periodic_task.task.name} scheduled "
+                    f"more than {self.max_delay} s ago ({delay:.0f} s)",
                     extra={
+                        "task": periodic_task.task.name,
+                        "periodic_id": periodic_task.periodic_id,
                         "action": "ignore_periodic_task",
                         "max_delay": self.max_delay,
                         "delay": delay,
@@ -185,6 +185,7 @@ class PeriodicDeferrer:
             task = periodic_task.task
             periodic_id = periodic_task.periodic_id
             configure_kwargs = periodic_task.configure_kwargs
+            configure_kwargs.setdefault("task_kwargs", {})["timestamp"] = timestamp
             description = {
                 "task_name": task.name,
                 "periodic_id": periodic_id,
@@ -192,41 +193,45 @@ class PeriodicDeferrer:
                 "kwargs": configure_kwargs,
             }
             job_deferrer = task.configure(**configure_kwargs)
+            job = job_deferrer.job
             try:
                 job_id = await job_deferrer.job_manager.defer_periodic_job(
-                    job=job_deferrer.job,
+                    job=job,
                     periodic_id=periodic_id,
                     defer_timestamp=timestamp,
                 )
             except exceptions.AlreadyEnqueued:
                 logger.debug(
-                    f"Periodic job {task.name}(timestamp={timestamp}, "
-                    f"periodic_id={periodic_id}) cannot be enqueued: there is already "
+                    f"Periodic job {job.call_string} cannot be enqueued: there is already "
                     f"a job in the queue with the queueing lock {task.queueing_lock}",
                     extra={
                         "action": "skip_periodic_task_queueing_lock",
                         "queueing_lock": task.queueing_lock,
+                        "job": job.log_context(),
                         **description,
                     },
                 )
                 continue
+            else:
+                job = job.evolve(id=job_id)
 
-            if job_id:
+            if job.id:
                 logger.info(
-                    f"Periodic task {task.name} deferred for timestamp "
-                    f"{timestamp} with id {job_id}",
+                    f"Periodic job {job.call_string} deferred for timestamp "
+                    f"{timestamp} with id {job.id}",
                     extra={
                         "action": "periodic_task_deferred",
-                        "job_id": job_id,
+                        "job": job.log_context(),
                         **description,
                     },
                 )
             else:
                 logger.debug(
-                    f"Periodic task {task.name} skipped: already "
-                    f"deferred for timestamp {timestamp}",
+                    f"Periodic job {job.call_string} skipped for timestamp "
+                    f"{timestamp}: already deferred",
                     extra={
                         "action": "periodic_task_already_deferred",
+                        "job": job.log_context(),
                         **description,
                     },
                 )
