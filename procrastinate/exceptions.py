@@ -113,3 +113,10 @@ class CallerModuleUnknown(ProcrastinateException):
 
 class RunTaskError(ProcrastinateException):
     """One of the specified coroutines ended with an exception"""
+
+
+class InvalidTimestamp(ProcrastinateException):
+    """
+    Periodic task launched with a timestamp kwarg not matching the
+    defer_timestamp arg
+    """

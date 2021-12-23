@@ -88,8 +88,15 @@ class JobManager:
         """
         Defer a periodic job, ensuring that no other worker will defer a job for the
         same timestamp.
+
+        If the job was deferred, return its id.
+        If the job was not deferred, return None.
         """
-        job.task_kwargs["timestamp"] = defer_timestamp
+        # If we mutate the existing task_kwargs dict, we could have unintended side
+        # effects
+        if job.task_kwargs.get("timestamp") != defer_timestamp:
+            raise exceptions.InvalidTimestamp
+
         # schedule_at and schedule_in are meaningless in this context, we ignore them
         try:
             result = await self.connector.execute_query_one_async(
