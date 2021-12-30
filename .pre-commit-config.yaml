@@ -31,12 +31,12 @@ repos:
     files: ^procrastinate/
     args: []
     additional_dependencies:
-    - attrs==21.2.0
+    - attrs==21.4.0
     - click==8.0.3
     - sqlalchemy[mypy]==1.4.27
     - types-croniter==1.0.3
-    - types-psycopg2==2.9.4
-    - types-python-dateutil==2.8.3
+    - types-psycopg2==2.9.5
+    - types-python-dateutil==2.8.4
 
 - repo: https://github.com/asottile/pyupgrade
   rev: "v2.29.1"
