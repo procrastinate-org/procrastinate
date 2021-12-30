@@ -217,8 +217,11 @@ def _get_module_name(obj: Any) -> str:
     module = inspect.getmodule(obj)
     # obj could be None, or has no __file__ if in an interactive shell
     # in which case, there's not a lot we can do.
-    if not module or not hasattr(module, "__file__"):
+    if not module or not getattr(module, "__file__"):
         return module_name
+
+    # We've checked this just above but mypy needs a direct proof
+    assert module.__file__
 
     path = pathlib.Path(module.__file__)
     # If the path is absolute, it probably means __main__ is an executable from an
