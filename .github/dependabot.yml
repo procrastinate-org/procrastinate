@@ -10,4 +10,4 @@ updates:
       time: "09:00"
       timezone: Europe/Paris
     labels:
-      - "PR type: dependencies"
+      - "PR type: dependencies 🤖"
