@@ -661,7 +661,7 @@ type_comments = ["typed-ast (>=1.4.0)"]
 
 [[package]]
 name = "sphinx-github-changelog"
-version = "1.0.8"
+version = "1.1.0"
 description = "Build a sphinx changelog from GitHub Releases"
 category = "dev"
 optional = false
@@ -670,8 +670,8 @@ python-versions = ">=3.7,<4.0"
 [package.dependencies]
 docutils = ">=0.16,<0.17"
 importlib-metadata = {version = ">=3.10.1,<4.0.0", markers = "python_version < \"3.8\""}
-requests = ">=2.25.1,<3.0.0"
-Sphinx = ">=3.5.4,<4.0.0"
+requests = "*"
+Sphinx = "*"
 
 [[package]]
 name = "sphinxcontrib-applehelp"
@@ -1380,8 +1380,8 @@ sphinx-autodoc-typehints = [
     {file = "sphinx_autodoc_typehints-1.12.0-py3-none-any.whl", hash = "sha256:5e81776ec422dd168d688ab60f034fccfafbcd94329e9537712c93003bddc04a"},
 ]
 sphinx-github-changelog = [
-    {file = "sphinx-github-changelog-1.0.8.tar.gz", hash = "sha256:8bfd68c0598182632511a92de3224fe38574537e742865f068bba601b00fd25c"},
-    {file = "sphinx_github_changelog-1.0.8-py3-none-any.whl", hash = "sha256:2b270eed3d8541403c6c71689cba21839f098a5b1aa66c0fcbaa5f029efcd7f9"},
+    {file = "sphinx-github-changelog-1.1.0.tar.gz", hash = "sha256:18b6437b627947c46531d20c15b36d10a1e554662469245f8200115599895b92"},
+    {file = "sphinx_github_changelog-1.1.0-py3-none-any.whl", hash = "sha256:17e0d6048a84f232e6a1b423f10b9ca39951625e44cd22e124ae124c3d4a451c"},
 ]
 sphinxcontrib-applehelp = [
     {file = "sphinxcontrib-applehelp-1.0.2.tar.gz", hash = "sha256:a072735ec80e7675e3f432fcae8610ecf509c5f1869d17e2eecff44389cdbc58"},
