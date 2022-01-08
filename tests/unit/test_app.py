@@ -38,6 +38,17 @@ def test_app_register_builtins(app):
     assert "builtin:procrastinate.builtin_tasks.remove_old_jobs" in app.tasks
 
 
+def test_builtin_tasks_prefix(app, connector):
+    # Test that when assigning multiple apps, we don't end up with duplicate
+    # namespaces.
+    app2 = app_module.App(connector=connector)
+    assert "builtin:procrastinate.builtin_tasks.remove_old_jobs" in app.tasks
+    assert (
+        "builtin:builtin:procrastinate.builtin_tasks.remove_old_jobs" not in app.tasks
+    )
+    assert app2.tasks == app.tasks
+
+
 def test_app_register(app):
     task = tasks.Task(task_func, blueprint=app, queue="queue", name="bla")
 
