@@ -26,11 +26,11 @@ Procrastinate: PostgreSQL-based Task Queue for Python
     :alt: Coverage
 
 .. image:: https://img.shields.io/github/license/procrastinate-org/procrastinate?logo=open-source-initiative&logoColor=white
-    :target: https://github.com/procrastinate-org/procrastinate/blob/master/LICENSE
+    :target: https://github.com/procrastinate-org/procrastinate/blob/main/LICENSE
     :alt: MIT License
 
 .. image:: https://img.shields.io/badge/Contributor%20Covenant-v1.4%20adopted-ff69b4.svg
-    :target: https://github.com/procrastinate-org/procrastinate/blob/master/LICENSE/CODE_OF_CONDUCT.md
+    :target: https://github.com/procrastinate-org/procrastinate/blob/main/LICENSE/CODE_OF_CONDUCT.md
     :alt: Contributor Covenant
 
 

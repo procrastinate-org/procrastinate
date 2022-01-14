@@ -91,7 +91,7 @@ html_theme_options = {
     "sidebar_width": "235px",
     "github_user": "procrastinate-org",
     "github_repo": "procrastinate",
-    "badge_branch": "master",
+    "badge_branch": "main",
     "github_banner": True,
     "github_button": True,
     "travis_button": True,

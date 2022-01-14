@@ -134,7 +134,7 @@ If you've committed already, you can do a "Oops lint" commit, but the best is to
 
 .. code-block:: console
 
-    $ git rebase -i --exec 'tox -e format' origin/master
+    $ git rebase -i --exec 'tox -e format' origin/main
 
 This will run all code formatters on each commits, so that they're clean.
 If you've never done an `interactive rebase`_ before, it may seem complicated, so you

@@ -319,7 +319,7 @@ the 2 APIs will stay synchronized in the future no matter what. Want to know mor
 this? Here are a few resources:
 
 - How we generate our sync API:
-  https://github.com/procrastinate-org/procrastinate/blob/master/procrastinate/utils.py
+  https://github.com/procrastinate-org/procrastinate/blob/main/procrastinate/utils.py
 - An interesting talk on the issues that appear when trying to make codebases compatible
   with sync **and** async callers: "Just add await" from Andrew Godwin:
   https://www.youtube.com/watch?v=oMHrDy62kgE
