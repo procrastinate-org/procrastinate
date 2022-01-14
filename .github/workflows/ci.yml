@@ -96,22 +96,14 @@ jobs:
         with:
           name: 'coverage'
 
-      - name: Set up Python
-        id: setup-python
-        uses: actions/setup-python@v2
-
-      # There's no assurance that this will be the same version as the coverage
-      # in poetry.lock, but this should not be a problem.
-      - name: Install PyCoverage
-        run: pip install coverage
-
-      - name: Combine coverage files
-        run: coverage combine
-
-      - name: Produce coverage.xml
-        run: coverage xml
-
       - name: Display coverage
-        uses: ewjoachim/coverage-comment-action@v1
+        uses: ewjoachim/python-coverage-comment-action@v2
         with:
+          MERGE_COVERAGE_FILES: true
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Store Pull Request comment to be posted
+        uses: actions/upload-artifact@v2
+        with:
+          name: python-coverage-comment-action
+          path: python-coverage-comment-action.txt
