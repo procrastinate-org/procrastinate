@@ -77,8 +77,9 @@ def caller_module_name(prefix: str = "procrastinate") -> str:
     try:
         frame = inspect.currentframe()
         while True:
-            assert frame  # Could crash here
-            name = frame.f_globals["__name__"]  # ... or here
+            if not frame:
+                raise ValueError("Empty frame")
+            name = frame.f_globals["__name__"]  # May raise ValueError
             if not name.startswith(f"{prefix}."):
                 break
             frame = frame.f_back
