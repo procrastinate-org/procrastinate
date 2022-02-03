@@ -46,11 +46,6 @@ def migrations_database(db_factory, db_execute):
     return dbname
 
 
-@pytest.fixture
-def django_db(db):
-    yield db
-
-
 def test_migration(schema_database, migrations_database, run_migrations):
     # apply the migrations on the migrations_database database
     run_migrations(migrations_database)

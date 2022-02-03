@@ -8,9 +8,9 @@ import signal as stdlib_signal
 import string
 import uuid
 
-import aiopg
 import psycopg2
 import pytest
+from django.db import connections
 from psycopg2 import sql
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 
@@ -19,6 +19,7 @@ from procrastinate import app as app_module
 from procrastinate import blueprints, builtin_tasks, jobs
 from procrastinate import psycopg2_connector as psycopg2_connector_module
 from procrastinate import schema, testing
+from procrastinate.contrib.django import django_connector as django_connector_module
 from procrastinate.contrib.sqlalchemy import (
     psycopg2_connector as sqlalchemy_psycopg2_connector_module,
 )
@@ -111,9 +112,18 @@ def sqlalchemy_engine_dsn(setup_db, db_factory):
 
 
 @pytest.fixture
-async def connection(connection_params):
-    async with aiopg.connect(**connection_params) as connection:
-        yield connection
+def django_db(setup_db, db):
+    yield db
+
+
+@pytest.fixture
+def django_db_setup(setup_db, connection_params):
+    from django.conf import settings
+
+    settings.DATABASES["default"]["NAME"] = connection_params["dbname"]
+
+    yield
+    connections.close_all()
 
 
 @pytest.fixture
@@ -152,6 +162,18 @@ def sqlalchemy_psycopg2_connector(not_opened_sqlalchemy_psycopg2_connector):
     not_opened_sqlalchemy_psycopg2_connector.open()
     yield not_opened_sqlalchemy_psycopg2_connector
     not_opened_sqlalchemy_psycopg2_connector.close()
+
+
+@pytest.fixture
+def not_opened_django_connector(django_db):
+    yield django_connector_module.DjangoConnector()
+
+
+@pytest.fixture
+def django_connector(not_opened_django_connector):
+    not_opened_django_connector.open()
+    yield not_opened_django_connector
+    not_opened_django_connector.close()
 
 
 @pytest.fixture

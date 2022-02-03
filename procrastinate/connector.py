@@ -26,6 +26,11 @@ class BaseConnector:
     def execute_query_all(self, query: str, **arguments: Any) -> List[Dict[str, Any]]:
         raise NotImplementedError
 
+    def wait_for_notification(
+        self, channels: Iterable[str], timeout: Optional[float] = None
+    ) -> None:
+        raise NotImplementedError
+
     async def open_async(self, pool: Optional[Pool] = None) -> None:
         raise exceptions.SyncConnectorConfigurationError
 

@@ -2,7 +2,7 @@ import datetime
 import functools
 import logging
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Dict, Optional
+from typing import TYPE_CHECKING, Any, Dict, Optional, Union
 
 import attr
 
@@ -10,6 +10,7 @@ from procrastinate import types
 
 if TYPE_CHECKING:
     from procrastinate import manager
+    from procrastinate.contrib.django import sync_manager
 
 logger = logging.getLogger(__name__)
 
@@ -121,7 +122,11 @@ class JobDeferrer:
     doesn't need a job_manager property.
     """
 
-    def __init__(self, job_manager: "manager.JobManager", job: Job):
+    def __init__(
+        self,
+        job_manager: Union["manager.JobManager", "sync_manager.JobManager"],
+        job: Job,
+    ):
         self.job = job
         self.job_manager = job_manager
 

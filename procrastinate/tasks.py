@@ -1,11 +1,13 @@
 import datetime
 import logging
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Union
 
 from procrastinate import app as app_module
 from procrastinate import blueprints, exceptions, jobs, manager
 from procrastinate import retry as retry_module
 from procrastinate import types, utils
+from procrastinate.contrib.django import sync_app as sync_app_module
+from procrastinate.contrib.django import sync_manager
 
 logger = logging.getLogger(__name__)
 
@@ -13,7 +15,7 @@ logger = logging.getLogger(__name__)
 def configure_task(
     *,
     name: str,
-    job_manager: manager.JobManager,
+    job_manager: Union[manager.JobManager, sync_manager.JobManager],
     lock: Optional[str] = None,
     queueing_lock: Optional[str] = None,
     task_kwargs: Optional[types.JSONDict] = None,
@@ -178,7 +180,7 @@ class Task:
         ValueError
             If you try to define both schedule_at and schedule_in
         """
-        if not isinstance(self.blueprint, app_module.App):
+        if not isinstance(self.blueprint, (app_module.App, sync_app_module.App)):
             raise exceptions.UnboundTaskError
 
         app = self.blueprint
