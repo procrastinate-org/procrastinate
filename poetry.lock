@@ -491,8 +491,8 @@ testing = ["coverage (==6.2)", "hypothesis (>=5.7.1)", "flaky (>=3.5.0)", "mypy 
 
 [[package]]
 name = "pytest-click"
-version = "1.0.2"
-description = "Py.test plugin for Click"
+version = "1.1.0"
+description = "Pytest plugin for Click"
 category = "dev"
 optional = false
 python-versions = "*"
@@ -1344,8 +1344,8 @@ pytest-asyncio = [
     {file = "pytest_asyncio-0.18.0-py3-none-any.whl", hash = "sha256:5e33f5010402309ff4e8cdec04e76b057ae73e0c132f12c6aa2fa6ec8cabfbf1"},
 ]
 pytest-click = [
-    {file = "pytest_click-1.0.2-py3-none-any.whl", hash = "sha256:ac298e15a31d8892d9d063c3be82bb9877aaa11a4944e05e541ecc753258e474"},
-    {file = "pytest_click-1.0.2.tar.gz", hash = "sha256:b40b8435adde7a0d931352036a3882b13cd424fce2ffd7be6c87665050259be5"},
+    {file = "pytest_click-1.1.0-py3-none-any.whl", hash = "sha256:eade4742c2f02c345e78a32534a43e8db04acf98d415090539dacc880b7cd0e9"},
+    {file = "pytest_click-1.1.0.tar.gz", hash = "sha256:fdd9f6721f877dda021e7c5dc73e70aecd37e5ed23ec6820f8a7b3fd7b4f8d30"},
 ]
 pytest-cov = [
     {file = "pytest-cov-3.0.0.tar.gz", hash = "sha256:e7f0f5b1617d2210a2cabc266dfe2f4c75a8d32fb89eafb7ad9d06f6d076d470"},
