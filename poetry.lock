@@ -193,7 +193,7 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
 
 [[package]]
 name = "dunamai"
-version = "1.8.0"
+version = "1.9.0"
 description = "Dynamic version generation"
 category = "dev"
 optional = false
@@ -1040,8 +1040,8 @@ docutils = [
     {file = "docutils-0.16.tar.gz", hash = "sha256:c2de3a60e9e7d07be26b7f2b00ca0309c207e06c100f9cc2a94931fc75a478fc"},
 ]
 dunamai = [
-    {file = "dunamai-1.8.0-py3-none-any.whl", hash = "sha256:846855e45d5969f6d11835d486bbf4d6ca175d4169a0ab11f619a5135cc86bdf"},
-    {file = "dunamai-1.8.0.tar.gz", hash = "sha256:ff1f958af3575ec612e72c84bf96367469f418d31b9685f8311a5de2eb754a85"},
+    {file = "dunamai-1.9.0-py3-none-any.whl", hash = "sha256:89213a9c1176313cdfda7091a15c6d94be8c17b25e57a8c1e2ecf10d902b25d2"},
+    {file = "dunamai-1.9.0.tar.gz", hash = "sha256:284dc9acbd3d6b749440332e46164f64b207c56eaf4af412d856cf9f08978932"},
 ]
 flake8 = [
     {file = "flake8-4.0.1-py2.py3-none-any.whl", hash = "sha256:479b1304f72536a55948cb40a32dce8bb0ffe3501e26eaf292c7e60eb5e0428d"},
