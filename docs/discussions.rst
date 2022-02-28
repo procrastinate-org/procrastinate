@@ -133,7 +133,7 @@ This says we can safely expect the file to contain ``abcd``.
 
 Note that Procrastinate will use PostgreSQL to search the jobs table for suitable jobs.
 Even if the database contains a high proportion of locked jobs, this will barely affect
-Procrastinates's capacity to quickly find the free jobs.
+Procrastinate's capacity to quickly find the free jobs.
 
 A good string identifier for the lock is a string identifier of the shared resource,
 UUIDs are well suited for this. If multiple resources are implicated, a combination of
@@ -331,8 +331,8 @@ have to be maintained in parallel.
 How stable is Procrastinate?
 ----------------------------
 
-More and more stable. We've started mentionning the project around, and it's
-now used in production in real projects.
+More and more stable. We've started mentioning the project around, and it's now
+used in production in real projects.
 
 That being said, we'd like to develop real monitoring tools before we call this
 really ready for production.

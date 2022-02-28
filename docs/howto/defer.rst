@@ -36,7 +36,7 @@ Create a job pattern, launch multiple jobs
 
 ::
 
-    pattern = my_task.configure(task_kwagrs={"a": 1})
+    pattern = my_task.configure(task_kwargs={"a": 1})
 
     pattern.defer(b=2)
     pattern.defer(b=3)

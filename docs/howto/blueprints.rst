@@ -29,7 +29,7 @@ Firstly, create a Blueprint instance and then create some tasks::
     def mytask(argument, other_argument):
         ...
 
-In your projcet register the blueprint with the `App` after you have created it::
+In your project register the blueprint with the `App` after you have created it::
 
     from procrastinate import AiopgConnector, App
 
