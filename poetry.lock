@@ -850,7 +850,7 @@ python-versions = ">=3.6"
 
 [[package]]
 name = "types-croniter"
-version = "1.0.7"
+version = "1.0.8"
 description = "Typing stubs for croniter"
 category = "dev"
 optional = false
@@ -1471,8 +1471,8 @@ typed-ast = [
     {file = "typed_ast-1.5.2.tar.gz", hash = "sha256:525a2d4088e70a9f75b08b3f87a51acc9cde640e19cc523c7e41aa355564ae27"},
 ]
 types-croniter = [
-    {file = "types-croniter-1.0.7.tar.gz", hash = "sha256:4989e4b0199f7d5d16d1ec1c931cf981acf47f153bf67d329dc12377c32f34e0"},
-    {file = "types_croniter-1.0.7-py3-none-any.whl", hash = "sha256:7166f6b013126087354b4bb1eb775f81c7c7d096720591b02e2a1ca5f7ea1f9a"},
+    {file = "types-croniter-1.0.8.tar.gz", hash = "sha256:b068344c392b48d770db11e3b6953fee8642dada8094508eee2838ba8d4e5c7c"},
+    {file = "types_croniter-1.0.8-py3-none-any.whl", hash = "sha256:765709e7faeed5098802173881976397c9fee1f8147f6d338143e532525f8f39"},
 ]
 types-psycopg2 = [
     {file = "types-psycopg2-2.9.8.tar.gz", hash = "sha256:9b035612cc735d2af1d8b70d12f2604db32e34a857f4f7f4df5f8990302927bf"},
