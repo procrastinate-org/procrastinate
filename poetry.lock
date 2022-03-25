@@ -315,11 +315,11 @@ python-versions = "*"
 
 [[package]]
 name = "migra"
-version = "3.0.1621480950"
+version = "3.0.1647431138"
 description = "Like `diff` but for PostgreSQL schemas"
 category = "dev"
 optional = false
-python-versions = ">=3.6,<4"
+python-versions = ">=3.7,<4"
 
 [package.dependencies]
 schemainspect = ">=3"
@@ -1176,8 +1176,8 @@ mccabe = [
     {file = "mccabe-0.6.1.tar.gz", hash = "sha256:dd8d182285a0fe56bace7f45b5e7d1a6ebcbf524e8f3bd87eb0f125271b8831f"},
 ]
 migra = [
-    {file = "migra-3.0.1621480950-py3-none-any.whl", hash = "sha256:157a40fff99ecadbec389b8972b42eac93f43eb82f4ae8f485adc87fcd7800d6"},
-    {file = "migra-3.0.1621480950.tar.gz", hash = "sha256:5fdce56fe7de79b17b7875250c1e90c645117cc8d358c5a43b38b815390a4445"},
+    {file = "migra-3.0.1647431138-py3-none-any.whl", hash = "sha256:293df81f556b565a1943aa5b33120392b80829cda2941cc99a9309e5fd7a10b9"},
+    {file = "migra-3.0.1647431138.tar.gz", hash = "sha256:55d748f9d2e03b3d858ef8fc8d10ffaefc137f51c00da94594339bff10b1b5f8"},
 ]
 mypy = [
     {file = "mypy-0.942-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:5bf44840fb43ac4074636fd47ee476d73f0039f4f54e86d7265077dc199be24d"},
