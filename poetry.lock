@@ -859,7 +859,7 @@ python-versions = "*"
 
 [[package]]
 name = "types-psycopg2"
-version = "2.9.9"
+version = "2.9.10"
 description = "Typing stubs for psycopg2"
 category = "dev"
 optional = false
@@ -1480,8 +1480,8 @@ types-croniter = [
     {file = "types_croniter-1.0.8-py3-none-any.whl", hash = "sha256:765709e7faeed5098802173881976397c9fee1f8147f6d338143e532525f8f39"},
 ]
 types-psycopg2 = [
-    {file = "types-psycopg2-2.9.9.tar.gz", hash = "sha256:4f9d4d52eeb343dc00fd5ed4f1513a8a5c18efba0a072eb82706d15cf4f20a2e"},
-    {file = "types_psycopg2-2.9.9-py3-none-any.whl", hash = "sha256:cec9291d4318ad70b407310f8304b3d40f6d0358f09870448f7a65e3027c80af"},
+    {file = "types-psycopg2-2.9.10.tar.gz", hash = "sha256:7da700d095528cc4b845429420e593f1b14c92307df47046e9fa8223343464c6"},
+    {file = "types_psycopg2-2.9.10-py3-none-any.whl", hash = "sha256:d64887afc41d2b1136cef10aa5cc407fbad314e28b4dbb47d3a8f8e937d1b040"},
 ]
 types-python-dateutil = [
     {file = "types-python-dateutil-2.8.10.tar.gz", hash = "sha256:6bcf3aae7242e5793bafd7b2bcfb4e255eb7b2b3144acd0df0e182dce58ccad3"},
