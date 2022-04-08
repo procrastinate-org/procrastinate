@@ -835,7 +835,7 @@ python-versions = ">=3.7"
 
 [[package]]
 name = "tomlkit"
-version = "0.10.0"
+version = "0.10.1"
 description = "Style preserving TOML library"
 category = "dev"
 optional = false
@@ -913,7 +913,7 @@ sqlalchemy = ["sqlalchemy"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7"
-content-hash = "01c5bd0e9084c397d8aad98023de690acc9320824fda5bd27b84af50cf7667f6"
+content-hash = "d8fcddabc1aa4ae9db8fbbeb4f28682494084146f2b87831bbe51c071cb3dc15"
 
 [metadata.files]
 aiopg = [
@@ -1446,8 +1446,8 @@ tomli = [
     {file = "tomli-2.0.1.tar.gz", hash = "sha256:de526c12914f0c550d15924c62d72abc48d6fe7364aa87328337a31007fe8a4f"},
 ]
 tomlkit = [
-    {file = "tomlkit-0.10.0-py3-none-any.whl", hash = "sha256:cac4aeaff42f18fef6e07831c2c2689a51df76cf2ede07a6a4fa5fcb83558870"},
-    {file = "tomlkit-0.10.0.tar.gz", hash = "sha256:d99946c6aed3387c98b89d91fb9edff8f901bf9255901081266a84fb5604adcd"},
+    {file = "tomlkit-0.10.1-py3-none-any.whl", hash = "sha256:3eba517439dcb2f84cf39f4f85fd2c3398309823a3c75ac3e73003638daf7915"},
+    {file = "tomlkit-0.10.1.tar.gz", hash = "sha256:3c517894eadef53e9072d343d37e4427b8f0b6200a70b7c9a19b2ebd1f53b951"},
 ]
 typed-ast = [
     {file = "typed_ast-1.5.2-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:183b183b7771a508395d2cbffd6db67d6ad52958a5fdc99f450d954003900266"},
