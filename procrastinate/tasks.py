@@ -160,8 +160,8 @@ class Task:
             A datetime before which the job should not be launched (incompatible with
             schedule_in)
         schedule_in :
-            A dict describing the time interval before the task should be launched.
-            See details in the `python documentation
+            A dict with kwargs for a python timedelta, for example ``{'minutes': 5}``.
+            Converted to schedule_at internally. See `python timedelta documentation
             <https://docs.python.org/3/library/datetime.html#timedelta-objects>`__
             (incompatible with schedule_at)
 
