@@ -315,14 +315,14 @@ python-versions = "*"
 
 [[package]]
 name = "migra"
-version = "3.0.1647431138"
+version = "3.0.1652017683"
 description = "Like `diff` but for PostgreSQL schemas"
 category = "dev"
 optional = false
 python-versions = ">=3.7,<4"
 
 [package.dependencies]
-schemainspect = ">=3"
+schemainspect = ">=3.1.1652015119"
 six = "*"
 sqlbag = "*"
 
@@ -585,14 +585,13 @@ use_chardet_on_py3 = ["chardet (>=3.0.2,<5)"]
 
 [[package]]
 name = "schemainspect"
-version = "3.0.1616029793"
+version = "3.1.1652015119"
 description = "Schema inspection for PostgreSQL (and possibly others)"
 category = "dev"
 optional = false
-python-versions = ">=3.6,<4"
+python-versions = ">=3.7,<4"
 
 [package.dependencies]
-six = "*"
 sqlalchemy = "*"
 
 [[package]]
@@ -1176,8 +1175,8 @@ mccabe = [
     {file = "mccabe-0.6.1.tar.gz", hash = "sha256:dd8d182285a0fe56bace7f45b5e7d1a6ebcbf524e8f3bd87eb0f125271b8831f"},
 ]
 migra = [
-    {file = "migra-3.0.1647431138-py3-none-any.whl", hash = "sha256:293df81f556b565a1943aa5b33120392b80829cda2941cc99a9309e5fd7a10b9"},
-    {file = "migra-3.0.1647431138.tar.gz", hash = "sha256:55d748f9d2e03b3d858ef8fc8d10ffaefc137f51c00da94594339bff10b1b5f8"},
+    {file = "migra-3.0.1652017683-py3-none-any.whl", hash = "sha256:b3ccade76e70440897c6a76da24f5fb10a7784b5d3e0b220e9c393bbe6d101ab"},
+    {file = "migra-3.0.1652017683.tar.gz", hash = "sha256:8481ee051746ee9e0f5f107d27c61df779ab197712c5d9613c5368fbd53ef4ff"},
 ]
 mypy = [
     {file = "mypy-0.950-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:cf9c261958a769a3bd38c3e133801ebcd284ffb734ea12d01457cb09eacf7d7b"},
@@ -1340,8 +1339,8 @@ requests = [
     {file = "requests-2.27.1.tar.gz", hash = "sha256:68d7c56fd5a8999887728ef304a6d12edc7be74f1cfa47714fc8b414525c9a61"},
 ]
 schemainspect = [
-    {file = "schemainspect-3.0.1616029793-py3-none-any.whl", hash = "sha256:68f5b0184a527a0e45405d07fd3bc762e3e879f9ba1af216ee9166f6cb6dc5ed"},
-    {file = "schemainspect-3.0.1616029793.tar.gz", hash = "sha256:b81f0482e0df338032eda30ee6e41f69df7d15a21b03688fd1128cdbcb409e6c"},
+    {file = "schemainspect-3.1.1652015119-py3-none-any.whl", hash = "sha256:b98cf19f76a8e5110c2a81f74bf72e7ae52697895f5910f40c0cd1d64cb7c445"},
+    {file = "schemainspect-3.1.1652015119.tar.gz", hash = "sha256:7eb05190b52e1520c1ea573abc39eac47752b647708b6d7dfc350345737e44a1"},
 ]
 six = [
     {file = "six-1.16.0-py2.py3-none-any.whl", hash = "sha256:8abb2f1d86890a2dfb989f9a77cfcfd3e47c2a354b01111771326f8aa26e0254"},
