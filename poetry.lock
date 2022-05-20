@@ -157,7 +157,7 @@ toml = ["tomli"]
 
 [[package]]
 name = "croniter"
-version = "1.3.4"
+version = "1.3.5"
 description = "croniter provides iteration for datetime object with cron like format"
 category = "main"
 optional = false
@@ -1028,8 +1028,8 @@ coverage = [
     {file = "coverage-6.3.3.tar.gz", hash = "sha256:2781c43bffbbec2b8867376d4d61916f5e9c4cc168232528562a61d1b4b01879"},
 ]
 croniter = [
-    {file = "croniter-1.3.4-py2.py3-none-any.whl", hash = "sha256:1ac5fee61aa3467c9d998b8a889cd3acbf391ad3f473addb0212dc7733b7b5cd"},
-    {file = "croniter-1.3.4.tar.gz", hash = "sha256:3169365916834be654c2cac57ea14d710e742f8eb8a5fce804f6ce548da80bf2"},
+    {file = "croniter-1.3.5-py2.py3-none-any.whl", hash = "sha256:4f72faca42c00beb6e30907f1315145f43dfbe5ec0ad4ada24b4c0d57b86a33a"},
+    {file = "croniter-1.3.5.tar.gz", hash = "sha256:7592fc0e8a00d82af98dfa2768b75983b6fb4c2adc8f6d0d7c931a715b7cefee"},
 ]
 django = [
     {file = "Django-3.2.13-py3-none-any.whl", hash = "sha256:b896ca61edc079eb6bbaa15cf6071eb69d6aac08cce5211583cfb41515644fdf"},
