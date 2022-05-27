@@ -10,7 +10,7 @@ categories:
     label: 'PR type: bugfix 🕵️'
   - title: 'Miscellaneous'
     label: 'PR type: miscellaneous 👾'
-  - title: 'Dependencies
+  - title: 'Dependencies'
     label: 'PR type: dependencies 🤖'
 exclude-labels:
 - 'PR: Skip changelog 🤫'
