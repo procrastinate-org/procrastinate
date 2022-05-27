@@ -16,6 +16,6 @@
         "matchDepTypes": ["devDependencies"],
         "automerge": true,
         "groupName": "Dev Deps"
-      },
-  ]
+      }
+   ]
 }
