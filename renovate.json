@@ -5,7 +5,7 @@
     "labels": ["PR type: dependencies 🤖"],
     "packageRules": [
       {
-        "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
+        "matchUpdateTypes": ["major"],
         "groupName": "Deps (major)"
       },
       {
