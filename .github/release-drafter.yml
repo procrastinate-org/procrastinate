@@ -3,15 +3,17 @@ tag-template: '$NEXT_MINOR_VERSION'
 change-template: '- $TITLE (#$NUMBER)'
 categories:
   - title: 'Breaking changes'
-    label: 'PR type: breaking'
+    label: 'PR type: breaking 💥'
   - title: 'Features'
-    label: 'PR type: feature'
+    label: 'PR type: feature ⭐️'
   - title: 'Bug Fixes'
-    label: 'PR type: bugfix'
+    label: 'PR type: bugfix 🕵️'
   - title: 'Miscellaneous'
-    label: 'PR type: miscellaneous'
+    label: 'PR type: miscellaneous 👾'
+  - title: 'Dependencies'
+    label: 'PR type: dependencies 🤖'
 exclude-labels:
-- 'PR: Skip changelog'
+- 'PR: Skip changelog 🤫'
 template: |
   ## Migrations
 
