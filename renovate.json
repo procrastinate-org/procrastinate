@@ -2,6 +2,7 @@
     "extends": [
         "config:base"
     ],
+    "labels": ["PR type: dependencies 🤖"],
     "packageRules": [
       {
         "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
