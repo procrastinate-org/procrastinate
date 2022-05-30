@@ -1,0 +1,43 @@
+{
+  "extends": [
+    "config:base"
+  ],
+  "labels": [
+    "PR type: dependencies 🤖"
+  ],
+  "packageRules": [
+    {
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "groupName": "Deps with major upgrades",
+    },
+    {
+      "matchUpdateTypes": [
+        "minor",
+        "patch",
+        "pin",
+        "digest"
+      ],
+      "automerge": true,
+      "groupName": "Deps with minor upgrades",
+    },
+    {
+      "matchDepTypes": [
+        "devDependencies"
+      ],
+      "automerge": true,
+      "groupName": "Dev dependencies",
+    },
+    {
+      // Don't update Sphinx until #633 is good to go
+      "matchPackageNames": [
+        "sphinx"
+      ],
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "enabled": false,
+    },
+  ]
+}
