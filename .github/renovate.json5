@@ -31,12 +31,8 @@
     },
     {
       // Don't update Sphinx until #633 is good to go
-      "matchPackageNames": [
-        "sphinx"
-      ],
-      "matchUpdateTypes": [
-        "major"
-      ],
+      "matchPackageNames": ["Sphinx"],
+      "matchUpdateTypes": ["major"],
       "enabled": false,
     },
   ]
