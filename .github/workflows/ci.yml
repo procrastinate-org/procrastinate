@@ -46,6 +46,8 @@ jobs:
           python-version: "${{ matrix.python-version }}"
           cache: "poetry"
 
+      - run: poetry env use "${{ matrix.python-version }}"
+
       - run: poetry install --extras "django sqlalchemy"
 
       - name: Run tests
