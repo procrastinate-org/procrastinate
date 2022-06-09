@@ -13,17 +13,13 @@ jobs:
 
     strategy:
       matrix:
-        include:
-          - python_version: "3.7"
-            script: tests
-          - python_version: "3.8"
-            script: tests
-          - python_version: "3.9"
-            script: tests
-          - python_version: "3.10"
-            script: tests
+          python-version:
+          - "3.7"
+          - "3.8"
+          - "3.9"
+          - "3.10"
 
-    name: "py${{ matrix.python_version }} / ${{ matrix.script }}"
+    name: "py${{ matrix.python-version }} / ${{ matrix.script }}"
     runs-on: ubuntu-latest
 
     services:
@@ -42,29 +38,20 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Set up Python
-        id: setup-python
-        uses: actions/setup-python@v3
+      - name: Install poetry
+        run: pipx install poetry
+
+      - uses: actions/setup-python@v4
         with:
-          python-version: ${{ matrix.python_version }}
+          python-version: "${{ matrix.python-version }}"
+          cache: "poetry"
 
-      - name: Pip, Pre-commit & Poetry caches
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.cache/
-          key: ${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('poetry.lock') }}-${{ hashFiles('.pre-commit-config.yaml') }}
+      - run: poetry install --extras "django sqlalchemy"
 
-      - name: Install Poetry
-        run: pip install poetry
-
-      - name: Install Dev dependencies
-        run: poetry install --extras "django sqlalchemy"
-
-      - name: Run ${{ matrix.script }}
-        run: scripts/${{ matrix.script }}
+      - name: Run tests
+        run: scripts/tests
         env:
-          COVERAGE_FILE: ".coverage.${{ matrix.python_version }}"
+          COVERAGE_FILE: ".coverage.${{ matrix.python-version }}"
           PGHOST: localhost
           PGUSER: postgres
           PGPASSWORD: postgres
@@ -73,7 +60,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: coverage
-          path: .coverage.${{ matrix.python_version }}
+          path: .coverage.${{ matrix.python-version }}
 
   report-status:
     name: success
