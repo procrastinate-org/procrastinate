@@ -35,6 +35,17 @@ def test_wrap_exceptions_unique_violation(mocker):
     assert excinfo.value.constraint_name == "constraint name"
 
 
+def test_wrap_exceptions_integrity_error_not_unique(mocker):
+    @sqlalchemy_psycopg2_connector.wrap_exceptions
+    def func():
+        exc = Exception()
+        exc.diag = mocker.Mock(constraint_name="constraint name")
+        raise sqlalchemy.exc.IntegrityError(statement="SELECT 1", params={}, orig=exc)
+
+    with pytest.raises(exceptions.ConnectorException):
+        func()
+
+
 def test_wrap_exceptions_success():
     @sqlalchemy_psycopg2_connector.wrap_exceptions
     def func(a, b):

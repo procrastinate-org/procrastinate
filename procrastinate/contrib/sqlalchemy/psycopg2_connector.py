@@ -23,6 +23,7 @@ def wrap_exceptions(func: Callable) -> Callable:
                 raise exceptions.UniqueViolation(
                     constraint_name=exc.orig.diag.constraint_name
                 )
+            raise exceptions.ConnectorException from exc
         except sqlalchemy.exc.SQLAlchemyError as exc:
             raise exceptions.ConnectorException from exc
 
