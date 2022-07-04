@@ -5,6 +5,9 @@
   "labels": [
     "PR type: dependencies 🤖"
   ],
+  "lockFileMaintenance": {
+    "enabled": true
+  },
   "packageRules": [
     {
       "matchUpdateTypes": [
