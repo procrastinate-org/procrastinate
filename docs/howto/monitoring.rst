@@ -47,7 +47,6 @@ Error reporting
 When a job throws an error, procrastinate logs an error including ``exc_info``.
 Some error capture tools will automatically collect tracebacks from these logs.
 
-
 A non-exhaustive list of tools which do this:
 
 * Sentry via its `logging integration <https://docs.sentry.io/platforms/python/guides/logging/>`_ (enabled by default)
