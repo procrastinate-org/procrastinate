@@ -41,6 +41,18 @@ And commands to retry (``retry``) & cancel (``cancel``) a specific job.
 
 You can get help for a specific command *cmd* by typing ``help cmd``.
 
+Error reporting
+^^^^^^^^^^^^^^^
+
+When a job throws an error, procrastinate logs an error including ``exc_info``.
+Some error capture tools will automatically collect tracebacks from these logs.
+
+
+A non-exhaustive list of tools which do this:
+
+* Sentry via its `logging integration <https://docs.sentry.io/platforms/python/guides/logging/>`_ (enabled by default)
+* Google Cloud, although you may need to set up `json log formatting <https://cloud.google.com/error-reporting/docs/formatting-error-messages>`_
+
 The administration web portal
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
