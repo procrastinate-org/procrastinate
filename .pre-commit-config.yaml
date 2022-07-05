@@ -48,3 +48,8 @@ repos:
   rev: "0.11.2"
   hooks:
   - id: doc8
+
+- repo: https://github.com/floatingpurr/sync_with_poetry
+  rev: 0.2.1
+  hooks:
+    - id: sync_with_poetry
