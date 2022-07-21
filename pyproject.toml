@@ -36,6 +36,7 @@ importlib-resources = {version = "*", python = "<3.9"}
 psycopg2-binary = "*"
 python-dateutil = "*"
 sqlalchemy = {version = "^1.4", optional = true}
+typing-extensions = {version = "*", python = "<3.8"}
 
 [tool.poetry.extras]
 django = ["django"]

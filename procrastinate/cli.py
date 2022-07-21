@@ -4,10 +4,15 @@ import datetime
 import json
 import logging
 import os
+import sys
 from typing import Any, Callable, Dict, Optional, Union
 
 import click
-from typing_extensions import Literal
+
+if sys.version_info < (3, 8):
+    from typing_extensions import Literal
+else:
+    from typing import Literal
 
 import procrastinate
 from procrastinate import connector, exceptions, jobs, shell, types, utils, worker
