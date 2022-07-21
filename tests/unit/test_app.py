@@ -149,7 +149,6 @@ def test_close(app, connector):
     assert connector.states == ["closed"]
 
 
-@pytest.mark.asyncio
 async def test_async_enter_exit(not_opened_app, pool, connector):
     async with not_opened_app.open_async(pool) as app:
         pass
@@ -158,7 +157,6 @@ async def test_async_enter_exit(not_opened_app, pool, connector):
     assert app is not_opened_app  # checks that open_async returns the app instance
 
 
-@pytest.mark.asyncio
 async def test_open_async(not_opened_app, pool, connector):
     app = await not_opened_app.open_async(pool)
 
@@ -166,7 +164,6 @@ async def test_open_async(not_opened_app, pool, connector):
     assert app is not_opened_app  # checks that open_async returns the app instance
 
 
-@pytest.mark.asyncio
 async def test_close_async(app, connector):
     connector.reset()
     await app.close_async()

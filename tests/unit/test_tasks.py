@@ -16,7 +16,6 @@ def test_task_init_with_no_name(app):
     assert task.name == "tests.unit.test_tasks.task_func"
 
 
-@pytest.mark.asyncio
 async def test_task_defer_async(app, connector):
     task = tasks.Task(task_func, blueprint=app, queue="queue")
 

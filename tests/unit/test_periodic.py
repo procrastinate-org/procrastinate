@@ -158,7 +158,6 @@ def test_get_timestamp_no_since_not_within_delay(periodic_deferrer, cron_task, c
     assert [r.action for r in caplog.records] == ["ignore_periodic_task"]
 
 
-@pytest.mark.asyncio
 async def test_worker_no_task(periodic_deferrer, caplog):
     caplog.set_level("INFO")
     await periodic_deferrer.worker()
@@ -166,7 +165,6 @@ async def test_worker_no_task(periodic_deferrer, caplog):
     assert [r.action for r in caplog.records] == ["periodic_deferrer_no_task"]
 
 
-@pytest.mark.asyncio
 async def test_worker_loop(mocker, task):
     # The idea of this test is to make the inifite loop raise at some point
     mock = mocker.Mock()
@@ -200,7 +198,6 @@ async def test_worker_loop(mocker, task):
     ]
 
 
-@pytest.mark.asyncio
 async def test_wait_next_tick(periodic_deferrer, mocker):
     async def wait(val):
         assert val == 5 + periodic.MARGIN
@@ -210,7 +207,6 @@ async def test_wait_next_tick(periodic_deferrer, mocker):
     await periodic_deferrer.wait(5)
 
 
-@pytest.mark.asyncio
 async def test_defer_jobs(periodic_deferrer, task, connector, caplog):
     caplog.set_level("DEBUG")
 
@@ -242,7 +238,6 @@ async def test_defer_jobs(periodic_deferrer, task, connector, caplog):
     assert [r.action for r in caplog.records] == ["periodic_task_deferred"]
 
 
-@pytest.mark.asyncio
 async def test_defer_jobs_different_periodic_id(
     periodic_deferrer, task, connector, caplog
 ):
@@ -272,7 +267,6 @@ async def test_defer_jobs_different_periodic_id(
     assert [r.action for r in caplog.records] == ["periodic_task_deferred"]
 
 
-@pytest.mark.asyncio
 async def test_defer_jobs_already(periodic_deferrer, task, connector, caplog):
     caplog.set_level("DEBUG")
     connector.periodic_defers[(task.name, "foo")] = 1
@@ -300,7 +294,6 @@ async def test_defer_jobs_already(periodic_deferrer, task, connector, caplog):
     assert [r.action for r in caplog.records] == ["periodic_task_already_deferred"]
 
 
-@pytest.mark.asyncio
 async def test_defer_jobs_queueing_lock(periodic_deferrer, task, caplog):
     caplog.set_level("DEBUG")
 

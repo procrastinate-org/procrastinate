@@ -2,8 +2,6 @@ import asyncio
 
 import pytest
 
-pytestmark = pytest.mark.asyncio
-
 
 @pytest.fixture
 async def shell(process_env):

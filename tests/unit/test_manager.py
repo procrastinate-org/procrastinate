@@ -6,8 +6,6 @@ from procrastinate import exceptions, jobs, manager
 
 from .. import conftest
 
-pytestmark = pytest.mark.asyncio
-
 
 async def test_manager_defer_job(job_manager, job_factory, connector):
     job = await job_manager.defer_job_async(

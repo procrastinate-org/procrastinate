@@ -2,8 +2,6 @@ import pytest
 
 import procrastinate
 
-pytestmark = pytest.mark.asyncio
-
 
 @pytest.fixture
 def sync_app_explicit_open(not_opened_psycopg2_connector):

@@ -6,7 +6,6 @@ import pytest
 from procrastinate import signals
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize("one_signal", [signal.SIGINT, signal.SIGTERM])
 async def test_on_stop_async(one_signal, kill_own_pid):
     called = []
@@ -69,7 +68,6 @@ def test_on_stop_signal_unused(kill_own_pid):
     assert before is not during
 
 
-@pytest.mark.asyncio
 async def test_on_stop_work_with_asyncio(kill_own_pid):
     # In this test, we want to make sure that interacting with synchronisation
     # primitives from within a signal handler works.

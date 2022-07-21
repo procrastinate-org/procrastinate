@@ -1,8 +1,4 @@
-import pytest
-
 from procrastinate import builtin_tasks, job_context
-
-pytestmark = pytest.mark.asyncio
 
 
 async def test_remove_old_jobs(app):

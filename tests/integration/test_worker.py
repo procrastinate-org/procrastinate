@@ -4,8 +4,6 @@ import pytest
 
 from procrastinate import worker
 
-pytestmark = pytest.mark.asyncio
-
 
 @pytest.fixture
 async def running_worker(app):

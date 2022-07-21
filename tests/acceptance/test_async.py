@@ -2,8 +2,6 @@ import pytest
 
 import procrastinate
 
-pytestmark = pytest.mark.asyncio
-
 
 @pytest.fixture
 async def async_app_context_manager(not_opened_aiopg_connector):

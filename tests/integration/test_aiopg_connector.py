@@ -7,8 +7,6 @@ import pytest
 
 from procrastinate import aiopg_connector
 
-pytestmark = pytest.mark.asyncio
-
 
 @pytest.fixture
 async def aiopg_connector_factory(connection_params):

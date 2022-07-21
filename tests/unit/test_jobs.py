@@ -49,7 +49,6 @@ def test_job_evolve(job_factory):
     assert job.evolve(id=13, lock="bu") == expected
 
 
-@pytest.mark.asyncio
 async def test_job_deferrer_defer_async(job_factory, job_manager, connector):
 
     job = job_factory(
