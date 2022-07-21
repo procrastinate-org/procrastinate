@@ -18,7 +18,7 @@ jobs:
           - "3.8"
           - "3.9"
           - "3.10"
-          - "3.11.0b4"
+          - "3.11-dev"
 
     name: "py${{ matrix.python-version }} / ${{ matrix.script }}"
     runs-on: ubuntu-latest
