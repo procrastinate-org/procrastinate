@@ -11,7 +11,6 @@ def connector():
     return aiopg_connector.AiopgConnector()
 
 
-@pytest.mark.asyncio
 async def test_adapt_pool_args_on_connect(mocker):
     called = []
 
@@ -30,7 +29,6 @@ async def test_adapt_pool_args_on_connect(mocker):
     assert called == [connection]
 
 
-@pytest.mark.asyncio
 async def test_wrap_exceptions_wraps():
     @aiopg_connector.wrap_exceptions
     async def corofunc():
@@ -42,7 +40,6 @@ async def test_wrap_exceptions_wraps():
         await coro
 
 
-@pytest.mark.asyncio
 async def test_wrap_exceptions_success():
     @aiopg_connector.wrap_exceptions
     async def corofunc(a, b):
@@ -51,7 +48,6 @@ async def test_wrap_exceptions_success():
     assert await corofunc(1, 2) == (1, 2)
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "maxsize, expected_calls_count",
     [
@@ -84,7 +80,6 @@ async def test_wrap_query_exceptions_reached_max_tries(
     )
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "exception_class", [Exception, psycopg2.errors.OperationalError]
 )
@@ -105,7 +100,6 @@ async def test_wrap_query_exceptions_unhandled_exception(mocker, exception_class
     assert len(called) == 1
 
 
-@pytest.mark.asyncio
 async def test_wrap_query_exceptions_success(mocker):
     called = []
 
@@ -141,7 +135,6 @@ def test_wrap_exceptions_applied(method_name, connector):
     assert getattr(connector, method_name)._exceptions_wrapped is True
 
 
-@pytest.mark.asyncio
 async def test_listen_notify_pool_one_connection(mocker, caplog, connector):
     pool = mocker.Mock(maxsize=1)
     await connector.open_async(pool)
@@ -174,7 +167,6 @@ def fake_connector(mocker):
     return FakeConnector()
 
 
-@pytest.mark.asyncio
 async def test_open_async_no_pool_specified(fake_connector):
 
     await fake_connector.open_async()
@@ -184,7 +176,6 @@ async def test_open_async_no_pool_specified(fake_connector):
     assert fake_connector.create_pool_args == fake_connector._pool_args
 
 
-@pytest.mark.asyncio
 async def test_open_async_pool_argument_specified(fake_connector):
     pool = object()
     await fake_connector.open_async(pool)

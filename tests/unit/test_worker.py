@@ -7,8 +7,6 @@ from procrastinate import exceptions, job_context, jobs, tasks, worker
 
 from .. import conftest
 
-pytestmark = pytest.mark.asyncio
-
 
 @pytest.fixture
 def test_worker(app):

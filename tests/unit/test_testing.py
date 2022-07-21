@@ -27,14 +27,12 @@ def test_generic_execute(connector):
     assert result == {"i": "j"}
 
 
-@pytest.mark.asyncio
 async def test_execute_query(connector, mocker):
     connector.generic_execute = mocker.Mock()
     await connector.execute_query_async("a", b="c")
     connector.generic_execute.assert_called_with("a", "run", b="c")
 
 
-@pytest.mark.asyncio
 async def test_execute_query_one(connector, mocker):
     connector.generic_execute = mocker.Mock()
     assert (
@@ -44,7 +42,6 @@ async def test_execute_query_one(connector, mocker):
     connector.generic_execute.assert_called_with("a", "one", b="c")
 
 
-@pytest.mark.asyncio
 async def test_execute_query_all_async(connector, mocker):
     connector.generic_execute = mocker.Mock()
     assert (
@@ -361,7 +358,6 @@ def test_listen_for_jobs_run(connector):
     connector.listen_for_jobs_run()
 
 
-@pytest.mark.asyncio
 async def test_defer_no_notify(connector):
     # This test is there to check that if the deferred queue doesn't match the
     # listened queue, the testing connector doesn't notify.

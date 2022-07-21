@@ -7,8 +7,6 @@ from procrastinate import exceptions, jobs, manager
 
 from .. import conftest
 
-pytestmark = pytest.mark.asyncio
-
 
 @pytest.fixture
 def pg_job_manager(aiopg_connector):

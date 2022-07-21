@@ -144,7 +144,6 @@ def test_filter_none():
         "listen_notify",
     ],
 )
-@pytest.mark.asyncio
 async def test_missing_app_async(method_name):
     with pytest.raises(exceptions.MissingApp):
         # Some of this methods are not async but they'll raise

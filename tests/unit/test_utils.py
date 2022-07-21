@@ -85,7 +85,6 @@ def test_add_sync_api():
 # Event loops are not reentrant, so we can't call .d() from above
 # in an asyncio test, and we can't call await .a_async() from below
 # outside of an asyncio test. Consequently, we need 2 distinct tests.
-@pytest.mark.asyncio
 async def test_add_sync_api_does_not_break_original_coroutine():
     result = []
 
@@ -99,7 +98,6 @@ async def test_add_sync_api_does_not_break_original_coroutine():
     assert result == ["a"]
 
 
-@pytest.mark.asyncio
 async def test_add_sync_api_classmethods_async():
     result = []
 
@@ -128,7 +126,6 @@ def test_add_sync_api_classmethods_sync():
     assert result == [Test, "sync"]
 
 
-@pytest.mark.asyncio
 async def test_add_sync_api_staticmethods_async():
     result = []
 
@@ -281,7 +278,6 @@ def callback(launched):
     return _
 
 
-@pytest.mark.asyncio
 async def test_run_tasks(finished, coro, short, caplog):
     caplog.set_level("ERROR")
     # Two functions in main coros, both go through their ends
@@ -291,7 +287,6 @@ async def test_run_tasks(finished, coro, short, caplog):
     assert caplog.records == []
 
 
-@pytest.mark.asyncio
 async def test_run_tasks_graceful_stop_callback_not_called(
     launched, coro, callback, short
 ):
@@ -301,7 +296,6 @@ async def test_run_tasks_graceful_stop_callback_not_called(
     assert launched == {1}
 
 
-@pytest.mark.asyncio
 async def test_run_tasks_graceful_stop_callback_called(launched, coro, callback, short):
     # A main function is provided, but it crashes. This time, the graceful callback
     # is called.
@@ -313,7 +307,6 @@ async def test_run_tasks_graceful_stop_callback_called(launched, coro, callback,
     assert launched == {1, 2}
 
 
-@pytest.mark.asyncio
 async def test_run_tasks_graceful_stop_callback_called_side(
     launched, finished, coro, callback, short
 ):
@@ -329,7 +322,6 @@ async def test_run_tasks_graceful_stop_callback_called_side(
     assert finished == {1, 2}
 
 
-@pytest.mark.asyncio
 async def test_run_tasks_side_coro(launched, finished, coro, short):
     # When all the main coros have returned, the remaining side coros are
     # cancelled
@@ -338,7 +330,6 @@ async def test_run_tasks_side_coro(launched, finished, coro, short):
     assert finished == {1, 2}
 
 
-@pytest.mark.asyncio
 async def test_run_tasks_side_coro_crash(launched, finished, coro, short):
     # There's a main and a side. The side crashes. Main is still awaited and
     # the unction raises
@@ -352,7 +343,6 @@ async def test_run_tasks_side_coro_crash(launched, finished, coro, short):
     assert isinstance(exc_info.value.__cause__, ZeroDivisionError)
 
 
-@pytest.mark.asyncio
 async def test_run_tasks_main_coro_crash(launched, finished, coro, short):
     # There's a main and a side. The main crashes. Side is cancelled, and the
     # function raises
@@ -366,7 +356,6 @@ async def test_run_tasks_main_coro_crash(launched, finished, coro, short):
     assert isinstance(exc_info.value.__cause__, ZeroDivisionError)
 
 
-@pytest.mark.asyncio
 async def test_run_tasks_main_coro_one_crashes(launched, finished, coro, short):
     # 2 mains. One main crashes. The other finishes, and then the function fails.
     with pytest.raises(exceptions.RunTaskError) as exc_info:
@@ -378,7 +367,6 @@ async def test_run_tasks_main_coro_one_crashes(launched, finished, coro, short):
     assert isinstance(exc_info.value.__cause__, ZeroDivisionError)
 
 
-@pytest.mark.asyncio
 async def test_run_tasks_main_coro_both_crash(launched, finished, coro, short):
     # 2 mains. The 2 crash. The reported error is for the first one.
     with pytest.raises(exceptions.RunTaskError) as exc_info:
@@ -407,7 +395,6 @@ def count_logs(caplog):
     return _
 
 
-@pytest.mark.asyncio
 @pytest.mark.skipif(sys.version_info < (3, 8), reason="requires python3.8 or higher")
 async def test_run_tasks_logs(coro, short, count_logs):
 
@@ -448,7 +435,6 @@ async def test_run_tasks_logs(coro, short, count_logs):
     )
 
 
-@pytest.mark.asyncio
 @pytest.mark.skipif(sys.version_info >= (3, 8), reason="requires python3.7")
 async def test_run_tasks_logs_py37(coro, short, count_logs):
     # 2 mains. The 2 crash. The reported error is for the first one.
@@ -542,7 +528,6 @@ def awaitable_context():
     return context
 
 
-@pytest.mark.asyncio
 async def test_awaitable_context_await(awaitable_context):
     return_value = await awaitable_context
 
@@ -550,7 +535,6 @@ async def test_awaitable_context_await(awaitable_context):
     assert awaitable_context.awaited == ["open"]
 
 
-@pytest.mark.asyncio
 async def test_awaitable_context_enter_exit(awaitable_context):
     async with awaitable_context as return_value:
         pass

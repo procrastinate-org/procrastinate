@@ -8,7 +8,6 @@ def test_open(connector):
     connector.open()
 
 
-@pytest.mark.asyncio
 async def test_open_async(connector):
     await connector.open_async()
 
@@ -17,7 +16,6 @@ def test_close(connector):
     connector.close()
 
 
-@pytest.mark.asyncio
 async def test_close_async(connector):
     await connector.close_async()
 
@@ -33,7 +31,6 @@ async def test_close_async(connector):
         ["listen_notify", {"event": None, "channels": []}],
     ],
 )
-@pytest.mark.asyncio
 async def test_missing_app_async(method_name, kwargs):
     with pytest.raises(exceptions.SyncConnectorConfigurationError):
         # Some of this methods are not async but they'll raise

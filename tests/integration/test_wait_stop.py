@@ -6,7 +6,6 @@ from procrastinate import app
 from procrastinate import worker as worker_module
 
 
-@pytest.mark.asyncio
 async def test_wait_for_activity(aiopg_connector):
     """
     Testing that a new event interrupts the wait
@@ -26,7 +25,6 @@ async def test_wait_for_activity(aiopg_connector):
         pytest.fail("Failed to stop worker within .2s")
 
 
-@pytest.mark.asyncio
 async def test_wait_for_activity_timeout(aiopg_connector):
     """
     Testing that we timeout if nothing happens
@@ -46,7 +44,6 @@ async def test_wait_for_activity_timeout(aiopg_connector):
         worker.notify_event.set()
 
 
-@pytest.mark.asyncio
 async def test_wait_for_activity_stop_from_signal(aiopg_connector, kill_own_pid):
     """
     Testing than ctrl+c interrupts the wait
@@ -64,7 +61,6 @@ async def test_wait_for_activity_stop_from_signal(aiopg_connector, kill_own_pid)
         pytest.fail("Failed to stop worker within .2s")
 
 
-@pytest.mark.asyncio
 async def test_wait_for_activity_stop(aiopg_connector):
     """
     Testing than calling job_manager.stop() interrupts the wait
