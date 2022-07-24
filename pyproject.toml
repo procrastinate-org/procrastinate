@@ -53,7 +53,7 @@ pytest-click = "*"
 pytest-cov = "*"
 pytest-django = "*"
 pytest-mock = "*"
-Sphinx = "5.*"
+Sphinx = "*"
 sphinx-autodoc-typehints = "*"
 sphinx-github-changelog = "*"
 sphinxcontrib-programoutput = "*"
@@ -62,7 +62,7 @@ types-croniter = "*"
 types-psycopg2 = "*"
 types-python-dateutil = "*"
 SQLAlchemy = {extras = ["mypy"], version = "^1.4.27"}
-tomlkit = "^0.11.0"
+tomlkit = "*"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
