@@ -32,11 +32,5 @@
       "automerge": true,
       "groupName": "Dev dependencies",
     },
-    {
-      // Don't update Sphinx until #633 is good to go
-      "matchPackageNames": ["Sphinx"],
-      "matchUpdateTypes": ["major"],
-      "enabled": false,
-    },
   ]
 }
