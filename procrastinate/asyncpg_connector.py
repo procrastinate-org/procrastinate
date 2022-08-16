@@ -153,10 +153,10 @@ class AsyncpgConnector(connector.BaseAsyncConnector):
             rows = await conn.fetch(converted_query, *args)
 
             return list(
-                [
+                
                     {key: value for key, value in row_record.items()}
                     for row_record in rows
-                ]
+                
             )
 
     async def listen_notify(
