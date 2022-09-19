@@ -96,7 +96,7 @@ uvloop = ["uvloop (>=0.15.2)"]
 
 [[package]]
 name = "certifi"
-version = "2022.6.15.1"
+version = "2022.9.14"
 description = "Python package for providing Mozilla's CA Bundle."
 category = "dev"
 optional = false
@@ -222,7 +222,7 @@ docs = ["Sphinx"]
 
 [[package]]
 name = "idna"
-version = "3.3"
+version = "3.4"
 description = "Internationalized Domain Names in Applications (IDNA)"
 category = "dev"
 optional = false
@@ -308,14 +308,14 @@ python-versions = "*"
 
 [[package]]
 name = "migra"
-version = "3.0.1658662267"
+version = "3.0.1663481299"
 description = "Like `diff` but for PostgreSQL schemas"
 category = "dev"
 optional = false
 python-versions = ">=3.7,<4"
 
 [package.dependencies]
-schemainspect = ">=3.1.1658648837"
+schemainspect = ">=3.1.1663480743"
 six = "*"
 sqlbag = "*"
 
@@ -580,7 +580,7 @@ use_chardet_on_py3 = ["chardet (>=3.0.2,<6)"]
 
 [[package]]
 name = "schemainspect"
-version = "3.1.1658648837"
+version = "3.1.1663497159"
 description = "Schema inspection for PostgreSQL (and possibly others)"
 category = "dev"
 optional = false
@@ -961,8 +961,8 @@ black = [
     {file = "black-22.8.0.tar.gz", hash = "sha256:792f7eb540ba9a17e8656538701d3eb1afcb134e3b45b71f20b25c77a8db7e6e"},
 ]
 certifi = [
-    {file = "certifi-2022.6.15.1-py3-none-any.whl", hash = "sha256:43dadad18a7f168740e66944e4fa82c6611848ff9056ad910f8f7a3e46ab89e0"},
-    {file = "certifi-2022.6.15.1.tar.gz", hash = "sha256:cffdcd380919da6137f76633531a5817e3a9f268575c128249fb637e4f9e73fb"},
+    {file = "certifi-2022.9.14-py3-none-any.whl", hash = "sha256:e232343de1ab72c2aa521b625c80f699e356830fd0e2c620b465b304b17b0516"},
+    {file = "certifi-2022.9.14.tar.gz", hash = "sha256:36973885b9542e6bd01dea287b2b4b3b21236307c56324fcc3f1160f2d655ed5"},
 ]
 charset-normalizer = [
     {file = "charset-normalizer-2.1.1.tar.gz", hash = "sha256:5a3d016c7c547f69d6f81fb0db9449ce888b418b5b9952cc5e6e66843e9dd845"},
@@ -1105,8 +1105,8 @@ greenlet = [
     {file = "greenlet-1.1.3.tar.gz", hash = "sha256:bcb6c6dd1d6be6d38d6db283747d07fda089ff8c559a835236560a4410340455"},
 ]
 idna = [
-    {file = "idna-3.3-py3-none-any.whl", hash = "sha256:84d9dd047ffa80596e0f246e2eab0b391788b0503584e8945f2368256d2735ff"},
-    {file = "idna-3.3.tar.gz", hash = "sha256:9d643ff0a55b762d5cdb124b8eaa99c66322e2157b69160bc32796e824360e6d"},
+    {file = "idna-3.4-py3-none-any.whl", hash = "sha256:90b77e79eaa3eba6de819a0c442c0b4ceefc341a7a2ab77d7562bf49f425c5c2"},
+    {file = "idna-3.4.tar.gz", hash = "sha256:814f528e8dead7d329833b91c5faa87d60bf71824cd12a7530b5526063d02cb4"},
 ]
 imagesize = [
     {file = "imagesize-1.4.1-py2.py3-none-any.whl", hash = "sha256:0d8d18d08f840c19d0ee7ca1fd82490fdc3729b7ac93f49870406ddde8ef8d8b"},
@@ -1175,8 +1175,8 @@ mccabe = [
     {file = "mccabe-0.6.1.tar.gz", hash = "sha256:dd8d182285a0fe56bace7f45b5e7d1a6ebcbf524e8f3bd87eb0f125271b8831f"},
 ]
 migra = [
-    {file = "migra-3.0.1658662267-py3-none-any.whl", hash = "sha256:60c8da5b9e647bcc0de4450ebcfd5671ca1cca7e16a3c7feb5d2d2557ae72013"},
-    {file = "migra-3.0.1658662267.tar.gz", hash = "sha256:2f14eb96afae4e482778be300ee450363b4ade2beb46040cebccd0ac3ede3ecd"},
+    {file = "migra-3.0.1663481299-py3-none-any.whl", hash = "sha256:061643e9af63488e085d729f267ed4af4249789979732b703ddeb2c478ec9a93"},
+    {file = "migra-3.0.1663481299.tar.gz", hash = "sha256:0cf0c125d553008d9ff5402663a51703ccc474bb65b5a4f4727906dbf58e217f"},
 ]
 mypy = [
     {file = "mypy-0.971-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:f2899a3cbd394da157194f913a931edfd4be5f274a88041c9dc2d9cdcb1c315c"},
@@ -1338,8 +1338,8 @@ requests = [
     {file = "requests-2.28.1.tar.gz", hash = "sha256:7c5599b102feddaa661c826c56ab4fee28bfd17f5abca1ebbe3e7f19d7c97983"},
 ]
 schemainspect = [
-    {file = "schemainspect-3.1.1658648837-py3-none-any.whl", hash = "sha256:db34c334a4af0fa4710d3e1cd075efb17f3b4760ff0e9bb779bbb4a78ad13f81"},
-    {file = "schemainspect-3.1.1658648837.tar.gz", hash = "sha256:601e9fa5fc243cb645201ea0064d2f2993023ee7c97fa08d9d2fd36dc806ddfc"},
+    {file = "schemainspect-3.1.1663497159-py3-none-any.whl", hash = "sha256:4c8a28097a798f3f15ddbb930c3efbe565bce345b676c4b76e907a986f77ae1b"},
+    {file = "schemainspect-3.1.1663497159.tar.gz", hash = "sha256:24eb827f3782860f14f5b0e558eca9cae56045a4286cf3ded2dd981f7be745f2"},
 ]
 six = [
     {file = "six-1.16.0-py2.py3-none-any.whl", hash = "sha256:8abb2f1d86890a2dfb989f9a77cfcfd3e47c2a354b01111771326f8aa26e0254"},
