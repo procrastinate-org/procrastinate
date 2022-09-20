@@ -1,17 +1,18 @@
 {
   "extends": [
-    "config:base"
+    "config:base",
   ],
   "labels": [
-    "PR type: dependencies 🤖"
+    "PR type: dependencies 🤖",
   ],
   "lockFileMaintenance": {
-    "enabled": true
+    "enabled": true,
+    "automerge": true,
   },
   "packageRules": [
     {
       "matchUpdateTypes": [
-        "major"
+        "major",
       ],
       "groupName": "Deps with major upgrades",
     },
@@ -20,17 +21,17 @@
         "minor",
         "patch",
         "pin",
-        "digest"
+        "digest",
       ],
       "automerge": true,
       "groupName": "Deps with minor upgrades",
     },
     {
       "matchDepTypes": [
-        "devDependencies"
+        "devDependencies",
       ],
       "automerge": true,
       "groupName": "Dev dependencies",
     },
-  ]
+  ],
 }
