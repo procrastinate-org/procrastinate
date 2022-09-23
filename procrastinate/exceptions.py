@@ -120,3 +120,7 @@ class InvalidTimestamp(ProcrastinateException):
     Periodic task launched with a timestamp kwarg not matching the
     defer_timestamp arg
     """
+
+
+class FunctionPathError(ProcrastinateException):
+    """Couldn't automatically generate a unique name for a function"""
