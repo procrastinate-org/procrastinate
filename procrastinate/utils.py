@@ -239,7 +239,7 @@ def get_full_path(obj: Any) -> str:
         return f"{_get_module_name(obj)}.{obj.__name__}"
     except AttributeError as exc:
         raise exceptions.FunctionPathError(
-            f"Couldn't automatically name {type(obj)}. Try passing `name=` to the task decorator"
+            f"Couldn't extract a relevant task name for {obj}. Try passing `name=` to the task decorator"
         ) from exc
 
 
