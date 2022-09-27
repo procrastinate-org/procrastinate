@@ -235,8 +235,13 @@ def _get_module_name(obj: Any) -> str:
 
 
 def get_full_path(obj: Any) -> str:
-
-    return f"{_get_module_name(obj)}.{obj.__name__}"
+    try:
+        name = obj.__name__
+    except AttributeError as exc:
+        raise exceptions.FunctionPathError(
+            f"Couldn't extract a relevant task name for {obj}. Try passing `name=` to the task decorator"
+        ) from exc
+    return f"{_get_module_name(obj)}.{name}"
 
 
 def utcnow() -> datetime.datetime:

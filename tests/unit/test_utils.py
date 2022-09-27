@@ -1,5 +1,6 @@
 import asyncio
 import datetime
+import functools
 import sys
 import time
 import types
@@ -229,6 +230,11 @@ def test_get_full_path():
     path = "procrastinate.utils.get_full_path"
     # Calling the function on itself
     assert utils.get_full_path(utils.get_full_path) == path
+
+
+def test_get_full_path_partial():
+    with pytest.raises(exceptions.FunctionPathError):
+        utils.get_full_path(functools.partial(test_get_full_path_partial))
 
 
 # `launched` and `finished` are sets used by the run_tasks tests, both coro and
