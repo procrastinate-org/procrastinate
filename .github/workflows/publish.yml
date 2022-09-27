@@ -4,9 +4,6 @@ on:
   push:
     tags:
       - '*'
-  release:
-    types:
-      - published
 
 jobs:
   deploy:
