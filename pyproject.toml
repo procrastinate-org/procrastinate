@@ -16,7 +16,7 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
 ]
 readme = "README.rst"
-keywords = ["sphinx", "github", "releases", "changelog"]
+keywords = ["postgres", "task-queue"]
 homepage = "https://procrastinate.readthedocs.io/"
 repository = "https://github.com/procrastinate-org/procrastinate/"
 documentation = "https://procrastinate.readthedocs.io/"
