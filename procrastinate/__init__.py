@@ -1,4 +1,6 @@
-from procrastinate import metadata as _metadata_module
+"""PostgreSQL-based Task Queue"""
+__version__ = "0.1.0"
+
 from procrastinate.aiopg_connector import AiopgConnector
 from procrastinate.app import App
 from procrastinate.blueprints import Blueprint
@@ -17,11 +19,3 @@ __all__ = [
     "Psycopg2Connector",
     "RetryStrategy",
 ]
-
-
-_metadata = _metadata_module.extract_metadata()
-__author__ = _metadata["author"]
-__author_email__ = _metadata["email"]
-__license__ = _metadata["license"]
-__url__ = _metadata["url"]
-__version__ = _metadata["version"]

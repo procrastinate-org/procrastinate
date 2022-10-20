@@ -38,17 +38,11 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Install poetry
-        run: pipx install poetry
-
       - uses: actions/setup-python@v4
         with:
           python-version: "${{ matrix.python-version }}"
-          cache: "poetry"
 
-      - run: poetry env use "${{ matrix.python-version }}"
-
-      - run: poetry install --extras "django sqlalchemy"
+      - run: pip install .[aiopg,django,sqlalchemy]
 
       - name: Run tests
         run: scripts/tests

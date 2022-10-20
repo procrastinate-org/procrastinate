@@ -1,10 +1,12 @@
-
-[tool.poetry]
+[project]
 name = "procrastinate"
-version = "0.0.0"
+dynamic = ["version"]
 description = "Postgres-based distributed task processing library"
-authors = ["Joachim Jablon", "Eric Lemoine"]
-license = "MIT License"
+authors = [
+    { name = "Joachim Jablon", email = "ewjoachim@gmail.com" },
+    { name = "Eric Lemoine", email = "eric.lemoine@gmail.com" },
+]
+license = "MIT"
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
@@ -17,53 +19,56 @@ classifiers = [
 ]
 readme = "README.rst"
 keywords = ["postgres", "task-queue"]
+requires-python = ">=3.7"
+dependencies = [
+    "attrs",
+    "click",
+    "croniter",
+    "importlib-resources; python_version < '3.9'",
+    "python-dateutil",
+    "typing-extensions; python_version < '3.8'",
+]
+
+[project.optional-dependencies]
+django = ["django>=2.2"]
+sqlalchemy = ["sqlalchemy~=1.4"]
+psycopg2 = ["psycopg2-binary"]
+aiopg = ["aiopg", "psycopg2-binary"]
+
+dev = [
+    "black",
+    "dunamai",
+    "flake8",
+    "migra",
+    "mypy",
+    "pytest-asyncio",
+    "pytest-click",
+    "pytest-cov",
+    "pytest-django",
+    "pytest-mock",
+    "Sphinx",
+    "sphinx-autodoc-typehints",
+    "sphinx-github-changelog",
+    "sphinxcontrib-programoutput",
+    "sqlalchemy[mypy]",
+    "types-croniter",
+    "types-psycopg2",
+    "types-python-dateutil",
+    "SQLAlchemy[mypy]",
+    "tomlkit",
+]
+
+[project.urls]
 homepage = "https://procrastinate.readthedocs.io/"
 repository = "https://github.com/procrastinate-org/procrastinate/"
 documentation = "https://procrastinate.readthedocs.io/"
 
-[tool.poetry.scripts]
+[project.scripts]
 procrastinate = 'procrastinate.cli:main'
 
-[tool.poetry.dependencies]
-python = "^3.7"
-aiopg = "*"
-attrs = "*"
-click = "*"
-croniter = "*"
-django = {version = ">=2.2", optional = true}
-importlib-metadata = {version = "*", python = "<3.8"}
-importlib-resources = {version = "*", python = "<3.9"}
-psycopg2-binary = "*"
-python-dateutil = "*"
-sqlalchemy = {version = "^1.4", optional = true}
-typing-extensions = {version = "*", python = "<3.8"}
-
-[tool.poetry.extras]
-django = ["django"]
-sqlalchemy = ["sqlalchemy"]
-
-[tool.poetry.dev-dependencies]
-black = {version = "*", allow-prereleases = true}
-dunamai = "*"
-flake8 = "*"
-migra = "*"
-mypy = "*"
-pytest-asyncio = "*"
-pytest-click = "*"
-pytest-cov = "*"
-pytest-django = "*"
-pytest-mock = "*"
-Sphinx = "*"
-sphinx-autodoc-typehints = "*"
-sphinx-github-changelog = "*"
-sphinxcontrib-programoutput = "*"
-sqlalchemy = {extras = ["mypy"], version = "*"}
-types-croniter = "*"
-types-psycopg2 = "*"
-types-python-dateutil = "*"
-SQLAlchemy = {extras = ["mypy"], version = "^1.4.27"}
-tomlkit = "*"
-
 [build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+path = "procrastinate/__init__.py"

@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
 set -eux
 
-poetry run sphinx-build -EW docs docs/_build/html "$@"
+sphinx-build -EW docs docs/_build/html "$@"
