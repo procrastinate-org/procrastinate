@@ -91,7 +91,6 @@ def test_schedule_decorator(periodic_deferrer, task):
     ],
 )
 def test_get_next_tick(periodic_deferrer, cron_task, cron, expected):
-
     cron_task(cron=cron)
 
     # Making things easier, we'll compute things next to timestamp 0
@@ -99,7 +98,6 @@ def test_get_next_tick(periodic_deferrer, cron_task, cron, expected):
 
 
 def test_get_previous_tasks(periodic_deferrer, cron_task, task):
-
     cron_task(cron="* * * * *")
 
     assert list(periodic_deferrer.get_previous_tasks(at=3600 * 24 - 1)) == [

@@ -31,7 +31,6 @@ def sqlalchemy_psycopg2_connector_factory(sqlalchemy_engine_dsn):
 
 
 def test_connection(sqlalchemy_psycopg2_connector_factory, sqlalchemy_engine_dsn):
-
     connector = sqlalchemy_psycopg2_connector_factory()
     with connector.engine.connect() as connection:
         assert connection.engine.url.render_as_string() == sqlalchemy_engine_dsn
@@ -39,7 +38,6 @@ def test_connection(sqlalchemy_psycopg2_connector_factory, sqlalchemy_engine_dsn
 
 @pytest.mark.parametrize("exception", [Exception, psycopg2.errors.AdminShutdown])
 def test_connection_exception(sqlalchemy_psycopg2_connector_factory, exception):
-
     connector = sqlalchemy_psycopg2_connector_factory()
     with pytest.raises(exception):
         with connector.engine.begin():

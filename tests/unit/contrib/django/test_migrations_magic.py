@@ -12,7 +12,6 @@ def test_version_from_string():
 
 
 def test_procrastinate_migration_from_file():
-
     migration = migrations_magic.ProcrastinateMigration.from_file(
         filename="b/00.11.00_03_add_procrastinate_periodic_defers.sql",
         contents="foo",

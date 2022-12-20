@@ -14,7 +14,6 @@ migrations_path = pathlib.Path(__file__).parent / "sql" / "migrations"
 
 class SchemaManager:
     def __init__(self, connector: connector_module.BaseConnector):
-
         self.connector = connector
 
     @staticmethod

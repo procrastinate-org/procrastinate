@@ -138,7 +138,6 @@ class JobDeferrer:
         )
 
     def _log_after_defer_job(self, job: Job) -> None:
-
         logger.info(
             f"Deferred job {job.call_string}",
             extra={"action": "job_defer", "job": job.log_context()},

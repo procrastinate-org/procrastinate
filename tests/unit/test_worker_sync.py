@@ -16,7 +16,6 @@ def context():
 
 
 def test_worker_find_task_missing(test_worker):
-
     with pytest.raises(exceptions.TaskNotFound):
         test_worker.find_task("foobarbaz")
 

@@ -80,7 +80,6 @@ def db_factory():
 
 @pytest.fixture(scope="session")
 def setup_db():
-
     dbname = "procrastinate_test_template"
     db_create(dbname=dbname)
 

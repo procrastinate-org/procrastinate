@@ -403,7 +403,6 @@ def count_logs(caplog):
 
 @pytest.mark.skipif(sys.version_info < (3, 8), reason="requires python3.8 or higher")
 async def test_run_tasks_logs(coro, short, count_logs):
-
     # 2 mains. The 2 crash. The reported error is for the first one.
     with pytest.raises(exceptions.RunTaskError):
         await utils.run_tasks(
