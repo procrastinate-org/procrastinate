@@ -59,7 +59,6 @@ def test_migration(schema_database, migrations_database, run_migrations):
     # have nos differences
 
     with contextlib.ExitStack() as stack:
-
         # we use a NullPool to avoid issues when dropping the databases because
         # of opened database sessions
         schema_db_session = stack.enter_context(

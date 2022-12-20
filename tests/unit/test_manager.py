@@ -105,7 +105,6 @@ async def test_get_stalled_jobs_stalled(job_manager, job_factory, connector):
 async def test_delete_old_jobs(
     job_manager, job_factory, connector, include_error, statuses, mocker
 ):
-
     await job_manager.delete_old_jobs(
         nb_hours=5, queue="marsupilami", include_error=include_error
     )

@@ -77,14 +77,11 @@ async def test_run_log_current_job_when_stopping(app, running_worker, caplog):
 
 
 async def test_run_no_listen_notify(app):
-
     running_worker = worker.Worker(app=app, queues=["some_queue"], listen_notify=False)
     task = asyncio.ensure_future(running_worker.run())
     try:
-
         await asyncio.sleep(0.01)
         assert app.connector.notify_event is None
     finally:
-
         running_worker.stop()
         await asyncio.wait_for(task, timeout=0.5)

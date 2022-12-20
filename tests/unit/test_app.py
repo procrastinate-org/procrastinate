@@ -106,7 +106,6 @@ def test_app_configure_task_unknown_allowed(app):
 
 def test_app_configure_task_unkown_not_allowed(app):
     with pytest.raises(exceptions.TaskNotFound):
-
         app.configure_task(name="my_name", allow_unknown=False)
 
 
@@ -126,7 +125,6 @@ def pool(mocker):
 
 
 def test_enter_exit(not_opened_app, pool, connector):
-
     with not_opened_app.open(pool) as app:
         pass
 

@@ -54,7 +54,6 @@ async def test_fetch_job(
     job_kwargs,
     fetch_queues,
 ):
-
     # Now add the job we're testing
     job = await deferred_job_factory(**job_kwargs)
 

@@ -15,7 +15,6 @@ from .. import conftest
     ],
 )
 def test_job_get_context(job_factory, scheduled_at, context_scheduled_at):
-
     job = job_factory(
         id=12,
         status="doing",
@@ -50,7 +49,6 @@ def test_job_evolve(job_factory):
 
 
 async def test_job_deferrer_defer_async(job_factory, job_manager, connector):
-
     job = job_factory(
         queue="marsupilami",
         lock="sher",

@@ -32,7 +32,6 @@ async def sync_app(request, sync_app_explicit_open, sync_app_context_manager):
 # Even if we test the purely sync parts, we'll still need an async worker to execute
 # the tasks
 async def test_defer(sync_app, async_app_explicit_open):
-
     sum_results = []
     product_results = []
 

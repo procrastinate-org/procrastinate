@@ -25,7 +25,6 @@ async def async_app(request, async_app_explicit_open, async_app_context_manager)
 
 
 async def test_defer(async_app):
-
     sum_results = []
     product_results = []
 

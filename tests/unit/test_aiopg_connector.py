@@ -168,7 +168,6 @@ def fake_connector(mocker):
 
 
 async def test_open_async_no_pool_specified(fake_connector):
-
     await fake_connector.open_async()
 
     assert fake_connector._pool_externally_set is False

@@ -59,7 +59,6 @@ def test_handle_errors_no_error():
 
 
 def test_main(mocker):
-
     environ = mocker.patch("os.environ", {"LANG": "fr-FR.UTF-8"})
     mocker.patch("procrastinate.cli.cli")
     cli.main()

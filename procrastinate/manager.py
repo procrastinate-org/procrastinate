@@ -58,7 +58,6 @@ class JobManager:
         return job.evolve(id=result["id"], status=jobs.Status.TODO.value)
 
     def _defer_job_query_kwargs(self, job: "jobs.Job") -> Dict[str, Any]:
-
         return {
             "query": sql.queries["defer_job"],
             "task_name": job.task_name,

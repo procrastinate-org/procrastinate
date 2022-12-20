@@ -220,7 +220,6 @@ class InMemoryConnector(connector.BaseAsyncConnector):
 
     def delete_old_jobs_run(self, nb_hours, queue, statuses):
         for id, job in list(self.jobs.items()):
-
             if (
                 job["status"] in statuses
                 and (
