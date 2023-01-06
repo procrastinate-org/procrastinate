@@ -13,7 +13,7 @@ Procrastinate: PostgreSQL-based Task Queue for Python
     :target: https://github.com/procrastinate-org/procrastinate/
     :alt: GitHub Repository
 
-.. image:: https://img.shields.io/github/workflow/status/procrastinate-org/procrastinate/CI?logo=github
+.. image:: https://img.shields.io/github/workflow/status/procrastinate-org/procrastinate/ci.yml?logo=github&branch=main
     :target: https://github.com/procrastinate-org/procrastinate/actions?workflow=CI
     :alt: Continuous Integration
 
