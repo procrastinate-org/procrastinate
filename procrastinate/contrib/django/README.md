@@ -99,6 +99,6 @@ more readable:
   `Migration` class. It needs to know the migration operations, its name and index
   (`0001`, `0002`, ...) and be linked to the previous migration
 - The migration operations consist of a single step: a RunSQL operation whose SQL
-  is the contents of the corresponding procrastinate migration file (read with `importlib_resources.read_text`)
+  is the contents of the corresponding procrastinate migration file (read with `importlib_resources`)
 
 That's it.

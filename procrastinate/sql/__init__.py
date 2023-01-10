@@ -27,7 +27,7 @@ def parse_query_file(query_file: str) -> Dict["str", "str"]:
 
 def get_queries() -> Dict["str", "str"]:
     return parse_query_file(
-        importlib_resources.read_text("procrastinate.sql", "queries.sql")
+        (importlib_resources.files("procrastinate.sql") / "queries.sql").read_text()
     )
 
 
