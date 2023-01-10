@@ -18,7 +18,9 @@ class SchemaManager:
 
     @staticmethod
     def get_schema() -> str:
-        return importlib_resources.read_text("procrastinate.sql", "schema.sql")
+        return (
+            importlib_resources.files("procrastinate.sql") / "schema.sql"
+        ).read_text()
 
     @staticmethod
     def get_migrations_path() -> str:
