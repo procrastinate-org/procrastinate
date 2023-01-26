@@ -30,7 +30,7 @@ Procrastinate: PostgreSQL-based Task Queue for Python
     :alt: MIT License
 
 .. image:: https://img.shields.io/badge/Contributor%20Covenant-v1.4%20adopted-ff69b4.svg
-    :target: https://github.com/procrastinate-org/procrastinate/blob/main/LICENSE/CODE_OF_CONDUCT.md
+    :target: https://github.com/procrastinate-org/procrastinate/blob/main/CODE_OF_CONDUCT.md
     :alt: Contributor Covenant
 
 
