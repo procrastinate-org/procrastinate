@@ -42,7 +42,7 @@ In other words, from your main code, you call specific functions (tasks) in a
 special way and instead of being run on the spot, they're scheduled to
 be run elsewhere, now or in the future.
 
-Here's an example:
+Here's an example (if you want to run the code yourself, head to Quickstart_):
 
 .. code-block:: python
 
@@ -117,6 +117,7 @@ The project is still quite early-stage and will probably evolve.
 "Procrastinate_".
 
 .. _Procrastinate: https://en.wikipedia.org/wiki/Procrastination
+.. _Quickstart: https://procrastinate.readthedocs.io/en/stable/quickstart.html
 
 .. Below this line is content specific to the README that will not appear in the doc.
 .. end-of-index-doc
