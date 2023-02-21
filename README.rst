@@ -17,8 +17,8 @@ Procrastinate: PostgreSQL-based Task Queue for Python
     :target: https://github.com/procrastinate-org/procrastinate/actions?workflow=CI
     :alt: Continuous Integration
 
-.. image:: https://img.shields.io/readthedocs/procrastinate?logo=read-the-docs&logoColor=white
-    :target: http://procrastinate.readthedocs.io/en/latest/?badge=latest
+.. image:: https://img.shields.io/readthedocs/procrastinate/stable?logo=read-the-docs&logoColor=white
+    :target: https://procrastinate.readthedocs.io/en/stable/badge=stable
     :alt: Documentation
 
 .. image:: https://img.shields.io/endpoint?logo=codecov&logoColor=white&url=https://raw.githubusercontent.com/wiki/procrastinate-org/procrastinate/python-coverage-comment-action-badge.json
@@ -129,5 +129,5 @@ The complete docs_ is probably the best place to learn about the project.
 If you encounter a bug, or want to get in touch, you're always welcome to open a
 ticket_.
 
-.. _docs: http://procrastinate.readthedocs.io/en/latest
+.. _docs: https://procrastinate.readthedocs.io/
 .. _ticket: https://github.com/procrastinate-org/procrastinate/issues/new
