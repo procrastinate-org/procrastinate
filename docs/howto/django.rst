@@ -5,12 +5,12 @@ Install procrastinate with:
 
 .. code-block:: console
 
-    $ (venv) pip install procrastinate 'procrastinate[django]'
+    $ (venv) pip install 'procrastinate[django]'
 
-This tells pip to install procrastinate but also to consider the extra
-dependencies from the group of dependencies named ``django``. For now, this
-group only contains Django itself, which you likely already have in your
-project's dependencies. So why bother?
+This tells pip to install procrastinate and consider the extra dependencies
+from the group of dependencies named ``django``. For now, this group only
+contains Django itself, which you likely already have in your project's
+dependencies. So why bother?
 
 Specifying your dependency to the "``django`` extras" will ensure that your
 Django version and the one we support stay in sync through time (for now, we
@@ -101,3 +101,14 @@ Now you can finally launch this task from your ``myapp/views.py``:
 
 Procrastinate comes with its own migrations so don't forget to run
 ``./manage.py migrate``.
+
+There are still some `pending issues`_ to improve procrastinate Django
+experience, feel free to `contribute`_! Additionally, it's worth noting that
+there are other Python job scheduling libraries based on postgres'
+LISTEN/NOTIFY that integrate with Django. For instance, `django-pgpubsub`_ is
+more focused on Django, although it is still in the early stages of
+development.
+
+.. _contribute: https://github.com/procrastinate-org/procrastinate/blob/main/CONTRIBUTING.rst
+.. _pending issues: https://github.com/procrastinate-org/procrastinate/issues?q=is%3Aissue+is%3Aopen+django
+.. _django-pgpubsub: https://readthedocs.org/projects/django-pgpubsub/
