@@ -113,3 +113,24 @@ job when one (with the same queueing lock) is already waiting in the queue:
 
 
 .. _`systemd timers`: https://www.freedesktop.org/software/systemd/man/systemd.timer.html
+
+Dynamic scheduling
+------------------
+
+By default, for scheduling to work, the workers must know about the schedule, so the
+calls to periodic (as a function or as a decorator) best be done right at task
+definition time.
+
+There are cases where you'll want the application to define the schedule, instead of it
+being fixed in the source code. Here's an approach that will work in these scenarios:
+
+- When users request periodic task scheduling, store this somewhere (probably in a
+  database, like you'd do for other parts of you application)
+- Have a single normal periodic task that runs as frequently as the most frequent
+  setting your users can schedule tasks to (e.g. 1/min if that's the most often they can
+  do it). On each run, the periodic task you implement will read the configuration from
+  your backend, determine if something needs to be run  for the received timestamp (use
+  the received timestamp, not ``time.time()`` because tasks might be running late, but the
+  timestamp you receive is always right, defer corresponding tasks and that's it.
+- The existing system already ensures that periodic tasks will run only once even if you
+  have multiple workers.
