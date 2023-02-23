@@ -131,6 +131,6 @@ being fixed in the source code. Here's an approach that will work in these scena
   do it). On each run, the periodic task you implement will read the configuration from
   your backend, determine if something needs to be run  for the received timestamp (use
   the received timestamp, not ``time.time()`` because tasks might be running late, but the
-  timestamp you receive is always right, defer corresponding tasks and that's it.
+  timestamp you receive is always right), defer corresponding tasks and that's it.
 - The existing system already ensures that periodic tasks will run only once even if you
   have multiple workers.
