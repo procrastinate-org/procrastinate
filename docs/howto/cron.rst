@@ -130,7 +130,7 @@ being fixed in the source code. Here's an approach that will work in these scena
   setting your users can schedule tasks to (e.g. 1/min if that's the most often they can
   do it). On each run, the periodic task you implement will read the configuration from
   your backend, determine if something needs to be run  for the received timestamp (use
-  the received timestamp, not ``time.time()`` because tasks might be running late, but the
-  timestamp you receive is always right), defer corresponding tasks and that's it.
+  the received timestamp, not ``time.time()`` because tasks might be running late, but
+  the timestamp you receive is always right), defer corresponding tasks and that's it.
 - The existing system already ensures that periodic tasks will run only once even if you
   have multiple workers.
