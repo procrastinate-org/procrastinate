@@ -1,7 +1,19 @@
 Use Procrastinate in a Django application
 =========================================
 
-Install procrastinate with:
+Many Django projects are deployed using PostgreSQL, so using procrastinate in
+conjunction with Django would remove the necessity of having another broker to
+schedule tasks, thereby reducing infrastructure costs.
+
+It's important to note that despite there's support for Django inside
+procrastinate, there are still some `pending issues`_ to improve the Django
+experience - please feel free to `contribute`_! Additionally, it's worth noting
+that there are other Python job scheduling libraries based on postgres'
+LISTEN/NOTIFY that integrate with Django. For instance, `django-pgpubsub`_ is
+more focused on Django, although it is still in the early stages of
+development.
+
+To start, install procrastinate with:
 
 .. code-block:: console
 
@@ -40,6 +52,7 @@ directory ``tasks`` and fill the ``tasks/__init__.py`` with:
     import django
     django.setup()  # Setup Django inside the worker so you can import/use ORM etc.
 
+    from asgiref.sync import sync_to_async  # Django's ORM is still sync
     from procrastinate import App, AiopgConnector
     from procrastinate.contrib.django import connector_params
 
@@ -50,10 +63,21 @@ directory ``tasks`` and fill the ``tasks/__init__.py`` with:
     app.open()
 
     @app.task(name="mytask")
-    def mytask(obj_pk):
-        print(f"Executing mytask for object {obj_pk}...")
-        obj = MyModel.objects.get(pj=obj_pk)
-        ...
+    async def mytask(obj_pk):
+        @sync_to_async
+        def work():
+            print(f"Executing mytask for object {obj_pk}...")
+            obj = MyModel.objects.get(pj=obj_pk)
+            ...
+        await work()
+
+It is necessary to wrap all Django code with ``sync_to_async`` because `Django
+ORM is still async`_. To avoid trouble with sync/async inside your tasks, we
+recommended you to create a "service" layer/module within your app and use the
+tasks only to call service code, so your tasks will be thin and maintenance
+will be easier, since the service layer could be tested as other modules of
+your app. To learn more about this approach, watch `this talk at DjangoCon
+2019`_.
 
 To run the procrastinate worker properly, you need to set
 ``DJANGO_SETTINGS_MODULE`` to your project's settings module and point to the
@@ -102,13 +126,8 @@ Now you can finally launch this task from your ``myapp/views.py``:
 Procrastinate comes with its own migrations so don't forget to run
 ``./manage.py migrate``.
 
-There are still some `pending issues`_ to improve procrastinate Django
-experience, feel free to `contribute`_! Additionally, it's worth noting that
-there are other Python job scheduling libraries based on postgres'
-LISTEN/NOTIFY that integrate with Django. For instance, `django-pgpubsub`_ is
-more focused on Django, although it is still in the early stages of
-development.
-
 .. _contribute: https://github.com/procrastinate-org/procrastinate/blob/main/CONTRIBUTING.rst
 .. _pending issues: https://github.com/procrastinate-org/procrastinate/issues?q=is%3Aissue+is%3Aopen+django
 .. _django-pgpubsub: https://readthedocs.org/projects/django-pgpubsub/
+.. _Django ORM is still async: https://docs.djangoproject.com/en/4.1/topics/async/#asynchronous-support
+.. _this talk at DjangoCon 2019: https://www.youtube.com/watch?v=_DIlE-yc9ZQ
