@@ -42,7 +42,7 @@ repos:
   rev: "v3.15.0"
   hooks:
   - id: pyupgrade
-    args: [ --py37-plus ]
+    args: [--py37-plus]
 
 - repo: https://github.com/PyCQA/doc8
   rev: "v1.1.1"
@@ -52,4 +52,4 @@ repos:
 - repo: https://github.com/floatingpurr/sync_with_poetry
   rev: 1.1.0
   hooks:
-    - id: sync_with_poetry
+  - id: sync_with_poetry

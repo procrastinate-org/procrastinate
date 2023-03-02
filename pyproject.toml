@@ -22,8 +22,8 @@ procrastinate = 'procrastinate.cli:main'
 [tool.poetry.dependencies]
 python = "^3.8"
 aiopg = "*"
+asgiref = "*"
 attrs = "*"
-click = "*"
 croniter = "*"
 django = { version = ">=2.2", optional = true }
 importlib-metadata = { version = "*", python = "<3.8" }
@@ -32,6 +32,8 @@ psycopg2-binary = "*"
 python-dateutil = "*"
 sqlalchemy = { version = "^2.0", optional = true }
 typing-extensions = { version = "*", python = "<3.8" }
+anyio = "*"
+configargparse = "*"
 
 [tool.poetry.extras]
 django = ["django"]
@@ -44,7 +46,6 @@ flake8 = "*"
 migra = "*"
 mypy = "*"
 pytest-asyncio = "*"
-pytest-click = "*"
 pytest-cov = "*"
 pytest-django = "*"
 pytest-mock = "*"
