@@ -43,7 +43,7 @@ def test_sync_await():
     async def coro():
         result.append(1)
 
-    utils.sync_await(coro())
+    utils.sync_await(coro)
 
     assert result == [1]
 

@@ -21,6 +21,7 @@ from typing import (
 
 import attr
 import dateutil.parser
+from asgiref import sync
 
 from procrastinate import exceptions
 
@@ -145,7 +146,7 @@ def add_method_sync_api(*, cls: Type, method_name: str, suffix: str = "_async"):
 
         _, function = get_raw_method(cls=final_class, method_name=method_name)
 
-        awaitable = function(*args, **kwargs)
+        awaitable = functools.partial(function, *args, **kwargs)
         return sync_await(awaitable=awaitable)
 
     sync_name = method_name[: -len(suffix)]
@@ -188,16 +189,12 @@ def get_raw_method(cls: Type, method_name: str):
     return method, wrapped
 
 
-def sync_await(awaitable: Awaitable[T]) -> T:
+def sync_await(awaitable: Callable[[], Awaitable[T]]) -> T:
     """
-    Given an awaitable, awaits it synchronously. Returns the result after it's done.
+    Given a callable returning an awaitable, call the callable, await it
+    synchronously. Returns the result after it's done.
     """
-
-    loop = asyncio.get_event_loop()
-    if loop.is_closed():
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-    return loop.run_until_complete(awaitable)
+    return sync.async_to_sync(awaitable)()
 
 
 def causes(exc: Optional[BaseException]):

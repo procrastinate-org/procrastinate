@@ -1,8 +1,11 @@
 import asyncio
+import inspect
 import logging
 import time
 from enum import Enum
-from typing import Any, Dict, Iterable, Optional, Union
+from typing import Any, Awaitable, Callable, Dict, Iterable, Optional, Union
+
+from asgiref import sync
 
 from procrastinate import app, exceptions, job_context, jobs, signals, tasks, utils
 
@@ -225,16 +228,25 @@ class Worker:
         job_args = []
         if task.pass_context:
             job_args.append(context)
+
+        await_func: Callable[..., Awaitable]
+        if inspect.iscoroutinefunction(task.func):
+            await_func = task
+        else:
+            await_func = sync.sync_to_async(task)
+
         try:
-            task_result = task(*job_args, **job.task_kwargs)
-            if asyncio.iscoroutine(task_result):
+            task_result = await await_func(*job_args, **job.task_kwargs)
+            # In some cases, the task function might be a synchronous function
+            # that returns an awaitable without actually being a
+            # coroutinefunction. In that case, in the await above, we haven't
+            # actually called the task, but merely generated the awaitable that
+            # implements the task In that case, we want to wait this awaitable.
+            # It's easy enough to be in that situation that the best course of
+            # action is probably to await the awaitable.
+            # It's not even sure it's worth emitting a warning
+            if inspect.isawaitable(task_result):
                 task_result = await task_result
-            elif self.concurrency != 1:
-                logger.warning(
-                    "When using worker concurrency, non-async tasks will block "
-                    "the whole worker.",
-                    extra=context.log_extra(action="concurrent_sync_task"),
-                )
 
         except Exception as e:
             task_result = None
