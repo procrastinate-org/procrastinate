@@ -7,6 +7,8 @@ your own decorator instead of ``@app.task`` and have this decorator
 implement the actions you need and delegate the rest to ``@app.task``.
 It might look like this::
 
+    import functools
+
     def task(*args, **kwargs):
         def wrap(func):
             def new_func(*job_args, **job_kwargs):
@@ -16,7 +18,8 @@ It might look like this::
                 log_something_else()
                 return result
 
-            return app.task(*args, **kwargs)(new_func)
+            wrapped_func = functools.update_wrapper(new_func, func, updated=())
+            return app.task(*args, **kwargs)(wrapped_func)
         return wrap
 
 Then, define all of your tasks using this ``@task`` decorator.
