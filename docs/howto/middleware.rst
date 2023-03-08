@@ -21,9 +21,9 @@ It might look like this::
             wrapped_func = functools.update_wrapper(new_func, func, updated=())
             return app.task(*args, **kwargs)(wrapped_func)
 
-    if not original_func:
-        return wrap
+        if not original_func:
+            return wrap
 
-    return wrap(original_func)
+        return wrap(original_func)
 
 Then, define all of your tasks using this ``@task`` decorator.
