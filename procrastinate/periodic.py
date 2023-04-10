@@ -153,7 +153,7 @@ class PeriodicDeferrer:
                 timestamp = round(cron_iterator.get_next(ret_type=float))
                 if timestamp > until:
                     return
-                yield timestamp
+                yield int(timestamp)
 
         else:
             cron_iterator.set_current(start_time=until)
@@ -174,7 +174,7 @@ class PeriodicDeferrer:
                 )
                 return
 
-            yield timestamp
+            yield int(timestamp)
 
     async def defer_jobs(self, jobs_to_defer: Iterable[TaskAtTime]) -> None:
         """
