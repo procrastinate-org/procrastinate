@@ -60,7 +60,7 @@ class Blueprint:
             `UnboundTaskError`: ...
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.tasks: Dict[str, "tasks.Task"] = {}
         self._check_stack()
 

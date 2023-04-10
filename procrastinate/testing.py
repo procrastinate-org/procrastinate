@@ -30,7 +30,7 @@ class InMemoryConnector(connector.BaseAsyncConnector):
         self.reverse_queries = {value: key for key, value in sql.queries.items()}
         self.reverse_queries[schema.SchemaManager.get_schema()] = "apply_schema"
 
-    def reset(self):
+    def reset(self) -> None:
         """
         Removes anything the in-memory pseudo-database contains, to ensure test
         independence.
@@ -39,8 +39,8 @@ class InMemoryConnector(connector.BaseAsyncConnector):
         self.events: Dict[int, List[EventRow]] = {}
         self.job_counter = count(1)
         self.queries: List[Tuple[str, Dict[str, Any]]] = []
-        self.notify_event = None
-        self.notify_channels = []
+        self.notify_event: Optional[asyncio.Event] = None
+        self.notify_channels: List[str] = []
         self.periodic_defers: Dict[Tuple[str, str], int] = {}
         self.table_exists = True
         self.states: List[str] = []
@@ -75,7 +75,7 @@ class InMemoryConnector(connector.BaseAsyncConnector):
         self, event: asyncio.Event, channels: Iterable[str]
     ) -> None:
         self.notify_event = event
-        self.notify_channels = channels
+        self.notify_channels = list(channels)
 
     def open(self, pool: Optional[connector.Pool] = None) -> None:
         self.states.append("open")
