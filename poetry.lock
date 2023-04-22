@@ -538,14 +538,14 @@ files = [
 
 [[package]]
 name = "importlib-metadata"
-version = "6.5.1"
+version = "6.6.0"
 description = "Read metadata from Python packages"
 category = "main"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "importlib_metadata-6.5.1-py3-none-any.whl", hash = "sha256:cd4687a8df60d9aefd424ed9364a8f29def203a9482ec8eb8e8070ef06075f89"},
-    {file = "importlib_metadata-6.5.1.tar.gz", hash = "sha256:b986d197242e4e9960a12743a6ec5a9fc8b3d7054612d90489452170785c98a5"},
+    {file = "importlib_metadata-6.6.0-py3-none-any.whl", hash = "sha256:43dd286a2cd8995d5eaef7fee2066340423b818ed3fd70adf0bad5f1fac53fed"},
+    {file = "importlib_metadata-6.6.0.tar.gz", hash = "sha256:92501cdf9cc66ebd3e612f1b4f0c0765dfa42f0fa38ffb319b6bd84dd675d705"},
 ]
 
 [package.dependencies]
