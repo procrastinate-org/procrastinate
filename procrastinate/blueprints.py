@@ -174,7 +174,7 @@ class Blueprint:
 
     def task(
         self,
-        _func: Optional[Callable] = None,
+        _func: Optional[Callable[..., Any]] = None,
         *,
         name: Optional[str] = None,
         aliases: Optional[List[str]] = None,
