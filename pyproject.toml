@@ -64,6 +64,7 @@ Sphinx = "*"
 sphinx-github-changelog = "*"
 sphinx-autodoc-typehints = "*"
 sphinxcontrib-programoutput = "*"
+django = ">=2.2"
 
 [tool.poetry.dev-dependencies]
 

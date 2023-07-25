@@ -33,7 +33,7 @@ files = [
 name = "asgiref"
 version = "3.7.2"
 description = "ASGI specs, helper code, and adapters"
-optional = true
+optional = false
 python-versions = ">=3.7"
 files = [
     {file = "asgiref-3.7.2-py3-none-any.whl", hash = "sha256:89b2ef2247e3b562a16eef663bc0e2e703ec6468e2fa8a5cd61cd449786d4f6e"},
@@ -93,7 +93,7 @@ pytz = {version = ">=2015.7", markers = "python_version < \"3.9\""}
 name = "backports-zoneinfo"
 version = "0.2.1"
 description = "Backport of the standard library zoneinfo module"
-optional = true
+optional = false
 python-versions = ">=3.6"
 files = [
     {file = "backports.zoneinfo-0.2.1-cp36-cp36m-macosx_10_14_x86_64.whl", hash = "sha256:da6013fd84a690242c310d77ddb8441a559e9cb3d3d59ebac9aca1a57b2e18bc"},
@@ -376,7 +376,7 @@ python-dateutil = "*"
 name = "django"
 version = "4.2.3"
 description = "A high-level Python web framework that encourages rapid development and clean, pragmatic design."
-optional = true
+optional = false
 python-versions = ">=3.8"
 files = [
     {file = "Django-4.2.3-py3-none-any.whl", hash = "sha256:f7c7852a5ac5a3da5a8d5b35cc6168f31b605971441798dac845f17ca8028039"},
@@ -1380,7 +1380,7 @@ pg = ["psycopg2"]
 name = "sqlparse"
 version = "0.4.4"
 description = "A non-validating SQL parser."
-optional = true
+optional = false
 python-versions = ">=3.5"
 files = [
     {file = "sqlparse-0.4.4-py3-none-any.whl", hash = "sha256:5430a4fe2ac7d0f93e66f1efc6e1338a41884b7ddf2a350cedd20ccc4d9d28f3"},
@@ -1462,7 +1462,7 @@ files = [
 name = "tzdata"
 version = "2023.3"
 description = "Provider of IANA time zone data"
-optional = true
+optional = false
 python-versions = ">=2"
 files = [
     {file = "tzdata-2023.3-py2.py3-none-any.whl", hash = "sha256:7e65763eef3120314099b6939b5546db7adce1e7d6f2e179e3df563c70511eda"},
@@ -1508,4 +1508,4 @@ sqlalchemy = ["sqlalchemy"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8"
-content-hash = "2ff7bf9637fb20badbe027969c05f626596567f3ce842177c5b66b027d6588b4"
+content-hash = "d2c40fc7e18261f4e477c332b925fdb0f890d1358bb07ada337509b0ae163c85"
