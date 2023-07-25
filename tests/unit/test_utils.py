@@ -401,7 +401,6 @@ def count_logs(caplog):
     return _
 
 
-@pytest.mark.skipif(sys.version_info < (3, 8), reason="requires python3.8 or higher")
 async def test_run_tasks_logs(coro, short, count_logs):
     # 2 mains. The 2 crash. The reported error is for the first one.
     with pytest.raises(exceptions.RunTaskError):
@@ -437,34 +436,6 @@ async def test_run_tasks_logs(coro, short, count_logs):
         levelname="ERROR",
         message="func error: RuntimeError('bar')",
         action="func_error",
-    )
-
-
-@pytest.mark.skipif(sys.version_info >= (3, 8), reason="requires python3.7")
-async def test_run_tasks_logs_py37(coro, short, count_logs):
-    # 2 mains. The 2 crash. The reported error is for the first one.
-    with pytest.raises(exceptions.RunTaskError):
-        await utils.run_tasks(
-            main_coros=[
-                coro(1, exc=ZeroDivisionError("foo")),
-                coro(2),
-            ],
-            side_coros=[
-                coro(3, exc=RuntimeError("bar")),
-                coro(4),
-            ],
-        )
-
-    assert 1 == count_logs(
-        levelname="ERROR",
-        message="ZeroDivisionError('foo')",
-        action="run_tasks_error",
-    )
-
-    assert 1 == count_logs(
-        levelname="ERROR",
-        message="RuntimeError('bar')",
-        action="run_tasks_error",
     )
 
 
