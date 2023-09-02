@@ -84,7 +84,7 @@ jobs:
           name: "coverage"
 
       - name: Display coverage
-        uses: ewjoachim/python-coverage-comment-action@v2
+        uses: ewjoachim/python-coverage-comment-action@v3
         with:
           MERGE_COVERAGE_FILES: true
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
