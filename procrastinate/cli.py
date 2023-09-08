@@ -314,7 +314,7 @@ def load_json_args(json_args: str, json_loads: Callable) -> types.JSONDict:
     else:
         try:
             args = json_loads(json_args)
-            assert type(args) == dict
+            assert isinstance(args, dict)
         except Exception:
             raise click.BadArgumentUsage(
                 "Incorrect JSON_ARGS value expecting a valid json object (or dict)"
