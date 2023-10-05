@@ -246,7 +246,6 @@ async def test_run_job_log_name(
 
 
 async def test_run_job_error(app, caplog):
-
     caplog.set_level("INFO")
 
     def job(a, b):  # pylint: disable=unused-argument
@@ -269,11 +268,19 @@ async def test_run_job_error(app, caplog):
     with pytest.raises(exceptions.JobError):
         await test_worker.run_job(job=job, worker_id=3)
 
-    assert len([r for r in caplog.records if r.levelname == "ERROR" and "to retry" not in r.message]) == 1
+    assert (
+        len(
+            [
+                r
+                for r in caplog.records
+                if r.levelname == "ERROR" and "to retry" not in r.message
+            ]
+        )
+        == 1
+    )
 
 
 async def test_run_job_retry(app, caplog):
-
     caplog.set_level("INFO")
 
     def job(a, b):  # pylint: disable=unused-argument
@@ -296,7 +303,16 @@ async def test_run_job_retry(app, caplog):
     with pytest.raises(exceptions.JobRetry):
         await test_worker.run_job(job=job, worker_id=3)
 
-    assert len([r for r in caplog.records if r.levelname == "INFO" and "to retry" in r.message]) == 1
+    assert (
+        len(
+            [
+                r
+                for r in caplog.records
+                if r.levelname == "INFO" and "to retry" in r.message
+            ]
+        )
+        == 1
+    )
     assert len([r for r in caplog.records if r.levelname == "ERROR"]) == 0
 
 
