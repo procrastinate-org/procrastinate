@@ -245,7 +245,10 @@ async def test_run_job_log_name(
     assert all([name == record_worker_name for name in worker_names])
 
 
-async def test_run_job_error(app):
+async def test_run_job_error(app, caplog):
+
+    caplog.set_level("INFO")
+
     def job(a, b):  # pylint: disable=unused-argument
         raise ValueError("nope")
 
@@ -266,8 +269,13 @@ async def test_run_job_error(app):
     with pytest.raises(exceptions.JobError):
         await test_worker.run_job(job=job, worker_id=3)
 
+    assert len([r for r in caplog.records if r.levelname == "ERROR" and "to retry" not in r.message]) == 1
 
-async def test_run_job_retry(app):
+
+async def test_run_job_retry(app, caplog):
+
+    caplog.set_level("INFO")
+
     def job(a, b):  # pylint: disable=unused-argument
         raise ValueError("nope")
 
@@ -287,6 +295,9 @@ async def test_run_job_retry(app):
     test_worker = worker.Worker(app, queues=["yay"])
     with pytest.raises(exceptions.JobRetry):
         await test_worker.run_job(job=job, worker_id=3)
+
+    assert len([r for r in caplog.records if r.levelname == "INFO" and "to retry" in r.message]) == 1
+    assert len([r for r in caplog.records if r.levelname == "ERROR"]) == 0
 
 
 async def test_run_job_not_found(app):

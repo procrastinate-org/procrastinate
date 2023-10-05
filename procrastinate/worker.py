@@ -247,6 +247,7 @@ class Worker:
             if retry_exception:
                 log_title = "Error, to retry"
                 log_action = "job_error_retry"
+                log_level = logging.INFO
                 raise retry_exception from e
             raise exceptions.JobError() from e
 
