@@ -1,13 +1,12 @@
 import asyncio
-import contextlib
-import datetime
+import functools
 import json
 import logging
-import os
 import sys
-from typing import Any, Callable, Dict, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 
-import click
+import configargparse as argparse
+from asgiref import sync
 
 if sys.version_info < (3, 8):
     from typing_extensions import Literal
@@ -21,11 +20,6 @@ logger = logging.getLogger(__name__)
 
 PROGRAM_NAME = "procrastinate"
 ENV_PREFIX = PROGRAM_NAME.upper()
-
-CONTEXT_SETTINGS = {
-    "help_option_names": ["-h", "--help"],
-    "auto_envvar_prefix": ENV_PREFIX,
-}
 
 
 def get_log_level(verbosity: int) -> int:
@@ -49,21 +43,21 @@ def configure_logging(verbosity: int, format: str, style: Style) -> None:
     )
 
 
-@contextlib.contextmanager
-def handle_errors():
-    try:
-        yield
-    except Exception as exc:
-        logger.debug("Exception details:", exc_info=exc)
-        messages = [str(e) for e in utils.causes(exc)]
-        raise click.ClickException("\n".join(e for e in messages if e))
+def print_stderr(*args):
+    print(*args, file=sys.stderr)
 
 
-class MissingAppConnector(connector.BaseConnector):
+class MissingAppConnector(connector.BaseAsyncConnector):
     def open(self, *args, **kwargs):
         pass
 
     def close(self, *args, **kwargs):
+        pass
+
+    async def open_async(self, *args, **kwargs):
+        pass
+
+    async def close_async(self, *args, **kwargs):
         pass
 
     def execute_query(self, *args, **kwargs):
@@ -88,174 +82,325 @@ class MissingAppConnector(connector.BaseConnector):
         raise exceptions.MissingApp
 
 
-@click.group(context_settings=CONTEXT_SETTINGS)
-@click.pass_context
-@click.option("--app", "-a", help="Dotted path to the Procrastinate app")
-@click.option(
-    "-v",
-    "--verbose",
-    count=True,
-    help="Use multiple times to increase verbosity",
-)
-@click.option(
-    "--log-format",
-    default=logging.BASIC_FORMAT,
-    help="Defines the format used for logging (see "
-    "https://docs.python.org/3/library/logging.html#logrecord-attributes)",
-)
-@click.option(
-    "--log-format-style",
-    default="%",
-    type=click.Choice("%{$"),
-    help="Defines the style for the log format string (see "
-    "https://docs.python.org/3/howto/logging-cookbook.html#use-of-alternative-formatting-styles)",
-)
-@click.version_option(
-    procrastinate.__version__, "-V", "--version", prog_name=PROGRAM_NAME
-)
-@handle_errors()
-def cli(
-    ctx: click.Context,
-    app: str,
-    verbose: int,
-    log_format: str,
-    log_format_style: Style,
-) -> None:
-    """
-    Interact with a Procrastinate app. See subcommands for details.
+class ActionWithNegative(argparse.argparse._StoreTrueAction):
+    def __init__(self, *args, negative: Optional[str], **kwargs):
+        super().__init__(*args, **kwargs)
+        self.negative = negative
 
-    All arguments can be passed by environment variables: PROCRASTINATE_UPPERCASE_NAME
-    or PROCRASTINATE_COMMAND_UPPERCASE_NAME (examples: PROCRASTINATE_APP,
-    PROCRASTINATE_DEFER_UNKNOWN, ...).
+    def __call__(self, parser, ns, values, option):
+        if self.negative is None:
+            setattr(ns, self.dest, not option.startswith("--no-"))
+            return
+        setattr(ns, self.dest, option != self.negative)
+
+
+def store_true_with_negative(negative: Optional[str] = None):
     """
-    configure_logging(verbosity=verbose, format=log_format, style=log_format_style)
-    if app:
-        app_obj = procrastinate.App.from_path(dotted_path=app)
-    else:
+    Return an argparse action that works like store_true but also accepts
+    a flag to set the value to False. By default, any flag starting with
+    `--no-` will set the value to False. If a string is provided as the
+    `negative` argument, this flags will set the value to False.
+    """
+    return functools.partial(ActionWithNegative, negative=negative)
+
+
+def load_app(app_path: str) -> procrastinate.App:
+    if app_path == "":
         # If we don't provide an app, initialize a default one that will fail if it
         # needs a connector.
-        app_obj = procrastinate.App(connector=MissingAppConnector())
-    app_obj.open()
-    ctx.obj = app_obj
+        return procrastinate.App(connector=MissingAppConnector())
 
-    worker_defaults = app_obj.worker_defaults.copy()
-    worker_defaults["queues"] = ",".join(worker_defaults.get("queues") or [])
-    ctx.default_map = {"worker": worker_defaults}
-
-
-# result_callback for click >=8.0, resultcallback for click <8.1
-result_callback = getattr(cli, "result_callback") or cli.resultcallback
-
-
-@result_callback()
-@click.pass_obj
-def close_connection(procrastinate_app: procrastinate.App, *args, **kwargs):
-    # There's an internal click param named app, we can't name our variable "app" too.
-    procrastinate_app.connector.close()
-
-    asyncio.get_event_loop().close()
+    try:
+        app = procrastinate.App.from_path(dotted_path=app_path)
+    except exceptions.LoadFromPathError as exc:
+        raise argparse.ArgumentError(
+            None, f"Could not load app from {app_path}"
+        ) from exc
+    if not isinstance(app.connector, connector.BaseAsyncConnector):
+        raise argparse.ArgumentError(
+            None,
+            "The connector provided by the app is not async. "
+            "Please use an async connector for the procrastinate CLI.",
+        )
+    return app
 
 
-@cli.command("worker")
-@click.pass_obj
-@click.option("-n", "--name", default=worker.WORKER_NAME, help="Name of the worker")
-@click.option(
-    "-q",
-    "--queues",
-    default="",
-    help="Comma-separated names of the queues to listen "
-    "to (empty string for all queues)",
-)
-@click.option(
-    "-c",
-    "--concurrency",
-    type=int,
-    default=worker.WORKER_CONCURRENCY,
-    help="Number of parallel asynchronous jobs to process at once",
-)
-@click.option(
-    "-t",
-    "--timeout",
-    type=float,
-    default=worker.WORKER_TIMEOUT,
-    help="How long to wait for database event push before polling",
-)
-@click.option(
-    "-w",
-    "--wait/--one-shot",
-    default=True,
-    help="When all jobs have been processed, whether to "
-    "terminate or to wait for new jobs",
-)
-@click.option(
-    "-l",
-    "--listen-notify/--no-listen-notify",
-    default=True,
-    help="Whether to actively listen for new jobs or periodically poll",
-)
-@click.option(
-    "--delete-jobs",
-    type=click.Choice([v.value for v in worker.DeleteJobCondition]),
-    default=worker.DeleteJobCondition.NEVER.value,
-    help="Whether to delete jobs on completion",
-)
-@handle_errors()
-def worker_(app: procrastinate.App, queues: str, **kwargs):
+def cast_queues(queues: str) -> Optional[List[str]]:
+    cleaned_queues = (queue.strip() for queue in queues.split(","))
+    return [queue for queue in cleaned_queues if queue] or None
+
+
+def get_parser() -> argparse.ArgumentParser:
+    # Important note: the FIRST long option is the one used for the
+    # variable name BUT when an envvar is use, configargparse will substitute
+    # it for the LAST option. This means in case of store_true_with_negative,
+    # we need to repeat the positive option as both the first long option AND
+    # the last option. This sucks.
+    parser = argparse.ArgumentParser(
+        prog=PROGRAM_NAME,
+        description="Interact with a Procrastinate app. See subcommands for details.",
+        add_env_var_help=True,
+        auto_env_var_prefix=f"{ENV_PREFIX}_",
+    )
+    parser.add_argument(
+        "-a",
+        "--app",
+        default="",
+        type=load_app,
+        help="Dotted path to the Procrastinate app",
+    )
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        default=0,
+        action="count",
+        help="Use multiple times to increase verbosity",
+    )
+    log_group = parser.add_argument_group("Logging")
+    log_group.add_argument(
+        "--log-format",
+        default=logging.BASIC_FORMAT,
+        help="Defines the format used for logging (see "
+        "https://docs.python.org/3/library/logging.html#logrecord-attributes)",
+    )
+    log_group.add_argument(
+        "--log-format-style",
+        default="%",
+        choices=["%", "{", "$"],
+        help="Defines the style for the log format string (see "
+        "https://docs.python.org/3/howto/logging-cookbook.html#use-of-alternative-formatting-styles)",
+    )
+    parser.add_argument(
+        "-V",
+        "--version",
+        action="version",
+        version=f"%(prog)s, version {procrastinate.__version__}",
+    )
+    subparsers = parser.add_subparsers(dest="command", required=True)
+    worker_parser = subparsers.add_parser(
+        "worker",
+        help="Launch a worker, listening on the given queues (or all queues). "
+        "Values default to App.worker_defaults and then App.run_worker() defaults values.",
+        add_env_var_help=True,
+        auto_env_var_prefix=f"{ENV_PREFIX}_WORKER_",
+        argument_default=argparse.SUPPRESS,
+    )
+    worker_parser.set_defaults(func=worker_)
+    worker_parser.add_argument(
+        "-n",
+        "--name",
+        help="Name of the worker",
+    )
+    worker_parser.add_argument(
+        "-q",
+        "--queues",
+        type=cast_queues,
+        help="Comma-separated names of the queues to listen "
+        "to (empty string for all queues)",
+    )
+    worker_parser.add_argument(
+        "-c",
+        "--concurrency",
+        type=int,
+        help="Number of parallel asynchronous jobs to process at once",
+    )
+    worker_parser.add_argument(
+        "-t",
+        "--timeout",
+        type=float,
+        help="How long to wait for database event push before polling",
+    )
+    worker_parser.add_argument(
+        "-w",
+        "--wait",
+        "--one-shot",
+        # See note at the top.
+        "--wait",
+        action=store_true_with_negative("--one-shot"),
+        help="When all jobs have been processed, whether to "
+        "terminate or to wait for new jobs",
+    )
+    worker_parser.add_argument(
+        "-l",
+        "--listen-notify",
+        "--no-listen-notify",
+        # See note at the top.
+        "--listen-notify",
+        action=store_true_with_negative(),
+        help="Whether to actively listen for new jobs or periodically poll",
+    )
+    worker_parser.add_argument(
+        "--delete-jobs",
+        choices=worker.DeleteJobCondition,
+        type=worker.DeleteJobCondition,
+        help="Whether to delete jobs on completion",
+    )
+
+    defer_parser = subparsers.add_parser(
+        "defer",
+        help="Create a job from the given task, to be executed by a worker. "
+        "TASK should be the name or dotted path to a task. "
+        "JSON_ARGS should be a json object (a.k.a dictionary) with the job parameters",
+        add_env_var_help=True,
+        auto_env_var_prefix=f"{ENV_PREFIX}_DEFER_",
+    )
+    defer_parser.set_defaults(func=defer)
+    defer_parser.add_argument(
+        "task",
+        help="Name or dotted path to the task to defer",
+    )
+    defer_parser.add_argument(
+        "json_args",
+        nargs="?",
+        # We can't cast it right away into json, because we need to use
+        # the app's json loads function.
+        help="JSON object with the job parameters",
+    )
+    defer_parser.add_argument(
+        "--queue",
+        default=argparse.SUPPRESS,
+        help="The queue for deferring. Defaults to the task's default queue",
+    )
+    defer_parser.add_argument(
+        "--lock",
+        default=argparse.SUPPRESS,
+        help="A lock string. Jobs sharing the same lock will not run concurrently",
+    )
+    defer_parser.add_argument(
+        "--queueing-lock",
+        default=argparse.SUPPRESS,
+        help="A string value. The defer operation will fail if there already is a job "
+        "waiting in the queue with the same queueing lock",
+    )
+    defer_parser.add_argument(
+        "-i",
+        "--ignore-already-enqueued",
+        "--no-ignore-already-enqueued",
+        # See note at the top.
+        "--ignore-already-enqueued",
+        action=store_true_with_negative(),
+        help="Exit with code 0 even if the queueing lock is already taken, while still "
+        "displaying an error (default false)",
+    )
+    time_group = defer_parser.add_mutually_exclusive_group()
+    time_group.add_argument(
+        "--at",
+        default=argparse.SUPPRESS,
+        type=utils.parse_datetime,
+        help="ISO-8601 localized datetime after which to launch the job",
+    )
+    time_group.add_argument(
+        "--in",
+        default=argparse.SUPPRESS,
+        dest="in_",
+        type=lambda s: {"seconds": int(s)},
+        help="Number of seconds after which to launch the job",
+    )
+    defer_parser.add_argument(
+        "--unknown",
+        "--no-unknown",
+        # See note at the top.
+        "--unknown",
+        action=store_true_with_negative(),
+        help="Whether unknown tasks can be deferred (default false)",
+    )
+
+    schema_parser = subparsers.add_parser(
+        "schema",
+        help="Apply SQL schema to the empty database. This won't work if the schema has already "
+        "been applied.",
+        add_env_var_help=True,
+        auto_env_var_prefix=f"{ENV_PREFIX}_SCHEMA_",
+    )
+    schema_parser.set_defaults(func=schema)
+    schema_parser.add_argument(
+        "--apply",
+        action="store_const",
+        const="apply",
+        dest="action",
+        help="Apply the schema to the DB (default)",
+    )
+    schema_parser.add_argument(
+        "--read",
+        action="store_const",
+        const="read",
+        dest="action",
+        help="Read the schema SQL and output it",
+    )
+    schema_parser.add_argument(
+        "--migrations-path",
+        action="store_const",
+        const="migrations_path",
+        dest="action",
+        help="Output the path to the directory containing the migration scripts",
+    )
+
+    healthchecks_parser = subparsers.add_parser(
+        "healthchecks",
+        help="Check the state of procrastinate",
+        add_env_var_help=True,
+        auto_env_var_prefix=f"{ENV_PREFIX}_HEALTHCHECKS_",
+    )
+    healthchecks_parser.set_defaults(func=healthchecks)
+
+    shell_parser = subparsers.add_parser(
+        "shell",
+        help="Administration shell for procrastinate",
+        add_env_var_help=True,
+        auto_env_var_prefix=f"{ENV_PREFIX}_SHELL_",
+    )
+    shell_parser.set_defaults(func=shell_)
+
+    return parser
+
+
+async def cli(args):
+    parser = get_parser()
+    parsed = vars(parser.parse_args(args))
+
+    configure_logging(
+        verbosity=parsed.pop("verbose"),
+        format=parsed.pop("log_format"),
+        style=parsed.pop("log_format_style"),
+    )
+    parsed.pop("command")
+    try:
+        async with parsed.pop("app").open_async() as app:
+            # Before calling the subcommand function,
+            # we want to have popped all top-level arguments
+            # from the parsed dict and kept only the subcommand
+            # arguments.
+            await parsed.pop("func")(app=app, **parsed)
+    except Exception as exc:
+        logger.debug("Exception details:", exc_info=exc)
+        messages = [str(e) for e in utils.causes(exc)]
+        exit_message = "\n".join(e.strip() for e in messages[::-1] if e)
+        print_stderr(exit_message)
+        sys.exit(1)
+
+
+async def worker_(
+    app: procrastinate.App,
+    **kwargs,
+):
     """
     Launch a worker, listening on the given queues (or all queues).
     Values default to App.worker_defaults and then App.run_worker() defaults values.
     """
-    queue_list = [q.strip() for q in queues.split(",")] if queues else None
-    if queue_list is None:
-        queue_names = "all queues"
-    else:
-        queue_names = ", ".join(queue_list)
-    click.echo(f"Launching a worker on {queue_names}")
-    app.run_worker(queues=queue_list, **kwargs)  # type: ignore
+    queues = kwargs.get("queues")
+    print_stderr(
+        f"Launching a worker on {'all queues' if not queues else ', '.join(queues)}"
+    )
+    await app.run_worker_async(**kwargs)
 
 
-@cli.command()
-@click.pass_obj
-@click.argument("task")
-@click.argument("json_args", required=False)
-@click.option(
-    "--queue", help="The queue for deferring. Defaults to the task's default queue"
-)
-@click.option(
-    "--lock", help="A lock string. Jobs sharing the same lock will not run concurrently"
-)
-@click.option(
-    "--queueing-lock",
-    help="A string value. The defer operation will fail if there already is a job "
-    "waiting in the queue with the same queueing lock",
-)
-@click.option(
-    "-i",
-    "--ignore-already-enqueued/--no-ignore-already-enqueued",
-    default=False,
-    help="Exit with code 0 even if the queueing lock is already taken, while still "
-    "displaying an error (default false)",
-)
-@click.option("--at", help="ISO-8601 localized datetime after which to launch the job")
-@click.option(
-    "--in", "in_", type=int, help="Number of seconds after which to launch the job"
-)
-@click.option(
-    "--unknown/--no-unknown",
-    help="Whether unknown tasks can be deferred (default false)",
-)
-@handle_errors()
-def defer(
+async def defer(
     app: procrastinate.App,
     task: str,
-    json_args: str,
-    lock: Optional[str],
-    queueing_lock: Optional[str],
+    json_args: Optional[str],
     ignore_already_enqueued: bool,
-    queue: Optional[str],
-    at: Optional[str],
-    in_: Optional[int],
     unknown: bool,
+    **configure_kwargs,
 ):
     """
     Create a job from the given task, to be executed by a worker.
@@ -263,26 +408,13 @@ def defer(
     JSON_ARGS should be a json object (a.k.a dictionary) with the job parameters
     """
     # Loading json args
-    args = load_json_args(
-        json_args=json_args, json_loads=app.connector.json_loads or json.loads
+    args = (
+        load_json_args(
+            json_args=json_args, json_loads=app.connector.json_loads or json.loads
+        )
+        if json_args
+        else {}
     )
-
-    if at is not None and in_ is not None:
-        raise click.UsageError("Cannot use both --at and --in")
-
-    schedule_at = get_schedule_at(at=at)
-    schedule_in = get_schedule_in(in_=in_)
-
-    # Build kwargs. Remove all None kwargs to use their default values.
-    configure_kwargs = {
-        "lock": lock,
-        "queueing_lock": queueing_lock,
-        "schedule_at": schedule_at,
-        "schedule_in": schedule_in,
-        "queue": queue,
-    }
-    configure_kwargs = filter_none(configure_kwargs)
-
     # Configure the job. If the task is known, it will be used.
     job_deferrer = configure_task(
         app=app,
@@ -293,19 +425,14 @@ def defer(
 
     # Printing info
     str_kwargs = ", ".join(f"{k}={repr(v)}" for k, v in args.items())
-    click.echo(f"Launching a job: {task}({str_kwargs})")
-
+    print_stderr(f"Launching a job: {task}({str_kwargs})")
     # And launching the job
     try:
-        job_deferrer.defer(**args)  # type: ignore
+        await job_deferrer.defer_async(**args)  # type: ignore
     except exceptions.AlreadyEnqueued as exc:
         if not ignore_already_enqueued:
             raise
-        click.echo(f"{exc} (ignored)")
-
-
-def filter_none(dictionary: Dict) -> Dict:
-    return {key: value for key, value in dictionary.items() if value is not None}
+        print_stderr(f"{exc} (ignored)")
 
 
 def load_json_args(json_args: str, json_loads: Callable) -> types.JSONDict:
@@ -315,30 +442,11 @@ def load_json_args(json_args: str, json_loads: Callable) -> types.JSONDict:
         try:
             args = json_loads(json_args)
             assert isinstance(args, dict)
-        except Exception:
-            raise click.BadArgumentUsage(
+        except Exception as exc:
+            raise ValueError(
                 "Incorrect JSON_ARGS value expecting a valid json object (or dict)"
-            )
+            ) from exc
     return args
-
-
-def get_schedule_at(at: Optional[str]) -> Optional[datetime.datetime]:
-    if at is None:
-        return None
-
-    try:
-        dt = utils.parse_datetime(at)
-    except ValueError:
-        raise click.BadOptionUsage("--at", f"Cannot parse datetime {at}")
-
-    return dt
-
-
-def get_schedule_in(in_: Optional[int]) -> Optional[Dict[str, int]]:
-    if in_ is None:
-        return None
-
-    return {"seconds": in_}
 
 
 def configure_task(
@@ -352,76 +460,52 @@ def configure_task(
     )
 
 
-@cli.command()
-@click.pass_obj
-@click.option(
-    "--apply",
-    "action",
-    flag_value="apply",
-    help="Apply the schema to the DB (default)",
-    default=True,
-)
-@click.option(
-    "--read", "action", flag_value="read", help="Read the schema SQL and output it"
-)
-@click.option(
-    "--migrations-path",
-    "action",
-    flag_value="migrations-path",
-    help="Output the path to the directory containing the migration scripts",
-)
-@handle_errors()
-def schema(app: procrastinate.App, action: str):
+async def schema(app: procrastinate.App, action: str):
     """
     Apply SQL schema to the empty database. This won't work if the schema has already
     been applied.
     """
+    action = action or "apply"
     schema_manager = app.schema_manager
     if action == "apply":
-        click.echo("Applying schema")
-        schema_manager.apply_schema()  # type: ignore
-        click.echo("Done")
+        print_stderr("Applying schema")
+        await schema_manager.apply_schema_async()
+        print_stderr("Done")
     elif action == "read":
-        click.echo(schema_manager.get_schema(), nl=False)
+        print(schema_manager.get_schema().strip())
     else:
-        click.echo(schema_manager.get_migrations_path())
+        print(schema_manager.get_migrations_path())
 
 
-@cli.command()
-@click.pass_obj
-@handle_errors()
-def healthchecks(app: procrastinate.App):
+async def healthchecks(app: procrastinate.App):
     """
     Check the state of procrastinate.
     """
-    db_ok = app.check_connection()  # type: ignore
+    db_ok = await app.check_connection_async()
     # If app or DB is not configured correctly, we raise before this point
-    click.echo("App configuration: OK")
-    click.echo("DB connection: OK")
+    print("App configuration: OK")
+    print("DB connection: OK")
 
     if not db_ok:
-        raise click.ClickException(
+        raise RuntimeError(
             "Connection to the database works but the procrastinate_jobs table was not "
             "found. Have you applied database migrations (see "
             "`procrastinate schema -h`)?"
         )
 
-    click.echo("Found procrastinate_jobs table: OK")
+    print("Found procrastinate_jobs table: OK")
 
 
-@cli.command("shell")
-@click.pass_obj
-@handle_errors()
-def shell_(app: procrastinate.App):
+async def shell_(app: procrastinate.App):
     """
     Administration shell for procrastinate.
     """
-    shell.ProcrastinateShell(job_manager=app.job_manager).cmdloop()
+    shell_obj = shell.ProcrastinateShell(
+        job_manager=app.job_manager,
+    )
+
+    await sync.sync_to_async(shell_obj.cmdloop)()
 
 
 def main():
-    # https://click.palletsprojects.com/en/7.x/python3/
-    os.environ.setdefault("LC_ALL", "C.UTF-8")
-    os.environ.setdefault("LANG", "C.UTF-8")
-
-    return cli()
+    asyncio.run(cli(sys.argv[1:]))

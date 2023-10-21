@@ -37,7 +37,7 @@ class Worker:
         wait: bool = True,
         timeout: float = WORKER_TIMEOUT,
         listen_notify: bool = True,
-        delete_jobs: str = DeleteJobCondition.NEVER.value,
+        delete_jobs: Union[str, DeleteJobCondition] = DeleteJobCondition.NEVER.value,
         additional_context: Optional[Dict[str, Any]] = None,
     ):
         self.app = app
@@ -48,7 +48,11 @@ class Worker:
         self.timeout = timeout
         self.wait = wait
         self.listen_notify = listen_notify
-        self.delete_jobs = DeleteJobCondition(delete_jobs)
+        self.delete_jobs = (
+            DeleteJobCondition(delete_jobs)
+            if isinstance(delete_jobs, str)
+            else delete_jobs
+        )
 
         self.job_manager = self.app.job_manager
 

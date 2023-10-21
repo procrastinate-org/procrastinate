@@ -1,5 +1,8 @@
 import cmd
-from typing import Dict
+import traceback
+from typing import Any, Dict
+
+from asgiref import sync
 
 from procrastinate import jobs, manager, utils
 
@@ -26,9 +29,22 @@ class ProcrastinateShell(cmd.Cmd):
     intro = "Welcome to the procrastinate shell.   Type help or ? to list commands.\n"
     prompt = "procrastinate> "
 
-    def __init__(self, job_manager: manager.JobManager):
+    def __init__(
+        self,
+        job_manager: manager.JobManager,
+    ):
         super().__init__()
         self.job_manager = job_manager
+
+    def async_to_sync(self, coro: Any, **kwargs) -> Any:
+        return sync.async_to_sync(coro)(**kwargs)
+
+    def onecmd(self, line):
+        try:
+            return super().onecmd(line)
+        except Exception:
+            traceback.print_exc()
+            return False
 
     def do_EOF(self, _) -> bool:
         "Exit procrastinate shell."
@@ -47,9 +63,11 @@ class ProcrastinateShell(cmd.Cmd):
 
         Example: list_jobs queue=default task=sums status=failed details
         """
-        kwargs = parse_argument(arg)
+        kwargs: Dict[str, Any] = parse_argument(arg)
         details = kwargs.pop("details", None) is not None
-        for job in self.job_manager.list_jobs(**kwargs):  # type: ignore
+        if "id" in kwargs:
+            kwargs["id"] = int(kwargs["id"])
+        for job in self.async_to_sync(self.job_manager.list_jobs_async, **kwargs):
             print_job(job, details=details)
 
     def do_list_queues(self, arg: str) -> None:
@@ -63,7 +81,7 @@ class ProcrastinateShell(cmd.Cmd):
         Example: list_queues task=sums status=failed
         """
         kwargs = parse_argument(arg)
-        for queue in self.job_manager.list_queues(**kwargs):  # type: ignore
+        for queue in self.async_to_sync(self.job_manager.list_queues_async, **kwargs):
             print(
                 f"{queue['name']}: {queue['jobs_count']} jobs ("
                 f"todo: {queue['todo']}, "
@@ -83,7 +101,7 @@ class ProcrastinateShell(cmd.Cmd):
         Example: list_tasks queue=default status=failed
         """
         kwargs = parse_argument(arg)
-        for task in self.job_manager.list_tasks(**kwargs):  # type: ignore
+        for task in self.async_to_sync(self.job_manager.list_tasks_async, **kwargs):
             print(
                 f"{task['name']}: {task['jobs_count']} jobs ("
                 f"todo: {task['todo']}, "
@@ -103,7 +121,7 @@ class ProcrastinateShell(cmd.Cmd):
         Example: list_locks queue=default status=todo
         """
         kwargs = parse_argument(arg)
-        for lock in self.job_manager.list_locks(**kwargs):  # type: ignore
+        for lock in self.async_to_sync(self.job_manager.list_locks_async, **kwargs):
             print(
                 f"{lock['name']}: {lock['jobs_count']} jobs ("
                 f"todo: {lock['todo']}, "
@@ -122,10 +140,13 @@ class ProcrastinateShell(cmd.Cmd):
         Example: retry 2
         """
         job_id = int(arg)
-        self.job_manager.retry_job_by_id(  # type: ignore
-            job_id=job_id, retry_at=utils.utcnow().replace(microsecond=0)
+        self.async_to_sync(
+            self.job_manager.retry_job_by_id_async,
+            job_id=job_id,
+            retry_at=utils.utcnow().replace(microsecond=0),
         )
-        (job,) = self.job_manager.list_jobs(id=job_id)  # type: ignore
+
+        (job,) = self.async_to_sync(self.job_manager.list_jobs_async, id=job_id)
         print_job(job)
 
     def do_cancel(self, arg: str) -> None:
@@ -138,8 +159,12 @@ class ProcrastinateShell(cmd.Cmd):
         Example: cancel 3
         """
         job_id = int(arg)
-        self.job_manager.finish_job_by_id(  # type: ignore
-            job_id=job_id, status=jobs.Status.FAILED, delete_job=False
+        self.async_to_sync(
+            self.job_manager.finish_job_by_id_async,
+            job_id=job_id,
+            status=jobs.Status.FAILED,
+            delete_job=False,
         )
-        (job,) = self.job_manager.list_jobs(id=job_id)  # type: ignore
+
+        (job,) = self.async_to_sync(self.job_manager.list_jobs_async, id=job_id)
         print_job(job)
