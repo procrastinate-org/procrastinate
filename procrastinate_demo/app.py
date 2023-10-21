@@ -14,4 +14,5 @@ else:
     connector_class = procrastinate.Psycopg2Connector
 
 app = procrastinate.App(connector=connector_class(), import_paths=import_paths)
-app.open()
+# It's your responsibility to call app.open() or app.open_async() before using
+# the app.
