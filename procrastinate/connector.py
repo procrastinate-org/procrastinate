@@ -1,7 +1,7 @@
 import asyncio
 from typing import Any, Callable, Dict, Iterable, List, Optional
 
-from procrastinate import exceptions, utils
+from procrastinate import exceptions
 
 Pool = Any
 Engine = Any
@@ -57,7 +57,6 @@ class BaseConnector:
             pass
 
 
-@utils.add_sync_api
 class BaseAsyncConnector(BaseConnector):
     async def open_async(self, pool: Optional[Pool] = None) -> None:
         raise NotImplementedError
