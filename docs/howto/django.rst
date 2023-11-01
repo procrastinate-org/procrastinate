@@ -71,13 +71,15 @@ directory ``tasks`` and fill the ``tasks/__init__.py`` with:
             ...
         await work()
 
-It is necessary to wrap all Django code with ``sync_to_async`` because `Django
-ORM is still async`_. To avoid trouble with sync/async inside your tasks, we
+If you're using the ORM asynchronously, it is necessary to wrap all Django code
+with ``sync_to_async``. To avoid trouble with sync/async inside your tasks, we
 recommended you to create a "service" layer/module within your app and use the
 tasks only to call service code, so your tasks will be thin and maintenance
 will be easier, since the service layer could be tested as other modules of
 your app. To learn more about this approach, watch `this talk at DjangoCon
 2019`_.
+
+You can also start using the `Async ORM API`_ (4.1+).
 
 To run the procrastinate worker properly, you need to set
 ``DJANGO_SETTINGS_MODULE`` to your project's settings module and point to the
@@ -122,12 +124,11 @@ Now you can finally launch this task from your ``myapp/views.py``:
         ...
         mytask.defer(obj_pk=obj.pk)
 
-
 Procrastinate comes with its own migrations so don't forget to run
 ``./manage.py migrate``.
 
 .. _contribute: https://github.com/procrastinate-org/procrastinate/blob/main/CONTRIBUTING.rst
 .. _pending issues: https://github.com/procrastinate-org/procrastinate/issues?q=is%3Aissue+is%3Aopen+django
 .. _django-pgpubsub: https://readthedocs.org/projects/django-pgpubsub/
-.. _Django ORM is still async: https://docs.djangoproject.com/en/4.1/topics/async/#asynchronous-support
+.. _Async ORM API: https://docs.djangoproject.com/en/4.2/topics/async/#queries-the-orm
 .. _this talk at DjangoCon 2019: https://www.youtube.com/watch?v=_DIlE-yc9ZQ

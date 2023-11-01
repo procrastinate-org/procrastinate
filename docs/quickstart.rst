@@ -39,7 +39,6 @@ We'll do this in a single file. Start an empty file named ``tutorial.py``::
     app = App(
         connector=AiopgConnector(host="localhost", user="postgres", password="password")
     )
-    app.open()
 
 
 The application will be the entry point for both:
@@ -47,9 +46,6 @@ The application will be the entry point for both:
 - Declaring tasks (a.k.a job templates) to be launched by Procrastinate,
 - Launching the worker that will consume the jobs created from those tasks.
 - Applying Database schema
-
-The ``App.open`` method is called to create the connection pool to the underlying
-database. It will be automatically terminated upon garbage collection.
 
 Prepare the database
 --------------------
@@ -81,7 +77,9 @@ Are we good to go?
 Declare a task
 --------------
 
-In your file, add the following::
+In your file, add the following
+
+.. code-block:: python
 
     # at the top of the file
     import random
@@ -110,17 +108,31 @@ The return value of a task serves no other purpose than logging.
 Launch a job
 ------------
 
-We'll use the ``defer`` method of our task::
+We'll use the ``defer`` method of our task
 
-    import sys
+.. code-block:: python
+
+    import asyncio, sys
 
     ...
 
+    async def main():
+        async with app.open_async():
+            a = int(sys.argv[1])
+            b = int(sys.argv[2])
+            print(f"Scheduling computation of {a} + {b}")
+            await sum.defer_async(a=a, b=b)  # This is the line that launches a job
+
     if __name__ == "__main__":
-        a = int(sys.argv[1])
-        b = int(sys.argv[2])
-        print(f"Scheduling computation of {a} + {b}")
-        sum.defer(a=a, b=b)  # This is the line that launches a job
+        asyncio.run(main())
+
+Wait, ``async``? ``await``?
+---------------------------
+
+Procrastinate is asynchronous at core. It can be used in the context of a synchronous
+application, but it's easier to use it in an asynchronous one. We'll use the
+async syntax for now, but at the end of the tutorial, we'll show how to use it in a
+synchronous context.
 
 You can launch your script now with:
 
@@ -184,8 +196,9 @@ shell:
 Your final file
 ---------------
 
-::
+.. code-block:: python
 
+    import asyncio
     import random
     import time
     import sys
@@ -193,18 +206,56 @@ Your final file
     from procrastinate import App, AiopgConnector
 
     app = App(connector=AiopgConnector(host="localhost", user="postgres", password="password"))
-    app.open()
 
     @app.task(name="sum")
     def sum(a, b):
         time.sleep(random.random() * 5)  # Sleep up to 5 seconds
         return a + b
 
+    async def main():
+        async with app.open_async():
+            a = int(sys.argv[1])
+            b = int(sys.argv[2])
+            print(f"Scheduling computation of {a} + {b}")
+            await sum.defer_async(a=a, b=b)  # This is the line that launches a job
+
     if __name__ == "__main__":
-        a = int(sys.argv[1])
-        b = int(sys.argv[2])
-        print(f"Scheduling computation of {a} + {b}")
-        sum.defer(a=a, b=b)  # This is the line that launches a job
+        asyncio.run(main())
+
+The sync version
+----------------
+
+If you want to use procrastinate in a synchronous application, you can use the
+``defer`` method of your task. Not that you'll need a special connector setup.
+
+
+.. code-block:: python
+
+    import asyncio
+    import random
+    import time
+    import sys
+
+    from procrastinate import App, AiopgConnector, Psycopg2Connector
+
+    connector_params = {"host": "localhost", "user": "postgres", "password": "password"}
+    app = App(connector=AiopgConnector(**connector_params))
+    sync_app = app.with_connector(Psycopg2Connector(**connector_params))
+
+    @sync_app.task(name="sum")
+    def sum(a, b):
+        time.sleep(random.random() * 5)  # Sleep up to 5 seconds
+        return a + b
+
+    def main():
+        with sync_app.open():
+            a = int(sys.argv[1])
+            b = int(sys.argv[2])
+            print(f"Scheduling computation of {a} + {b}")
+            sum.defer_async(a=a, b=b)  # This is the line that launches a job
+
+    if __name__ == "__main__":
+        main()
 
 
 Going further

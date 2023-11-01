@@ -1,15 +1,17 @@
 Control the way synchronous calls to defer are handled
 ======================================================
 
-In some cases, usually linked to multi-threading (see `discussion-sync-defer`), you may
-want to defer tasks purely synchronously (what is called "classic" synchronous I/O).
+When your app is synchronous (see `discussion-sync-defer`), you may want to
+defer tasks purely synchronously.
 
 ``Psycopg2Connector``
 ---------------------
 
 By setting your `App`'s connector to an instance of `Psycopg2Connector`, you will
-get "classic" synchronous I/O. Note that in this case, some ``App`` features will be
-unavailable, such as the ``shell`` and ``worker`` sub-commands::
+get "classic" synchronous I/O. Note that in this case, the only thing you'll be
+able to do synchronously is deferred tasks.
+
+::
 
     import procrastinate
 
@@ -17,21 +19,6 @@ unavailable, such as the ``shell`` and ``worker`` sub-commands::
         connector=procrastinate.Psycopg2Connector(
             host="somehost",
         ),
-    )
-
-It is perfectly fine to give the App either kind of connectors depending on the
-situation::
-
-    import sys, procrastinate
-
-    # This is an example condition, you'll need to check that it works in your case
-    if sys.argv[0:2] == ["procrastinate", "worker"]:
-        connector_class = procrastinate.AiopgConnector
-    else:
-        connector_class = procrastinate.Psycopg2Connector
-
-    app = procrastinate.App(
-        connector=connector_class(host="somehost"),
     )
 
 

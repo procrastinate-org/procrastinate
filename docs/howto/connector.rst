@@ -47,8 +47,8 @@ You can use other `aiopg connection arguments`_ (which are the same as
 Other arguments
 ---------------
 
-Apart from connection parameters, the `AiopgConnector` receives all the parameters from
-the `aiopg.create_pool()`__.
+Apart from connection parameters, the `AiopgConnector` can handle all the
+parameters from the `aiopg.create_pool()`__ function.
 
 .. __: https://aiopg.readthedocs.io/en/stable/core.html#aiopg.create_pool
 
@@ -59,5 +59,9 @@ Procrastinate currently provides 2 connectors:
 
 - `AiopgConnector`: Generic multipurpose connector. This should be the default.
 - `Psycopg2Connector`: This connector is specialized for synchronous calls only, and
-  should only be used to configure your app for synchronous multi-threaded applications
-  that need to :term:`defer` tasks synchronously (see `discussion-sync-defer`).
+  should only be used to configure your app for synchronous applications
+  that need to :term:`defer` jobs synchronously (see `discussion-sync-defer`).
+- `SQLAlchemyPsycopg2Connector`: This connector is specialized for SQLAlchemy
+  applications. It should be used if you want to use SQLAlchemy to manage your
+  database connection and share your connection pool with the rest of your app.
+  Like the previous connector, it should only be used for deferring jobs.

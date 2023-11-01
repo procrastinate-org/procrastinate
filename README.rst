@@ -52,7 +52,7 @@ Here's an example (if you want to run the code yourself, head to Quickstart_):
     import procrastinate
 
     # Make an app in your code
-    app = procrastinate.App(connector=procrastinate.AiopgConnector())
+    app = procrastinate.App(connector=procrastinate.Psycopg2Connector())
 
     # Then define tasks
     @app.task(queue="sums")
@@ -64,9 +64,9 @@ Here's an example (if you want to run the code yourself, head to Quickstart_):
         # Launch a job
         sum.defer(a=3, b=5)
 
-        # Somewhere in your program, run a worker (actually, it's often a
-        # different program than the one deferring jobs for execution)
-        app.run_worker(queues=["sums"])
+    # Somewhere in your program, run a worker (actually, it's usually a
+    # different program than the one deferring jobs for execution)
+    app.run_worker(queues=["sums"])
 
 The worker will run the job, which will create a text file
 named ``myfile`` with the result of the sum ``3 + 5`` (that's ``8``).
@@ -113,10 +113,8 @@ to the How-To sections for specific features. The Discussion
 section should hopefully answer your questions. Otherwise,
 feel free to open an `issue <https://github.com/procrastinate-org/procrastinate/issues>`_.
 
-The project is still quite early-stage and will probably evolve.
-
 *Note to my future self: add a quick note here on why this project is named*
-"Procrastinate_".
+"Procrastinate_" ;) .
 
 .. _Procrastinate: https://en.wikipedia.org/wiki/Procrastination
 .. _Quickstart: https://procrastinate.readthedocs.io/en/stable/quickstart.html
