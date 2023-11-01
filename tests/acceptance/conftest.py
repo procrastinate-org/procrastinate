@@ -34,7 +34,7 @@ def defer(process_env):
         args = args or []
         full_task_name = f"{APP_MODULE}.{task_name}"
         subprocess.check_output(
-            ["procrastinate", "defer", full_task_name, *args, json_dumps(kwargs)],
+            ["procrastinate", "defer", full_task_name, json_dumps(kwargs), *args],
             env=process_env(app=app),
         )
 

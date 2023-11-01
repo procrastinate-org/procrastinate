@@ -47,7 +47,7 @@ def test_nominal(defer, worker):
     stdout, stderr = worker()
     print(stdout, stderr)
 
-    assert stdout.splitlines() == ["Launching a worker on all queues", "12", "7", "4"]
+    assert stdout.splitlines() == ["12", "7", "4"]
     assert stderr.startswith("DEBUG:procrastinate.")
 
     defer("product_task", a=5, b=4)
@@ -58,7 +58,7 @@ def test_nominal(defer, worker):
 
     stdout, stderr = worker("product_queue")
     print(stdout, stderr)
-    assert stdout.splitlines() == ["Launching a worker on product_queue", "20"]
+    assert stdout.strip() == "20"
 
     defer("two_fails")
     stdout, stderr = worker()
@@ -71,8 +71,7 @@ def test_nominal(defer, worker):
     print(stdout, stderr)
     assert (
         stdout
-        == """Launching a worker on all queues
-Try 0
+        == """Try 0
 Try 1
 Try 2
 """
@@ -144,16 +143,16 @@ def test_queueing_lock(defer, running_worker):
     assert excinfo.value.returncode == 1
 
     with pytest.raises(subprocess.CalledProcessError) as excinfo:
-        defer("sometask", ["--queueing-lock", "a"], app="sync_app")
+        defer("sometask", ["--queueing-lock", "a"], app="app")
 
-    defer("sometask", ["--queueing-lock", "c"], app="sync_app")
+    defer("sometask", ["--queueing-lock", "c"], app="app")
 
     # This one doesn't raise
     defer("sometask", ["--queueing-lock", "a", "--ignore-already-enqueued"])
     defer(
         "sometask",
         ["--queueing-lock", "a", "--ignore-already-enqueued"],
-        app="sync_app",
+        app="app",
     )
 
 
@@ -171,7 +170,7 @@ def test_periodic_deferrer(worker):
     # We're making a dict from the output
     results = dict(
         (int(a) for a in e[5:].split())
-        for e in stdout.splitlines()[1:]
+        for e in stdout.splitlines()
         if e.startswith("tick ")
     )
     assert list(results)[:2] == [0, 1]

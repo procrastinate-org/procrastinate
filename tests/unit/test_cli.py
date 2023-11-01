@@ -2,10 +2,9 @@ import datetime
 import json
 import logging
 
-import click
 import pytest
 
-from procrastinate import cli, exceptions
+from procrastinate import cli, exceptions, worker
 
 
 @pytest.mark.parametrize(
@@ -30,40 +29,98 @@ def test_configure_logging(mocker, caplog):
     assert records[0].value == "DEBUG"
 
 
+def test_main(mocker):
+    mock = mocker.patch("procrastinate.cli.cli", new=mocker.AsyncMock())
+    cli.main()
+    mock.assert_called_once()
+
+
 @pytest.mark.parametrize(
-    "raised, expected",
+    "input, output",
     [
-        # Procrastinate exceptions are caught
-        (exceptions.ProcrastinateException, click.ClickException),
-        # Other exceptions are not
-        (ValueError, ValueError),
+        (["worker", "-q", "a,b"], {"command": "worker", "queues": ["a", "b"]}),
+        (["worker", "-q", ""], {"command": "worker", "queues": None}),
+        (["worker", "--wait"], {"command": "worker", "wait": True}),
+        (["worker", "--one-shot"], {"command": "worker", "wait": False}),
+        (
+            ["worker", "--no-listen-notify"],
+            {"command": "worker", "listen_notify": False},
+        ),
+        (
+            ["worker", "--delete-jobs", "never"],
+            {"command": "worker", "delete_jobs": worker.DeleteJobCondition.NEVER},
+        ),
+        (["defer", "x"], {"command": "defer", "task": "x"}),
+        (["defer", "x", "{}"], {"command": "defer", "task": "x", "json_args": "{}"}),
+        (
+            ["defer", "x", "--at", "2023-01-01T00:00:00"],
+            {
+                "command": "defer",
+                "at": datetime.datetime(2023, 1, 1, tzinfo=datetime.timezone.utc),
+            },
+        ),
+        (
+            ["defer", "x", "--in", "3600"],
+            {
+                "command": "defer",
+                "in_": {"seconds": 3600},
+            },
+        ),
+        (
+            ["schema"],
+            {
+                "command": "schema",
+                "action": None,
+            },
+        ),
+        (
+            ["schema", "--apply"],
+            {
+                "command": "schema",
+                "action": "apply",
+            },
+        ),
+        (
+            ["schema", "--read"],
+            {
+                "command": "schema",
+                "action": "read",
+            },
+        ),
+        (
+            ["schema", "--migrations-path"],
+            {
+                "command": "schema",
+                "action": "migrations_path",
+            },
+        ),
     ],
 )
-def test_handle_errors(raised, expected):
-    @cli.handle_errors()
-    def raise_exc():
-        raise exceptions.ProcrastinateException("foo") from IndexError("bar")
+def test_parser(input, output):
+    result = vars(cli.get_parser().parse_args(input))
 
-    with pytest.raises(click.ClickException) as exc:
-        raise_exc()
-
-    assert str(exc.value) == "foo\nbar"
+    print(result)
+    for key, value in output.items():
+        assert result[key] == value
 
 
-def test_handle_errors_no_error():
-    @cli.handle_errors()
-    def raise_exc():
-        assert True
+@pytest.mark.parametrize(
+    "input, error",
+    [
+        ([], "the following arguments are required: command"),
+        (["-a", "foobar"], "Could not load app from foobar"),
+        (["defer", "--at", "foo"], "invalid parse_datetime value: 'foo'"),
+        (
+            ["defer", "--at", "2023-01-01", "--in", "12"],
+            "argument --in: not allowed with argument --at",
+        ),
+    ],
+)
+def test_parser__error(input, error, capsys):
+    with pytest.raises(SystemExit):
+        cli.get_parser().parse_args(input)
 
-    raise_exc()
-
-
-def test_main(mocker):
-    environ = mocker.patch("os.environ", {"LANG": "fr-FR.UTF-8"})
-    mocker.patch("procrastinate.cli.cli")
-    cli.main()
-
-    assert environ == {"LANG": "fr-FR.UTF-8", "LC_ALL": "C.UTF-8"}
+    assert error in capsys.readouterr().err
 
 
 @pytest.mark.parametrize(
@@ -75,35 +132,8 @@ def test_load_json_args(input, output):
 
 @pytest.mark.parametrize("input", ["", "{", "[1, 2, 3]", '"yay"'])
 def test_load_json_args_error(input):
-    with pytest.raises(click.BadArgumentUsage):
+    with pytest.raises(ValueError):
         assert cli.load_json_args(input, json.loads)
-
-
-@pytest.mark.parametrize(
-    "input, output",
-    [
-        (None, None),
-        (
-            "2000-01-01T00:00:00Z",
-            datetime.datetime(2000, 1, 1, tzinfo=datetime.timezone.utc),
-        ),
-    ],
-)
-def test_get_schedule_at(input, output):
-    assert cli.get_schedule_at(input) == output
-
-
-@pytest.mark.parametrize(
-    "input", ["yay", "2000-01-34T00:00:00Z", "P1Y2M10DT2H30M/2008-05-11T15:30:00Z"]
-)
-def test_get_schedule_at_error(input):
-    with pytest.raises(click.BadOptionUsage):
-        assert cli.get_schedule_at(input)
-
-
-@pytest.mark.parametrize("input, output", [(None, None), (12, {"seconds": 12})])
-def test_get_schedule_in(input, output):
-    assert cli.get_schedule_in(input) == output
 
 
 def test_configure_task_known(app):
@@ -125,10 +155,6 @@ def test_configure_task_unknown(app):
 def test_test_configure_task_error(app):
     with pytest.raises(exceptions.TaskNotFound):
         assert cli.configure_task(app, "foobar", {}, allow_unknown=False)
-
-
-def test_filter_none():
-    assert cli.filter_none({"a": "b", "c": None}) == {"a": "b"}
 
 
 @pytest.mark.parametrize(

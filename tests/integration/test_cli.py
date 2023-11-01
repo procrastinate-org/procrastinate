@@ -1,137 +1,156 @@
+import asyncio
+import dataclasses
 import logging
 import os
 
 import pytest
 
-from procrastinate import __version__, cli, exceptions
+from procrastinate import __version__, cli, exceptions, worker
 
-pytestmark = pytest.mark.runner_setup(mix_stderr=False)
+
+@dataclasses.dataclass
+class CallResult:
+    exit_code: int
+    stdout: str
+    stderr: str
 
 
 @pytest.fixture
-def entrypoint(cli_runner):
-    def ep(args=""):
+async def entrypoint(capsys, monkeypatch):
+    async def ep(args=""):
         # basicConfig works better if handlers config is properly isolated
         logging.getLogger("").handlers = []
-        return cli_runner.invoke(cli.cli, args.split(), catch_exceptions=False)
+        # This will create an event loop. Let's ensure we're not already in one.
+        asyncio.set_event_loop(None)
+        exit_code = 0
+        try:
+            await cli.cli(args.split())
+        except SystemExit as exc:
+            exit_code = exc.code if isinstance(exc.code, int) else 1
+        captured = capsys.readouterr()
+        return CallResult(exit_code=exit_code, stdout=captured.out, stderr=captured.err)
 
+    monkeypatch.setenv("PROCRASTINATE_VERBOSE", "0")
     logging.getLogger("").handlers = []
     return ep
 
 
 @pytest.fixture
-def click_app(mocker, app):
+def cli_app(mocker, app):
     os.environ["PROCRASTINATE_APP"] = "foo"
     mocker.patch("procrastinate.App.from_path", return_value=app)
     yield app
     del os.environ["PROCRASTINATE_APP"]
 
 
-def test_cli(entrypoint):
-    result = entrypoint()
-    print(result.output)
-    assert result.output.startswith("Usage:")
+async def test_cli(entrypoint):
+    result = await entrypoint()
+    print(result)
+    assert result.stderr.startswith("usage:")
 
 
-def test_cli_logging_configuration(entrypoint, click_app):
-    result = entrypoint(
+async def test_cli_logging_configuration(entrypoint, cli_app):
+    result = await entrypoint(
         "--verbose --log-format {message},yay! --log-format-style { healthchecks"
     )
     assert "Log level set to DEBUG,yay!" in result.stderr
 
 
-def test_version(entrypoint):
-    result = entrypoint("--version")
+async def test_version(entrypoint):
+    result = await entrypoint("--version")
 
-    assert "procrastinate, version " + __version__ == result.output.strip()
+    assert "procrastinate, version " + __version__ == result.stdout.strip()
 
 
-def test_worker(entrypoint, click_app, mocker):
-    click_app.run_worker = mocker.MagicMock()
-    result = entrypoint(
-        "-vvv --log-format={message},yay! --log-format-style={ "
+async def test_worker(entrypoint, cli_app, mocker):
+    cli_app.run_worker_async = mocker.AsyncMock()
+    result = await entrypoint(
         "worker "
-        " --queues a,b --name=w1 --timeout=8.3 "
+        "--queues a,b --name=w1 --timeout=8.3 "
         "--one-shot --concurrency=10 --no-listen-notify --delete-jobs=always"
     )
 
-    assert result.output.strip() == "Launching a worker on a, b"
+    assert "Launching a worker on a, b" in result.stderr.strip()
     assert result.exit_code == 0
-    click_app.run_worker.assert_called_once_with(
+    cli_app.run_worker_async.assert_called_once_with(
         concurrency=10,
         name="w1",
         queues=["a", "b"],
         timeout=8.3,
         wait=False,
         listen_notify=False,
-        delete_jobs="always",
+        delete_jobs=worker.DeleteJobCondition.ALWAYS,
     )
 
 
-def test_schema_apply(entrypoint, click_app, mocker):
-    apply_schema = mocker.patch("procrastinate.schema.SchemaManager.apply_schema")
-    result = entrypoint("schema --apply")
+async def test_schema_apply(entrypoint, cli_app, mocker):
+    apply_schema_async = mocker.patch(
+        "procrastinate.schema.SchemaManager.apply_schema_async"
+    )
+    result = await entrypoint("schema --apply")
 
-    assert result.output.strip() == "Applying schema\nDone"
+    assert result.stderr.strip() == "Applying schema\nDone"
     assert result.exit_code == 0
-    apply_schema.assert_called_once_with()
+    apply_schema_async.assert_called_once_with()
 
 
-def test_schema_read(entrypoint):
-    result = entrypoint("schema --read")
+async def test_schema_read(entrypoint):
+    result = await entrypoint("schema --read")
 
-    assert result.output.startswith("-- Procrastinate Schema")
-    assert result.exit_code == 0
-
-
-def test_schema_migrations_path(entrypoint):
-    result = entrypoint("schema --migrations-path")
-
-    assert result.output.endswith("sql/migrations\n")
+    assert result.stdout.startswith("-- Procrastinate Schema")
     assert result.exit_code == 0
 
 
-def test_healthchecks(entrypoint, click_app):
-    result = entrypoint("healthchecks")
+async def test_schema_migrations_path(entrypoint):
+    result = await entrypoint("schema --migrations-path")
 
-    assert result.output.startswith("App configuration: OK")
+    assert result.stdout.endswith("sql/migrations\n")
+    assert result.exit_code == 0
 
 
-def test_healthchecks_no_schema(entrypoint, click_app, connector):
+async def test_healthchecks(entrypoint, cli_app):
+    result = await entrypoint("healthchecks")
+
+    assert result.stdout.startswith("App configuration: OK")
+
+
+async def test_healthchecks_no_schema(entrypoint, cli_app, connector):
     connector.table_exists = False
 
-    result = entrypoint("healthchecks")
+    result = await entrypoint("healthchecks")
 
     assert "procrastinate_jobs table was not found" in result.stderr
 
 
-def test_healthchecks_bad_connection(entrypoint, click_app, mocker):
+async def test_healthchecks_bad_connection(entrypoint, cli_app, mocker):
     mocker.patch.object(
-        click_app.job_manager,
+        cli_app.job_manager,
         "check_connection",
         side_effect=exceptions.ConnectorException("Something's wrong"),
     )
 
-    result = entrypoint("healthchecks")
+    result = await entrypoint("healthchecks")
 
-    assert "Error: Something's wrong" in result.stderr
+    assert "Something's wrong" in result.stderr
 
 
-def test_no_app(entrypoint, mocker):
-    result = entrypoint("schema --apply")
+async def test_no_app(entrypoint, mocker):
+    result = await entrypoint("schema --apply")
     assert result.exit_code != 0
     assert "Missing app" in result.stderr
 
 
-def test_defer(entrypoint, click_app, connector):
-    @click_app.task(name="hello")
+async def test_defer(entrypoint, cli_app, connector):
+    @cli_app.task(name="hello")
     def mytask(a):
         pass
 
     # No space in the json helps entrypoint() to simply split args
-    result = entrypoint("""defer --lock=sherlock --queueing-lock=houba hello {"a":1}""")
+    result = await entrypoint(
+        """defer --lock=sherlock --queueing-lock=houba hello {"a":1}"""
+    )
 
-    assert result.output == "Launching a job: hello(a=1)\n"
+    assert "Launching a job: hello(a=1)\n" in result.stderr
     assert result.exit_code == 0
     assert connector.jobs == {
         1: {
@@ -148,14 +167,14 @@ def test_defer(entrypoint, click_app, connector):
     }
 
 
-def test_defer_queueing_lock(entrypoint, click_app, connector):
-    @click_app.task(name="hello")
+async def test_defer_queueing_lock(entrypoint, cli_app, connector):
+    @cli_app.task(name="hello")
     def mytask(a):
         pass
 
-    click_app.configure_task(name="hello", queueing_lock="houba").defer(a=1)
+    await cli_app.configure_task(name="hello", queueing_lock="houba").defer_async(a=1)
 
-    result = entrypoint("""defer --queueing-lock=houba hello {"a":2}""")
+    result = await entrypoint("""defer --queueing-lock=houba hello {"a":2}""")
 
     assert result.exit_code > 0
     assert (
@@ -165,32 +184,32 @@ def test_defer_queueing_lock(entrypoint, click_app, connector):
     assert len(connector.jobs) == 1
 
 
-def test_defer_queueing_lock_ignore(entrypoint, click_app, connector):
-    @click_app.task(name="hello")
+async def test_defer_queueing_lock_ignore(entrypoint, cli_app, connector):
+    @cli_app.task(name="hello")
     def mytask(a):
         pass
 
-    click_app.configure_task(name="hello", queueing_lock="houba").defer(a=1)
+    cli_app.configure_task(name="hello", queueing_lock="houba").defer(a=1)
 
-    result = entrypoint(
+    result = await entrypoint(
         """defer --queueing-lock=houba --ignore-already-enqueued hello {"a":2}"""
     )
 
     assert result.exit_code == 0
     assert (
         "there is already a job in the queue with the queueing lock houba (ignored)"
-        in result.output
+        in result.stderr
     )
     assert len(connector.jobs) == 1
 
 
-def test_defer_unknown(entrypoint, click_app, connector):
+async def test_defer_unknown(entrypoint, cli_app, connector):
     # No space in the json helps entrypoint() to simply split args
-    result = entrypoint(
+    result = await entrypoint(
         """defer --unknown --lock=sherlock --queueing-lock=houba hello {"a":1}"""
     )
 
-    assert result.output == "Launching a job: hello(a=1)\n"
+    assert "Launching a job: hello(a=1)" in result.stderr
     assert result.exit_code == 0
     assert connector.jobs == {
         1: {
@@ -210,24 +229,20 @@ def test_defer_unknown(entrypoint, click_app, connector):
 @pytest.mark.parametrize(
     "input",
     [
-        # Unparsable at
-        "defer --at=yay mytask",
-        # Define both in and at
-        "defer --in=3 --at=2000-01-01T00:00:00Z mytask",
         # Invalid Json
         "defer hello {",
         # Unknown task
         "defer hello",
     ],
 )
-def test_defer_error(entrypoint, input):
-    result = entrypoint(input)
+async def test_defer_error(entrypoint, input):
+    result = await entrypoint(input)
     assert result.exit_code != 0
 
 
-def test_shell(entrypoint, click_app, mocker):
+async def test_shell(entrypoint, cli_app, mocker):
     shell = mocker.patch("procrastinate.shell.ProcrastinateShell")
 
-    result = entrypoint("shell")
+    result = await entrypoint("shell")
+    assert result.exit_code == 0, result.stderr
     shell.return_value.cmdloop.assert_called_once_with()
-    assert result.exit_code == 0

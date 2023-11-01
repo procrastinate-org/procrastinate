@@ -83,7 +83,7 @@ def setup_db():
     dbname = "procrastinate_test_template"
     db_create(dbname=dbname)
 
-    connector = aiopg_connector_module.AiopgConnector(dbname=dbname)
+    connector = psycopg2_connector_module.Psycopg2Connector(dbname=dbname)
     connector.open()
     schema_manager = schema.SchemaManager(connector=connector)
     schema_manager.apply_schema()

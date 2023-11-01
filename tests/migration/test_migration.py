@@ -24,16 +24,16 @@ def run_migrations(db_execute):
 
 
 @pytest.fixture
-def schema_database(db_factory):
+async def schema_database(db_factory):
     dbname = "procrastinate_schema"
     db_factory(dbname=dbname)
 
     # apply the current procrastinate schema to the "procrastinate_schema" database
     connector = aiopg_connector.AiopgConnector(dbname=dbname)
-    connector.open()
+    await connector.open_async()
     schema_manager = schema.SchemaManager(connector=connector)
-    schema_manager.apply_schema()
-    connector.close()
+    await schema_manager.apply_schema_async()
+    await connector.close_async()
 
     return dbname
 
