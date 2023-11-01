@@ -280,7 +280,3 @@ class App(blueprints.Blueprint):
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
         self.close()
-
-
-utils.add_method_sync_api(cls=App, method_name="run_worker_async")
-utils.add_method_sync_api(cls=App, method_name="check_connection_async")
