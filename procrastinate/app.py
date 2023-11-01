@@ -1,3 +1,4 @@
+import asyncio
 import functools
 import logging
 from typing import TYPE_CHECKING, Any, Dict, Iterable, Optional, Union
@@ -242,6 +243,19 @@ class App(blueprints.Blueprint):
         self.perform_import_paths()
         worker = self._worker(**kwargs)
         await worker.run()
+
+    def run_worker(self, **kwargs) -> None:
+        """
+        Synchronous version of `App.run_worker_async`.
+        Create the event loop and open the app, then run the worker.
+        The app and the event loop are closed at the end of the function.
+        """
+
+        async def f():
+            async with self.open_async():
+                await self.run_worker_async(**kwargs)
+
+        asyncio.run(f())
 
     async def check_connection_async(self):
         return await self.job_manager.check_connection()
