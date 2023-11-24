@@ -32,6 +32,7 @@ psycopg2-binary = "*"
 python-dateutil = "*"
 sqlalchemy = { version = "^2.0", optional = true }
 typing-extensions = { version = "*", python = "<3.8" }
+psycopg = {extras = ["pool"], version = "^3.1.13"}
 
 [tool.poetry.extras]
 django = ["django"]
