@@ -90,6 +90,12 @@ class UniqueViolation(ConnectorException):
         self.constraint_name = constraint_name
 
 
+class NoResult(ConnectorException):
+    """
+    No result was returned by the database query.
+    """
+
+
 class MissingApp(ProcrastinateException):
     """
     Missing app. This most probably happened because procrastinate needs an

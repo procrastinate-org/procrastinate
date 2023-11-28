@@ -35,7 +35,7 @@ async def test_adapt_pool_args_configure(mocker):
         called.append(connection)
 
     args = psycopg3_connector.Psycopg3Connector._adapt_pool_args(
-        pool_args={"configure": configure}, json_loads=None
+        pool_args={"configure": configure}, json_loads=None, json_dumps=None
     )
 
     assert args["configure"] is not configure
