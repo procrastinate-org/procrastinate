@@ -137,6 +137,32 @@ async def test_process_job_retry_failed_job(
     test_worker.run_job.assert_called_with(job=job, worker_id=0)
     assert connector.jobs[1]["status"] == "todo"
     assert connector.jobs[1]["scheduled_at"] == scheduled_at
+    assert connector.jobs[1]["attempts"] == 1
+
+
+async def test_process_job_retry_failed_job_re_raise_base_exception(
+    mocker, test_worker, job_factory, connector
+):
+    class TestException(BaseException):
+        pass
+
+    scheduled_at = conftest.aware_datetime(2000, 1, 1)
+    job_exception = exceptions.JobRetry(scheduled_at=scheduled_at)
+    job_exception.__cause__ = TestException()
+
+    test_worker.run_job = mocker.Mock(side_effect=job_exception)
+    job = job_factory(id=1)
+    await test_worker.job_manager.defer_job_async(job)
+
+    # Exceptions that extend BaseException should be re-raised after the failed job
+    # is scheduled for retry (if retry is applicable).
+    with pytest.raises(TestException):
+        await test_worker.process_job(job=job, worker_id=0)
+
+    test_worker.run_job.assert_called_with(job=job, worker_id=0)
+    assert connector.jobs[1]["status"] == "todo"
+    assert connector.jobs[1]["scheduled_at"] == scheduled_at
+    assert connector.jobs[1]["attempts"] == 1
 
 
 async def test_run_job(app):

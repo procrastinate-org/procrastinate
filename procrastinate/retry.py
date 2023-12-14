@@ -17,7 +17,7 @@ class BaseRetryStrategy:
     """
 
     def get_retry_exception(
-        self, exception: Exception, attempts: int
+        self, exception: BaseException, attempts: int
     ) -> Optional[exceptions.JobRetry]:
         schedule_in = self.get_schedule_in(exception=exception, attempts=attempts)
         if schedule_in is None:
@@ -26,7 +26,7 @@ class BaseRetryStrategy:
         schedule_at = utils.utcnow() + datetime.timedelta(seconds=schedule_in)
         return exceptions.JobRetry(schedule_at.replace(microsecond=0))
 
-    def get_schedule_in(self, *, exception: Exception, attempts: int) -> Optional[int]:
+    def get_schedule_in(self, *, exception: BaseException, attempts: int) -> Optional[int]:
         """
         Parameters
         ----------
@@ -81,7 +81,7 @@ class RetryStrategy(BaseRetryStrategy):
     exponential_wait: int = 0
     retry_exceptions: Optional[Iterable[Type[Exception]]] = None
 
-    def get_schedule_in(self, *, exception: Exception, attempts: int) -> Optional[int]:
+    def get_schedule_in(self, *, exception: BaseException, attempts: int) -> Optional[int]:
         if self.max_attempts and attempts >= self.max_attempts:
             return None
         # isinstance's 2nd param must be a tuple, not an arbitrary iterable

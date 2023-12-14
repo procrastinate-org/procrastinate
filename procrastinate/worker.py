@@ -5,6 +5,7 @@ from enum import Enum
 from typing import Any, Dict, Iterable, Optional, Union
 
 from procrastinate import app, exceptions, job_context, jobs, signals, tasks, utils
+from procrastinate.exceptions import ProcrastinateException
 
 logger = logging.getLogger(__name__)
 
@@ -164,14 +165,24 @@ class Worker:
             extra=context.log_extra(action="loaded_job_info"),
         )
 
+        def find_exception_to_re_raise(ex: ProcrastinateException) -> Optional[BaseException]:
+            # If the job raises a BaseException that is _not_ an Exception
+            # (e.g. a CancelledError, SystemExit, etc.) then we want to persist the
+            # outcome of the job before propagating the exception further up the
+            # call stack.
+            return ex.__cause__ if not isinstance(e.__cause__, Exception) else None
+
         status, retry_at = None, None
+        exception_to_re_raise = None
         try:
             await self.run_job(job=job, worker_id=worker_id)
             status = jobs.Status.SUCCEEDED
         except exceptions.JobRetry as e:
             retry_at = e.scheduled_at
-        except exceptions.JobError:
+            exception_to_re_raise = find_exception_to_re_raise(e)
+        except exceptions.JobError as e:
             status = jobs.Status.FAILED
+            exception_to_re_raise = find_exception_to_re_raise(e)
         except exceptions.TaskNotFound as exc:
             status = jobs.Status.FAILED
             self.logger.exception(
@@ -201,6 +212,9 @@ class Worker:
             # Remove job information from the current context
             self.context_for_worker(worker_id=worker_id, reset=True)
 
+            if exception_to_re_raise is not None:
+                raise exception_to_re_raise
+
     def find_task(self, task_name: str) -> tasks.Task:
         try:
             return self.app.tasks[task_name]
@@ -221,10 +235,16 @@ class Worker:
             f"Starting job {job.call_string}",
             extra=context.log_extra(action="start_job"),
         )
-        exc_info: Union[bool, Exception]
         job_args = []
         if task.pass_context:
             job_args.append(context)
+
+        # Initialise logging variables
+        task_result = None
+        log_title = "Error"
+        log_action = "job_error"
+        log_level = logging.ERROR
+        exc_info: Union[bool, BaseException] = False
         try:
             task_result = task(*job_args, **job.task_kwargs)
             if asyncio.iscoroutine(task_result):
@@ -236,7 +256,7 @@ class Worker:
                     extra=context.log_extra(action="concurrent_sync_task"),
                 )
 
-        except Exception as e:
+        except BaseException as e:
             task_result = None
             log_title = "Error"
             log_action = "job_error"

@@ -197,7 +197,7 @@ class Task:
         )
 
     def get_retry_exception(
-        self, exception: Exception, job: jobs.Job
+        self, exception: BaseException, job: jobs.Job
     ) -> Optional[exceptions.JobRetry]:
         if not self.retry_strategy:
             return None
