@@ -165,7 +165,9 @@ class Worker:
             extra=context.log_extra(action="loaded_job_info"),
         )
 
-        def find_exception_to_re_raise(ex: ProcrastinateException) -> Optional[BaseException]:
+        def find_exception_to_re_raise(
+            ex: ProcrastinateException,
+        ) -> Optional[BaseException]:
             # If the job raises a BaseException that is _not_ an Exception
             # (e.g. a CancelledError, SystemExit, etc.) then we want to persist the
             # outcome of the job before propagating the exception further up the
