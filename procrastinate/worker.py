@@ -172,7 +172,7 @@ class Worker:
             # (e.g. a CancelledError, SystemExit, etc.) then we want to persist the
             # outcome of the job before propagating the exception further up the
             # call stack.
-            return ex.__cause__ if not isinstance(e.__cause__, Exception) else None
+            return ex.__cause__ if not isinstance(ex.__cause__, Exception) else None
 
         status, retry_at = None, None
         exception_to_re_raise = None
