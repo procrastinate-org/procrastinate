@@ -72,7 +72,7 @@ def list_migration_files() -> Iterable[Tuple[str, str]]:
     Returns a list of filenames and file contents for all migration files
     """
     return [
-        (p.name, p.read_text())
+        (p.name, p.read_text(encoding="utf-8"))
         for p in importlib_resources.files("procrastinate.sql.migrations").iterdir()
         if p.name.endswith(".sql")
     ]

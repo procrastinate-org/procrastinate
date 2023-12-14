@@ -20,7 +20,7 @@ class SchemaManager:
     def get_schema() -> str:
         return (
             importlib_resources.files("procrastinate.sql") / "schema.sql"
-        ).read_text()
+        ).read_text(encoding="utf-8")
 
     @staticmethod
     def get_migrations_path() -> str:
