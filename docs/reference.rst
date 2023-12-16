@@ -15,6 +15,8 @@ Connectors
 
 .. autoclass:: procrastinate.Psycopg2Connector
 
+.. autoclass:: procrastinate.PsycopgConnector
+
 .. autoclass:: procrastinate.testing.InMemoryConnector
     :members: reset
 

@@ -33,6 +33,7 @@ repos:
     additional_dependencies:
     - attrs==21.4.0
     - click==8.0.3
+    - psycopg[pool]==3.1.13
     - sqlalchemy[mypy]==1.4.29
     - types-croniter==1.0.4
     - types-psycopg2==2.9.5
