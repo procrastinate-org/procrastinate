@@ -127,7 +127,9 @@ async def test_process_job_retry_failed_job(
 
     scheduled_at = conftest.aware_datetime(2000, 1, 1)
     test_worker.run_job = mocker.Mock(
-        side_effect=exceptions.JobRetry(scheduled_at=scheduled_at)
+        side_effect=exceptions.JobError(
+            retry_exception=exceptions.JobRetry(scheduled_at=scheduled_at)
+        )
     )
     job = job_factory(id=1)
     await test_worker.job_manager.defer_job_async(job)
@@ -140,14 +142,40 @@ async def test_process_job_retry_failed_job(
     assert connector.jobs[1]["attempts"] == 1
 
 
-async def test_process_job_retry_failed_job_re_raise_base_exception(
+async def test_process_job_retry_failed_job_critical(
+    mocker, test_worker, job_factory, connector
+):
+    class TestException(BaseException):
+        pass
+
+    job_exception = exceptions.JobError(critical=True)
+    job_exception.__cause__ = TestException()
+
+    test_worker.run_job = mocker.Mock(side_effect=job_exception)
+    job = job_factory(id=1)
+    await test_worker.job_manager.defer_job_async(job)
+
+    # Exceptions that extend BaseException should be re-raised after the failed job
+    # is scheduled for retry (if retry is applicable).
+    with pytest.raises(TestException):
+        await test_worker.process_job(job=job, worker_id=0)
+
+    test_worker.run_job.assert_called_with(job=job, worker_id=0)
+    assert connector.jobs[1]["status"] == "failed"
+    assert connector.jobs[1]["scheduled_at"] is None
+    assert connector.jobs[1]["attempts"] == 1
+
+
+async def test_process_job_retry_failed_job_retry_critical(
     mocker, test_worker, job_factory, connector
 ):
     class TestException(BaseException):
         pass
 
     scheduled_at = conftest.aware_datetime(2000, 1, 1)
-    job_exception = exceptions.JobRetry(scheduled_at=scheduled_at)
+    job_exception = exceptions.JobError(
+        critical=True, retry_exception=exceptions.JobRetry(scheduled_at=scheduled_at)
+    )
     job_exception.__cause__ = TestException()
 
     test_worker.run_job = mocker.Mock(side_effect=job_exception)
@@ -274,11 +302,11 @@ async def test_run_job_log_name(
 async def test_run_job_error(app, caplog):
     caplog.set_level("INFO")
 
-    def job(a, b):  # pylint: disable=unused-argument
+    def job_func(a, b):  # pylint: disable=unused-argument
         raise ValueError("nope")
 
-    task = tasks.Task(job, blueprint=app, queue="yay", name="job")
-    task.func = job
+    task = tasks.Task(job_func, blueprint=app, queue="yay", name="job")
+    task.func = job_func
 
     app.tasks = {"job": task}
 
@@ -306,14 +334,40 @@ async def test_run_job_error(app, caplog):
     )
 
 
+async def test_run_job_critical_error(app, caplog):
+    caplog.set_level("INFO")
+
+    def job_func(a, b):  # pylint: disable=unused-argument
+        raise BaseException("nope")
+
+    task = tasks.Task(job_func, blueprint=app, queue="yay", name="job")
+    task.func = job_func
+
+    app.tasks = {"job": task}
+
+    job = jobs.Job(
+        id=16,
+        task_kwargs={"a": 9, "b": 3},
+        lock="sherlock",
+        queueing_lock="houba",
+        task_name="job",
+        queue="yay",
+    )
+    test_worker = worker.Worker(app, queues=["yay"])
+    with pytest.raises(exceptions.JobError) as exc_info:
+        await test_worker.run_job(job=job, worker_id=3)
+
+    assert exc_info.value.critical is True
+
+
 async def test_run_job_retry(app, caplog):
     caplog.set_level("INFO")
 
-    def job(a, b):  # pylint: disable=unused-argument
+    def job_func(a, b):  # pylint: disable=unused-argument
         raise ValueError("nope")
 
-    task = tasks.Task(job, blueprint=app, queue="yay", name="job", retry=True)
-    task.func = job
+    task = tasks.Task(job_func, blueprint=app, queue="yay", name="job", retry=True)
+    task.func = job_func
 
     app.tasks = {"job": task}
 
@@ -326,8 +380,10 @@ async def test_run_job_retry(app, caplog):
         queue="yay",
     )
     test_worker = worker.Worker(app, queues=["yay"])
-    with pytest.raises(exceptions.JobRetry):
+    with pytest.raises(exceptions.JobError) as exc_info:
         await test_worker.run_job(job=job, worker_id=3)
+
+    assert isinstance(exc_info.value.retry_exception, exceptions.JobRetry)
 
     assert (
         len(
