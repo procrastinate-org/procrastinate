@@ -61,4 +61,10 @@ Procrastinate currently provides 2 connectors:
 - `Psycopg2Connector`: This connector is specialized for synchronous calls only, and
   should only be used to configure your app for synchronous multi-threaded applications
   that need to :term:`defer` tasks synchronously (see `discussion-sync-defer`).
-- `Psycopg3Connector`: Asynchronous connector based on the next generation of psycopg.
+- `PsycopgConnector`: Asynchronous connector based on psycopg v3. It has been
+  less tested than the other connectors, though it's expected to work fine,
+  possible even better than aiopg. It might replace the `AiopgConnector` and
+  `Psycopg2Connector` in the future. Until `#753`_ is merged, support is
+  experimental.
+
+.. _`#753`: https://github.com/procrastinate-org/procrastinate/pull/753
