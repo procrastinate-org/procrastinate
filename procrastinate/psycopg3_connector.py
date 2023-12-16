@@ -2,16 +2,7 @@ import asyncio
 import functools
 import logging
 import re
-from typing import (
-    Any,
-    Callable,
-    Coroutine,
-    Dict,
-    Iterable,
-    List,
-    LiteralString,
-    Optional,
-)
+from typing import Any, Callable, Coroutine, Dict, Iterable, List, Optional
 
 import psycopg
 import psycopg.errors
@@ -19,6 +10,7 @@ import psycopg.sql
 import psycopg.types.json
 import psycopg_pool
 from psycopg.rows import DictRow, dict_row
+from typing_extensions import LiteralString
 
 from procrastinate import connector, exceptions, sql
 
