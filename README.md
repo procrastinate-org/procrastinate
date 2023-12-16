@@ -4,7 +4,7 @@
 
 | Name                                                    |    Stmts |     Miss |   Branch |   BrPart |   Cover |   Missing |
 |-------------------------------------------------------- | -------: | -------: | -------: | -------: | ------: | --------: |
-| procrastinate/\_\_init\_\_.py                           |       15 |        0 |        0 |        0 |    100% |           |
+| procrastinate/\_\_init\_\_.py                           |       16 |        0 |        0 |        0 |    100% |           |
 | procrastinate/\_\_main\_\_.py                           |        5 |        0 |        2 |        0 |    100% |           |
 | procrastinate/aiopg\_connector.py                       |      145 |        0 |       90 |        1 |     99% |  309->308 |
 | procrastinate/app.py                                    |       74 |        0 |        8 |        0 |    100% |           |
@@ -19,25 +19,26 @@
 | procrastinate/contrib/django/utils.py                   |        5 |        0 |        0 |        0 |    100% |           |
 | procrastinate/contrib/sqlalchemy/\_\_init\_\_.py        |        2 |        0 |        0 |        0 |    100% |           |
 | procrastinate/contrib/sqlalchemy/psycopg2\_connector.py |       79 |        0 |       50 |        0 |    100% |           |
-| procrastinate/exceptions.py                             |       28 |        0 |        2 |        0 |    100% |           |
+| procrastinate/exceptions.py                             |       29 |        0 |        2 |        0 |    100% |           |
 | procrastinate/job\_context.py                           |       52 |        0 |       20 |        0 |    100% |           |
 | procrastinate/jobs.py                                   |       72 |        0 |       12 |        0 |    100% |           |
 | procrastinate/manager.py                                |       86 |        0 |       22 |        0 |    100% |           |
 | procrastinate/metadata.py                               |        5 |        0 |        0 |        0 |    100% |           |
 | procrastinate/periodic.py                               |       95 |        1 |       26 |        1 |     98% |        23 |
 | procrastinate/psycopg2\_connector.py                    |      104 |        0 |       64 |        0 |    100% |           |
+| procrastinate/psycopg\_connector.py                     |      116 |        3 |       66 |        4 |     96% |35, 209, 238->237, 264->259, 267 |
 | procrastinate/retry.py                                  |       37 |        0 |       14 |        0 |    100% |           |
 | procrastinate/schema.py                                 |       19 |        0 |        4 |        0 |    100% |           |
 | procrastinate/shell.py                                  |       49 |        0 |       14 |        0 |    100% |           |
 | procrastinate/signals.py                                |       43 |        0 |       10 |        0 |    100% |           |
-| procrastinate/sql/\_\_init\_\_.py                       |       19 |        0 |        0 |        0 |    100% |           |
+| procrastinate/sql/\_\_init\_\_.py                       |       20 |        0 |        0 |        0 |    100% |           |
 | procrastinate/sql/migrations/\_\_init\_\_.py            |        0 |        0 |        0 |        0 |    100% |           |
 | procrastinate/tasks.py                                  |       47 |        0 |       12 |        0 |    100% |           |
 | procrastinate/testing.py                                |      133 |        0 |       63 |        0 |    100% |           |
 | procrastinate/types.py                                  |        3 |        0 |        0 |        0 |    100% |           |
 | procrastinate/utils.py                                  |      206 |        4 |       80 |        4 |     96% |353-354, 419->410, 436->428, 454-455 |
 | procrastinate/worker.py                                 |      154 |        0 |       40 |        0 |    100% |           |
-|                                               **TOTAL** | **1836** |    **6** |  **717** |    **7** | **99%** |           |
+|                                               **TOTAL** | **1955** |    **9** |  **783** |   **11** | **99%** |           |
 
 
 ## Setup coverage badge
