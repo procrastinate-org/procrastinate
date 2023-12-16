@@ -19,7 +19,7 @@ from procrastinate import aiopg_connector as aiopg_connector_module
 from procrastinate import app as app_module
 from procrastinate import blueprints, builtin_tasks, jobs
 from procrastinate import psycopg2_connector as psycopg2_connector_module
-from procrastinate import psycopg3_connector as psycopg3_connector_module
+from procrastinate import psycopg_connector as psycopg_connector_module
 from procrastinate import schema, testing
 from procrastinate.contrib.sqlalchemy import (
     psycopg2_connector as sqlalchemy_psycopg2_connector_module,
@@ -105,7 +105,7 @@ def connection_params(setup_db, db_factory):
 
 
 @pytest.fixture
-def psycopg3_connection_params(setup_db, db_factory):
+def psycopg_connection_params(setup_db, db_factory):
     db_factory(dbname="procrastinate_test", template=setup_db)
 
     yield {"conninfo": make_conninfo(dbname="procrastinate_test")}
@@ -130,8 +130,8 @@ async def not_opened_aiopg_connector(connection_params):
 
 
 @pytest.fixture
-async def not_opened_psycopg3_connector(psycopg3_connection_params):
-    yield psycopg3_connector_module.Psycopg3Connector(**psycopg3_connection_params)
+async def not_opened_psycopg_connector(psycopg_connection_params):
+    yield psycopg_connector_module.PsycopgConnector(**psycopg_connection_params)
 
 
 @pytest.fixture
@@ -154,10 +154,10 @@ async def aiopg_connector(not_opened_aiopg_connector):
 
 
 @pytest.fixture
-async def psycopg3_connector(not_opened_psycopg3_connector):
-    await not_opened_psycopg3_connector.open_async()
-    yield not_opened_psycopg3_connector
-    await not_opened_psycopg3_connector.close_async()
+async def psycopg_connector(not_opened_psycopg_connector):
+    await not_opened_psycopg_connector.open_async()
+    yield not_opened_psycopg_connector
+    await not_opened_psycopg_connector.close_async()
 
 
 @pytest.fixture

@@ -23,7 +23,7 @@ CoroutineFunction = Callable[..., Coroutine]
 
 def wrap_exceptions(coro: CoroutineFunction) -> CoroutineFunction:
     """
-    Wrap psycopg3 errors as connector exceptions.
+    Wrap psycopg errors as connector exceptions.
 
     This decorator is expected to be used on coroutine functions only.
     """
@@ -81,7 +81,7 @@ def wrap_query_exceptions(coro: CoroutineFunction) -> CoroutineFunction:
 PERCENT_PATTERN = re.compile(r"%(?![\(s])")
 
 
-class Psycopg3Connector(connector.BaseAsyncConnector):
+class PsycopgConnector(connector.BaseAsyncConnector):
     def __init__(
         self,
         *,
@@ -120,11 +120,11 @@ class Psycopg3Connector(connector.BaseAsyncConnector):
             JSON deserializer.
 
         min_size : int
-            Passed to psycopg3, default set to 1 (same as aiopg).
+            Passed to psycopg, default set to 1 (same as aiopg).
         max_size : int
-            Passed to psycopg3, default set to 10 (same as aiopg).
+            Passed to psycopg, default set to 10 (same as aiopg).
         conninfo : ``Optional[str]``
-            Passed to psycopg3. Default is "" instead of None, which means if no
+            Passed to psycopg. Default is "" instead of None, which means if no
             argument is passed, it will connect to localhost:5432 instead of a
             Unix-domain local socket file.
         """
@@ -141,7 +141,7 @@ class Psycopg3Connector(connector.BaseAsyncConnector):
         json_dumps: Optional[Callable],
     ) -> Dict[str, Any]:
         """
-        Adapt the pool args for ``psycopg3``, using sensible defaults for Procrastinate.
+        Adapt the pool args for ``psycopg``, using sensible defaults for Procrastinate.
         """
         base_configure = pool_args.pop("configure", None)
 

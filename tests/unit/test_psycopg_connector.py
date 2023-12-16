@@ -1,12 +1,12 @@
 import psycopg
 import pytest
 
-from procrastinate import exceptions, psycopg3_connector
+from procrastinate import exceptions, psycopg_connector
 
 
 @pytest.fixture
 def connector():
-    return psycopg3_connector.Psycopg3Connector()
+    return psycopg_connector.PsycopgConnector()
 
 
 async def test_adapt_pool_args_configure(mocker):
@@ -15,7 +15,7 @@ async def test_adapt_pool_args_configure(mocker):
     async def configure(connection):
         called.append(connection)
 
-    args = psycopg3_connector.Psycopg3Connector._adapt_pool_args(
+    args = psycopg_connector.PsycopgConnector._adapt_pool_args(
         pool_args={"configure": configure}, json_loads=None, json_dumps=None
     )
 
@@ -28,7 +28,7 @@ async def test_adapt_pool_args_configure(mocker):
 
 
 async def test_wrap_exceptions_wraps():
-    @psycopg3_connector.wrap_exceptions
+    @psycopg_connector.wrap_exceptions
     async def corofunc():
         raise psycopg.DatabaseError
 
@@ -39,7 +39,7 @@ async def test_wrap_exceptions_wraps():
 
 
 async def test_wrap_exceptions_success():
-    @psycopg3_connector.wrap_exceptions
+    @psycopg_connector.wrap_exceptions
     async def corofunc(a, b):
         return a, b
 
@@ -58,7 +58,7 @@ async def test_wrap_query_exceptions_reached_max_tries(
 ):
     called = []
 
-    @psycopg3_connector.wrap_query_exceptions
+    @psycopg_connector.wrap_query_exceptions
     async def corofunc(connector):
         called.append(True)
         raise psycopg.errors.OperationalError(
@@ -84,7 +84,7 @@ async def test_wrap_query_exceptions_reached_max_tries(
 async def test_wrap_query_exceptions_unhandled_exception(mocker, exception_class):
     called = []
 
-    @psycopg3_connector.wrap_query_exceptions
+    @psycopg_connector.wrap_query_exceptions
     async def corofunc(connector):
         called.append(True)
         raise exception_class("foo")
@@ -101,7 +101,7 @@ async def test_wrap_query_exceptions_unhandled_exception(mocker, exception_class
 async def test_wrap_query_exceptions_success(mocker):
     called = []
 
-    @psycopg3_connector.wrap_query_exceptions
+    @psycopg_connector.wrap_query_exceptions
     async def corofunc(connector, a, b):
         if len(called) < 2:
             called.append(True)

@@ -43,7 +43,6 @@ You can use other `aiopg connection arguments`_ (which are the same as
 
 .. _`aiopg connection arguments`: https://aiopg.readthedocs.io/en/stable/core.html#aiopg.connect
 .. _`psycopg2 connection arguments`: http://initd.org/psycopg/docs/module.html#psycopg2.connect
-.. _`psycopg3 connection arguments`: https://www.psycopg.org/psycopg3/docs/api/pool.html#psycopg_pool.AsyncConnectionPool
 
 Other arguments
 ---------------
