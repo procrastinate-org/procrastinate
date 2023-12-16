@@ -165,26 +165,17 @@ class Worker:
             extra=context.log_extra(action="loaded_job_info"),
         )
 
-        def find_exception_to_re_raise(
-            ex: ProcrastinateException,
-        ) -> Optional[BaseException]:
-            # If the job raises a BaseException that is _not_ an Exception
-            # (e.g. a CancelledError, SystemExit, etc.) then we want to persist the
-            # outcome of the job before propagating the exception further up the
-            # call stack.
-            return ex.__cause__ if not isinstance(ex.__cause__, Exception) else None
-
         status, retry_at = None, None
-        exception_to_re_raise = None
         try:
             await self.run_job(job=job, worker_id=worker_id)
             status = jobs.Status.SUCCEEDED
-        except exceptions.JobRetry as e:
-            retry_at = e.scheduled_at
-            exception_to_re_raise = find_exception_to_re_raise(e)
         except exceptions.JobError as e:
             status = jobs.Status.FAILED
-            exception_to_re_raise = find_exception_to_re_raise(e)
+            if e.retry_exception:
+                retry_at = e.retry_exception.scheduled_at
+            if e.critical and e.__cause__:
+                raise e.__cause__
+
         except exceptions.TaskNotFound as exc:
             status = jobs.Status.FAILED
             self.logger.exception(
@@ -213,9 +204,6 @@ class Worker:
             )
             # Remove job information from the current context
             self.context_for_worker(worker_id=worker_id, reset=True)
-
-            if exception_to_re_raise is not None:
-                raise exception_to_re_raise
 
     def find_task(self, task_name: str) -> tasks.Task:
         try:
@@ -264,14 +252,16 @@ class Worker:
             log_action = "job_error"
             log_level = logging.ERROR
             exc_info = e
+            critical = not isinstance(e, Exception)
 
             retry_exception = task.get_retry_exception(exception=e, job=job)
             if retry_exception:
                 log_title = "Error, to retry"
                 log_action = "job_error_retry"
                 log_level = logging.INFO
-                raise retry_exception from e
-            raise exceptions.JobError() from e
+            raise exceptions.JobError(
+                retry_exception=retry_exception, critical=critical
+            ) from e
 
         else:
             log_title = "Success"
