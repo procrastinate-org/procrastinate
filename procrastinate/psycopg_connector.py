@@ -1,7 +1,6 @@
 import asyncio
 import functools
 import logging
-import re
 from typing import Any, Callable, Coroutine, Dict, Iterable, List, Optional
 
 import psycopg
@@ -41,44 +40,6 @@ def wrap_exceptions(coro: CoroutineFunction) -> CoroutineFunction:
     # decorator more introspectable
     wrapped._exceptions_wrapped = True  # type: ignore
     return wrapped
-
-
-def wrap_query_exceptions(coro: CoroutineFunction) -> CoroutineFunction:
-    """
-    Detect "admin shutdown" errors and retry a number of times.
-
-    This is to handle the case where the database connection (obtained from the pool)
-    was actually closed by the server. In this case, pyscopg3 raises an AdminShutdown
-    exception when the connection is used for issuing a query. What we do is retry when
-    an AdminShutdown is raised, and until the maximum number of retries is reached.
-
-    The number of retries is set to the pool maximum size plus one, to handle the case
-    where the connections we have in the pool were all closed on the server side.
-    """
-
-    @functools.wraps(coro)
-    async def wrapped(*args, **kwargs):
-        final_exc = None
-        try:
-            max_tries = args[0]._pool.max_size + 1
-        except Exception:
-            max_tries = 1
-        for _ in range(max_tries):
-            try:
-                return await coro(*args, **kwargs)
-            except psycopg.errors.OperationalError as exc:
-                if "server closed the connection unexpectedly" in str(exc):
-                    final_exc = exc
-                    continue
-                raise exc
-        raise exceptions.ConnectorException(
-            f"Could not get a valid connection after {max_tries} tries"
-        ) from final_exc
-
-    return wrapped
-
-
-PERCENT_PATTERN = re.compile(r"%(?![\(s])")
 
 
 class PsycopgConnector(connector.BaseAsyncConnector):
@@ -230,13 +191,11 @@ class PsycopgConnector(connector.BaseAsyncConnector):
         }
 
     @wrap_exceptions
-    @wrap_query_exceptions
     async def execute_query_async(self, query: LiteralString, **arguments: Any) -> None:
         async with self.pool.connection() as connection:
             await connection.execute(query, self._wrap_json(arguments))
 
     @wrap_exceptions
-    @wrap_query_exceptions
     async def execute_query_one_async(
         self, query: LiteralString, **arguments: Any
     ) -> DictRow:
@@ -251,7 +210,6 @@ class PsycopgConnector(connector.BaseAsyncConnector):
                 return result
 
     @wrap_exceptions
-    @wrap_query_exceptions
     async def execute_query_all_async(
         self, query: LiteralString, **arguments: Any
     ) -> List[DictRow]:
