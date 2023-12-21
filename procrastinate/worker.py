@@ -5,7 +5,6 @@ from enum import Enum
 from typing import Any, Dict, Iterable, Optional, Union
 
 from procrastinate import app, exceptions, job_context, jobs, signals, tasks, utils
-from procrastinate.exceptions import ProcrastinateException
 
 logger = logging.getLogger(__name__)
 
