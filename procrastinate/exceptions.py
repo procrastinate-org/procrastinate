@@ -1,4 +1,5 @@
 import datetime
+from typing import Optional
 
 
 class ProcrastinateException(Exception):
@@ -32,12 +33,6 @@ class TaskAlreadyRegistered(ProcrastinateException):
     """
 
 
-class JobError(ProcrastinateException):
-    """
-    Job ended with an exception.
-    """
-
-
 class LoadFromPathError(ImportError, ProcrastinateException):
     """
     App was not found at the provided path, or the loaded object is not an App.
@@ -52,6 +47,19 @@ class JobRetry(ProcrastinateException):
     def __init__(self, scheduled_at: datetime.datetime):
         self.scheduled_at = scheduled_at
         super().__init__()
+
+
+class JobError(ProcrastinateException):
+    """
+    Job ended with an exception.
+    """
+
+    def __init__(
+        self, *args, retry_exception: Optional[JobRetry] = None, critical: bool = False
+    ):
+        super().__init__(*args)
+        self.retry_exception = retry_exception
+        self.critical = critical
 
 
 class AppNotOpen(ProcrastinateException):

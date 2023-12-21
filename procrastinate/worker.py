@@ -168,10 +168,13 @@ class Worker:
         try:
             await self.run_job(job=job, worker_id=worker_id)
             status = jobs.Status.SUCCEEDED
-        except exceptions.JobRetry as e:
-            retry_at = e.scheduled_at
-        except exceptions.JobError:
+        except exceptions.JobError as e:
             status = jobs.Status.FAILED
+            if e.retry_exception:
+                retry_at = e.retry_exception.scheduled_at
+            if e.critical and e.__cause__:
+                raise e.__cause__
+
         except exceptions.TaskNotFound as exc:
             status = jobs.Status.FAILED
             self.logger.exception(
@@ -221,10 +224,16 @@ class Worker:
             f"Starting job {job.call_string}",
             extra=context.log_extra(action="start_job"),
         )
-        exc_info: Union[bool, Exception]
         job_args = []
         if task.pass_context:
             job_args.append(context)
+
+        # Initialise logging variables
+        task_result = None
+        log_title = "Error"
+        log_action = "job_error"
+        log_level = logging.ERROR
+        exc_info: Union[bool, BaseException] = False
         try:
             task_result = task(*job_args, **job.task_kwargs)
             if asyncio.iscoroutine(task_result):
@@ -236,20 +245,22 @@ class Worker:
                     extra=context.log_extra(action="concurrent_sync_task"),
                 )
 
-        except Exception as e:
+        except BaseException as e:
             task_result = None
             log_title = "Error"
             log_action = "job_error"
             log_level = logging.ERROR
             exc_info = e
+            critical = not isinstance(e, Exception)
 
             retry_exception = task.get_retry_exception(exception=e, job=job)
             if retry_exception:
                 log_title = "Error, to retry"
                 log_action = "job_error_retry"
                 log_level = logging.INFO
-                raise retry_exception from e
-            raise exceptions.JobError() from e
+            raise exceptions.JobError(
+                retry_exception=retry_exception, critical=critical
+            ) from e
 
         else:
             log_title = "Success"
