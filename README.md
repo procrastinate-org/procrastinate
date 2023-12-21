@@ -19,7 +19,7 @@
 | procrastinate/contrib/django/utils.py                   |        5 |        0 |        0 |        0 |    100% |           |
 | procrastinate/contrib/sqlalchemy/\_\_init\_\_.py        |        2 |        0 |        0 |        0 |    100% |           |
 | procrastinate/contrib/sqlalchemy/psycopg2\_connector.py |       79 |        0 |       50 |        0 |    100% |           |
-| procrastinate/exceptions.py                             |       29 |        0 |        2 |        0 |    100% |           |
+| procrastinate/exceptions.py                             |       34 |        0 |        2 |        0 |    100% |           |
 | procrastinate/job\_context.py                           |       52 |        0 |       20 |        0 |    100% |           |
 | procrastinate/jobs.py                                   |       72 |        0 |       12 |        0 |    100% |           |
 | procrastinate/manager.py                                |       86 |        0 |       22 |        0 |    100% |           |
@@ -37,8 +37,8 @@
 | procrastinate/testing.py                                |      133 |        0 |       63 |        0 |    100% |           |
 | procrastinate/types.py                                  |        3 |        0 |        0 |        0 |    100% |           |
 | procrastinate/utils.py                                  |      206 |        4 |       80 |        4 |     96% |353-354, 419->410, 436->428, 454-455 |
-| procrastinate/worker.py                                 |      154 |        0 |       40 |        0 |    100% |           |
-|                                               **TOTAL** | **1955** |    **9** |  **783** |   **11** | **99%** |           |
+| procrastinate/worker.py                                 |      161 |        0 |       42 |        0 |    100% |           |
+|                                               **TOTAL** | **1967** |    **9** |  **785** |   **11** | **99%** |           |
 
 
 ## Setup coverage badge
