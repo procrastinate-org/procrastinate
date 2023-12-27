@@ -5,15 +5,28 @@ import functools
 import logging
 from typing import Any, Callable, Coroutine, Iterable
 
-import psycopg
-import psycopg.errors
-import psycopg.rows
-import psycopg.sql
-import psycopg.types.json
-import psycopg_pool
 from typing_extensions import LiteralString
 
 from procrastinate import connector, exceptions, sql
+
+try:
+    import psycopg
+    import psycopg.errors
+    import psycopg.rows
+    import psycopg.sql
+    import psycopg.types.json
+    import psycopg_pool
+except ImportError as exc:
+    # In case psycopg is not installed, we'll raise an explicit error
+    # only when the connector is used.
+    exception = exc
+
+    class Wrapper:
+        def __getattr__(self, item):
+            raise exception
+
+    locals()["psycopg"] = Wrapper()
+    locals()["psycopg_pool"] = Wrapper()
 
 logger = logging.getLogger(__name__)
 
