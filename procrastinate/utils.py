@@ -470,3 +470,23 @@ async def run_tasks(
 
 def add_namespace(name: str, namespace: str) -> str:
     return f"{namespace}:{name}"
+
+
+def import_or_wrapper(*names: str) -> Iterable[types.ModuleType]:
+    """
+    Import given modules, or return a dummy wrapper that will raise an
+    ImportError when used.
+    """
+    try:
+        for name in names:
+            yield importlib.import_module(name)
+    except ImportError as exc:
+        # In case psycopg is not installed, we'll raise an explicit error
+        # only when the connector is used.
+        exception = exc
+
+        class Wrapper:
+            def __getattr__(self, item):
+                raise exception
+
+        yield Wrapper()  # type: ignore

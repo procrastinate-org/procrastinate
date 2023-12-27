@@ -527,3 +527,18 @@ def test_check_stack_failure(mocker):
     mocker.patch("inspect.currentframe", return_value=None)
     with pytest.raises(exceptions.CallerModuleUnknown):
         assert utils.caller_module_name()
+
+
+def test_import_or_wrapper__ok():
+    result = list(utils.import_or_wrapper("json", "csv"))
+    import csv
+    import json
+
+    assert result == [json, csv]
+
+
+def test_import_or_wrapper__fail():
+    (result,) = utils.import_or_wrapper("a" * 30)
+
+    with pytest.raises(ImportError):
+        assert result.foo

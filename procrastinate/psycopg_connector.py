@@ -3,30 +3,29 @@ from __future__ import annotations
 import asyncio
 import functools
 import logging
-from typing import Any, Callable, Coroutine, Iterable
+from typing import TYPE_CHECKING, Any, Callable, Coroutine, Iterable
 
 from typing_extensions import LiteralString
 
-from procrastinate import connector, exceptions, sql
+from procrastinate import connector, exceptions, sql, utils
 
-try:
+if TYPE_CHECKING:
     import psycopg
     import psycopg.errors
     import psycopg.rows
     import psycopg.sql
     import psycopg.types.json
     import psycopg_pool
-except ImportError as exc:
-    # In case psycopg is not installed, we'll raise an explicit error
-    # only when the connector is used.
-    exception = exc
+else:
+    psycopg, *_ = utils.import_or_wrapper(
+        "psycopg",
+        "psycopg.errors",
+        "psycopg.rows",
+        "psycopg.sql",
+        "psycopg.types.json",
+    )
+    (psycopg_pool,) = utils.import_or_wrapper("psycopg_pool")
 
-    class Wrapper:
-        def __getattr__(self, item):
-            raise exception
-
-    locals()["psycopg"] = Wrapper()
-    locals()["psycopg_pool"] = Wrapper()
 
 logger = logging.getLogger(__name__)
 
