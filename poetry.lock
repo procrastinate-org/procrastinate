@@ -836,6 +836,7 @@ files = [
 
 [package.dependencies]
 "backports.zoneinfo" = {version = ">=0.2.0", markers = "python_version < \"3.9\""}
+psycopg-binary = {version = "3.1.13", optional = true, markers = "extra == \"binary\""}
 psycopg-pool = {version = "*", optional = true, markers = "extra == \"pool\""}
 typing-extensions = ">=4.1"
 tzdata = {version = "*", markers = "sys_platform == \"win32\""}
@@ -847,6 +848,80 @@ dev = ["black (>=23.1.0)", "dnspython (>=2.1)", "flake8 (>=4.0)", "mypy (>=1.4.1
 docs = ["Sphinx (>=5.0)", "furo (==2022.6.21)", "sphinx-autobuild (>=2021.3.14)", "sphinx-autodoc-typehints (>=1.12)"]
 pool = ["psycopg-pool"]
 test = ["anyio (>=3.6.2,<4.0)", "mypy (>=1.4.1)", "pproxy (>=2.7)", "pytest (>=6.2.5)", "pytest-cov (>=3.0)", "pytest-randomly (>=3.5)"]
+
+[[package]]
+name = "psycopg-binary"
+version = "3.1.13"
+description = "PostgreSQL database adapter for Python -- C optimisation distribution"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "psycopg_binary-3.1.13-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:2cebf20e3c63e9fd5bb73a644b1327fed3f9496c394aec559a49f77ac0772fe2"},
+    {file = "psycopg_binary-3.1.13-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:323e6b2caedcb81a57e7b563d31b7cdb2b12aa29f641c3f4a8d071b96cdfafbe"},
+    {file = "psycopg_binary-3.1.13-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:eac64d6b11e0ea9cadaaa3eda30ac3406c46561b1c482113bbdd7e64446a96e1"},
+    {file = "psycopg_binary-3.1.13-cp310-cp310-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:ae25d20847962f1800dc1d24e8b22876f736ce3076d923db9d902522c21498a8"},
+    {file = "psycopg_binary-3.1.13-cp310-cp310-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:1ed5c7ca4a0b241b4360c90cae961156f0c2a6c2822fb61f68076b928650b523"},
+    {file = "psycopg_binary-3.1.13-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:7104f8e508d02532d2796563ed6c49a47d24935192f1c13a5b54f3cd78f5686a"},
+    {file = "psycopg_binary-3.1.13-cp310-cp310-musllinux_1_1_aarch64.whl", hash = "sha256:7b4e12ced8c8be2cd8d164d26c247c43713ba3e8c303a2b6334830bd081ace4b"},
+    {file = "psycopg_binary-3.1.13-cp310-cp310-musllinux_1_1_i686.whl", hash = "sha256:31d00c5ad42ec6a7f5365dc2ada0ac1597741e49781aa49a9c0db708a68b07f5"},
+    {file = "psycopg_binary-3.1.13-cp310-cp310-musllinux_1_1_ppc64le.whl", hash = "sha256:c574e8e418fc98fcce054e24b3ea274e9ccbcf5310e47db8d5c07834e22bfa15"},
+    {file = "psycopg_binary-3.1.13-cp310-cp310-musllinux_1_1_x86_64.whl", hash = "sha256:8adf7af9a92d3b4cb849a79604735512d15fe51497a6b8a9accfe480b656a2a8"},
+    {file = "psycopg_binary-3.1.13-cp310-cp310-win_amd64.whl", hash = "sha256:c7cc4a583e279c6aa11aad41c99067e84477debd4501bac08c74539ddcebd4e3"},
+    {file = "psycopg_binary-3.1.13-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:770f16be9c0b542ae31c68204b4fb06e1484398a71ca9d9826cf37e6f6aa7973"},
+    {file = "psycopg_binary-3.1.13-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:d5b82e82ed025ca09449a97323f82db10edf31dc2a96b021b42fcf351cb95b56"},
+    {file = "psycopg_binary-3.1.13-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:95f62d0140b47a71aed55ff52eaae81a134ffc047cffdf73c564aebbc3259b9e"},
+    {file = "psycopg_binary-3.1.13-cp311-cp311-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:4cccc2b2516ed00bfffd3d5eb8d29f0983ae57b1273c026c6a914125d2519be6"},
+    {file = "psycopg_binary-3.1.13-cp311-cp311-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:dbba364e29522d8e073c968f30e67e4018a596270244ebf64ed4e59b759492d6"},
+    {file = "psycopg_binary-3.1.13-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:2aca6b55ef50911a0b05ec71b3ec749487813ac08085f260ad3caccbd7ecbb62"},
+    {file = "psycopg_binary-3.1.13-cp311-cp311-musllinux_1_1_aarch64.whl", hash = "sha256:152e01605305aede07fe00eebd5f1f4792452efc13f017ae871e88b2fb8bf562"},
+    {file = "psycopg_binary-3.1.13-cp311-cp311-musllinux_1_1_i686.whl", hash = "sha256:d38b5b490e34e9b90e3734a84b546a33c39a69dbd3687d700ca2908c6389cb7f"},
+    {file = "psycopg_binary-3.1.13-cp311-cp311-musllinux_1_1_ppc64le.whl", hash = "sha256:5a432c14c9f732345be2dcd94a1287affa562b98ffc6620863181ce15d3e5089"},
+    {file = "psycopg_binary-3.1.13-cp311-cp311-musllinux_1_1_x86_64.whl", hash = "sha256:86919233d4293f01e0e00ec449746bd46803624e3bb52dd90831a4f3b2959bd8"},
+    {file = "psycopg_binary-3.1.13-cp311-cp311-win_amd64.whl", hash = "sha256:dea1c83d5f77651cb88d4726c1a4a4726d2712454081e016191d566de20def99"},
+    {file = "psycopg_binary-3.1.13-cp312-cp312-macosx_10_9_x86_64.whl", hash = "sha256:31db5f96438408a8b61ae487d29a11c4a7730b2e9e0857743ce99595fda1a148"},
+    {file = "psycopg_binary-3.1.13-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:da6e9b00c058557c5a0ba198f4fb7838863a0f88cafbf65c079c7c2e7d57d753"},
+    {file = "psycopg_binary-3.1.13-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:18f207da55a5b2a5a828e4ea46ff3253bd641f79f45844a42ae981a94181b87c"},
+    {file = "psycopg_binary-3.1.13-cp312-cp312-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:df292c11b66172b61ef16f6dffbf7363cbad873ff8c79a785c49fb237db4e720"},
+    {file = "psycopg_binary-3.1.13-cp312-cp312-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:24866bd53f138d7aff9e88d2e52d6f205d974fe98788cc69d954cde60a76f2f1"},
+    {file = "psycopg_binary-3.1.13-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:a875ec279b8cd34562963cc89f71b290cc0d65c7c1dd9f8ff53679ca52fbec2f"},
+    {file = "psycopg_binary-3.1.13-cp312-cp312-musllinux_1_1_aarch64.whl", hash = "sha256:22aa5381db8e499b5a8489e1f6437c5e171eca476f975c138d6413ff15b66cfa"},
+    {file = "psycopg_binary-3.1.13-cp312-cp312-musllinux_1_1_i686.whl", hash = "sha256:ed05b5831146d648e43860670b2bc200eaa1bc0a8f744faeb8dd39d4de648bc5"},
+    {file = "psycopg_binary-3.1.13-cp312-cp312-musllinux_1_1_ppc64le.whl", hash = "sha256:51e4f98a48ddf41a0634a202e89b08448979b9cc88bd1a74207301b05db4c572"},
+    {file = "psycopg_binary-3.1.13-cp312-cp312-musllinux_1_1_x86_64.whl", hash = "sha256:6bf92d298a5fff2477f8dd030fdaad84c8420e03fe76f175675ba3ac44e647f0"},
+    {file = "psycopg_binary-3.1.13-cp312-cp312-win_amd64.whl", hash = "sha256:eb49604d27dfe7ea8560f5fdbde667049f961273b64ec1d6c09df4b2c3e83256"},
+    {file = "psycopg_binary-3.1.13-cp37-cp37m-macosx_10_9_x86_64.whl", hash = "sha256:e77d6f9df9eb6c7c6ee3123b9cb97b504201d89bb5821314dc22e9f09e30601e"},
+    {file = "psycopg_binary-3.1.13-cp37-cp37m-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:852fa34c9a6fbb1b984aaa88dc1b42059e7e629582d0e81739c8568be66c4be0"},
+    {file = "psycopg_binary-3.1.13-cp37-cp37m-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:bbdcfe98607f1a9ae988aab817ebb6d27dd689dec928977e093b6b44e840859e"},
+    {file = "psycopg_binary-3.1.13-cp37-cp37m-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:963887516c8739ace8a69504d03c8c3b9a22e7194c42a0912031d1ac93cd3869"},
+    {file = "psycopg_binary-3.1.13-cp37-cp37m-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:9b022d2dcab5e2323b6268aa1db452c634e6f0d5ea9ec9a671b47f32e77b4ca2"},
+    {file = "psycopg_binary-3.1.13-cp37-cp37m-musllinux_1_1_aarch64.whl", hash = "sha256:f6c6bff712d9e1a103cc23fc2c89833a69ed049261e390cadb68d2d42edeedea"},
+    {file = "psycopg_binary-3.1.13-cp37-cp37m-musllinux_1_1_i686.whl", hash = "sha256:ae041fbdacd65d6cd9112980215111327dab1376b9a4a643c0a805758d907e7a"},
+    {file = "psycopg_binary-3.1.13-cp37-cp37m-musllinux_1_1_ppc64le.whl", hash = "sha256:af6d9892fe107d9a8068fb89041d89191115693ee71613397b019547e003282d"},
+    {file = "psycopg_binary-3.1.13-cp37-cp37m-musllinux_1_1_x86_64.whl", hash = "sha256:296c24fe09ef5561aa5fed06a1a06753a1a17b2f3a908bcf6a5ad78575ab5ce5"},
+    {file = "psycopg_binary-3.1.13-cp37-cp37m-win_amd64.whl", hash = "sha256:8a8c778b299626827400ea9ebfb962f2bff048bfa16aeffa2c4bc9d79d84a1cf"},
+    {file = "psycopg_binary-3.1.13-cp38-cp38-macosx_10_9_x86_64.whl", hash = "sha256:4d6f3bf6a6ac319c8660c44b22bc63e5bba9085ec7e04b171ceec9bb047ed20f"},
+    {file = "psycopg_binary-3.1.13-cp38-cp38-macosx_11_0_arm64.whl", hash = "sha256:44cb86654e0759de040dde495cd6bfe6b5f98b4f94c441f5fcbbdda371c62073"},
+    {file = "psycopg_binary-3.1.13-cp38-cp38-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:ace2606984c0489a18e9dc455acceb8af1eed64c4afc7db4e7a46f4f77734db2"},
+    {file = "psycopg_binary-3.1.13-cp38-cp38-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:c24927f5442eeb8ab42090c2882ec9208762bb8d7ae999c4916d55d36a68ee00"},
+    {file = "psycopg_binary-3.1.13-cp38-cp38-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:84d01ad4594d05ffb374b56be0331bc3bd8525db07e4e18f70ed8a73e45e4a13"},
+    {file = "psycopg_binary-3.1.13-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:a996e64c4cb61b49432ee81e7486ec94aa1fe369629b88e0dddbe03b76cdc7fb"},
+    {file = "psycopg_binary-3.1.13-cp38-cp38-musllinux_1_1_aarch64.whl", hash = "sha256:af37704f0086da8ba3ab724ae770902fed09f25efc94979d38fc73857dfd2ea3"},
+    {file = "psycopg_binary-3.1.13-cp38-cp38-musllinux_1_1_i686.whl", hash = "sha256:00e7c7bfa1d4bc9a31ed5da59bc402f29d14cc3156c08a5549998ef74fc54128"},
+    {file = "psycopg_binary-3.1.13-cp38-cp38-musllinux_1_1_ppc64le.whl", hash = "sha256:52fa599635789d5a093525d7ac268f00910bae93bb6d896b5d9ad36e87c1b60e"},
+    {file = "psycopg_binary-3.1.13-cp38-cp38-musllinux_1_1_x86_64.whl", hash = "sha256:da972ac7d62ee758e8da626d4b7626a13488ed9c0165574e745a02868793f636"},
+    {file = "psycopg_binary-3.1.13-cp38-cp38-win_amd64.whl", hash = "sha256:420314039fb004e3459d02430024673984bc098e9fccc17d4c9597cfb9b5ea84"},
+    {file = "psycopg_binary-3.1.13-cp39-cp39-macosx_10_9_x86_64.whl", hash = "sha256:4c8cfc2ec46a732912acd9402666d52adcf97205dd7fda984602d46fa51b7199"},
+    {file = "psycopg_binary-3.1.13-cp39-cp39-macosx_11_0_arm64.whl", hash = "sha256:535f6c77ef1a4f309fafd13fc910f2138befa0855a1e12979cd838ae54e27dda"},
+    {file = "psycopg_binary-3.1.13-cp39-cp39-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:f500db8566f69ff81275640132ae96b7c4654c623de4ee29a0d0762b1d68086f"},
+    {file = "psycopg_binary-3.1.13-cp39-cp39-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:5056e5025f6b2733f0ae913029743f40625bda354cd0b0bd00d4e5b04489bbf1"},
+    {file = "psycopg_binary-3.1.13-cp39-cp39-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:a19b69b71e0dadf0a1ee3701eb580e01dd6bfc67c5f017fefb4b039035cd666e"},
+    {file = "psycopg_binary-3.1.13-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:29bbf26240eaf51bc950f3746c7924e9e0d181368c4967602aea75a5a091f8a6"},
+    {file = "psycopg_binary-3.1.13-cp39-cp39-musllinux_1_1_aarch64.whl", hash = "sha256:722512f354453134c29df781ed717a79a953a1f2742e6388aa0cd0ba18e1c796"},
+    {file = "psycopg_binary-3.1.13-cp39-cp39-musllinux_1_1_i686.whl", hash = "sha256:0ab0b9118f5ba650d6aefd0d4dcbfbd36dfb415f0022a5f413d69b934a31a8a8"},
+    {file = "psycopg_binary-3.1.13-cp39-cp39-musllinux_1_1_ppc64le.whl", hash = "sha256:ad4e691483fb7b88dde237c7c7e9691322e7ceccd35f23f4b27e6214b1ef22ae"},
+    {file = "psycopg_binary-3.1.13-cp39-cp39-musllinux_1_1_x86_64.whl", hash = "sha256:6a9545c5c9ccbb6ba0c45deb28f4626aade88a8ace36260324b7673965e7df64"},
+    {file = "psycopg_binary-3.1.13-cp39-cp39-win_amd64.whl", hash = "sha256:cd9550cfaf47db9eb44207278b9d418de0076df87cf3a2ea99bc123bd8d379c7"},
+]
 
 [[package]]
 name = "psycopg-pool"
@@ -1599,4 +1674,4 @@ sqlalchemy = ["sqlalchemy"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8"
-content-hash = "6d9f268cd5bd88ae5d2816f87323fef8756b1fcba3461534b07fe78c852af565"
+content-hash = "7533bad7b8583434b13755966cba1877da71455551b3f8c549bc2bcd425e77ae"
