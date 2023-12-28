@@ -1,17 +1,31 @@
+from __future__ import annotations
+
 import asyncio
 import functools
 import logging
-from typing import Any, Callable, Coroutine, Dict, Iterable, List, Optional
+from typing import TYPE_CHECKING, Any, Callable, Coroutine, Iterable
 
-import psycopg
-import psycopg.errors
-import psycopg.sql
-import psycopg.types.json
-import psycopg_pool
-from psycopg.rows import DictRow, dict_row
 from typing_extensions import LiteralString
 
-from procrastinate import connector, exceptions, sql
+from procrastinate import connector, exceptions, sql, utils
+
+if TYPE_CHECKING:
+    import psycopg
+    import psycopg.errors
+    import psycopg.rows
+    import psycopg.sql
+    import psycopg.types.json
+    import psycopg_pool
+else:
+    psycopg, *_ = utils.import_or_wrapper(
+        "psycopg",
+        "psycopg.errors",
+        "psycopg.rows",
+        "psycopg.sql",
+        "psycopg.types.json",
+    )
+    (psycopg_pool,) = utils.import_or_wrapper("psycopg_pool")
+
 
 logger = logging.getLogger(__name__)
 
@@ -46,8 +60,8 @@ class PsycopgConnector(connector.BaseAsyncConnector):
     def __init__(
         self,
         *,
-        json_dumps: Optional[Callable] = None,
-        json_loads: Optional[Callable] = None,
+        json_dumps: Callable | None = None,
+        json_loads: Callable | None = None,
         **kwargs: Any,
     ):
         """
@@ -89,7 +103,7 @@ class PsycopgConnector(connector.BaseAsyncConnector):
             argument is passed, it will connect to localhost:5432 instead of a
             Unix-domain local socket file.
         """
-        self._pool: Optional[psycopg_pool.AsyncConnectionPool] = None
+        self._pool: psycopg_pool.AsyncConnectionPool | None = None
         self.json_dumps = json_dumps
         self._pool_externally_set = False
         self._pool_args = self._adapt_pool_args(kwargs, json_loads, json_dumps)
@@ -97,17 +111,17 @@ class PsycopgConnector(connector.BaseAsyncConnector):
 
     @staticmethod
     def _adapt_pool_args(
-        pool_args: Dict[str, Any],
-        json_loads: Optional[Callable],
-        json_dumps: Optional[Callable],
-    ) -> Dict[str, Any]:
+        pool_args: dict[str, Any],
+        json_loads: Callable | None,
+        json_dumps: Callable | None,
+    ) -> dict[str, Any]:
         """
         Adapt the pool args for ``psycopg``, using sensible defaults for Procrastinate.
         """
         base_configure = pool_args.pop("configure", None)
 
         @wrap_exceptions
-        async def configure(connection: psycopg.AsyncConnection[DictRow]):
+        async def configure(connection: psycopg.AsyncConnection[psycopg.rows.DictRow]):
             if base_configure:
                 await base_configure(connection)
 
@@ -122,7 +136,7 @@ class PsycopgConnector(connector.BaseAsyncConnector):
             "min_size": 1,
             "max_size": 10,
             "kwargs": {
-                "row_factory": dict_row,
+                "row_factory": psycopg.rows.dict_row,
             },
             "configure": configure,
             **pool_args,
@@ -131,13 +145,15 @@ class PsycopgConnector(connector.BaseAsyncConnector):
     @property
     def pool(
         self,
-    ) -> psycopg_pool.AsyncConnectionPool[psycopg.AsyncConnection[DictRow]]:
+    ) -> psycopg_pool.AsyncConnectionPool[
+        psycopg.AsyncConnection[psycopg.rows.DictRow]
+    ]:
         if self._pool is None:  # Set by open_async
             raise exceptions.AppNotOpen
         return self._pool
 
     async def open_async(
-        self, pool: Optional[psycopg_pool.AsyncConnectionPool] = None
+        self, pool: psycopg_pool.AsyncConnectionPool | None = None
     ) -> None:
         """
         Instantiate the pool.
@@ -160,7 +176,7 @@ class PsycopgConnector(connector.BaseAsyncConnector):
     @staticmethod
     @wrap_exceptions
     async def _create_pool(
-        pool_args: Dict[str, Any]
+        pool_args: dict[str, Any]
     ) -> psycopg_pool.AsyncConnectionPool:
         return psycopg_pool.AsyncConnectionPool(
             **pool_args,
@@ -184,7 +200,7 @@ class PsycopgConnector(connector.BaseAsyncConnector):
         await self._pool.close()
         self._pool = None
 
-    def _wrap_json(self, arguments: Dict[str, Any]):
+    def _wrap_json(self, arguments: dict[str, Any]):
         return {
             key: psycopg.types.json.Jsonb(value) if isinstance(value, dict) else value
             for key, value in arguments.items()
@@ -198,7 +214,7 @@ class PsycopgConnector(connector.BaseAsyncConnector):
     @wrap_exceptions
     async def execute_query_one_async(
         self, query: LiteralString, **arguments: Any
-    ) -> DictRow:
+    ) -> psycopg.rows.DictRow:
         async with self.pool.connection() as connection:
             async with connection.cursor() as cursor:
                 await cursor.execute(query, self._wrap_json(arguments))
@@ -212,7 +228,7 @@ class PsycopgConnector(connector.BaseAsyncConnector):
     @wrap_exceptions
     async def execute_query_all_async(
         self, query: LiteralString, **arguments: Any
-    ) -> List[DictRow]:
+    ) -> list[psycopg.rows.DictRow]:
         async with self.pool.connection() as connection:
             async with connection.cursor() as cursor:
                 await cursor.execute(query, self._wrap_json(arguments))
