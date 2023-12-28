@@ -26,7 +26,7 @@
 | procrastinate/metadata.py                               |        5 |        0 |        0 |        0 |    100% |           |
 | procrastinate/periodic.py                               |       95 |        1 |       26 |        1 |     98% |        23 |
 | procrastinate/psycopg2\_connector.py                    |      104 |        0 |       64 |        0 |    100% |           |
-| procrastinate/psycopg\_connector.py                     |      116 |        3 |       66 |        4 |     96% |35, 209, 238->237, 264->259, 267 |
+| procrastinate/psycopg\_connector.py                     |      113 |        3 |       66 |        4 |     96% |49, 225, 254->253, 280->275, 283 |
 | procrastinate/retry.py                                  |       37 |        0 |       14 |        0 |    100% |           |
 | procrastinate/schema.py                                 |       19 |        0 |        4 |        0 |    100% |           |
 | procrastinate/shell.py                                  |       49 |        0 |       14 |        0 |    100% |           |
@@ -36,9 +36,9 @@
 | procrastinate/tasks.py                                  |       47 |        0 |       12 |        0 |    100% |           |
 | procrastinate/testing.py                                |      133 |        0 |       63 |        0 |    100% |           |
 | procrastinate/types.py                                  |        3 |        0 |        0 |        0 |    100% |           |
-| procrastinate/utils.py                                  |      206 |        4 |       80 |        4 |     96% |353-354, 419->410, 436->428, 454-455 |
+| procrastinate/utils.py                                  |      216 |        4 |       82 |        4 |     96% |353-354, 419->410, 436->428, 454-455 |
 | procrastinate/worker.py                                 |      161 |        0 |       42 |        0 |    100% |           |
-|                                               **TOTAL** | **1967** |    **9** |  **785** |   **11** | **99%** |           |
+|                                               **TOTAL** | **1974** |    **9** |  **787** |   **11** | **99%** |           |
 
 
 ## Setup coverage badge
