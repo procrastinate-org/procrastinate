@@ -53,11 +53,6 @@ class BaseConnector:
     ) -> None:
         raise exceptions.SyncConnectorConfigurationError
 
-    def __del__(self):
-        try:
-            self.close()
-        except NotImplementedError:
-            pass
 
 class BaseAsyncConnector(BaseConnector):
     async def open_async(self, pool: Optional[Pool] = None) -> None:
