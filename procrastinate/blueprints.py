@@ -72,7 +72,7 @@ class Blueprint:
         except exceptions.CallerModuleUnknown:
             logger.warning(
                 "Unable to determine where the app was defined. "
-                "See https://procrastinate.readthedocs.io/en/stable/discussions.html#top-level-app .",
+                "See https://procrastinate.readthedocs.io/en/stable/discussions.html#top-level-app",
                 extra={"action": "app_location_unknown"},
                 exc_info=True,
             )
@@ -81,9 +81,8 @@ class Blueprint:
             logger.warning(
                 f"{type(self).__name__} is instantiated in the main Python module "
                 f"({sys.argv[0]}). "
-                "See https://procrastinate.readthedocs.io/en/stable/discussions.html#top-level-app .",
+                "See https://procrastinate.readthedocs.io/en/stable/discussions.html#top-level-app",
                 extra={"action": "app_defined_in___main__"},
-                exc_info=True,
             )
 
     def _register_task(self, task: "tasks.Task") -> None:
