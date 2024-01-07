@@ -485,11 +485,3 @@ class JobManager:
                 }
             )
         return result
-
-
-utils.add_method_sync_api(cls=JobManager, method_name="list_jobs_async")
-utils.add_method_sync_api(cls=JobManager, method_name="list_queues_async")
-utils.add_method_sync_api(cls=JobManager, method_name="list_tasks_async")
-utils.add_method_sync_api(cls=JobManager, method_name="list_locks_async")
-utils.add_method_sync_api(cls=JobManager, method_name="finish_job_by_id_async")
-utils.add_method_sync_api(cls=JobManager, method_name="retry_job_by_id_async")

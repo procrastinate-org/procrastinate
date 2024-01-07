@@ -1,3 +1,4 @@
+import asyncio
 import functools
 import logging
 from typing import TYPE_CHECKING, Any, Dict, Iterable, Optional, Union
@@ -243,8 +244,24 @@ class App(blueprints.Blueprint):
         worker = self._worker(**kwargs)
         await worker.run()
 
-    async def check_connection_async(self):
-        return await self.job_manager.check_connection()
+    def run_worker(self, **kwargs) -> None:
+        """
+        Synchronous version of `App.run_worker_async`.
+        Create the event loop and open the app, then run the worker.
+        The app and the event loop are closed at the end of the function.
+        """
+
+        async def f():
+            async with self.open_async():
+                await self.run_worker_async(**kwargs)
+
+        asyncio.run(f())
+
+    async def check_connection_async(self) -> bool:
+        return await self.job_manager.check_connection_async()
+
+    def check_connection(self) -> bool:
+        return self.job_manager.check_connection()
 
     @property
     def schema_manager(self) -> schema.SchemaManager:
@@ -256,11 +273,11 @@ class App(blueprints.Blueprint):
             Union[connector_module.Pool, connector_module.Engine]
         ] = None,
     ) -> "App":
-        self.connector.open(pool_or_engine)
+        self.connector.get_sync_connector().open(pool_or_engine)
         return self
 
     def close(self) -> None:
-        self.connector.close()
+        self.connector.get_sync_connector().close()
 
     def open_async(
         self, pool: Optional[connector_module.Pool] = None
@@ -280,7 +297,3 @@ class App(blueprints.Blueprint):
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
         self.close()
-
-
-utils.add_method_sync_api(cls=App, method_name="run_worker_async")
-utils.add_method_sync_api(cls=App, method_name="check_connection_async")
