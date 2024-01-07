@@ -1,13 +1,23 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import functools
 import logging
-from typing import TYPE_CHECKING, Any, Callable, Coroutine, Iterable
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    AsyncIterator,
+    Callable,
+    Coroutine,
+    Iterable,
+    TypeVar,
+    cast,
+)
 
-from typing_extensions import LiteralString
+from typing_extensions import LiteralString, ParamSpec
 
-from procrastinate import connector, exceptions, sql, utils
+from procrastinate import connector, exceptions, sql, sync_psycopg_connector, utils
 
 if TYPE_CHECKING:
     import psycopg
@@ -31,10 +41,13 @@ logger = logging.getLogger(__name__)
 
 LISTEN_TIMEOUT = 30.0
 
-CoroutineFunction = Callable[..., Coroutine]
+T = TypeVar("T")
+P = ParamSpec("P")
 
 
-def wrap_exceptions(coro: CoroutineFunction) -> CoroutineFunction:
+def wrap_exceptions(
+    coro: Callable[P, Coroutine[None, Any, T]]
+) -> Callable[P, Coroutine[None, Any, T]]:
     """
     Wrap psycopg errors as connector exceptions.
 
@@ -42,7 +55,7 @@ def wrap_exceptions(coro: CoroutineFunction) -> CoroutineFunction:
     """
 
     @functools.wraps(coro)
-    async def wrapped(*args, **kwargs):
+    async def wrapped(*args: P.args, **kwargs: P.kwargs) -> T:
         try:
             return await coro(*args, **kwargs)
         except psycopg.errors.UniqueViolation as exc:
@@ -80,6 +93,14 @@ class PsycopgConnector(connector.BaseAsyncConnector):
         created by the pool with ``psycopg.types.json.set_json_dumps`` and
         ``psycopg.types.json.set_json_loads``.
 
+        Note: `PsycopgConnector.get_sync_connector` returns a `SyncPsycopgConnector` if
+        the connector hasn't been opened yet. In that case, opening the connector later
+        will raise a `SyncConnectorConfigurationError`. If the connector has already
+        been opened, `PsycopgConnector.get_sync_connector` will return itself (the idea
+        being that in a given process, you should either using the async connector or
+        the sync connector, but not both). In that case, it can only be used in the
+        context of a sync_to_async function (such as inside a sync job function).
+
         .. __: https://www.psycopg.org/psycopg3/docs/api/pool.html
                #psycopg_pool.AsyncConnectionPool
 
@@ -93,54 +114,28 @@ class PsycopgConnector(connector.BaseAsyncConnector):
             A function to deserialize JSON objects from a string. If not
             provided, JSON objects will be deserialized using psycopg's default
             JSON deserializer.
-
-        min_size : int
-            Passed to psycopg, default set to 1 (same as aiopg).
-        max_size : int
-            Passed to psycopg, default set to 10 (same as aiopg).
-        conninfo : ``Optional[str]``
-            Passed to psycopg. Default is "" instead of None, which means if no
-            argument is passed, it will connect to localhost:5432 instead of a
-            Unix-domain local socket file.
         """
-        self._pool: psycopg_pool.AsyncConnectionPool | None = None
-        self.json_dumps = json_dumps
-        self._pool_externally_set = False
-        self._pool_args = self._adapt_pool_args(kwargs, json_loads, json_dumps)
-        self.json_loads = json_loads
+        self._async_pool: psycopg_pool.AsyncConnectionPool | None = None
+        self._pool_externally_set: bool = False
+        self._json_loads = json_loads
+        self._json_dumps = json_dumps
+        self._pool_args = kwargs
+        self._sync_connector: connector.BaseConnector | None = None
 
-    @staticmethod
-    def _adapt_pool_args(
-        pool_args: dict[str, Any],
-        json_loads: Callable | None,
-        json_dumps: Callable | None,
-    ) -> dict[str, Any]:
-        """
-        Adapt the pool args for ``psycopg``, using sensible defaults for Procrastinate.
-        """
-        base_configure = pool_args.pop("configure", None)
-
-        @wrap_exceptions
-        async def configure(connection: psycopg.AsyncConnection[psycopg.rows.DictRow]):
-            if base_configure:
-                await base_configure(connection)
-
-            if json_loads:
-                psycopg.types.json.set_json_loads(json_loads, connection)
-
-            if json_dumps:
-                psycopg.types.json.set_json_dumps(json_dumps, connection)
-
-        return {
-            "conninfo": "",
-            "min_size": 1,
-            "max_size": 10,
-            "kwargs": {
-                "row_factory": psycopg.rows.dict_row,
-            },
-            "configure": configure,
-            **pool_args,
-        }
+    def get_sync_connector(self) -> connector.BaseConnector:
+        if self._async_pool:
+            return self
+        if self._sync_connector is None:
+            logger.debug(
+                "PsycopgConnector used synchronously before being opened. "
+                "Creating a SyncPsycopgConnector."
+            )
+            self._sync_connector = sync_psycopg_connector.SyncPsycopgConnector(
+                json_dumps=self._json_dumps,
+                json_loads=self._json_loads,
+                **self._pool_args,
+            )
+        return self._sync_connector
 
     @property
     def pool(
@@ -148,9 +143,9 @@ class PsycopgConnector(connector.BaseAsyncConnector):
     ) -> psycopg_pool.AsyncConnectionPool[
         psycopg.AsyncConnection[psycopg.rows.DictRow]
     ]:
-        if self._pool is None:  # Set by open_async
+        if self._async_pool is None:  # Set by open_async
             raise exceptions.AppNotOpen
-        return self._pool
+        return self._async_pool
 
     async def open_async(
         self, pool: psycopg_pool.AsyncConnectionPool | None = None
@@ -162,16 +157,21 @@ class PsycopgConnector(connector.BaseAsyncConnector):
             Optional pool. Procrastinate can use an existing pool. Connection parameters
             passed in the constructor will be ignored.
         """
-        if self._pool:
+        if self._async_pool:
             return
+
+        if self._sync_connector is not None:
+            logger.debug("Closing automatically created SyncPsycopgConnector.")
+            await utils.sync_to_async(self._sync_connector.close)
+            self._sync_connector = None
 
         if pool:
             self._pool_externally_set = True
-            self._pool = pool
+            self._async_pool = pool
         else:
-            self._pool = await self._create_pool(self._pool_args)
+            self._async_pool = await self._create_pool(self._pool_args)
 
-            await self._pool.open(wait=True)  # type: ignore
+            await self._async_pool.open(wait=True)  # type: ignore
 
     @staticmethod
     @wrap_exceptions
@@ -194,11 +194,11 @@ class PsycopgConnector(connector.BaseAsyncConnector):
         """
         Close the pool and awaits all connections to be released.
         """
-        if not self._pool or self._pool_externally_set:
+        if not self._async_pool or self._pool_externally_set:
             return
 
-        await self._pool.close()
-        self._pool = None
+        await self._async_pool.close()
+        self._async_pool = None
 
     def _wrap_json(self, arguments: dict[str, Any]):
         return {
@@ -206,60 +206,73 @@ class PsycopgConnector(connector.BaseAsyncConnector):
             for key, value in arguments.items()
         }
 
+    @contextlib.asynccontextmanager
+    async def _get_cursor(self) -> AsyncIterator[psycopg.AsyncCursor]:
+        async with self.pool.connection() as connection:
+            async with connection.cursor(row_factory=psycopg.rows.dict_row) as cursor:
+                if self._json_loads:
+                    psycopg.types.json.set_json_loads(
+                        loads=self._json_loads, context=cursor
+                    )
+
+                if self._json_dumps:
+                    psycopg.types.json.set_json_dumps(
+                        dumps=self._json_dumps, context=cursor
+                    )
+                yield cursor
+
     @wrap_exceptions
     async def execute_query_async(self, query: LiteralString, **arguments: Any) -> None:
-        async with self.pool.connection() as connection:
-            await connection.execute(query, self._wrap_json(arguments))
+        async with self._get_cursor() as cursor:
+            await cursor.execute(query, self._wrap_json(arguments))
 
     @wrap_exceptions
     async def execute_query_one_async(
         self, query: LiteralString, **arguments: Any
-    ) -> psycopg.rows.DictRow:
-        async with self.pool.connection() as connection:
-            async with connection.cursor() as cursor:
-                await cursor.execute(query, self._wrap_json(arguments))
+    ) -> dict[str, Any]:
+        async with self._get_cursor() as cursor:
+            await cursor.execute(query, self._wrap_json(arguments))
 
-                result = await cursor.fetchone()
+            result = await cursor.fetchone()
 
-                if result is None:
-                    raise exceptions.NoResult
-                return result
+            if result is None:
+                raise exceptions.NoResult
+            return result
 
     @wrap_exceptions
     async def execute_query_all_async(
         self, query: LiteralString, **arguments: Any
-    ) -> list[psycopg.rows.DictRow]:
-        async with self.pool.connection() as connection:
-            async with connection.cursor() as cursor:
-                await cursor.execute(query, self._wrap_json(arguments))
-                return await cursor.fetchall()
+    ) -> list[dict[str, Any]]:
+        async with self._get_cursor() as cursor:
+            await cursor.execute(query, self._wrap_json(arguments))
+
+            return await cursor.fetchall()
+
+    def _make_dynamic_query(
+        self,
+        query: LiteralString,
+        **identifiers: str,
+    ) -> psycopg.sql.Composed:
+        return psycopg.sql.SQL(query).format(
+            **{key: psycopg.sql.Identifier(value) for key, value in identifiers.items()}
+        )
 
     @wrap_exceptions
     async def listen_notify(
         self, event: asyncio.Event, channels: Iterable[str]
     ) -> None:
-        # We need to acquire a dedicated connection, and use the listen
-        # query
-        if self.pool.max_size == 1:
-            logger.warning(
-                "Listen/Notify capabilities disabled because maximum pool size"
-                "is set to 1",
-                extra={"action": "listen_notify_disabled"},
-            )
-            return
-
-        query_template = psycopg.sql.SQL(sql.queries["listen_queue"])
-
         while True:
-            async with self.pool.connection() as connection:
-                # autocommit is required for async connection notifies
-                await connection.set_autocommit(True)
-
+            async with await self.pool.connection_class.connect(
+                self.pool.conninfo, **self.pool.kwargs, autocommit=True
+            ) as connection:
+                connection = cast(psycopg.AsyncConnection, connection)
                 for channel_name in channels:
-                    query = query_template.format(
-                        channel_name=psycopg.sql.Identifier(channel_name)
+                    await connection.execute(
+                        query=self._make_dynamic_query(
+                            query=sql.queries["listen_queue"],
+                            channel_name=channel_name,
+                        ),
                     )
-                    await connection.execute(query)
                 # Initial set() lets caller know that we're ready to listen
                 event.set()
                 await self._loop_notify(event=event, connection=connection)
@@ -269,18 +282,20 @@ class PsycopgConnector(connector.BaseAsyncConnector):
         self,
         event: asyncio.Event,
         connection: psycopg.AsyncConnection,
+        timeout: float = LISTEN_TIMEOUT,
     ) -> None:
         # We'll leave this loop with a CancelledError, when we get cancelled
 
         while True:
-            if connection.closed:
-                return
             try:
-                notifies = connection.notifies()
-                async for _ in notifies:
+                async for _ in utils.gen_with_timeout(
+                    aiterable=connection.notifies(),
+                    timeout=timeout,
+                    raise_timeout=False,
+                ):
                     event.set()
-            except psycopg.OperationalError:
-                break
 
-    def __del__(self):
-        pass
+                await connection.execute("SELECT 1")
+            except psycopg.OperationalError:
+                # Connection is dead, we need to reconnect
+                break
