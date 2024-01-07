@@ -1,0 +1,14 @@
+<html>
+<head>
+    <title>Book List</title>
+</head>
+<body>
+    <h1>Book List</h1>
+    <ul>
+        {% for book in book_list %}
+            <li>{{ book.title }} by {{ book.author }} - Indexed: {{ book.indexed | yesno}}</li>
+        {% endfor %}
+    </ul>
+    <p><em>Indexing takes 5s after creation.</em></p>
+    <p><a href="{% url 'create_book' %}">Add a Book</a></p>
+</html>

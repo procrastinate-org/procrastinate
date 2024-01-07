@@ -34,7 +34,7 @@ echo ""
 echo "Database is ready!"
 echo ""
 
-export PROCRASTINATE_APP=procrastinate_demo.app.app
+export PROCRASTINATE_APP=procrastinate_demos.demo_async.app.app
 export PATH="$(pwd)/scripts/:$PATH"
 source $(poetry env info -p)/bin/activate
 
