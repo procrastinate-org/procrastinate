@@ -64,7 +64,7 @@ From the command line
 
     $ procrastinate defer my_module.my_task '{"a": 1, "b": 2}'
 
-If the task is not registered, but you want to launch it anyway:
+If the task is not registered, but you want to defer it anyway:
 
 
 .. code-block:: console

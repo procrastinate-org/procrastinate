@@ -1,48 +1,45 @@
+.. _sync-defer:
+
 Control the way synchronous calls to defer are handled
 ======================================================
 
-In some cases, usually linked to multi-threading (see `discussion-sync-defer`), you may
-want to defer tasks purely synchronously (what is called "classic" synchronous I/O).
+When your app is synchronous (see `discussion-async`), you may want to
+defer tasks synchronously.
+In most cases, if you set up an asynchronous connector, Procrastinate will
+automatically select the right connector for you. However, you can also
+explicitly set up a synchronous connector.
 
-``Psycopg2Connector``
----------------------
+``SyncPsycopgConnector``
+------------------------
 
-By setting your `App`'s connector to an instance of `Psycopg2Connector`, you will
-get "classic" synchronous I/O. Note that in this case, some ``App`` features will be
-unavailable, such as the ``shell`` and ``worker`` sub-commands::
+By setting your `App`'s connector to an instance of `SyncPsycopgConnector` (or
+any other synchronous connector), you will get "classic" synchronous I/O. Note
+that in this case, the only thing you'll be able to do is defer tasks. Other
+operations trigger an error with a synchronous connector.
+
+::
 
     import procrastinate
 
     app = procrastinate.App(
-        connector=procrastinate.Psycopg2Connector(
+        connector=procrastinate.SyncPsycopgConnector(
             host="somehost",
         ),
     )
 
-It is perfectly fine to give the App either kind of connectors depending on the
-situation::
+`SyncPsycopgConnector` uses a ``psycopg_pool.ConnectionPool`` (see psycopg
+documentation__).
 
-    import sys, procrastinate
-
-    # This is an example condition, you'll need to check that it works in your case
-    if sys.argv[0:2] == ["procrastinate", "worker"]:
-        connector_class = procrastinate.AiopgConnector
-    else:
-        connector_class = procrastinate.Psycopg2Connector
-
-    app = procrastinate.App(
-        connector=connector_class(host="somehost"),
-    )
+.. __: https://www.psycopg.org/psycopg3/docs/api/pool.html#psycopg_pool.ConnectionPool
 
 
-How does it work?
-~~~~~~~~~~~~~~~~~
+``Psycopg2Connector``
+---------------------
 
-The synchronous connector will use a ``psycopg2.pool.ThreadedConnectionPool`` (see
-psycopg2 documentation__), which should fit most workflows.
-
-.. __: https://www.psycopg.org/docs/pool.html#psycopg2.pool.ThreadedConnectionPool
-
+The `Psycopg2Connector` is a connector that uses a
+``psycopg2_pool.ThreadedConnectionPool``. It used to be the default connector,
+but `SyncPsycopgConnector` is now the preferred option. There is no plan to
+deprecate `Psycopg2Connector`.
 
 ``SQLAlchemyPsycopg2Connector``
 -------------------------------
@@ -76,11 +73,32 @@ create multiple synchronized apps with `App.with_connector`::
 
 
     app = procrastinate.App(
-        connector=procrastinate.AiopgConnector(...),
+        connector=procrastinate.PsycopgConnector(...),
     )
 
     sync_app = app.with_connector(
-        connector=procrastinate.Psycopg2Connector(...),
+        connector=procrastinate.SyncPsycopgConnector(...),
     )
 
-If you do this, you can then register or defer tasks on either app.
+
+Procrastinate's automatic connector selection
+---------------------------------------------
+
+Async connectors are able to summon their synchronous counterpart when needed
+(using ``BaseConnector.get_sync_connector``).
+
+All sync operations in Procrastinate (so mainly deferring tasks synchronously)
+will request the synchronous connector from the async connector under the hood.
+
+.. note::
+
+    If you're relying on this mechanism, note the following mechanism:
+
+    If you request the synchronous connector before opening the app, you will
+    be using a synchronous connector.
+
+    If you request the synchronous connector after opening the app, you will get
+    the asynchronous connector, with a compatibility layer to make synchronous
+    operations. This will only work if you call it inside a function decorated
+    with ``asgiref.sync.sync_to_async`` (such as inside a sync job). Otherwise,
+    you will likely get a ``RuntimeError``.

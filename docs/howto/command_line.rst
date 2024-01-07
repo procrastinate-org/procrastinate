@@ -25,21 +25,32 @@ Please read the included help to get familiar with its commands and parameters:
 
 .. command-output:: procrastinate --help
 
-Avoid specifying the ``--app`` parameter all the time
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Define your app
+^^^^^^^^^^^^^^^
 
-Procrastinate needs to know your app for most operations. in particular in the
-command line interface, you'll find yourself frequently typing
-``--app=dotted.path.to.app``. You can specify this one in your environment by instead
-using:
+When using the Procrastinate CLI, you'll almost always need to specify your app.
+This can be done in two ways:
 
-.. code-block:: console
+- Using the ``--app`` parameter:
 
-    $ export PROCRASTINATE_APP=dotted.path.to.app worker
+  .. code-block:: console
 
-As a general rule, all parameters have an environment variable equivalent, named
-``PROCRASTINATE_SOMETHING`` where ``SOMETHING`` is the uppercased long name of the
-option, with ``-`` replaced with ``_``.
+      $ procrastinate --app=dotted.path.to.app worker
+
+- Using the ``PROCRASTINATE_APP`` environment variable:
+
+  .. code-block:: console
+
+      $ export PROCRASTINATE_APP=dotted.path.to.app
+      $ procrastinate worker
+
+As a general rule, all parameters have an environment variable equivalent,
+named ``PROCRASTINATE_SOMETHING`` or ``PROCRASTINATE_SUBCOMMAND_SOMETHING``
+where ``SOMETHING`` is the uppercased long name of the option, with ``-``
+replaced with ``_`` (e.g. ``PROCRASTINATE_DEFER_UNKNOWN``). ``procrastinate
+--help`` will show you the environment variable equivalent of each parameter.
+
+In both case, the app you specify must have an asynchronous connector.
 
 Logging
 ^^^^^^^

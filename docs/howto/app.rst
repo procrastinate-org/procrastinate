@@ -6,7 +6,7 @@ We advise you to place your app in one of the following places:
 - Ideally, a dedicated module (``your_app.procrastinate`` for example),
 - The place where you define all your tasks if it's a single module.
 
-In the first case, it's important to specify the location to your tasks using the
+In the first case, it's important to specify the location of your tasks using the
 ``import_paths`` parameter::
 
     import procrastinate

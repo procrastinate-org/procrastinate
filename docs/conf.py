@@ -92,9 +92,7 @@ html_theme_options = {
     "github_user": "procrastinate-org",
     "github_repo": "procrastinate",
     "badge_branch": "main",
-    "github_banner": True,
     "github_button": True,
-    "travis_button": True,
 }
 
 sphinx_github_changelog_token = os.environ.get("CHANGELOG_GITHUB_TOKEN")
