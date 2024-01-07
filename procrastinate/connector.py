@@ -11,6 +11,9 @@ class BaseConnector:
     json_dumps: Optional[Callable] = None
     json_loads: Optional[Callable] = None
 
+    def get_sync_connector(self) -> "BaseConnector":
+        raise NotImplementedError
+
     def open(self, pool: Optional[Pool] = None) -> None:
         raise NotImplementedError
 
