@@ -26,8 +26,8 @@ SELECT job.id, status, task_name, lock, queueing_lock, args, scheduled_at, queue
 WHERE event.type = 'started'
   AND job.status = 'doing'
   AND event.at < NOW() - (%(nb_seconds)s || 'SECOND')::INTERVAL
-  AND (%(queue)s IS NULL OR job.queue_name = %(queue)s)
-  AND (%(task_name)s IS NULL OR job.task_name = %(task_name)s)
+  AND (%(queue)s::varchar IS NULL OR job.queue_name = %(queue)s)
+  AND (%(task_name)s::varchar IS NULL OR job.task_name = %(task_name)s)
 GROUP BY job.id
 
 -- delete_old_jobs --
@@ -41,8 +41,8 @@ WHERE id IN (
               ON job.id = event.job_id
             ORDER BY job.id, event.at DESC
     ) AS job
-    WHERE job.status in %(statuses)s
-      AND (%(queue)s IS NULL OR job.queue_name = %(queue)s)
+    WHERE job.status = ANY(%(statuses)s)
+      AND (%(queue)s::varchar IS NULL OR job.queue_name = %(queue)s)
       AND latest_at < NOW() - (%(nb_hours)s || 'HOUR')::INTERVAL
 )
 
@@ -78,12 +78,12 @@ SELECT id,
        scheduled_at,
        attempts
   FROM procrastinate_jobs
- WHERE (%(id)s IS NULL OR id = %(id)s)
-   AND (%(queue_name)s IS NULL OR queue_name = %(queue_name)s)
-   AND (%(task_name)s IS NULL OR task_name = %(task_name)s)
-   AND (%(status)s IS NULL OR status = %(status)s)
-   AND (%(lock)s IS NULL OR lock = %(lock)s)
-   AND (%(queueing_lock)s IS NULL OR queueing_lock = %(queueing_lock)s)
+ WHERE (%(id)s::bigint IS NULL OR id = %(id)s)
+   AND (%(queue_name)s::varchar IS NULL OR queue_name = %(queue_name)s)
+   AND (%(task_name)s::varchar IS NULL OR task_name = %(task_name)s)
+   AND (%(status)s::procrastinate_job_status IS NULL OR status = %(status)s)
+   AND (%(lock)s::varchar IS NULL OR lock = %(lock)s)
+   AND (%(queueing_lock)s::varchar IS NULL OR queueing_lock = %(queueing_lock)s)
  ORDER BY id ASC;
 
 -- list_queues --
@@ -98,10 +98,10 @@ WITH jobs AS (
           scheduled_at,
           attempts
      FROM procrastinate_jobs
-    WHERE (%(queue_name)s IS NULL OR queue_name = %(queue_name)s)
-      AND (%(task_name)s IS NULL OR task_name = %(task_name)s)
-      AND (%(status)s IS NULL OR status = %(status)s)
-      AND (%(lock)s IS NULL OR lock = %(lock)s)
+    WHERE (%(queue_name)s::varchar IS NULL OR queue_name = %(queue_name)s)
+      AND (%(task_name)s::varchar IS NULL OR task_name = %(task_name)s)
+      AND (%(status)s::procrastinate_job_status IS NULL OR status = %(status)s)
+      AND (%(lock)s::varchar IS NULL OR lock = %(lock)s)
 )
 SELECT queue_name AS name,
        COUNT(id) AS jobs_count,
@@ -130,10 +130,10 @@ WITH jobs AS (
           scheduled_at,
           attempts
      FROM procrastinate_jobs
-    WHERE (%(queue_name)s IS NULL OR queue_name = %(queue_name)s)
-      AND (%(task_name)s IS NULL OR task_name = %(task_name)s)
-      AND (%(status)s IS NULL OR status = %(status)s)
-      AND (%(lock)s IS NULL OR lock = %(lock)s)
+    WHERE (%(queue_name)s::varchar IS NULL OR queue_name = %(queue_name)s)
+      AND (%(task_name)s::varchar IS NULL OR task_name = %(task_name)s)
+      AND (%(status)s::procrastinate_job_status IS NULL OR status = %(status)s)
+      AND (%(lock)s::varchar IS NULL OR lock = %(lock)s)
 )
 SELECT task_name AS name,
        COUNT(id) AS jobs_count,
@@ -158,10 +158,10 @@ WITH jobs AS (
     lock,
     status
   FROM procrastinate_jobs
-  WHERE (%(queue_name)s IS NULL OR queue_name = %(queue_name)s)
-  AND (%(task_name)s IS NULL OR task_name = %(task_name)s)
-  AND (%(status)s IS NULL OR status = %(status)s)
-  AND (%(lock)s IS NULL OR lock = %(lock)s)
+  WHERE (%(queue_name)s::varchar IS NULL OR queue_name = %(queue_name)s)
+  AND (%(task_name)s::varchar IS NULL OR task_name = %(task_name)s)
+  AND (%(status)s::procrastinate_job_status IS NULL OR status = %(status)s)
+  AND (%(lock)s::varchar IS NULL OR lock = %(lock)s)
   AND lock IS NOT NULL
 ), locks AS (
   SELECT
