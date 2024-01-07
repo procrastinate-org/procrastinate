@@ -1,6 +1,5 @@
 import asyncio
 import datetime
-import functools
 import importlib
 import inspect
 import logging
@@ -9,6 +8,8 @@ import sys
 import types
 from typing import (
     Any,
+    AsyncGenerator,
+    AsyncIterator,
     Awaitable,
     Callable,
     Coroutine,
@@ -411,3 +412,27 @@ class MovedElsewhere:
         raise exceptions.MovedElsewhere(
             f"procrastinate.{self.name} has been moved to {self.new_location}"
         )
+
+
+V = TypeVar("V")
+
+
+async def gen_with_timeout(
+    aiterable: AsyncIterator[V],
+    timeout: float,
+    raise_timeout: bool,
+) -> AsyncGenerator[V, None]:
+    """
+    Wrap an async generator to add a timeout to each iteration.
+    """
+    aiterator = aiterable.__aiter__()
+    while True:
+        try:
+            yield await asyncio.wait_for(aiterator.__anext__(), timeout=timeout)
+        except StopAsyncIteration:
+            break
+        except asyncio.TimeoutError:
+            if raise_timeout:
+                raise
+            else:
+                return
