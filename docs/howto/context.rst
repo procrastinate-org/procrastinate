@@ -26,15 +26,11 @@ attribute corresponding to the elements that were passed::
         await app.run_worker_async(additional_context={"http_session": http_session})
         ...
 
-It may not be a good practice to use this ``additional_context`` object to share data
-from tasks to tasks. In order to keep the least surprising behavior, Procrastinate will
-try to keep modifications of this dictionary in one task from being visible by other
-tasks: tasks receive a shallow copy of this dict instead of the dict itself.
+This feature is not supposed to be used for passing data from a task to a
+future task. In order to deter this behavior, Procrastinate will
+not keep modifications made to the ``additional_context`` dict after the worker has
+started.
 
 That being said, the values kept in this dict are not processed by Procrastinate. Any
 task mutating a value inside this dict will impact what all the concurrent and following
 tasks will read.
-
-Note that if you start a worker, providing it an ``additional_context`` dict, and then
-modify the dict, the dict the tasks will receive will also be a shallow copy of the dict
-at the time the worker started running.

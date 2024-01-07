@@ -34,12 +34,18 @@ Create a Procrastinate application object
 
 We'll do this in a single file. Start an empty file named ``tutorial.py``::
 
-    from procrastinate import AiopgConnector, App
+    from procrastinate import App, PsycopgConnector
 
     app = App(
-        connector=AiopgConnector(host="localhost", user="postgres", password="password")
+        connector=PsycopgConnector(
+            kwargs={
+                "host": "localhost",
+                "user": "postgres",
+                "password": "password",
+            }
+        )
     )
-    app.open()
+
 
 
 The application will be the entry point for both:
@@ -47,9 +53,6 @@ The application will be the entry point for both:
 - Declaring tasks (a.k.a job templates) to be launched by Procrastinate,
 - Launching the worker that will consume the jobs created from those tasks.
 - Applying Database schema
-
-The ``App.open`` method is called to create the connection pool to the underlying
-database. It will be automatically terminated upon garbage collection.
 
 Prepare the database
 --------------------
@@ -81,7 +84,9 @@ Are we good to go?
 Declare a task
 --------------
 
-In your file, add the following::
+In your file, add the following
+
+.. code-block:: python
 
     # at the top of the file
     import random
@@ -110,17 +115,23 @@ The return value of a task serves no other purpose than logging.
 Launch a job
 ------------
 
-We'll use the ``defer`` method of our task::
+We'll use the ``defer`` method of our task
+
+.. code-block:: python
 
     import sys
 
     ...
 
+    def main():
+        with app.open():
+            a = int(sys.argv[1])
+            b = int(sys.argv[2])
+            print(f"Scheduling computation of {a} + {b}")
+            sum.defer(a=a, b=b)  # This is the line that launches a job
+
     if __name__ == "__main__":
-        a = int(sys.argv[1])
-        b = int(sys.argv[2])
-        print(f"Scheduling computation of {a} + {b}")
-        sum.defer(a=a, b=b)  # This is the line that launches a job
+        main()
 
 You can launch your script now with:
 
@@ -128,9 +139,28 @@ You can launch your script now with:
 
     (venv) $ python tutorial.py 2 3
 
-But at this point, it should not do a lot. Feel free to create a few tasks in advance.
+    App is instantiated in the main Python module (tutorial.py). See https://procrastinate.readthedocs.io/en/stable/discussions.html#top-level-app
+    Scheduling computation of 2 + 3
 
-Let's run all of this, and check if we can spot the result in the logs.
+.. note::
+
+    We can see that Procrastinate is complaining about the fact that we're instantiating
+    the app in the main module (``tutorial.py``, the module on which we called Python on).
+    This is not a problem for this tutorial, but it's defintely something you should
+    avoid when building your real application. Follow the link in the warning to learn
+    more, but you don't need to worry about it for now.
+
+We've deferred a job, hurrah! But nothing happened yet. We need to launch a worker to
+consume the job. Before that, let's defer a handful of jobs, so that we can see the
+worker in action:
+
+.. code-block:: console
+
+    (venv) $ python tutorial.py 5 7
+    (venv) $ python tutorial.py 3 9
+    (venv) $ python tutorial.py 1 2
+
+Time to launch a worker and see what happens.
 
 Run a worker
 ------------
@@ -145,25 +175,15 @@ Run a worker
 
 Stop the worker with ``ctrl+c``.
 
-In the logs, you can see that the result is 5, and the task took 1.8 seconds (in that
-case).
+In the logs, you can see that the result is 5, and the task took 1.8 seconds (remember
+that we added a random sleep in the task).
 
-Congratulations, you've successfully "procrastinated" the execution of your first job :)
+Congratulations, you've successfully executed your first jobs with Procrastinate!
 
 Checking your jobs
 ------------------
 
-.. code-block:: console
-
-    (venv) $ procrastinate shell
-    Welcome to the procrastinate shell.   Type help or ? to list commands.
-
-    procrastinate> list_jobs
-    #1 sum on default - [succeeded]
-
-You can check that your application can access your database, and that your
-procrastination was a success. For more precise monitoring, we can launch an interactive
-shell:
+Procrastinate comes with a simple interactive shell to check the status of your jobs:
 
 .. code-block:: console
 
@@ -184,27 +204,41 @@ shell:
 Your final file
 ---------------
 
-::
+.. code-block:: python
 
     import random
-    import time
     import sys
+    import time
 
-    from procrastinate import App, AiopgConnector
+    from procrastinate import App, PsycopgConnector
 
-    app = App(connector=AiopgConnector(host="localhost", user="postgres", password="password"))
-    app.open()
+    app = App(
+        connector=PsycopgConnector(
+            kwargs={
+                "host": "localhost",
+                "user": "postgres",
+                "password": "password",
+            }
+        )
+    )
+
 
     @app.task(name="sum")
     def sum(a, b):
         time.sleep(random.random() * 5)  # Sleep up to 5 seconds
         return a + b
 
+
+    def main():
+        with app.open():
+            a = int(sys.argv[1])
+            b = int(sys.argv[2])
+            print(f"Scheduling computation of {a} + {b}")
+            sum.defer(a=a, b=b)  # This is the line that launches a job
+
+
     if __name__ == "__main__":
-        a = int(sys.argv[1])
-        b = int(sys.argv[2])
-        print(f"Scheduling computation of {a} + {b}")
-        sum.defer(a=a, b=b)  # This is the line that launches a job
+        main()
 
 
 Going further

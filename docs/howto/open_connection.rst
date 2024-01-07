@@ -43,30 +43,6 @@ For async case::
         pass
 
 
-Create and open the app in a single line
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Both ``open`` and ``open_async`` return the current app when they are called or
-entered, which allows you to instantiate and open your app in a single line.
-
-For sync case::
-
-   app = procrastinate.App(connector=connector).open()
-
-
-Open the app, and let the garbage collector terminate the connection
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-The app does not necessarily need to be closed at the end of your program. The
-connections to the database will be automatically terminated when the database
-connector is garbage collected. Thus, your program can work with only the following
-statements, as we did in the readme and the quickstart::
-
-   app = procrastinate.App(connector=connector)
-   app.open()
-
-But remember: "explicit is better than implicit".
-
 Use an external pool instead of the connectors default pool
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
