@@ -59,8 +59,6 @@ class BaseConnector:
         except NotImplementedError:
             pass
 
-
-@utils.add_sync_api
 class BaseAsyncConnector(BaseConnector):
     async def open_async(self, pool: Optional[Pool] = None) -> None:
         raise NotImplementedError
@@ -80,6 +78,15 @@ class BaseAsyncConnector(BaseConnector):
         self, query: str, **arguments: Any
     ) -> List[Dict[str, Any]]:
         raise NotImplementedError
+
+    def execute_query(self, query: str, **arguments: Any) -> None:
+        return utils.async_to_sync(self.execute_query_async, query, **arguments)
+
+    def execute_query_one(self, query: str, **arguments: Any) -> Dict[str, Any]:
+        return utils.async_to_sync(self.execute_query_one_async, query, **arguments)
+
+    def execute_query_all(self, query: str, **arguments: Any) -> List[Dict[str, Any]]:
+        return utils.async_to_sync(self.execute_query_all_async, query, **arguments)
 
     async def listen_notify(
         self, event: asyncio.Event, channels: Iterable[str]
