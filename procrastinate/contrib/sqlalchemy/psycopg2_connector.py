@@ -116,6 +116,9 @@ class SQLAlchemyPsycopg2Connector(connector.BaseConnector):
         else:
             self._engine = self._create_engine(self._engine_dsn, self._engine_kwargs)
 
+    def get_sync_connector(self) -> "connector.BaseConnector":
+        return self
+
     @staticmethod
     def _create_engine(
         dsn: str, engine_kwargs: Dict[str, Any]
