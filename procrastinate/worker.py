@@ -1,8 +1,10 @@
 import asyncio
+import functools
+import inspect
 import logging
 import time
 from enum import Enum
-from typing import Any, Dict, Iterable, Optional, Union
+from typing import Any, Awaitable, Callable, Dict, Iterable, Optional, Union
 
 from procrastinate import app, exceptions, job_context, jobs, signals, tasks, utils
 
@@ -34,7 +36,7 @@ class Worker:
         wait: bool = True,
         timeout: float = WORKER_TIMEOUT,
         listen_notify: bool = True,
-        delete_jobs: str = DeleteJobCondition.NEVER.value,
+        delete_jobs: Union[str, DeleteJobCondition] = DeleteJobCondition.NEVER.value,
         additional_context: Optional[Dict[str, Any]] = None,
     ):
         self.app = app
@@ -45,7 +47,11 @@ class Worker:
         self.timeout = timeout
         self.wait = wait
         self.listen_notify = listen_notify
-        self.delete_jobs = DeleteJobCondition(delete_jobs)
+        self.delete_jobs = (
+            DeleteJobCondition(delete_jobs)
+            if isinstance(delete_jobs, str)
+            else delete_jobs
+        )
 
         self.job_manager = self.app.job_manager
 
@@ -234,16 +240,25 @@ class Worker:
         log_action = "job_error"
         log_level = logging.ERROR
         exc_info: Union[bool, BaseException] = False
+
+        await_func: Callable[..., Awaitable]
+        if inspect.iscoroutinefunction(task.func):
+            await_func = task
+        else:
+            await_func = functools.partial(utils.sync_to_async, task)
+
         try:
-            task_result = task(*job_args, **job.task_kwargs)
-            if asyncio.iscoroutine(task_result):
+            task_result = await await_func(*job_args, **job.task_kwargs)
+            # In some cases, the task function might be a synchronous function
+            # that returns an awaitable without actually being a
+            # coroutinefunction. In that case, in the await above, we haven't
+            # actually called the task, but merely generated the awaitable that
+            # implements the task. In that case, we want to wait this awaitable.
+            # It's easy enough to be in that situation that the best course of
+            # action is probably to await the awaitable.
+            # It's not even sure it's worth emitting a warning
+            if inspect.isawaitable(task_result):
                 task_result = await task_result
-            elif self.concurrency != 1:
-                logger.warning(
-                    "When using worker concurrency, non-async tasks will block "
-                    "the whole worker.",
-                    extra=context.log_extra(action="concurrent_sync_task"),
-                )
 
         except BaseException as e:
             task_result = None
