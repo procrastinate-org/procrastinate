@@ -490,3 +490,17 @@ def import_or_wrapper(*names: str) -> Iterable[types.ModuleType]:
                 raise exception
 
         yield Wrapper()  # type: ignore
+
+
+class MovedElsewhere:
+    def __init__(self, name: str, new_location: str):
+        self.name = name
+        self.new_location = new_location
+
+    def __call__(self, *args: Any, **kwargs: Any) -> Any:
+        self.x
+
+    def __getattr__(self, item):
+        raise exceptions.MovedElsewhere(
+            f"procrastinate.{self.name} has been moved to {self.new_location}"
+        )

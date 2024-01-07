@@ -3,7 +3,9 @@ import collections
 import psycopg2
 import pytest
 
-from procrastinate import aiopg_connector, exceptions
+from procrastinate import exceptions
+from procrastinate.contrib.aiopg import aiopg_connector
+from procrastinate.contrib.psycopg2 import psycopg2_connector
 
 
 @pytest.fixture
@@ -29,14 +31,21 @@ async def test_adapt_pool_args_on_connect(mocker):
     assert called == [connection]
 
 
-async def test_wrap_exceptions_wraps():
+@pytest.mark.parametrize(
+    "exc_type, expected_type",
+    [
+        (psycopg2.errors.UniqueViolation, exceptions.UniqueViolation),
+        (psycopg2.errors.DatabaseError, exceptions.ConnectorException),
+    ],
+)
+async def test_wrap_exceptions_wraps(exc_type, expected_type):
     @aiopg_connector.wrap_exceptions
     async def corofunc():
-        raise psycopg2.DatabaseError
+        raise exc_type
 
     coro = corofunc()
 
-    with pytest.raises(exceptions.ConnectorException):
+    with pytest.raises(expected_type):
         await coro
 
 
@@ -189,16 +198,13 @@ def test_get_pool(connector):
         _ = connector.pool
 
 
-@pytest.mark.parametrize(
-    "query, has_arguments, expected",
-    [
-        ("a % b", False, "a %% b"),
-        ("a % b", True, "a % b"),
-        (12, False, 12),
-    ],
-)
-def test_prepare_for_interpolation(query, has_arguments, expected, connector):
-    result = connector._prepare_for_interpolation(
-        query=query, has_arguments=has_arguments
-    )
-    assert result == expected
+async def test_get_sync_connector__open(connector):
+    await connector.open_async()
+    assert connector.get_sync_connector() is connector
+    await connector.close_async()
+
+
+async def test_get_sync_connector__not_open(connector):
+    sync = connector.get_sync_connector()
+    assert isinstance(sync, psycopg2_connector.Psycopg2Connector)
+    assert connector.get_sync_connector() is sync

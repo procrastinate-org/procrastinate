@@ -1,12 +1,21 @@
 from procrastinate import metadata as _metadata_module
-from procrastinate.aiopg_connector import AiopgConnector
 from procrastinate.app import App
 from procrastinate.blueprints import Blueprint
 from procrastinate.connector import BaseConnector
 from procrastinate.job_context import JobContext
-from procrastinate.psycopg2_connector import Psycopg2Connector
 from procrastinate.psycopg_connector import PsycopgConnector
 from procrastinate.retry import BaseRetryStrategy, RetryStrategy
+from procrastinate.sync_psycopg_connector import SyncPsycopgConnector
+from procrastinate.utils import MovedElsewhere as _MovedElsewhere
+
+AiopgConnector = _MovedElsewhere(
+    name="AiopgConnector",
+    new_location="procrastinate.contrib.aiopg.AiopgConnector",
+)
+Psycopg2Connector = _MovedElsewhere(
+    name="Psycopg2Connector",
+    new_location="procrastinate.contrib.psycopg2.Psycopg2Connector",
+)
 
 __all__ = [
     "App",
@@ -14,9 +23,8 @@ __all__ = [
     "JobContext",
     "BaseConnector",
     "BaseRetryStrategy",
-    "AiopgConnector",
-    "Psycopg2Connector",
     "PsycopgConnector",
+    "SyncPsycopgConnector",
     "RetryStrategy",
 ]
 
