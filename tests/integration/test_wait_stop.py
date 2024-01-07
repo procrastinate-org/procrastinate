@@ -6,11 +6,11 @@ from procrastinate import app
 from procrastinate import worker as worker_module
 
 
-async def test_wait_for_activity(aiopg_connector):
+async def test_wait_for_activity(psycopg_connector):
     """
     Testing that a new event interrupts the wait
     """
-    pg_app = app.App(connector=aiopg_connector)
+    pg_app = app.App(connector=psycopg_connector)
     worker = worker_module.Worker(app=pg_app, timeout=2)
     worker.notify_event = asyncio.Event()
     task = asyncio.ensure_future(worker.single_worker(worker_id=0))
@@ -25,11 +25,11 @@ async def test_wait_for_activity(aiopg_connector):
         pytest.fail("Failed to stop worker within .2s")
 
 
-async def test_wait_for_activity_timeout(aiopg_connector):
+async def test_wait_for_activity_timeout(psycopg_connector):
     """
     Testing that we timeout if nothing happens
     """
-    pg_app = app.App(connector=aiopg_connector)
+    pg_app = app.App(connector=psycopg_connector)
     worker = worker_module.Worker(app=pg_app, timeout=2)
     worker.notify_event = asyncio.Event()
     task = asyncio.ensure_future(worker.single_worker(worker_id=0))
@@ -44,11 +44,11 @@ async def test_wait_for_activity_timeout(aiopg_connector):
         worker.notify_event.set()
 
 
-async def test_wait_for_activity_stop_from_signal(aiopg_connector, kill_own_pid):
+async def test_wait_for_activity_stop_from_signal(psycopg_connector, kill_own_pid):
     """
     Testing than ctrl+c interrupts the wait
     """
-    pg_app = app.App(connector=aiopg_connector)
+    pg_app = app.App(connector=psycopg_connector)
     worker = worker_module.Worker(app=pg_app, timeout=2)
     task = asyncio.ensure_future(worker.run())
     await asyncio.sleep(0.2)  # should be enough so that we're waiting
@@ -61,11 +61,11 @@ async def test_wait_for_activity_stop_from_signal(aiopg_connector, kill_own_pid)
         pytest.fail("Failed to stop worker within .2s")
 
 
-async def test_wait_for_activity_stop(aiopg_connector):
+async def test_wait_for_activity_stop(psycopg_connector):
     """
     Testing than calling job_manager.stop() interrupts the wait
     """
-    pg_app = app.App(connector=aiopg_connector)
+    pg_app = app.App(connector=psycopg_connector)
     worker = worker_module.Worker(app=pg_app, timeout=2)
     task = asyncio.ensure_future(worker.run())
     await asyncio.sleep(0.2)  # should be enough so that we're waiting

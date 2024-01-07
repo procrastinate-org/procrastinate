@@ -11,3 +11,4 @@ DATABASES = {
 INSTALLED_APPS = [
     "procrastinate.contrib.django",
 ]
+USE_TZ = True  # To avoid RemovedInDjango50Warning

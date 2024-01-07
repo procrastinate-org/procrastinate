@@ -37,42 +37,42 @@ def running_worker(process_env):
     return func
 
 
-def test_nominal(defer, worker):
+@pytest.mark.parametrize("app", ["app", "app_aiopg"])
+def test_nominal(defer, worker, app):
     from .param import Param
 
     defer("sum_task", a=5, b=7)
     defer("sum_task_param", p1=Param(3), p2=Param(4))
     defer("increment_task", a=3)
 
-    stdout, stderr = worker()
+    stdout, stderr = worker(app=app)
     print(stdout, stderr)
 
-    assert stdout.splitlines() == ["Launching a worker on all queues", "12", "7", "4"]
+    assert stdout.splitlines() == ["12", "7", "4"]
     assert stderr.startswith("DEBUG:procrastinate.")
 
     defer("product_task", a=5, b=4)
 
-    stdout, stderr = worker("default")
+    stdout, stderr = worker("default", app=app)
     print(stdout, stderr)
     assert "20" not in stdout
 
-    stdout, stderr = worker("product_queue")
+    stdout, stderr = worker("product_queue", app=app)
     print(stdout, stderr)
-    assert stdout.splitlines() == ["Launching a worker on product_queue", "20"]
+    assert stdout.strip() == "20"
 
     defer("two_fails")
-    stdout, stderr = worker()
+    stdout, stderr = worker(app=app)
     print(stdout, stderr)
     assert "Print something to stdout" in stdout
     assert stderr.count("Exception: This should fail") == 2
 
     defer("multiple_exception_failures")
-    stdout, stderr = worker()
+    stdout, stderr = worker(app=app)
     print(stdout, stderr)
     assert (
         stdout
-        == """Launching a worker on all queues
-Try 0
+        == """Try 0
 Try 1
 Try 2
 """
@@ -144,16 +144,16 @@ def test_queueing_lock(defer, running_worker):
     assert excinfo.value.returncode == 1
 
     with pytest.raises(subprocess.CalledProcessError) as excinfo:
-        defer("sometask", ["--queueing-lock", "a"], app="sync_app")
+        defer("sometask", ["--queueing-lock", "a"], app="app")
 
-    defer("sometask", ["--queueing-lock", "c"], app="sync_app")
+    defer("sometask", ["--queueing-lock", "c"], app="app")
 
     # This one doesn't raise
     defer("sometask", ["--queueing-lock", "a", "--ignore-already-enqueued"])
     defer(
         "sometask",
         ["--queueing-lock", "a", "--ignore-already-enqueued"],
-        app="sync_app",
+        app="app",
     )
 
 
@@ -171,7 +171,7 @@ def test_periodic_deferrer(worker):
     # We're making a dict from the output
     results = dict(
         (int(a) for a in e[5:].split())
-        for e in stdout.splitlines()[1:]
+        for e in stdout.splitlines()
         if e.startswith("tick ")
     )
     assert list(results)[:2] == [0, 1]

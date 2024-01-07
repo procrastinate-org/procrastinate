@@ -1,11 +1,12 @@
 import asyncio
+import contextlib
 
 import pytest
 
 from procrastinate import worker
 
 
-@pytest.fixture
+@contextlib.asynccontextmanager
 async def running_worker(app):
     running_worker = worker.Worker(app=app, queues=["some_queue"])
     task = asyncio.ensure_future(running_worker.run())
@@ -15,7 +16,7 @@ async def running_worker(app):
     await asyncio.wait_for(task, timeout=0.5)
 
 
-async def test_run(app, running_worker, caplog):
+async def test_run(app, caplog):
     caplog.set_level("DEBUG")
 
     done = asyncio.Event()
@@ -24,25 +25,24 @@ async def test_run(app, running_worker, caplog):
     def t():
         done.set()
 
-    await t.configure().defer_async()
+    async with running_worker(app):
+        await t.defer_async()
 
-    try:
-        await asyncio.wait_for(done.wait(), timeout=0.5)
-    except asyncio.TimeoutError:
-        pytest.fail("Failed to launch task withing .5s")
+        try:
+            await asyncio.wait_for(done.wait(), timeout=0.5)
+        except asyncio.TimeoutError:
+            pytest.fail("Failed to launch task withing .5s")
 
     assert [q[0] for q in app.connector.queries] == [
-        "fetch_job",
         "defer_job",
         "fetch_job",
         "finish_job",
         "fetch_job",
     ]
 
-    logs = {r.action: r.levelname for r in caplog.records}
+    logs = {(r.action, r.levelname) for r in caplog.records}
     # remove the periodic_deferrer_no_task log record because that makes the test flaky
-    logs.pop("periodic_deferrer_no_task", None)
-    assert list(logs.items()) == [
+    assert {
         ("about_to_defer_job", "DEBUG"),
         ("job_defer", "INFO"),
         ("loaded_job_info", "DEBUG"),
@@ -50,22 +50,24 @@ async def test_run(app, running_worker, caplog):
         ("job_success", "INFO"),
         ("finish_task", "DEBUG"),
         ("waiting_for_jobs", "DEBUG"),
-    ]
+    } <= logs
 
 
-async def test_run_log_current_job_when_stopping(app, running_worker, caplog):
+async def test_run_log_current_job_when_stopping(app, caplog):
     caplog.set_level("DEBUG")
 
-    @app.task(queue="some_queue")
-    async def t():
-        running_worker.stop()
+    async with running_worker(app) as worker:
 
-    await t.configure(lock="sher").defer_async()
+        @app.task(queue="some_queue")
+        async def t():
+            worker.stop()
 
-    try:
-        await asyncio.wait_for(running_worker.task, timeout=0.5)
-    except asyncio.TimeoutError:
-        pytest.fail("Failed to launch task within .5s")
+        await t.defer_async()
+
+        try:
+            await asyncio.wait_for(worker.task, timeout=0.5)
+        except asyncio.TimeoutError:
+            pytest.fail("Failed to launch task within .5s")
 
     # We want to make sure that the log that names the current running task fired.
     logs = " ".join(r.message for r in caplog.records)
