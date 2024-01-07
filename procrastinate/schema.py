@@ -28,8 +28,10 @@ class SchemaManager:
 
     def apply_schema(self) -> None:
         queries = self.get_schema()
+        queries = queries.replace("%", "%%")
         self.connector.execute_query(query=queries)
 
     async def apply_schema_async(self) -> None:
         queries = self.get_schema()
+        queries = queries.replace("%", "%%")
         await self.connector.execute_query_async(query=queries)
