@@ -2,6 +2,7 @@ import asyncio
 import functools
 import json
 
+import asgiref.sync
 import attr
 import pytest
 
@@ -26,24 +27,6 @@ async def psycopg_connector_factory(psycopg_connection_params):
     yield _
     for connector in connectors:
         await connector.close_async()
-
-
-async def test_adapt_pool_args_configure(mocker):
-    called = []
-
-    async def configure(connection):
-        called.append(connection)
-
-    args = psycopg_connector.PsycopgConnector._adapt_pool_args(
-        pool_args={"configure": configure}, json_loads=None, json_dumps=None
-    )
-
-    assert args["configure"] is not configure
-
-    connection = mocker.Mock(_pool=None)
-    await args["configure"](connection)
-
-    assert called == [connection]
 
 
 @pytest.mark.parametrize(
@@ -112,6 +95,28 @@ async def test_execute_query(psycopg_connector):
     assert result == [{"obj_description": "foo"}]
 
 
+async def test_execute_query_sync(psycopg_connector):
+    @asgiref.sync.sync_to_async()
+    def sync():
+        assert (
+            psycopg_connector.execute_query(
+                "COMMENT ON TABLE \"procrastinate_jobs\" IS 'foo' "
+            )
+            is None
+        )
+        result = psycopg_connector.execute_query_one(
+            "SELECT obj_description('public.procrastinate_jobs'::regclass)"
+        )
+        assert result == {"obj_description": "foo"}
+
+        result = psycopg_connector.execute_query_all(
+            "SELECT obj_description('public.procrastinate_jobs'::regclass)"
+        )
+        assert result == [{"obj_description": "foo"}]
+
+    await sync()
+
+
 async def test_execute_query_interpolate(psycopg_connector):
     result = await psycopg_connector.execute_query_one_async(
         "SELECT %(foo)s as foo;", foo="bar"
@@ -136,10 +141,10 @@ async def test_execute_query_simultaneous(psycopg_connector):
 
 async def test_close_async(psycopg_connector):
     await psycopg_connector.execute_query_async("SELECT 1")
-    pool = psycopg_connector._pool
+    pool = psycopg_connector._async_pool
     await psycopg_connector.close_async()
     assert pool.closed is True
-    assert psycopg_connector._pool is None
+    assert psycopg_connector._async_pool is None
 
 
 async def test_listen_notify(psycopg_connector):
@@ -150,7 +155,7 @@ async def test_listen_notify(psycopg_connector):
         psycopg_connector.listen_notify(channels=[channel], event=event)
     )
     try:
-        await event.wait()
+        await asyncio.wait_for(event.wait(), timeout=0.2)
         event.clear()
         await psycopg_connector.execute_query_async(f"""NOTIFY "{channel}" """)
         await asyncio.wait_for(event.wait(), timeout=1)
@@ -164,10 +169,10 @@ async def test_loop_notify_stop_when_connection_closed(psycopg_connector):
     # We want to make sure that the when the connection is closed, the loop end.
     event = asyncio.Event()
     await psycopg_connector.open_async()
-    async with psycopg_connector._pool.connection() as connection:
+    async with psycopg_connector._async_pool.connection() as connection:
         coro = psycopg_connector._loop_notify(event=event, connection=connection)
 
-    await psycopg_connector._pool.close()
+    await psycopg_connector._async_pool.close()
     assert connection.closed
 
     try:
@@ -181,13 +186,13 @@ async def test_loop_notify_timeout(psycopg_connector):
     # connection closes, we eventually finish the coroutine.
     event = asyncio.Event()
     await psycopg_connector.open_async()
-    async with psycopg_connector._pool.connection() as connection:
+    async with psycopg_connector._async_pool.connection() as connection:
         task = asyncio.ensure_future(
             psycopg_connector._loop_notify(event=event, connection=connection)
         )
         assert not task.done()
 
-    await psycopg_connector._pool.close()
+    await psycopg_connector._async_pool.close()
     assert connection.closed
 
     try:

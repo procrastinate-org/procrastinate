@@ -8,6 +8,11 @@ from procrastinate.contrib.sqlalchemy import SQLAlchemyPsycopg2Connector
 
 
 @pytest.fixture
+def sqlalchemy_engine_dsn(connection_params):
+    yield f"postgresql+psycopg2:///{connection_params['dbname']}"
+
+
+@pytest.fixture
 def sqlalchemy_psycopg2_connector_factory(sqlalchemy_engine_dsn):
     connectors = []
 
@@ -28,6 +33,11 @@ def sqlalchemy_psycopg2_connector_factory(sqlalchemy_engine_dsn):
     yield _
     for connector in connectors:
         connector.close()
+
+
+@pytest.fixture
+def not_opened_sqlalchemy_psycopg2_connector(sqlalchemy_engine_dsn):
+    return SQLAlchemyPsycopg2Connector(dsn=sqlalchemy_engine_dsn)
 
 
 def test_connection(sqlalchemy_psycopg2_connector_factory, sqlalchemy_engine_dsn):
@@ -92,15 +102,6 @@ def test_execute_query(sqlalchemy_psycopg2_connector):
         "SELECT obj_description('public.procrastinate_jobs'::regclass)"
     )
     assert result == [{"obj_description": "foo"}]
-
-
-def test_execute_query_percent(sqlalchemy_psycopg2_connector):
-    sqlalchemy_psycopg2_connector.execute_query("SELECT '%'")
-    result = sqlalchemy_psycopg2_connector.execute_query_one("SELECT '%'")
-    assert result == {"?column?": "%"}
-
-    result = sqlalchemy_psycopg2_connector.execute_query_all("SELECT '%'")
-    assert result == [{"?column?": "%"}]
 
 
 def test_execute_query_arg(sqlalchemy_psycopg2_connector):

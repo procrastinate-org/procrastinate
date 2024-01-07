@@ -85,7 +85,7 @@ def test_list_jobs_filters(shell, connector, capsys):
         (
             "list_jobs",
             {
-                "id": "2",
+                "id": 2,
                 "queue_name": "queue2",
                 "task_name": "task2",
                 "queueing_lock": None,

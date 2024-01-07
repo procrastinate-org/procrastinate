@@ -1,27 +1,19 @@
 import pytest
 
-import procrastinate
+from procrastinate import app as app_module
+from procrastinate.contrib import aiopg
 
 
-@pytest.fixture
-async def async_app_context_manager(not_opened_aiopg_connector):
-    async with procrastinate.App(
-        connector=not_opened_aiopg_connector
-    ).open_async() as app:
+@pytest.fixture(params=["psycopg_connector", "aiopg_connector"])
+async def async_app(request, psycopg_connector, connection_params):
+    app = app_module.App(
+        connector={
+            "psycopg_connector": psycopg_connector,
+            "aiopg_connector": aiopg.AiopgConnector(**connection_params),
+        }[request.param]
+    )
+    async with app.open_async():
         yield app
-
-
-@pytest.fixture(
-    params=[
-        pytest.param(False, id="explicit open"),
-        pytest.param(True, id="context manager open"),
-    ]
-)
-async def async_app(request, async_app_explicit_open, async_app_context_manager):
-    if request.param:
-        yield async_app_explicit_open
-    else:
-        yield async_app_context_manager
 
 
 async def test_defer(async_app):

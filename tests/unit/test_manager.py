@@ -72,6 +72,30 @@ async def test_manager_defer_job_unique_violation_exception_other_constraint(
         await job_manager.defer_job_async(job=job_factory(task_kwargs={"a": "b"}))
 
 
+async def test_manager_defer_job_unique_violation_exception_sync(
+    mocker, job_manager, job_factory, connector
+):
+    connector.execute_query_one = mocker.Mock(
+        side_effect=exceptions.UniqueViolation(
+            constraint_name="procrastinate_jobs_queueing_lock_idx"
+        )
+    )
+
+    with pytest.raises(exceptions.AlreadyEnqueued):
+        job_manager.defer_job(job=job_factory(task_kwargs={"a": "b"}))
+
+
+async def test_manager_defer_job_unique_violation_exception_other_constraint_sync(
+    mocker, job_manager, job_factory, connector
+):
+    connector.execute_query_one = mocker.Mock(
+        side_effect=exceptions.UniqueViolation(constraint_name="some_other_constraint")
+    )
+
+    with pytest.raises(exceptions.ConnectorException):
+        job_manager.defer_job(job=job_factory(task_kwargs={"a": "b"}))
+
+
 async def test_fetch_job_no_suitable_job(job_manager):
     assert await job_manager.fetch_job(queues=None) is None
 
@@ -100,7 +124,7 @@ async def test_get_stalled_jobs_stalled(job_manager, job_factory, connector):
 
 @pytest.mark.parametrize(
     "include_error, statuses",
-    [(False, ("succeeded",)), (True, ("succeeded", "failed"))],
+    [(False, ["succeeded"]), (True, ["succeeded", "failed"])],
 )
 async def test_delete_old_jobs(
     job_manager, job_factory, connector, include_error, statuses, mocker

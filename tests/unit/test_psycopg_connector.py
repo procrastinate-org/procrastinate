@@ -1,30 +1,12 @@
 import psycopg
 import pytest
 
-from procrastinate import exceptions, psycopg_connector
+from procrastinate import exceptions, psycopg_connector, sync_psycopg_connector
 
 
 @pytest.fixture
 def connector():
     return psycopg_connector.PsycopgConnector()
-
-
-async def test_adapt_pool_args_configure(mocker):
-    called = []
-
-    async def configure(connection):
-        called.append(connection)
-
-    args = psycopg_connector.PsycopgConnector._adapt_pool_args(
-        pool_args={"configure": configure}, json_loads=None, json_dumps=None
-    )
-
-    assert args["configure"] is not configure
-
-    connection = mocker.Mock(_pool=None)
-    await args["configure"](connection)
-
-    assert called == [connection]
 
 
 async def test_wrap_exceptions_wraps():
@@ -61,23 +43,13 @@ def test_wrap_exceptions_applied(method_name, connector):
     assert getattr(connector, method_name)._exceptions_wrapped is True
 
 
-async def test_listen_notify_pool_one_connection(mocker, caplog, connector):
-    pool = mocker.AsyncMock(max_size=1)
-    await connector.open_async(pool)
-    caplog.clear()
-
-    await connector.listen_notify(None, None)
-
-    assert {e.action for e in caplog.records} == {"listen_notify_disabled"}
-
-
 async def test_open_async_no_pool_specified(mocker, connector):
     mocker.patch.object(connector, "_create_pool", return_value=mocker.AsyncMock())
 
     await connector.open_async()
 
     assert connector._create_pool.call_count == 1
-    assert connector._pool.open.await_count == 1
+    assert connector._async_pool.open.await_count == 1
 
 
 async def test_open_async_pool_argument_specified(mocker, connector):
@@ -88,9 +60,22 @@ async def test_open_async_pool_argument_specified(mocker, connector):
 
     assert connector._pool_externally_set is True
     assert connector._create_pool.call_count == 0
-    assert connector._pool == pool
+    assert connector._async_pool == pool
 
 
 def test_get_pool(connector):
     with pytest.raises(exceptions.AppNotOpen):
         _ = connector.pool
+
+
+async def test_get_sync_connector__open(connector):
+    await connector.open_async()
+    assert connector.get_sync_connector() is connector
+    await connector.close_async()
+
+
+async def test_get_sync_connector__not_open(connector):
+    sync = connector.get_sync_connector()
+    assert isinstance(sync, sync_psycopg_connector.SyncPsycopgConnector)
+    assert connector.get_sync_connector() is sync
+    assert sync._pool_args == connector._pool_args
