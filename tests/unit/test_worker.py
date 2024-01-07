@@ -1,5 +1,4 @@
 import asyncio
-import logging
 
 import pytest
 
@@ -235,6 +234,30 @@ async def test_run_job_async(app):
     assert result == [12]
 
 
+async def test_run_job_semi_async(app):
+    result = []
+
+    @app.task(queue="yay", name="task_func")
+    def task_func(a, b):
+        async def inner():
+            result.append(a + b)
+
+        return inner()
+
+    job = jobs.Job(
+        id=16,
+        task_kwargs={"a": 9, "b": 3},
+        lock="sherlock",
+        queueing_lock="houba",
+        task_name="task_func",
+        queue="yay",
+    )
+    test_worker = worker.Worker(app, queues=["yay"])
+    await test_worker.run_job(job=job, worker_id=3)
+
+    assert result == [12]
+
+
 async def test_run_job_log_result(caplog, app):
     caplog.set_level("INFO")
 
@@ -440,32 +463,6 @@ async def test_run_job_pass_context(app):
         context,
         1,
     ]
-
-
-async def test_run_job_concurrency_warning(app, caplog):
-    # Running a sync task with concurrency > 1 should raise a warning
-    result = []
-    caplog.set_level(logging.WARNING)
-
-    @app.task(queue="yay", name="job")
-    def task_func(a):
-        result.append(a)
-
-    job = jobs.Job(
-        id=16,
-        task_kwargs={"a": 1},
-        lock="sherlock",
-        queueing_lock="houba",
-        task_name="job",
-        queue="yay",
-    )
-    test_worker = worker.Worker(app, concurrency=2)
-    await test_worker.run_job(job=job, worker_id=0)
-
-    assert result == [1]
-    assert [(r.action, r.levelname) for r in caplog.records] == [
-        ("concurrent_sync_task", "WARNING")
-    ], caplog.records
 
 
 async def test_wait_for_job_with_job(app, mocker):
