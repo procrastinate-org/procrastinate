@@ -1,7 +1,7 @@
 import asyncio
 import datetime
 import logging
-from typing import Any, Dict, Iterable, Optional
+from typing import Any, Dict, Iterable, NoReturn, Optional
 
 from procrastinate import connector, exceptions, jobs, sql, utils
 
@@ -49,7 +49,7 @@ class JobManager:
         Sync version of `defer_job_async`.
         """
         try:
-            result = self.connector.execute_query_one(
+            result = self.connector.get_sync_connector().execute_query_one(
                 **self._defer_job_query_kwargs(job=job)
             )
         except exceptions.UniqueViolation as exc:
@@ -70,7 +70,7 @@ class JobManager:
 
     def _raise_already_enqueued(
         self, exc: exceptions.UniqueViolation, queueing_lock: Optional[str]
-    ):
+    ) -> NoReturn:
         if exc.constraint_name == QUEUEING_LOCK_CONSTRAINT:
             raise exceptions.AlreadyEnqueued(
                 "Job cannot be enqueued: there is already a job in the queue "
@@ -201,7 +201,7 @@ class JobManager:
             query=sql.queries["delete_old_jobs"],
             nb_hours=nb_hours,
             queue=queue,
-            statuses=tuple(statuses),
+            statuses=statuses,
         )
 
     async def finish_job(
@@ -292,7 +292,7 @@ class JobManager:
             event=event, channels=get_channel_for_queues(queues=queues)
         )
 
-    async def check_connection(self) -> bool:
+    async def check_connection_async(self) -> bool:
         """
         Dummy query, check that the main Procrastinate SQL table exists.
         Raises if there's a connection problem.
@@ -303,6 +303,15 @@ class JobManager:
             ``True`` if the table exists, ``False`` otherwise.
         """
         result = await self.connector.execute_query_one_async(
+            query=sql.queries["check_connection"],
+        )
+        return result["check"] is not None
+
+    def check_connection(self) -> bool:
+        """
+        Sync version of `check_connection_async`.
+        """
+        result = self.connector.get_sync_connector().execute_query_one(
             query=sql.queries["check_connection"],
         )
         return result["check"] is not None
