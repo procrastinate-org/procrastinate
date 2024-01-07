@@ -6,10 +6,12 @@ from typing import Any, Callable, Coroutine, Dict, Iterable, List, Optional
 import aiopg
 import psycopg2
 import psycopg2.errors
+import psycopg2.extras
 import psycopg2.sql
 from psycopg2.extras import Json, RealDictCursor
 
-from procrastinate import connector, exceptions, sql
+from procrastinate import connector, exceptions, sql, utils
+from procrastinate.contrib.psycopg2 import psycopg2_connector
 
 logger = logging.getLogger(__name__)
 
@@ -141,6 +143,20 @@ class AiopgConnector(connector.BaseAsyncConnector):
         self.json_loads = json_loads
         self._pool_args = self._adapt_pool_args(kwargs, json_loads)
         self._lock: Optional[asyncio.Lock] = None
+        self._sync_connector: Optional[connector.BaseConnector] = None
+
+    def get_sync_connector(self) -> connector.BaseConnector:
+        if self._pool:
+            return self
+        args_copy = dict(self._pool_args)
+        args_copy.pop("on_connect", None)
+        if self._sync_connector is None:
+            self._sync_connector = psycopg2_connector.Psycopg2Connector(
+                json_dumps=self.json_dumps,
+                json_loads=self.json_loads,
+                **args_copy,
+            )
+        return self._sync_connector
 
     @staticmethod
     def _adapt_pool_args(
@@ -185,9 +201,12 @@ class AiopgConnector(connector.BaseAsyncConnector):
         else:
             self._pool = await self._create_pool(self._pool_args)
 
-    @staticmethod
     @wrap_exceptions
-    async def _create_pool(pool_args: Dict[str, Any]) -> aiopg.Pool:
+    async def _create_pool(self, pool_args: Dict[str, Any]) -> aiopg.Pool:
+        if self._sync_connector is not None:
+            await utils.sync_to_async(self._sync_connector.close)
+            self._sync_connector = None
+
         return await aiopg.create_pool(**pool_args)
 
     @wrap_exceptions
@@ -227,22 +246,9 @@ class AiopgConnector(connector.BaseAsyncConnector):
     # Because of this, it's easier to have 2 distinct methods for executing from
     # a pool or from a connection
 
-    def _prepare_for_interpolation(self, query, has_arguments):
-        # psycopg2 thinks ``%`` are for it to process. If we have ``%`` in our query,
-        # like in RAISE, we need it to be passed to the database as-is, which means
-        # we need to escape the % by doubling it.
-        return (
-            query
-            if has_arguments or not isinstance(query, str)
-            else query.replace("%", "%%")
-        )
-
     @wrap_exceptions
     @wrap_query_exceptions
     async def execute_query_async(self, query: str, **arguments: Any) -> None:
-        query = self._prepare_for_interpolation(
-            query=query, has_arguments=bool(arguments)
-        )
         with await self.pool.cursor() as cursor:
             await cursor.execute(query, self._wrap_json(arguments))
 
@@ -251,9 +257,6 @@ class AiopgConnector(connector.BaseAsyncConnector):
     async def _execute_query_connection(
         self, query: str, connection: aiopg.Connection, **arguments: Any
     ) -> None:
-        query = self._prepare_for_interpolation(
-            query=query, has_arguments=bool(arguments)
-        )
         async with connection.cursor() as cursor:
             await cursor.execute(query, self._wrap_json(arguments))
 
@@ -262,9 +265,6 @@ class AiopgConnector(connector.BaseAsyncConnector):
     async def execute_query_one_async(
         self, query: str, **arguments: Any
     ) -> Dict[str, Any]:
-        query = self._prepare_for_interpolation(
-            query=query, has_arguments=bool(arguments)
-        )
         with await self.pool.cursor() as cursor:
             await cursor.execute(query, self._wrap_json(arguments))
 
@@ -275,15 +275,12 @@ class AiopgConnector(connector.BaseAsyncConnector):
     async def execute_query_all_async(
         self, query: str, **arguments: Any
     ) -> List[Dict[str, Any]]:
-        query = self._prepare_for_interpolation(
-            query=query, has_arguments=bool(arguments)
-        )
         with await self.pool.cursor() as cursor:
             await cursor.execute(query, self._wrap_json(arguments))
 
             return await cursor.fetchall()
 
-    def _make_dynamic_query(self, query: str, **identifiers: str) -> str:
+    def _make_dynamic_query(self, query: str, **identifiers: str) -> Any:
         return psycopg2.sql.SQL(query).format(
             **{
                 key: psycopg2.sql.Identifier(value)

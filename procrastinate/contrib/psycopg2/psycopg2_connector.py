@@ -1,7 +1,6 @@
 import contextlib
 import functools
 import logging
-import re
 from typing import Any, Callable, Dict, Iterator, Optional
 
 import psycopg2
@@ -66,9 +65,6 @@ def wrap_query_exceptions(func: Callable) -> Callable:
     return wrapped
 
 
-PERCENT_PATTERN = re.compile(r"%(?![\(s])")
-
-
 class Psycopg2Connector(connector.BaseConnector):
     @wrap_exceptions
     def __init__(
@@ -123,6 +119,9 @@ class Psycopg2Connector(connector.BaseConnector):
         self._pool: Optional[psycopg2.pool.AbstractConnectionPool] = None
         self._pool_args = self._adapt_pool_args(kwargs)
         self._pool_externally_set = False
+
+    def get_sync_connector(self) -> "Psycopg2Connector":
+        return self
 
     @staticmethod
     def _adapt_pool_args(pool_args: Dict[str, Any]) -> Dict[str, Any]:
@@ -203,18 +202,14 @@ class Psycopg2Connector(connector.BaseConnector):
     def execute_query(self, query: str, **arguments: Any) -> None:
         with self._connection() as connection:
             with connection.cursor() as cursor:
-                cursor.execute(
-                    PERCENT_PATTERN.sub("%%", query), self._wrap_json(arguments)
-                )
+                cursor.execute(query, self._wrap_json(arguments))
 
     @wrap_exceptions
     @wrap_query_exceptions
     def execute_query_one(self, query: str, **arguments: Any) -> Dict[str, Any]:
         with self._connection() as connection:
             with connection.cursor() as cursor:
-                cursor.execute(
-                    PERCENT_PATTERN.sub("%%", query), self._wrap_json(arguments)
-                )
+                cursor.execute(query, self._wrap_json(arguments))
                 return cursor.fetchone()
 
     @wrap_exceptions
@@ -222,7 +217,5 @@ class Psycopg2Connector(connector.BaseConnector):
     def execute_query_all(self, query: str, **arguments: Any) -> Dict[str, Any]:
         with self._connection() as connection:
             with connection.cursor() as cursor:
-                cursor.execute(
-                    PERCENT_PATTERN.sub("%%", query), self._wrap_json(arguments)
-                )
+                cursor.execute(query, self._wrap_json(arguments))
                 return cursor.fetchall()

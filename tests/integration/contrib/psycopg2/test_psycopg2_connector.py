@@ -4,7 +4,7 @@ import json
 import psycopg2.errors
 import pytest
 
-from procrastinate import psycopg2_connector
+from procrastinate.contrib import psycopg2 as proc_psycopg2
 
 
 @pytest.fixture
@@ -15,7 +15,7 @@ def psycopg2_connector_factory(connection_params):
         json_dumps = kwargs.pop("json_dumps", None)
         json_loads = kwargs.pop("json_loads", None)
         connection_params.update(kwargs)
-        connector = psycopg2_connector.Psycopg2Connector(
+        connector = proc_psycopg2.Psycopg2Connector(
             json_dumps=json_dumps, json_loads=json_loads, **connection_params
         )
         connectors.append(connector)
@@ -25,6 +25,11 @@ def psycopg2_connector_factory(connection_params):
     yield _
     for connector in connectors:
         connector.close()
+
+
+@pytest.fixture
+def psycopg2_connector(psycopg2_connector_factory):
+    return psycopg2_connector_factory()
 
 
 def test_connection(psycopg2_connector_factory, connection_params):
@@ -87,15 +92,6 @@ def test_execute_query(psycopg2_connector):
         "SELECT obj_description('public.procrastinate_jobs'::regclass)"
     )
     assert result == [{"obj_description": "foo"}]
-
-
-def test_execute_query_percent(psycopg2_connector):
-    psycopg2_connector.execute_query("SELECT '%'")
-    result = psycopg2_connector.execute_query_one("SELECT '%'")
-    assert result == {"?column?": "%"}
-
-    result = psycopg2_connector.execute_query_all("SELECT '%'")
-    assert result == [{"?column?": "%"}]
 
 
 def test_execute_query_arg(psycopg2_connector):

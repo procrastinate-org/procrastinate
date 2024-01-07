@@ -5,7 +5,7 @@ import json
 import attr
 import pytest
 
-from procrastinate import aiopg_connector
+from procrastinate.contrib.aiopg import aiopg_connector as aiopg
 
 
 @pytest.fixture
@@ -16,7 +16,7 @@ async def aiopg_connector_factory(connection_params):
         json_dumps = kwargs.pop("json_dumps", None)
         json_loads = kwargs.pop("json_loads", None)
         connection_params.update(kwargs)
-        connector = aiopg_connector.AiopgConnector(
+        connector = aiopg.AiopgConnector(
             json_dumps=json_dumps, json_loads=json_loads, **connection_params
         )
         connectors.append(connector)
@@ -28,13 +28,18 @@ async def aiopg_connector_factory(connection_params):
         await connector.close_async()
 
 
+@pytest.fixture
+async def aiopg_connector(aiopg_connector_factory):
+    return await aiopg_connector_factory()
+
+
 async def test_adapt_pool_args_on_connect(mocker):
     called = []
 
     async def on_connect(connection):
         called.append(connection)
 
-    args = aiopg_connector.AiopgConnector._adapt_pool_args(
+    args = aiopg.AiopgConnector._adapt_pool_args(
         pool_args={"on_connect": on_connect}, json_loads=None
     )
 
@@ -110,11 +115,6 @@ async def test_execute_query(aiopg_connector):
         "SELECT obj_description('public.procrastinate_jobs'::regclass)"
     )
     assert result == [{"obj_description": "foo"}]
-
-
-async def test_execute_query_no_interpolate(aiopg_connector):
-    result = await aiopg_connector.execute_query_one_async("SELECT '%(foo)s' as foo;")
-    assert result == {"foo": "%(foo)s"}
 
 
 async def test_execute_query_interpolate(aiopg_connector):
@@ -233,7 +233,7 @@ async def test_loop_notify_timeout(aiopg_connector):
 
 
 async def test_destructor(connection_params, capsys):
-    connector = aiopg_connector.AiopgConnector(**connection_params)
+    connector = aiopg.AiopgConnector(**connection_params)
     await connector.open_async()
     await connector.execute_query_async("SELECT 1")
 
