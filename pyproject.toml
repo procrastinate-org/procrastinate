@@ -67,11 +67,13 @@ types-psycopg2 = "*"
 types-python-dateutil = "*"
 
 [tool.poetry.group.docs.dependencies]
-Sphinx = "*"
-sphinx-github-changelog = "*"
-sphinx-autodoc-typehints = "*"
-sphinxcontrib-programoutput = "*"
 django = ">=2.2"
+furo = "*"
+Sphinx = "*"
+sphinx-autodoc-typehints = "*"
+sphinx-copybutton = "*"
+sphinx-github-changelog = "*"
+sphinxcontrib-programoutput = "*"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

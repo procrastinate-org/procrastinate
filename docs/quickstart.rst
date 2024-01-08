@@ -249,10 +249,3 @@ example, have a look at the locks feature: `howto/locks`.
 
 If you want to better understand some design decisions, head to the `Discussions
 <discussions>` sections.
-
-
-.. toctree::
-   :maxdepth: 2
-
-   howto_index
-   discussions

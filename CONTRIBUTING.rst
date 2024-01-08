@@ -161,21 +161,6 @@ Build with:
     $ scripts/docs  # build the html doc
     $ scripts/htmldoc  # browse the doc in you browser
 
-Run spell checking on the documentation (optional):
-
-.. code-block:: console
-
-    $ sudo apt install enchant
-    $ scripts/docs-spelling
-
-Because of outdated software and version incompatibilities, spell checking is not
-checked in the CI, and we don't require people to run it in their PR. Though, it's
-always a nice thing to do. Feel free to include any spell fix in your PR, even if it's
-not related to your PR (but please put it in a dedicated commit).
-
-If you need to add words to the spell checking dictionary, it's in
-``docs/spelling_wordlist.txt``. Make sure the file is alphabetically sorted.
-
 If Sphinx's console output is localized and you would rather have it in English,
 (which make google-based debugging much easier), use the environment variable
 ``export LC_ALL=C.utf-8``
