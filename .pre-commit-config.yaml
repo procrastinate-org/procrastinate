@@ -1,7 +1,6 @@
 ci:
-    skip: [pylint]
-    autoupdate_schedule: quarterly
-
+  skip: [pyright]
+  autoupdate_schedule: quarterly
 # See https://pre-commit.com for more information
 # See https://pre-commit.com/hooks.html for more hooks
 repos:
