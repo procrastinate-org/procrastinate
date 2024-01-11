@@ -3,14 +3,9 @@ import functools
 import json
 import logging
 import sys
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Literal, Optional, Union
 
 import configargparse as argparse
-
-if sys.version_info < (3, 8):
-    from typing_extensions import Literal
-else:
-    from typing import Literal
 
 import procrastinate
 from procrastinate import connector, exceptions, jobs, shell, types, utils, worker
@@ -426,7 +421,7 @@ async def defer(
     )
 
     # Printing info
-    str_kwargs = ", ".join(f"{k}={repr(v)}" for k, v in args.items())
+    str_kwargs = ", ".join(f"{k}={v!r}" for k, v in args.items())
     print_stderr(f"Launching a job: {task}({str_kwargs})")
     # And launching the job
     try:

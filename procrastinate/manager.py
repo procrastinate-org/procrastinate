@@ -179,7 +179,7 @@ class JobManager:
         include_error: Optional[bool] = False,
     ) -> None:
         """
-        Delete jobs that have reached a final state (``succeeded`` or ``failed``).
+        Delete jobs that have reached a final state (``succeeded`` or ``failed``).
 
         Parameters
         ----------

@@ -39,7 +39,7 @@ def wrap_query_exceptions(func: Callable) -> Callable:
 
     This is to handle the case where the database connection (obtained from the pool)
     was actually closed by the server. In this case, SQLAlchemy raises a ``DBAPIError``
-    with ``connection_invalidated`` set to ``True``, and also invalidates the rest of
+    with ``connection_invalidated`` set to ``True``, and also invalidates the rest of
     the connection pool. So we just retry once, to get a fresh connection.
     """
 
@@ -70,7 +70,7 @@ class SQLAlchemyPsycopg2Connector(connector.BaseConnector):
         """
         Synchronous connector based on SQLAlchemy with Psycopg2.
 
-        This is used if you want your ``.defer()`` calls to be purely synchronous, not
+        This is used if you want your ``.defer()`` calls to be purely synchronous, not
         asynchronous with a sync wrapper. You may need this if your program is
         multi-threaded and doen't handle async loops well
         (see `discussion-sync-defer`).

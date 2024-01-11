@@ -3,7 +3,7 @@ import pathlib
 import sys
 import types
 from importlib import abc, machinery
-from typing import Iterable, Iterator, Optional, Tuple, Type
+from typing import ClassVar, Iterable, Iterator, Optional, Tuple, Type
 
 import attr
 from django.db import migrations
@@ -135,11 +135,11 @@ def make_migration(
     counter: Iterator[int],
 ) -> Type[migrations.Migration]:
     class NewMigration(migrations.Migration):
-        initial = previous_migration is None
-        operations = [migrations.RunSQL(sql=sql_migration.contents)]
-        name = f"{next(counter):04d}_{sql_migration.name}"
+        initial: ClassVar = previous_migration is None
+        operations: ClassVar = [migrations.RunSQL(sql=sql_migration.contents)]
+        name: ClassVar = f"{next(counter):04d}_{sql_migration.name}"
 
         if previous_migration:
-            dependencies = [("procrastinate", previous_migration.name)]
+            dependencies: ClassVar = [("procrastinate", previous_migration.name)]
 
     return NewMigration

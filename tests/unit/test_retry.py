@@ -2,9 +2,8 @@ import datetime
 
 import pytest
 
-from procrastinate import exceptions
+from procrastinate import exceptions, utils
 from procrastinate import retry as retry_module
-from procrastinate import utils
 
 
 @pytest.mark.parametrize(

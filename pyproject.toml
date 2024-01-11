@@ -116,7 +116,7 @@ exclude_lines = [
 exclude = ["tests", ".venv"]
 
 [tool.ruff]
-extend-exclude = [".venv"]
+extend-exclude = [".venv", "migrations"]
 extend-select = [
     "UP",  # pyupgrade
     "I",   # isort

@@ -1,7 +1,6 @@
 import asyncio
 import functools
 import logging
-import sys
 import time
 from typing import Any, Dict, Iterable, Optional, Tuple
 
@@ -19,10 +18,7 @@ MARGIN = 0.5  # seconds
 
 logger = logging.getLogger(__name__)
 
-if sys.version_info < (3, 8):
-    cached_property = property
-else:
-    cached_property = functools.cached_property
+cached_property = functools.cached_property
 
 
 @attr.dataclass(frozen=True)

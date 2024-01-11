@@ -3,9 +3,8 @@ import logging
 from typing import Any, Callable, Dict, List, Optional
 
 from procrastinate import app as app_module
-from procrastinate import blueprints, exceptions, jobs, manager
+from procrastinate import blueprints, exceptions, jobs, manager, types, utils
 from procrastinate import retry as retry_module
-from procrastinate import types, utils
 
 logger = logging.getLogger(__name__)
 

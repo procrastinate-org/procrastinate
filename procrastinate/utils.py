@@ -4,7 +4,6 @@ import importlib
 import inspect
 import logging
 import pathlib
-import sys
 import types
 from typing import (
     Any,
@@ -257,24 +256,18 @@ async def run_tasks(
     # Ensure all passed coros are futures (in our case, Tasks). This means that
     # all the coroutines start executing now.
     # `name` argument to create_task only exist on python 3.8+
-    if sys.version_info < (3, 8):
-        main_tasks = [asyncio.create_task(coro) for coro in main_coros]
-        side_tasks = [asyncio.create_task(coro) for coro in side_coros or []]
-    else:
-        main_tasks = [
-            asyncio.create_task(coro, name=coro.__name__) for coro in main_coros
-        ]
-        side_tasks = [
-            asyncio.create_task(coro, name=coro.__name__) for coro in side_coros or []
-        ]
-        for task in main_tasks + side_tasks:
-            name = task.get_name()
-            logger.debug(
-                f"Started {name}",
-                extra={
-                    "action": f"{name}_start",
-                },
-            )
+    main_tasks = [asyncio.create_task(coro, name=coro.__name__) for coro in main_coros]
+    side_tasks = [
+        asyncio.create_task(coro, name=coro.__name__) for coro in side_coros or []
+    ]
+    for task in main_tasks + side_tasks:
+        name = task.get_name()
+        logger.debug(
+            f"Started {name}",
+            extra={
+                "action": f"{name}_start",
+            },
+        )
 
     # Note that asyncio.gather() has 2 modes of execution:
     # - asyncio.gather(*aws)
@@ -324,14 +317,13 @@ async def run_tasks(
                     )
                 )
             else:
-                if sys.version_info >= (3, 8):
-                    name = task.get_name()
-                    logger.debug(
-                        f"{name} finished execution",
-                        extra={
-                            "action": f"{name}_stop",
-                        },
-                    )
+                name = task.get_name()
+                logger.debug(
+                    f"{name} finished execution",
+                    extra={
+                        "action": f"{name}_stop",
+                    },
+                )
 
     for task in side_tasks:
         task.cancel()
@@ -341,14 +333,13 @@ async def run_tasks(
             # actually recieve the exception.
             await task
         except asyncio.CancelledError:
-            if sys.version_info >= (3, 8):
-                name = task.get_name()
-                logger.debug(
-                    f"Stopped {name}",
-                    extra={
-                        "action": f"{name}_stop",
-                    },
-                )
+            name = task.get_name()
+            logger.debug(
+                f"Stopped {name}",
+                extra={
+                    "action": f"{name}_stop",
+                },
+            )
         except Exception as exc:
             exception_records.append(
                 ExceptionRecord(
@@ -358,13 +349,9 @@ async def run_tasks(
             )
 
     for exception_record in exception_records:
-        if sys.version_info < (3, 8):
-            message = f"{exception_record.exc!r}"
-            action = "run_tasks_error"
-        else:
-            name = exception_record.task.get_name()
-            message = f"{name} error: {exception_record.exc!r}"
-            action = f"{name}_error"
+        name = exception_record.task.get_name()
+        message = f"{name} error: {exception_record.exc!r}"
+        action = f"{name}_error"
         logger.exception(
             message,
             extra={

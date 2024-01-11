@@ -14,11 +14,9 @@ import psycopg.sql
 import pytest
 
 from procrastinate import app as app_module
-from procrastinate import blueprints, builtin_tasks, jobs
+from procrastinate import blueprints, builtin_tasks, jobs, schema, testing
 from procrastinate import psycopg_connector as async_psycopg_connector_module
-from procrastinate import schema
 from procrastinate import sync_psycopg_connector as sync_psycopg_connector_module
-from procrastinate import testing
 
 # Just ensuring the tests are not polluted by environment
 for key in os.environ:

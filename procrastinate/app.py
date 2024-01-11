@@ -3,9 +3,8 @@ import functools
 import logging
 from typing import TYPE_CHECKING, Any, Dict, Iterable, Optional, Union
 
-from procrastinate import blueprints
+from procrastinate import blueprints, exceptions, jobs, manager, schema, utils
 from procrastinate import connector as connector_module
-from procrastinate import exceptions, jobs, manager, schema, utils
 
 if TYPE_CHECKING:
     from procrastinate import worker

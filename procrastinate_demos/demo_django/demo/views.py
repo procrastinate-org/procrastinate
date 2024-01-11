@@ -1,3 +1,5 @@
+from typing import ClassVar
+
 from django.views import generic
 
 from . import models, tasks
@@ -5,7 +7,7 @@ from . import models, tasks
 
 class CreateBookView(generic.CreateView):
     model = models.Book
-    fields = ["title", "author"]
+    fields: ClassVar = ["title", "author"]
     success_url = "/"
 
     def form_valid(self, form):
