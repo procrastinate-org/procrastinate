@@ -18,7 +18,7 @@ jobs:
           - "3.10"
           - "3.11"
 
-    name: "py${{ matrix.python-version }} / ${{ matrix.script }}"
+    name: "py${{ matrix.python-version }}"
     runs-on: ubuntu-latest
 
     services:
