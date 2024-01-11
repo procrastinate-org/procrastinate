@@ -112,9 +112,17 @@ exclude = ["tests", ".venv"]
 
 [tool.ruff]
 extend-exclude = [".venv"]
-ignore = ["E501"]
-line-length = 88
-select = ["E", "F", "W"]
+extend-select = [
+    "UP",  # pyupgrade
+    "I",   # isort
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "RUF", # ruff
+]
+fixable = ["ALL"]
+extend-ignore = [
+    "E501", # line too long
+]
 
 [tool.doc8]
 max-line-length = 88
