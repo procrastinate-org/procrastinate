@@ -75,8 +75,50 @@ sphinx-copybutton = "*"
 sphinx-github-changelog = "*"
 sphinxcontrib-programoutput = "*"
 
+[tool.pytest.ini_options]
+addopts = [
+    "--cov-report=term-missing",
+    "--cov-report=html",
+    "--cov-branch",
+    "--cov=procrastinate",
+    "-vv",
+    "--strict-markers",
+    "-rfE",
+]
+testpaths = [
+    "tests/unit",
+    "tests/integration",
+    "tests/acceptance",
+    "tests/migration",
+]
+filterwarnings = ""
+asyncio_mode = "auto"
+DJANGO_SETTINGS_MODULE = "tests.acceptance.django_settings"
+
+[tool.coverage.run]
+relative_files = true
+omit = ["procrastinate/contrib/django/migrations/*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "raise NotImplementedError",
+    "coverage: exclude",
+    "if TYPE_CHECKING:",
+    "[ ]+\\.\\.\\.$",
+]
+
 [tool.pyright]
 exclude = ["tests", ".venv"]
+
+[tool.ruff]
+extend-exclude = [".venv"]
+ignore = ["E501"]
+line-length = 88
+select = ["E", "F", "W"]
+
+[tool.doc8]
+max-line-length = 88
+ignore-path = "docs/_build,.venv"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
