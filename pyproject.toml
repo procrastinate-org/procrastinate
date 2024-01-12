@@ -36,11 +36,18 @@ python-dateutil = "*"
 sqlalchemy = { version = "^2.0", optional = true }
 typing-extensions = { version = "*", python = "<3.8" }
 
+
 [tool.poetry.extras]
 django = ["django"]
 sqlalchemy = ["sqlalchemy"]
 aiopg = ["aiopg", "psycopg2-binary"]
 psycopg2 = ["psycopg2-binary"]
+
+[tool.poetry.group.types]
+optional = true
+
+[tool.poetry.group.types.dependencies]
+django-stubs = "*"
 
 [tool.poetry.group.release.dependencies]
 dunamai = "*"
