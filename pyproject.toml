@@ -42,29 +42,27 @@ sqlalchemy = ["sqlalchemy"]
 aiopg = ["aiopg", "psycopg2-binary"]
 psycopg2 = ["psycopg2-binary"]
 
-[tool.poetry.group.dev.dependencies]
-aiopg = "*"
-black = { version = "*", allow-prereleases = true }
+[tool.poetry.group.release.dependencies]
 dunamai = "*"
-flake8 = "*"
-migra = "*"
-mypy = "*"
-psycopg = { extras = ["binary"], version = "^3.1.13" }
+
+[tool.poetry.group.lint_format.dependencies]
+ruff = "*"
+
+[tool.poetry.group.pg_implem.dependencies]
+aiopg = "*"
+sqlalchemy = { extras = ["mypy"], version = "*" }
 psycopg2-binary = "*"
+psycopg = { extras = ["binary"], version = "^3.1.13" }
+
+[tool.poetry.group.django.dependencies]
+django = ">=2.2"
+
+[tool.poetry.group.test.dependencies]
 pytest-asyncio = "*"
 pytest-cov = "*"
 pytest-django = "*"
 pytest-mock = "*"
-Sphinx = "*"
-sphinx-autodoc-typehints = "*"
-sphinx-github-changelog = "*"
-sphinxcontrib-programoutput = "*"
-sqlalchemy = { extras = ["mypy"], version = "*" }
-SQLAlchemy = { extras = ["mypy"], version = "^2.0.0" }
-tomlkit = "*"
-types-croniter = "*"
-types-psycopg2 = "*"
-types-python-dateutil = "*"
+migra = "*"
 
 [tool.poetry.group.docs.dependencies]
 django = ">=2.2"
