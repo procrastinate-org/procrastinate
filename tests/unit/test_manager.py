@@ -1,3 +1,4 @@
+import datetime
 import uuid
 
 import pytest
@@ -284,3 +285,142 @@ def test_raise_already_enqueued_wrong_constraint(job_manager):
 
     with pytest.raises(UniqueViolation):
         job_manager._raise_already_enqueued(exc=UniqueViolation(), queueing_lock="foo")
+
+
+@pytest.fixture
+def dt():
+    return datetime.datetime(2000, 1, 1, tzinfo=datetime.timezone.utc)
+
+
+async def test_retry_job_by_id_async(job_manager, connector, job_factory, dt):
+    job = await job_manager.defer_job_async(job=job_factory())
+
+    await job_manager.retry_job_by_id_async(job_id=job.id, retry_at=dt)
+
+    assert connector.queries[-1] == (
+        "retry_job",
+        {"job_id": 1, "retry_at": dt},
+    )
+
+
+def test_retry_job_by_id(job_manager, connector, job_factory, dt):
+    job = job_manager.defer_job(job=job_factory())
+
+    job_manager.retry_job_by_id(job_id=job.id, retry_at=dt)
+
+    assert connector.queries[-1] == (
+        "retry_job",
+        {"job_id": 1, "retry_at": dt},
+    )
+
+
+async def test_list_jobs_async(job_manager, job_factory):
+    job = job_manager.defer_job(job=job_factory())
+
+    assert await job_manager.list_jobs_async() == [job]
+
+
+def test_list_jobs(job_manager, job_factory):
+    job = job_manager.defer_job(job=job_factory())
+
+    assert job_manager.list_jobs() == [job]
+
+
+async def test_list_queues_async(job_manager, job_factory):
+    job_manager.defer_job(job=job_factory(queue="foo"))
+
+    assert await job_manager.list_queues_async() == [
+        {
+            "name": "foo",
+            "jobs_count": 1,
+            "todo": 1,
+            "doing": 0,
+            "succeeded": 0,
+            "failed": 0,
+        }
+    ]
+
+
+def test_list_queues_(job_manager, job_factory):
+    job_manager.defer_job(job=job_factory(queue="foo"))
+
+    assert job_manager.list_queues() == [
+        {
+            "name": "foo",
+            "jobs_count": 1,
+            "todo": 1,
+            "doing": 0,
+            "succeeded": 0,
+            "failed": 0,
+        }
+    ]
+
+
+async def test_list_tasks_async(job_manager, job_factory):
+    job_manager.defer_job(job=job_factory(task_name="foo"))
+
+    assert await job_manager.list_tasks_async() == [
+        {
+            "name": "foo",
+            "jobs_count": 1,
+            "todo": 1,
+            "doing": 0,
+            "succeeded": 0,
+            "failed": 0,
+        }
+    ]
+
+
+def test_list_tasks(job_manager, job_factory):
+    job_manager.defer_job(job=job_factory(task_name="foo"))
+
+    assert job_manager.list_tasks() == [
+        {
+            "name": "foo",
+            "jobs_count": 1,
+            "todo": 1,
+            "doing": 0,
+            "succeeded": 0,
+            "failed": 0,
+        }
+    ]
+
+
+async def test_list_locks_async(job_manager, job_factory):
+    job_manager.defer_job(job=job_factory(lock="foo"))
+
+    assert await job_manager.list_locks_async() == [
+        {
+            "name": "foo",
+            "jobs_count": 1,
+            "todo": 1,
+            "doing": 0,
+            "succeeded": 0,
+            "failed": 0,
+        }
+    ]
+
+
+def test_list_locks(job_manager, job_factory):
+    job_manager.defer_job(job=job_factory(lock="foo"))
+
+    assert job_manager.list_locks() == [
+        {
+            "name": "foo",
+            "jobs_count": 1,
+            "todo": 1,
+            "doing": 0,
+            "succeeded": 0,
+            "failed": 0,
+        }
+    ]
+
+
+async def test_check_connection_async(job_manager, connector):
+    assert await job_manager.check_connection_async() is True
+    assert connector.queries == [("check_connection", {})]
+
+
+def test_check_connection(job_manager, connector):
+    assert job_manager.check_connection() is True
+    assert connector.queries == [("check_connection", {})]

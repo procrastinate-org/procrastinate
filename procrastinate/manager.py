@@ -263,7 +263,32 @@ class JobManager:
         job_id: int,
         retry_at: datetime.datetime,
     ) -> None:
+        """
+        Indicates that a job should be retried later.
+
+        Parameters
+        ----------
+        job_id : ``int``
+        retry_at : ``datetime.datetime``
+            If set at present time or in the past, the job may be retried immediately.
+            Otherwise, the job will be retried no sooner than this date & time.
+            Should be timezone-aware (even if UTC).
+        """
         await self.connector.execute_query_async(
+            query=sql.queries["retry_job"],
+            job_id=job_id,
+            retry_at=retry_at,
+        )
+
+    def retry_job_by_id(
+        self,
+        job_id: int,
+        retry_at: datetime.datetime,
+    ) -> None:
+        """
+        Sync version of `retry_job_by_id_async`.
+        """
+        self.connector.get_sync_connector().execute_query(
             query=sql.queries["retry_job"],
             job_id=job_id,
             retry_at=retry_at,
@@ -358,6 +383,29 @@ class JobManager:
         )
         return [jobs.Job.from_row(row) for row in rows]
 
+    def list_jobs(
+        self,
+        id: Optional[int] = None,
+        queue: Optional[str] = None,
+        task: Optional[str] = None,
+        status: Optional[str] = None,
+        lock: Optional[str] = None,
+        queueing_lock: Optional[str] = None,
+    ) -> Iterable["jobs.Job"]:
+        """
+        Sync version of `list_jobs_async`
+        """
+        rows = self.connector.get_sync_connector().execute_query_all(
+            query=sql.queries["list_jobs"],
+            id=id,
+            queue_name=queue,
+            task_name=task,
+            status=status,
+            lock=lock,
+            queueing_lock=queueing_lock,
+        )
+        return [jobs.Job.from_row(row) for row in rows]
+
     async def list_queues_async(
         self,
         queue: Optional[str] = None,
@@ -395,6 +443,34 @@ class JobManager:
                 "failed": row["stats"].get("failed", 0),
             }
             for row in await self.connector.execute_query_all_async(
+                query=sql.queries["list_queues"],
+                queue_name=queue,
+                task_name=task,
+                status=status,
+                lock=lock,
+            )
+        ]
+
+    def list_queues(
+        self,
+        queue: Optional[str] = None,
+        task: Optional[str] = None,
+        status: Optional[str] = None,
+        lock: Optional[str] = None,
+    ) -> Iterable[Dict[str, Any]]:
+        """
+        Sync version of `list_queues_async`
+        """
+        return [
+            {
+                "name": row["name"],
+                "jobs_count": row["jobs_count"],
+                "todo": row["stats"].get("todo", 0),
+                "doing": row["stats"].get("doing", 0),
+                "succeeded": row["stats"].get("succeeded", 0),
+                "failed": row["stats"].get("failed", 0),
+            }
+            for row in self.connector.get_sync_connector().execute_query_all(
                 query=sql.queries["list_queues"],
                 queue_name=queue,
                 task_name=task,
@@ -448,6 +524,34 @@ class JobManager:
             )
         ]
 
+    def list_tasks(
+        self,
+        queue: Optional[str] = None,
+        task: Optional[str] = None,
+        status: Optional[str] = None,
+        lock: Optional[str] = None,
+    ) -> Iterable[Dict[str, Any]]:
+        """
+        Sync version of `list_queues`
+        """
+        return [
+            {
+                "name": row["name"],
+                "jobs_count": row["jobs_count"],
+                "todo": row["stats"].get("todo", 0),
+                "doing": row["stats"].get("doing", 0),
+                "succeeded": row["stats"].get("succeeded", 0),
+                "failed": row["stats"].get("failed", 0),
+            }
+            for row in self.connector.get_sync_connector().execute_query_all(
+                query=sql.queries["list_tasks"],
+                queue_name=queue,
+                task_name=task,
+                status=status,
+                lock=lock,
+            )
+        ]
+
     async def list_locks_async(
         self,
         queue: Optional[str] = None,
@@ -477,6 +581,36 @@ class JobManager:
         """
         result = []
         for row in await self.connector.execute_query_all_async(
+            query=sql.queries["list_locks"],
+            queue_name=queue,
+            task_name=task,
+            status=status,
+            lock=lock,
+        ):
+            result.append(
+                {
+                    "name": row["name"],
+                    "jobs_count": row["jobs_count"],
+                    "todo": row["stats"].get("todo", 0),
+                    "doing": row["stats"].get("doing", 0),
+                    "succeeded": row["stats"].get("succeeded", 0),
+                    "failed": row["stats"].get("failed", 0),
+                }
+            )
+        return result
+
+    def list_locks(
+        self,
+        queue: Optional[str] = None,
+        task: Optional[str] = None,
+        status: Optional[str] = None,
+        lock: Optional[str] = None,
+    ) -> Iterable[Dict[str, Any]]:
+        """
+        Sync version of `list_queues`
+        """
+        result = []
+        for row in self.connector.get_sync_connector().execute_query_all(
             query=sql.queries["list_locks"],
             queue_name=queue,
             task_name=task,
