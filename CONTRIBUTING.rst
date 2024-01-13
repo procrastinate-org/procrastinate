@@ -17,16 +17,13 @@ the following assumptions:
 
 - You're using ``MacOS`` or ``Linux``, and ``bash`` or ``zsh``.
 - You already have ``python3`` available
-- You either have ``virtualenv`` installed or your ``python3`` supports ``-m venv``
-  (on Ubuntu, ``sudo apt install python3-venv``)
-- Either you've already created a ``virtualenv``, or you're OK with the script creating
-  a local ``virtualenv`` in ``.venv``
+- You have ``poetry`` `installed <https://python-poetry.org/docs/#installation>`_
 - Either you've already setup a PostgreSQL database and environment variables (``PG*``)
   are set or you have ``docker-compose`` available and port 5432 is free.
 - Either ``psql`` and other ``libpq`` executables are available in the ``PATH`` or they
   are located in ``usr/local/opt/libpq/bin`` (``Homebrew``).
 
-The ``dev-env`` script will add the ``scripts`` folder to your path for the current
+The ``dev-env`` script will add the ``scripts`` folder to your ``$PATH`` for the current
 shell, so in the following documentation, if you see ``scripts/foo``, you're welcome
 to call ``foo`` directly.
 
@@ -36,14 +33,17 @@ Instructions for contribution
 Environment variables
 ^^^^^^^^^^^^^^^^^^^^^
 
-The ``export`` command below will be necessary whenever you want to interact with
-the database (using the project locally, launching tests, ...).
-These are standard ``libpq`` environment variables, and the values used below correspond
-to the Docker setup. Feel free to adjust them as necessary.
+The ``export`` command below will be necessary whenever you want to interact
+with the database (using the project locally, launching tests, ...). These are
+standard `libpq environment variables`_ environment variables, and the values
+used below correspond to the Docker setup. Feel free to adjust them as
+necessary.
 
 .. code-block:: console
 
     $ export PGDATABASE=procrastinate PGHOST=localhost PGUSER=postgres PGPASSWORD=password
+
+.. _`libpq environment variables`: https://www.postgresql.org/docs/current/libpq-envars.html
 
 Create your development database
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -75,12 +75,32 @@ commands like ``createdb`` we use below.
 Set up your development environment
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Install the package itself with development dependencies in a virtual environment:
+The development environment is managed by `poetry`_. It's a tool that manages
+dependencies and virtual environments. We also use `pre-commit`_ to keep the code
+clean.
+
+.. _`poetry`: https://python-poetry.org/
+.. _`pre-commit`: https://pre-commit.com/
+
+If you don't already have ``poetry`` or ``pre-commit`` installed, you can
+install them with:
 
 .. code-block:: console
 
-    $ python3 -m venv .venv
-    $ source .venv/bin/activate
+    $ scripts/bootstrap
+
+This will install `pipx`_ if necessary and use it to install ``poetry`` and
+``pre-commit``.
+
+.. _`pipx`: https://pipx.pypa.io/stable/
+
+Then, install Procrastinate with development dependencies in a virtual environment:
+
+.. code-block:: console
+
+    $ poetry env use 3.{x}  # Select the Python version you want to use (replace {x})
+    $ poetry install
+    $ poetry shell  # Activate the virtual environment
 
 You can check that your Python environment is properly activated:
 
@@ -88,12 +108,6 @@ You can check that your Python environment is properly activated:
 
     (venv) $ which python
     /path/to/current/folder/.venv/bin/python
-
-Install local dependencies:
-
-.. code-block:: console
-
-    (venv) $ pip install -r requirements.txt
 
 Run the project automated tests
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -104,11 +118,6 @@ With a running database:
 
     (venv) $ pytest  # Test the code with the current interpreter
 
-Or
-
-.. code-block:: console
-
-    $ tox  # Run all the checks for all the interpreters
 
 If you're not familiar with Pytest_, do yourself a treat and look into this fabulous
 tool.
@@ -124,30 +133,15 @@ To look at coverage in the browser after launching the tests, use:
 Keep your code clean
 ^^^^^^^^^^^^^^^^^^^^
 
-Before committing:
+This project uses pre-commit_ to keep the code clean. It's a tool that runs
+automated checks on your code before you commit it. Install the pre-commit
+hooks with:
 
 .. code-block:: console
 
-    $ tox -e format,check-lint
+    $ pre-commit install
 
-If you've committed already, you can do a "Oops lint" commit, but the best is to run:
-
-.. code-block:: console
-
-    $ git rebase -i --exec 'tox -e format' origin/main
-
-This will run all code formatters on each commits, so that they're clean.
-If you've never done an `interactive rebase`_ before, it may seem complicated, so you
-don't have to, but... Learn it, it's really cool !
-
-.. _`interactive rebase`: https://git-scm.com/book/en/v2/Git-Tools-Rewriting-History
-
-You can also use ``pre-commit`` which makes sure that all your commits are created
-clean:
-
-.. code-block:: console
-
-    scripts/bootstrap
+.. _pre-commit: https://pre-commit.com/
 
 This will keep you from creating a commit if there's a linting problem.
 
@@ -332,40 +326,10 @@ included in the normal test suite, but you can run them specifically with:
 
     (venv) $ pytest tests/migration
 
-Try our demo
-------------
+Try our demos
+-------------
 
-With a running database, and its schema installed:
-
-.. code-block:: console
-
-    (venv) $ export PROCRASTINATE_APP=procrastinate_demo.app.app
-    (venv) $ procrastinate schema --apply
-
-schedule some tasks with a script:
-
-.. code-block:: console
-
-    (venv) $ python -m procrastinate_demo
-
-Or from the command line:
-
-.. code-block:: console
-
-    procrastinate defer procrastinate_demo.tasks.sum '{"a": 3, "b": 5}'
-    procrastinate defer procrastinate_demo.tasks.sum '{"a": 5, "b": 7}'
-    procrastinate defer procrastinate_demo.tasks.sum '{"a": 5, "b": "}")'
-    procrastinate defer procrastinate_demo.tasks.sum_plus_one '{"a": 4, "b": 7}'
-    procrastinate defer --lock a procrastinate_demo.tasks.sleep '{"i": 2}'
-    procrastinate defer --lock a procrastinate_demo.tasks.sleep '{"i": 3}'
-    procrastinate defer --lock a procrastinate_demo.tasks.sleep '{"i": 4}'
-    procrastinate defer procrastinate_demo.tasks.random_fail '{}'
-
-Launch a worker with:
-
-.. code-block:: console
-
-    (venv) $ procrastinate worker
+See the demos page for instructions on how to run the demos (:doc:`demos`).
 
 
 Use Docker for Procrastinate development

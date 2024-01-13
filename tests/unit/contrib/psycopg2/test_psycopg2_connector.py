@@ -1,7 +1,8 @@
 import psycopg2
 import pytest
 
-from procrastinate import exceptions, psycopg2_connector
+from procrastinate import exceptions
+from procrastinate.contrib.psycopg2 import psycopg2_connector
 
 
 def test_wrap_exceptions_wraps():

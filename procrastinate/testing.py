@@ -45,6 +45,9 @@ class InMemoryConnector(connector.BaseAsyncConnector):
         self.table_exists = True
         self.states: List[str] = []
 
+    def get_sync_connector(self) -> connector.BaseConnector:
+        return self
+
     def generic_execute(self, query, suffix, **arguments) -> Any:
         """
         Calling a query will call the <query_name>_<suffix> method
@@ -57,6 +60,15 @@ class InMemoryConnector(connector.BaseAsyncConnector):
 
     def make_dynamic_query(self, query, **identifiers: str) -> str:
         return query.format(**identifiers)
+
+    def execute_query(self, query: str, **arguments: Any) -> None:
+        self.generic_execute(query, "run", **arguments)
+
+    def execute_query_one(self, query: str, **arguments: Any) -> Dict[str, Any]:
+        return self.generic_execute(query, "one", **arguments)
+
+    def execute_query_all(self, query: str, **arguments: Any) -> List[Dict[str, Any]]:
+        return self.generic_execute(query, "all", **arguments)
 
     async def execute_query_async(self, query: str, **arguments: Any) -> None:
         self.generic_execute(query, "run", **arguments)

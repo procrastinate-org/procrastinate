@@ -94,8 +94,8 @@ to be aware of several caveats:
   does ``import that_module``, then you will end up with two distinct instances
   of your app (``__main__.app`` and ``that_module.app``) and you will likely
   run into problems. The best thing to do in this case is to create a dedicated
-  module for your app (or to put everything in the same module, but this
-  doesn't scale well).
+  module for your app (e.g. ``procrastinate.py``) (or to put everything in the
+  same module, but this doesn't scale well).
 
 .. _discussion-locks:
 
@@ -158,92 +158,54 @@ make I/Os run in parallel". Asynchronous work can be tricky in Python because on
 start having something asynchronous, you soon realize everything needs to be
 asynchronous for it to work.
 
-Procrastinate aims at being compatible with both sync and async codebases.
+Procrastinate aims at being made for async codebases and tries its best to offer
+compatibility with synchronous codebases too. Because of this, you will always need
+to set up an asynchronous connector for running the worker, or the procrastinate CLI.
 
-There are two distinct parts in procrastinate that are relevant for asynchronous work:
-:term:`deferring <Defer>` a :term:`job`, and executing it.
+There are three distinct parts in procrastinate that are relevant for asynchronous work:
+:term:`deferring <Defer>` a :term:`job`, executing it in the worker, and introspecting
+Procrastinate to get information about the jobs.
 
-If you have, for example, an async web application, you will need to defer jobs
-asynchronously. It might prove problematic to block the whole event loop while you
-connect to the database and send your job.
+If you have, for example, an synchronous web application (e.g. using Django or
+Flask), you will want to defer jobs synchronously. Procrastinate supports a
+synchronous `Task.defer` function (see `sync-defer`).
 
-There are mainly two use-cases where you may want to _execute_ your jobs asynchronously.
-Either they do long I/O calls that you would like to run in parallel, or you plan to
-reuse parts of your codebase written with the asynchronous interface (say, an async ORM)
-and you don't want to have to maintain their equivalent using a synchronous interface.
+.. note::
 
-Procrastinate supports asynchronous job deferring, and asynchronous job execution,
-either serial or parallel (see `howto/async`, `howto/concurrency`).
+    When you define an asynchronous connector, Procrastinate will try to
+    seamlessly give you the right connector for your context. When you call
+    the synchronous API, it will either create a sync connector based on your
+    async connector, or let you use the async connector directly with
+    ``asgiref.sync.async_to_sync``.
 
-.. _discussion-sync-defer:
+For running jobs, support of synchronous task functions is through
+``asgiref.sync.sync_to_async``. This means your synchronous function will be
+executed by an asynchronous worker in a thread. Because of the `Global
+Interpreter Lock`_, you will not benefit from parallelism, but you will still be able
+to parallelize (thread-safe) I/Os.
 
-Synchronous deferring
-^^^^^^^^^^^^^^^^^^^^^
+.. _Global Interpreter Lock: https://docs.python.org/3/glossary.html#term-global-interpreter-lock
 
-Procrastinate gets to be called in two very different contexts:
-
-- When deferring a task, in **your** process, where Procrastinate is being used as a
-  library
-- When running a worker, where Procrastinate itself controls the process.
-
-Workers will always be asynchronous, and will support both synchronous and asynchronous
-jobs.
-
-When deferring a task, on the other hand, Procrastinate needs to play nice with
-your program. This is where there are choices to make.
-
-Procrastinate supports two ways of doing synchronous I/O:
-
-- "classic" synchronous I/O (using synchronous database drivers such as ``Psycopg2``).
-  This mode is necessary in multi-threaded cases.
-- "mixed" I/O (synchronously launching an event loop, and have asynchronous coroutine
-  run under the hood). This mode is adapted for synchronously deferring jobs from other
-  jobs, from within the workers.
-
-If you use an `AiopgConnector`, then you will use the "mixed" mode. You can have the
-classic mode by using a `Psycopg2Connector` (or an `SQLAlchemyPsycopg2Connector` from
-the ``contrib.sqlalchemy`` module) as your App's connector. In that case, you will be
-restricted to a few operations, including deferring tasks and applying the schema. This
-is recommended for synchronous multi-threaded apps only that defer jobs.
-
-See `howto/sync_defer`.
-
-Don't mix sync and async
-^^^^^^^^^^^^^^^^^^^^^^^^
-
-Asynchronous concurrency brings nothing to CPU-bound programs. Also, asynchronous code
-uses cooperative multitasking: it's the task's job to give control back to the main
-loop by using the ``await`` keyword (I/O that doesn't call ``await`` is said to be
-"blocking").
-
-Failure to regularly await an IO in your task will block all other jobs running on the
-worker. Note that it won't crash or anything, and it probably won't even be worse than
-if everything was blocking. It's just that you won't achieve the speeding potential you
-would hope for.
-
-If you have blocking I/O or CPU-bound tasks, make sure to use a separate queue, and have
-distinct sync workers and async workers. Of course, if your program is not that
-time-sensitive and you have sufficiently few blocking tasks, it's perfectly OK not to
-care.
+Procrastinate natively supports asynchronous job deferring, and asynchronous job
+execution (see `howto/async`, `howto/concurrency`, `howto/sync_defer`).
 
 .. _discussions-pool-size:
 
 Mind the size of your PostgreSQL pool
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-You can size the PostgreSQL pool using the ``maxsize`` argument of `AiopgConnector`.
-Procrastinate will use use one connection to listen to server-side ``NOTIFY`` calls (see
-:ref:`discussion-general`). The rest of the pool is used for :term:`sub-workers
+You can size the PostgreSQL pool using the ``max_size`` argument of
+`PsycopgConnector`. Procrastinate will use use one connection to listen to
+server-side ``NOTIFY`` calls (see :ref:`discussion-general`). That connection
+is not counted in the pool which is only is used for :term:`sub-workers
 <Sub-worker>`.
 
 .. warning::
 
-    Be careful not setting ``maxsize`` to ``0``: apart from disabling the maximum this
-    will likely trigger bugs__. Setting it to ``1`` will work, but the ``LISTEN/NOTIFY``
-    feature will be disabled. Disabling this feature independently of your pool size is
-    possible with ``listen_notify=False``, see `howto/connections`.
-
-    .. __: https://github.com/aio-libs/aiopg/issues/311
+    In previous versions of Procrastinate, setting ``max_size`` to ``1``:
+    disabled ``LISTEN/NOTIFY``. It's not the case anymore. Note that disabling
+    this feature is possible with ``listen_notify=False``, see
+    `howto/connections`.
 
 The relative sizing of your pool and your sub-workers all depends on the average length
 of your jobs, and especially compared to the time it takes to fetch jobs and register
@@ -295,44 +257,44 @@ a procrastinate compatible client, in Python or in another language altogether.
 Why is Procrastinate asynchronous at core?
 ------------------------------------------
 
-There are several ways to write a program that can be called from both a synchronous
-and an asynchronous code:
+It's quite hard for a single library to be both synchronous and asynchronous.
+The problem is that the user code may be synchronous or asynchronous, and will
+call the library, but the library needs to be able to call the user code too.
 
-- Duplicate the codebase. It's not a fantastic idea. There's a high probability that
-  this will lead to awkward bugs, you'll have twice the work in maintenance etc.
-  The good thing is that it will force you to extract as much as the logic in a common
-  module, and have the I/Os very decoupled.
+In procrastinate, the user code calling the library is what happens when you
+defer a job. The library calling the user code is what happens when a job is
+executed in the worker.
 
-- Have the project be synchronous, and provide top level asynchronous wrappers that
-  run the synchronous code in a thread. This can be a possibility, but then you enter
-  a whole new circle of thread safety hell.
+The issue is always when switching between synchronous and asynchronous code.
+By choosing to make Procrastinate asynchronous, we make it easy to integrate
+with asynchronous codebases, but it's harder to integrate with synchronous
+codebases.
 
-- Have the project be asynchronous, and provide top level synchronous wrappers that
-  will synchronously launch coroutines in the event loop and wait for them to be
-  completed. This is virtually the best solution we could find, and thus it's what
-  we decided to do.
+Here are the tricks we're using to make synchronous codebases work with
+Procrastinate:
 
-We've even cheated a bit: instead of implementing our synchronous wrappers manually,
-we've been using a trick that automatically generates a synchronous API based on our
-asynchronous API. This way, we have less code to unit-test, and we can guarantee that
-the 2 APIs will stay synchronized in the future no matter what. Want to know more about
-this? Here are a few resources:
+- For synchronously deferring a task: we duplicate a small part of the code. We have a
+  synchronous version of the code that uses a synchronous database driver, and
+  an asynchronous version of the code that uses an asynchronous database
+  driver. Under the hood, we have factored as much as possible the non-I/O
+  parts of the code, so that the synchronous and asynchronous versions are
+  only separate in the way they handle I/Os.
 
-- How we generate our sync API:
-  https://github.com/procrastinate-org/procrastinate/blob/main/procrastinate/utils.py
-- An interesting talk on the issues that appear when trying to make codebases compatible
-  with sync **and** async callers: "Just add await" from Andrew Godwin:
-  https://www.youtube.com/watch?v=oMHrDy62kgE
+- For executing a synchrnous task: we use ``asgiref.sync.sync_to_async`` to run the
+  synchronous code in a thread.
 
-That being said, synchronous defers (see `discussion-sync-defer`) rely on a few specific
-methods that have been written identically twice (one async and one sync version) and
-have to be maintained in parallel.
+- There are a few case where we facilitate calling Procrastinate from
+  synchronous codebases, by providing a synchronous API, where we'll create an
+  event loop and execute the corresponding asynchronous code in it. This is the
+  case for `App.run_worker`. It's ok for a long-lived call like this one, but
+  it would not be recommended to do that for short-lived calls.
 
 How stable is Procrastinate?
 ----------------------------
 
-More and more stable. We've started mentioning the project around, and it's now
-used in production in real projects.
+Quite stable in that it hasn't been moving a lot in the past few years, and has been
+used in production for small systems for years. In 2023, we started trying to improve
+the sync/async story, and this is still a work in progress.
 
 That being said, we'd like to develop real monitoring tools before we call this
 really ready for production.

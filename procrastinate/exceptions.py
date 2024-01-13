@@ -93,7 +93,7 @@ class UniqueViolation(ConnectorException):
     ``exception.constraint_name``.
     """
 
-    def __init__(self, *args, constraint_name: str):
+    def __init__(self, *args, constraint_name: Optional[str]):
         super().__init__(*args)
         self.constraint_name = constraint_name
 
@@ -113,8 +113,8 @@ class MissingApp(ProcrastinateException):
 
 class SyncConnectorConfigurationError(ProcrastinateException):
     """
-    A synchronous connector (probably Psycopg2Connector) was used, but the operation
-    needs an asynchronous connector (AiopgConnector). Please check your App
+    A synchronous connector was used, but the operation
+    needs an asynchronous connector. Please check your App
     configuration.
     """
 
@@ -138,3 +138,7 @@ class InvalidTimestamp(ProcrastinateException):
 
 class FunctionPathError(ProcrastinateException):
     """Couldn't automatically generate a unique name for a function"""
+
+
+class MovedElsewhere(ProcrastinateException):
+    """The object has been moved elsewhere"""

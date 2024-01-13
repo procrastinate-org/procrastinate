@@ -7,7 +7,7 @@ from migra import Migration
 from sqlalchemy.pool import NullPool
 from sqlbag import S
 
-from procrastinate import aiopg_connector, schema
+from procrastinate import psycopg_connector, schema
 
 
 @pytest.fixture
@@ -24,16 +24,18 @@ def run_migrations(db_execute):
 
 
 @pytest.fixture
-def schema_database(db_factory):
+async def schema_database(db_factory, make_psycopg_connection_params):
     dbname = "procrastinate_schema"
     db_factory(dbname=dbname)
 
     # apply the current procrastinate schema to the "procrastinate_schema" database
-    connector = aiopg_connector.AiopgConnector(dbname=dbname)
-    connector.open()
+    connector = psycopg_connector.PsycopgConnector(
+        **make_psycopg_connection_params(dbname=dbname)
+    )
+    await connector.open_async()
     schema_manager = schema.SchemaManager(connector=connector)
-    schema_manager.apply_schema()
-    connector.close()
+    await schema_manager.apply_schema_async()
+    await connector.close_async()
 
     return dbname
 

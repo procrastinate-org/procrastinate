@@ -8,22 +8,17 @@ import signal as stdlib_signal
 import string
 import uuid
 
-import aiopg
-import psycopg2
+import psycopg
+import psycopg.conninfo
+import psycopg.sql
 import pytest
-from psycopg2 import sql
-from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
-from psycopg.conninfo import make_conninfo
 
-from procrastinate import aiopg_connector as aiopg_connector_module
 from procrastinate import app as app_module
 from procrastinate import blueprints, builtin_tasks, jobs
-from procrastinate import psycopg2_connector as psycopg2_connector_module
-from procrastinate import psycopg_connector as psycopg_connector_module
-from procrastinate import schema, testing
-from procrastinate.contrib.sqlalchemy import (
-    psycopg2_connector as sqlalchemy_psycopg2_connector_module,
-)
+from procrastinate import psycopg_connector as async_psycopg_connector_module
+from procrastinate import schema
+from procrastinate import sync_psycopg_connector as sync_psycopg_connector_module
+from procrastinate import testing
 
 # Just ensuring the tests are not polluted by environment
 for key in os.environ:
@@ -31,18 +26,17 @@ for key in os.environ:
         os.environ.pop(key)
 
 
-def cursor_execute(cursor, query, *identifiers, format=True):
+def cursor_execute(cursor, query, *identifiers):
     if identifiers:
-        query = sql.SQL(query).format(
-            *(sql.Identifier(identifier) for identifier in identifiers)
+        query = psycopg.sql.SQL(query).format(
+            *(psycopg.sql.Identifier(identifier) for identifier in identifiers)
         )
     cursor.execute(query)
 
 
 @contextlib.contextmanager
 def db_executor(dbname):
-    with contextlib.closing(psycopg2.connect("", dbname=dbname)) as connection:
-        connection.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+    with psycopg.connect("", dbname=dbname, autocommit=True) as connection:
         with connection.cursor() as cursor:
             yield functools.partial(cursor_execute, cursor)
 
@@ -84,13 +78,10 @@ def db_factory():
 def setup_db():
     dbname = "procrastinate_test_template"
     db_create(dbname=dbname)
+    connector = testing.InMemoryConnector()
 
-    connector = aiopg_connector_module.AiopgConnector(dbname=dbname)
-    connector.open()
-    schema_manager = schema.SchemaManager(connector=connector)
-    schema_manager.apply_schema()
-    # We need to close the psycopg2 underlying connection synchronously
-    connector.close()
+    with db_executor(dbname) as execute:
+        execute(schema.SchemaManager(connector=connector).get_schema())
 
     yield dbname
 
@@ -101,56 +92,32 @@ def setup_db():
 def connection_params(setup_db, db_factory):
     db_factory(dbname="procrastinate_test", template=setup_db)
 
-    yield {"dsn": "", "dbname": "procrastinate_test"}
+    return {"dbname": "procrastinate_test"}
 
 
 @pytest.fixture
-def psycopg_connection_params(setup_db, db_factory):
-    db_factory(dbname="procrastinate_test", template=setup_db)
+def make_psycopg_connection_params():
+    def _(**kwargs):
+        return {"conninfo": psycopg.conninfo.make_conninfo(**kwargs)}
 
-    yield {"conninfo": make_conninfo(dbname="procrastinate_test")}
-
-
-@pytest.fixture
-def sqlalchemy_engine_dsn(setup_db, db_factory):
-    db_factory(dbname="procrastinate_test", template=setup_db)
-
-    yield "postgresql+psycopg2:///procrastinate_test"
+    return _
 
 
 @pytest.fixture
-async def connection(connection_params):
-    async with aiopg.connect(**connection_params) as connection:
-        yield connection
-
-
-@pytest.fixture
-async def not_opened_aiopg_connector(connection_params):
-    yield aiopg_connector_module.AiopgConnector(**connection_params)
+def psycopg_connection_params(connection_params, make_psycopg_connection_params):
+    yield make_psycopg_connection_params(**connection_params)
 
 
 @pytest.fixture
 async def not_opened_psycopg_connector(psycopg_connection_params):
-    yield psycopg_connector_module.PsycopgConnector(**psycopg_connection_params)
+    yield async_psycopg_connector_module.PsycopgConnector(**psycopg_connection_params)
 
 
 @pytest.fixture
-def not_opened_psycopg2_connector(connection_params):
-    yield psycopg2_connector_module.Psycopg2Connector(**connection_params)
-
-
-@pytest.fixture
-def not_opened_sqlalchemy_psycopg2_connector(sqlalchemy_engine_dsn):
-    yield sqlalchemy_psycopg2_connector_module.SQLAlchemyPsycopg2Connector(
-        dsn=sqlalchemy_engine_dsn, echo=True
+def not_opened_sync_psycopg_connector(psycopg_connection_params):
+    yield sync_psycopg_connector_module.SyncPsycopgConnector(
+        **psycopg_connection_params
     )
-
-
-@pytest.fixture
-async def aiopg_connector(not_opened_aiopg_connector):
-    await not_opened_aiopg_connector.open_async()
-    yield not_opened_aiopg_connector
-    await not_opened_aiopg_connector.close_async()
 
 
 @pytest.fixture
@@ -161,10 +128,10 @@ async def psycopg_connector(not_opened_psycopg_connector):
 
 
 @pytest.fixture
-def psycopg2_connector(not_opened_psycopg2_connector):
-    not_opened_psycopg2_connector.open()
-    yield not_opened_psycopg2_connector
-    not_opened_psycopg2_connector.close()
+def sync_psycopg_connector(not_opened_sync_psycopg_connector):
+    not_opened_sync_psycopg_connector.open()
+    yield not_opened_sync_psycopg_connector
+    not_opened_sync_psycopg_connector.close()
 
 
 @pytest.fixture

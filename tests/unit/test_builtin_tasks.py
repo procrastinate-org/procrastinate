@@ -8,6 +8,6 @@ async def test_remove_old_jobs(app):
     assert app.connector.queries == [
         (
             "delete_old_jobs",
-            {"nb_hours": 2, "queue": "queue_a", "statuses": ("succeeded", "failed")},
+            {"nb_hours": 2, "queue": "queue_a", "statuses": ["succeeded", "failed"]},
         )
     ]

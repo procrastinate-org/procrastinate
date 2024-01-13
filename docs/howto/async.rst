@@ -8,7 +8,7 @@ Defer jobs asynchronously
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
 In order for the defer query to be executed asynchronously, instead of calling
-``defer``, you'll need to call ``defer_async``::
+``defer``, you'll need to call (and await) ``defer_async``::
 
     @app.task
     def my_task(a, b):
@@ -37,7 +37,6 @@ Procrastinate workers for concurrent jobs.
 Note that tasks can be deferred asynchronously or synchronously, whether they are async
 or not::
 
-    # Note: tasks being async or not can be awaited asynchronously or not
     await my_task.defer_async(a=1, b=2)
     # or
     my_task.defer(a=1, b=2)

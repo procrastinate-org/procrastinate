@@ -30,6 +30,28 @@ files = [
 ]
 
 [[package]]
+name = "anyio"
+version = "4.2.0"
+description = "High level compatibility layer for multiple asynchronous event loop implementations"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "anyio-4.2.0-py3-none-any.whl", hash = "sha256:745843b39e829e108e518c489b31dc757de7d2131d53fac32bd8df268227bfee"},
+    {file = "anyio-4.2.0.tar.gz", hash = "sha256:e1875bb4b4e2de1669f4bc7869b6d3f54231cdced71605e6e64c9be77e3be50f"},
+]
+
+[package.dependencies]
+exceptiongroup = {version = ">=1.0.2", markers = "python_version < \"3.11\""}
+idna = ">=2.8"
+sniffio = ">=1.1"
+typing-extensions = {version = ">=4.1", markers = "python_version < \"3.11\""}
+
+[package.extras]
+doc = ["Sphinx (>=7)", "packaging", "sphinx-autodoc-typehints (>=1.2.0)", "sphinx-rtd-theme"]
+test = ["anyio[trio]", "coverage[toml] (>=7)", "exceptiongroup (>=1.2.0)", "hypothesis (>=4.0)", "psutil (>=5.9)", "pytest (>=7.0)", "pytest-mock (>=3.6.1)", "trustme", "uvloop (>=0.17)"]
+trio = ["trio (>=0.23)"]
+
+[[package]]
 name = "asgiref"
 version = "3.7.2"
 description = "ASGI specs, helper code, and adapters"
@@ -297,6 +319,21 @@ files = [
     {file = "colorama-0.4.6-py2.py3-none-any.whl", hash = "sha256:4f1d9991f5acc0ca119f9d443620b77f9d6b33703e51011c16baf57afb285fc6"},
     {file = "colorama-0.4.6.tar.gz", hash = "sha256:08695f5cb7ed6e0531a20572697297273c47b8cae5a63ffc6d6ed5c201be6e44"},
 ]
+
+[[package]]
+name = "configargparse"
+version = "1.7"
+description = "A drop-in replacement for argparse that allows options to also be set via config files and/or environment variables."
+optional = false
+python-versions = ">=3.5"
+files = [
+    {file = "ConfigArgParse-1.7-py3-none-any.whl", hash = "sha256:d249da6591465c6c26df64a9f73d2536e743be2f244eb3ebe61114af2f94f86b"},
+    {file = "ConfigArgParse-1.7.tar.gz", hash = "sha256:e7067471884de5478c58a511e529f0f9bd1c66bfef1dea90935438d6c23306d1"},
+]
+
+[package.extras]
+test = ["PyYAML", "mock", "pytest"]
+yaml = ["PyYAML"]
 
 [[package]]
 name = "coverage"
@@ -1096,21 +1133,6 @@ docs = ["sphinx (>=5.3)", "sphinx-rtd-theme (>=1.0)"]
 testing = ["coverage (>=6.2)", "hypothesis (>=5.7.1)"]
 
 [[package]]
-name = "pytest-click"
-version = "1.1.0"
-description = "Pytest plugin for Click"
-optional = false
-python-versions = "*"
-files = [
-    {file = "pytest_click-1.1.0-py3-none-any.whl", hash = "sha256:eade4742c2f02c345e78a32534a43e8db04acf98d415090539dacc880b7cd0e9"},
-    {file = "pytest_click-1.1.0.tar.gz", hash = "sha256:fdd9f6721f877dda021e7c5dc73e70aecd37e5ed23ec6820f8a7b3fd7b4f8d30"},
-]
-
-[package.dependencies]
-click = ">=6.0"
-pytest = ">=5.0"
-
-[[package]]
 name = "pytest-cov"
 version = "4.1.0"
 description = "Pytest plugin for measuring coverage."
@@ -1248,6 +1270,17 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*"
 files = [
     {file = "six-1.16.0-py2.py3-none-any.whl", hash = "sha256:8abb2f1d86890a2dfb989f9a77cfcfd3e47c2a354b01111771326f8aa26e0254"},
     {file = "six-1.16.0.tar.gz", hash = "sha256:1e61c37477a1626458e36f7b1d82aa5c9b094fa4802892072e49de9c60c4c926"},
+]
+
+[[package]]
+name = "sniffio"
+version = "1.3.0"
+description = "Sniff out which async library your code is running under"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "sniffio-1.3.0-py3-none-any.whl", hash = "sha256:eecefdce1e5bbfb7ad2eeaabf7c1eeb404d7757c379bd1f7e5cce9d8bf425384"},
+    {file = "sniffio-1.3.0.tar.gz", hash = "sha256:e60305c5e5d314f5389259b7f22aaa33d8f7dee49763119234af3755c55b9101"},
 ]
 
 [[package]]
@@ -1594,13 +1627,13 @@ files = [
 
 [[package]]
 name = "types-psycopg2"
-version = "2.9.21.20"
+version = "2.9.21.20240106"
 description = "Typing stubs for psycopg2"
 optional = false
-python-versions = ">=3.7"
+python-versions = ">=3.8"
 files = [
-    {file = "types-psycopg2-2.9.21.20.tar.gz", hash = "sha256:73baea689575bf5bb1b915b783fb0524044c6242928aeef1ae5a9e32f0780d3d"},
-    {file = "types_psycopg2-2.9.21.20-py3-none-any.whl", hash = "sha256:5b1e2e1d9478f8a298ea7038f8ea988e0ccc1f0af39f84636d57ef0da6f29e95"},
+    {file = "types-psycopg2-2.9.21.20240106.tar.gz", hash = "sha256:0d0a350449714ba28448c4f10a0a3aec36e9e3efd1450730e227e17b704a4bea"},
+    {file = "types_psycopg2-2.9.21.20240106-py3-none-any.whl", hash = "sha256:c20cf8236757f8ca4519068548f0c6c159158c9262cc7264c3f2f67f1f511b61"},
 ]
 
 [[package]]
@@ -1668,10 +1701,12 @@ docs = ["furo", "jaraco.packaging (>=9.3)", "jaraco.tidelift (>=1.4)", "rst.link
 testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "pytest (>=6)", "pytest-black (>=0.3.7)", "pytest-checkdocs (>=2.4)", "pytest-cov", "pytest-enabler (>=2.2)", "pytest-ignore-flaky", "pytest-mypy (>=0.9.1)", "pytest-ruff"]
 
 [extras]
+aiopg = ["aiopg", "psycopg2-binary"]
 django = ["django"]
+psycopg2 = ["psycopg2-binary"]
 sqlalchemy = ["sqlalchemy"]
 
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8"
-content-hash = "7533bad7b8583434b13755966cba1877da71455551b3f8c549bc2bcd425e77ae"
+content-hash = "64189612e4f53390aec80c78479cbdfc7cde06a0419d07c9f297c9ba371d919d"

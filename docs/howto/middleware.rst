@@ -9,7 +9,7 @@ It might look like this::
 
     import functools
 
-    def task(original_func=None, *args, **kwargs):
+    def task(original_func=None, **kwargs):
         def wrap(func):
             def new_func(*job_args, **job_kwargs):
                 # This is the custom part
@@ -19,7 +19,7 @@ It might look like this::
                 return result
 
             wrapped_func = functools.update_wrapper(new_func, func, updated=())
-            return app.task(*args, **kwargs)(wrapped_func)
+            return app.task(**kwargs)(wrapped_func)
 
         if not original_func:
             return wrap

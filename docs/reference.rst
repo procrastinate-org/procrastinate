@@ -10,12 +10,13 @@ App
 
 Connectors
 ----------
-
-.. autoclass:: procrastinate.AiopgConnector
-
-.. autoclass:: procrastinate.Psycopg2Connector
-
 .. autoclass:: procrastinate.PsycopgConnector
+
+.. autoclass:: procrastinate.SyncPsycopgConnector
+
+.. autoclass:: procrastinate.contrib.aiopg.AiopgConnector
+
+.. autoclass:: procrastinate.contrib.psycopg2.Psycopg2Connector
 
 .. autoclass:: procrastinate.testing.InMemoryConnector
     :members: reset
