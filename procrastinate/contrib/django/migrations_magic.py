@@ -145,18 +145,12 @@ def make_migrations(
         yield migration
 
 
-class ProcrastinateBaseMigration(migrations.Migration):
-    initial: ClassVar[bool | None]
-    operations: ClassVar[list[migrations.RunSQL]]
-    name: ClassVar[str]
-
-
 def make_migration(
     sql_migration: ProcrastinateMigration,
-    previous_migration: type[ProcrastinateBaseMigration] | None,
+    previous_migration: type[migrations.Migration] | None,
     counter: Iterator[int],
-) -> type[ProcrastinateBaseMigration]:
-    class NewMigration(ProcrastinateBaseMigration):
+) -> type[migrations.Migration]:
+    class NewMigration(migrations.Migration):
         initial: ClassVar = previous_migration is None
         operations: ClassVar = [migrations.RunSQL(sql=sql_migration.contents)]
         name: ClassVar = f"{next(counter):04d}_{sql_migration.name}"

@@ -14,7 +14,7 @@ class CreateBookView(generic.CreateView):
 
     def form_valid(self, form):
         response = super().form_valid(form)
-        tasks.index_book.defer(book_id=self.object.id)
+        tasks.index_book.defer(book_id=self.object.id)  # type: ignore
         return response
 
 
