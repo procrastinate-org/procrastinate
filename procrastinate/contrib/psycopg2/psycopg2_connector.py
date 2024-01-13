@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import contextlib
 import functools
 import logging
-from typing import Any, Callable, Dict, Iterator, Optional
+from typing import Any, Callable, Iterator
 
 import psycopg2
 import psycopg2.errors
@@ -70,8 +72,8 @@ class Psycopg2Connector(connector.BaseConnector):
     def __init__(
         self,
         *,
-        json_dumps: Optional[Callable] = None,
-        json_loads: Optional[Callable] = None,
+        json_dumps: Callable | None = None,
+        json_loads: Callable | None = None,
         **kwargs: Any,
     ):
         """
@@ -116,15 +118,15 @@ class Psycopg2Connector(connector.BaseConnector):
         """
         self.json_dumps = json_dumps
         self.json_loads = json_loads
-        self._pool: Optional[psycopg2.pool.AbstractConnectionPool] = None
+        self._pool: psycopg2.pool.AbstractConnectionPool | None = None
         self._pool_args = self._adapt_pool_args(kwargs)
         self._pool_externally_set = False
 
-    def get_sync_connector(self) -> "Psycopg2Connector":
+    def get_sync_connector(self) -> Psycopg2Connector:
         return self
 
     @staticmethod
-    def _adapt_pool_args(pool_args: Dict[str, Any]) -> Dict[str, Any]:
+    def _adapt_pool_args(pool_args: dict[str, Any]) -> dict[str, Any]:
         """
         Adapt the pool args for ``psycopg2``, using sensible defaults for Procrastinate.
         """
@@ -137,7 +139,7 @@ class Psycopg2Connector(connector.BaseConnector):
         final_args.update(pool_args)
         return final_args
 
-    def open(self, pool: Optional[psycopg2.pool.AbstractConnectionPool] = None) -> None:
+    def open(self, pool: psycopg2.pool.AbstractConnectionPool | None = None) -> None:
         """
         Instantiate the pool.
 
@@ -154,7 +156,7 @@ class Psycopg2Connector(connector.BaseConnector):
 
     @staticmethod
     @wrap_exceptions
-    def _create_pool(pool_args: Dict[str, Any]) -> psycopg2.pool.AbstractConnectionPool:
+    def _create_pool(pool_args: dict[str, Any]) -> psycopg2.pool.AbstractConnectionPool:
         return psycopg2.pool.ThreadedConnectionPool(**pool_args)
 
     @wrap_exceptions
@@ -171,7 +173,7 @@ class Psycopg2Connector(connector.BaseConnector):
             raise exceptions.AppNotOpen
         return self._pool
 
-    def _wrap_json(self, arguments: Dict[str, Any]):
+    def _wrap_json(self, arguments: dict[str, Any]):
         return {
             key: Json(value, dumps=self.json_dumps)
             if isinstance(value, dict)
@@ -206,16 +208,20 @@ class Psycopg2Connector(connector.BaseConnector):
 
     @wrap_exceptions
     @wrap_query_exceptions
-    def execute_query_one(self, query: str, **arguments: Any) -> Dict[str, Any]:
+    def execute_query_one(self, query: str, **arguments: Any) -> dict[str, Any]:
         with self._connection() as connection:
             with connection.cursor() as cursor:
                 cursor.execute(query, self._wrap_json(arguments))
-                return cursor.fetchone()
+                # psycopg2's type say it returns a tuple, but it actually returns a
+                # dict when configured with RealDictCursor
+                return cursor.fetchone()  # type: ignore
 
     @wrap_exceptions
     @wrap_query_exceptions
-    def execute_query_all(self, query: str, **arguments: Any) -> Dict[str, Any]:
+    def execute_query_all(self, query: str, **arguments: Any) -> dict[str, Any]:
         with self._connection() as connection:
             with connection.cursor() as cursor:
                 cursor.execute(query, self._wrap_json(arguments))
-                return cursor.fetchall()
+                # psycopg2's type say it returns a tuple, but it actually returns a
+                # dict when configured with RealDictCursor
+                return cursor.fetchall()  # type: ignore

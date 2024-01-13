@@ -25,7 +25,6 @@ aiopg = { version = "*", optional = true }
 anyio = "*"
 asgiref = "*"
 attrs = "*"
-configargparse = "*"
 croniter = "*"
 django = { version = ">=2.2", optional = true }
 importlib-metadata = { version = "*", python = "<3.8" }
@@ -36,35 +35,40 @@ python-dateutil = "*"
 sqlalchemy = { version = "^2.0", optional = true }
 typing-extensions = { version = "*", python = "<3.8" }
 
+
 [tool.poetry.extras]
 django = ["django"]
 sqlalchemy = ["sqlalchemy"]
 aiopg = ["aiopg", "psycopg2-binary"]
 psycopg2 = ["psycopg2-binary"]
 
-[tool.poetry.group.dev.dependencies]
-aiopg = "*"
-black = { version = "*", allow-prereleases = true }
+[tool.poetry.group.types]
+optional = true
+
+[tool.poetry.group.types.dependencies]
+django-stubs = "*"
+
+[tool.poetry.group.release.dependencies]
 dunamai = "*"
-flake8 = "*"
-migra = "*"
-mypy = "*"
-psycopg = { extras = ["binary"], version = "^3.1.13" }
+
+[tool.poetry.group.lint_format.dependencies]
+ruff = "*"
+
+[tool.poetry.group.pg_implem.dependencies]
+aiopg = "*"
+sqlalchemy = { extras = ["mypy"], version = "*" }
 psycopg2-binary = "*"
+psycopg = { extras = ["binary"], version = "^3.1.13" }
+
+[tool.poetry.group.django.dependencies]
+django = ">=2.2"
+
+[tool.poetry.group.test.dependencies]
 pytest-asyncio = "*"
 pytest-cov = "*"
 pytest-django = "*"
 pytest-mock = "*"
-Sphinx = "*"
-sphinx-autodoc-typehints = "*"
-sphinx-github-changelog = "*"
-sphinxcontrib-programoutput = "*"
-sqlalchemy = { extras = ["mypy"], version = "*" }
-SQLAlchemy = { extras = ["mypy"], version = "^2.0.0" }
-tomlkit = "*"
-types-croniter = "*"
-types-psycopg2 = "*"
-types-python-dateutil = "*"
+migra = "*"
 
 [tool.poetry.group.docs.dependencies]
 django = ">=2.2"
@@ -74,6 +78,62 @@ sphinx-autodoc-typehints = "*"
 sphinx-copybutton = "*"
 sphinx-github-changelog = "*"
 sphinxcontrib-programoutput = "*"
+
+[tool.pytest.ini_options]
+addopts = [
+    "--cov-report=term-missing",
+    "--cov-report=html",
+    "--cov-branch",
+    "--cov=procrastinate",
+    "-vv",
+    "--strict-markers",
+    "-rfE",
+]
+testpaths = [
+    "tests/unit",
+    "tests/integration",
+    "tests/acceptance",
+    "tests/migration",
+]
+filterwarnings = ""
+asyncio_mode = "auto"
+DJANGO_SETTINGS_MODULE = "tests.acceptance.django_settings"
+
+[tool.coverage.run]
+relative_files = true
+omit = ["procrastinate/contrib/django/migrations/*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "raise NotImplementedError",
+    "coverage: exclude",
+    "if TYPE_CHECKING:",
+    "[ ]+\\.\\.\\.$",
+]
+
+[tool.pyright]
+exclude = ["tests", ".venv"]
+
+[tool.ruff]
+extend-exclude = [".venv", "migrations"]
+extend-select = [
+    "UP",  # pyupgrade
+    "I",   # isort
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "RUF", # ruff
+]
+fixable = ["ALL"]
+extend-ignore = [
+    "E501", # line too long
+]
+
+[tool.ruff.lint.isort]
+required-imports = ["from __future__ import annotations"]
+
+[tool.doc8]
+max-line-length = 88
+ignore-path = "docs/_build,.venv"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

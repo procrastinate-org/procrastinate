@@ -46,7 +46,7 @@ P = ParamSpec("P")
 
 
 def wrap_exceptions(
-    coro: Callable[P, Coroutine[None, Any, T]]
+    coro: Callable[P, Coroutine[None, Any, T]],
 ) -> Callable[P, Coroutine[None, Any, T]]:
     """
     Wrap psycopg errors as connector exceptions.
@@ -140,9 +140,7 @@ class PsycopgConnector(connector.BaseAsyncConnector):
     @property
     def pool(
         self,
-    ) -> psycopg_pool.AsyncConnectionPool[
-        psycopg.AsyncConnection[psycopg.rows.DictRow]
-    ]:
+    ) -> psycopg_pool.AsyncConnectionPool:
         if self._async_pool is None:  # Set by open_async
             raise exceptions.AppNotOpen
         return self._async_pool
@@ -176,7 +174,7 @@ class PsycopgConnector(connector.BaseAsyncConnector):
     @staticmethod
     @wrap_exceptions
     async def _create_pool(
-        pool_args: dict[str, Any]
+        pool_args: dict[str, Any],
     ) -> psycopg_pool.AsyncConnectionPool:
         return psycopg_pool.AsyncConnectionPool(
             **pool_args,

@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import ClassVar
+
 from django.views import generic
 
 from . import models, tasks
@@ -5,12 +9,12 @@ from . import models, tasks
 
 class CreateBookView(generic.CreateView):
     model = models.Book
-    fields = ["title", "author"]
+    fields: ClassVar = ["title", "author"]
     success_url = "/"
 
     def form_valid(self, form):
         response = super().form_valid(form)
-        tasks.index_book.defer(book_id=self.object.id)
+        tasks.index_book.defer(book_id=self.object.id)  # type: ignore
         return response
 
 

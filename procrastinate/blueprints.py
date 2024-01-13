@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import functools
 import logging
 import sys
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Callable
 
 from procrastinate import exceptions, jobs, retry, utils
 
@@ -61,7 +63,7 @@ class Blueprint:
     """
 
     def __init__(self) -> None:
-        self.tasks: Dict[str, "tasks.Task"] = {}
+        self.tasks: dict[str, tasks.Task] = {}
         self._check_stack()
 
     def _check_stack(self):
@@ -85,18 +87,17 @@ class Blueprint:
                 extra={"action": "app_defined_in___main__"},
             )
 
-    def _register_task(self, task: "tasks.Task") -> None:
+    def _register_task(self, task: tasks.Task) -> None:
         """
         Register the task into the blueprint task registry.
         Raises exceptions.TaskAlreadyRegistered if the task name
         or an alias already exists in the registry
         """
-        from procrastinate import tasks
 
         # Each call to _add_task may raise TaskAlreadyRegistered.
         # We're using an intermediary dict to make sure that if the registration
         # is interrupted midway though, self.tasks is left unmodified.
-        to_add: Dict[str, tasks.Task] = {}
+        to_add: dict[str, tasks.Task] = {}
         self._add_task(task=task, name=task.name, to=to_add)
 
         for alias in task.aliases:
@@ -104,9 +105,7 @@ class Blueprint:
 
         self.tasks.update(to_add)
 
-    def _add_task(
-        self, task: "tasks.Task", name: str, to: Optional[dict] = None
-    ) -> None:
+    def _add_task(self, task: tasks.Task, name: str, to: dict | None = None) -> None:
         # Add a task to a dict of task while making
         # sure a task of the same name was not already in self.tasks.
         # This lets us prepare a dict of tasks we might add while not adding
@@ -120,7 +119,7 @@ class Blueprint:
         result_dict = self.tasks if to is None else to
         result_dict[name] = task
 
-    def add_task_alias(self, task: "tasks.Task", alias: str) -> None:
+    def add_task_alias(self, task: tasks.Task, alias: str) -> None:
         """
         Add an alias to a task. This can be useful if a task was in a given
         Blueprint and moves to a different blueprint.
@@ -134,7 +133,7 @@ class Blueprint:
         """
         self._add_task(task=task, name=alias)
 
-    def add_tasks_from(self, blueprint: "Blueprint", *, namespace: str) -> None:
+    def add_tasks_from(self, blueprint: Blueprint, *, namespace: str) -> None:
         """
         Copies over all tasks from a different blueprint, prefixing their names
         with the given namespace (using ``:`` as namespace separator).
@@ -173,15 +172,15 @@ class Blueprint:
 
     def task(
         self,
-        _func: Optional[Callable[..., Any]] = None,
+        _func: Callable[..., Any] | None = None,
         *,
-        name: Optional[str] = None,
-        aliases: Optional[List[str]] = None,
+        name: str | None = None,
+        aliases: list[str] | None = None,
         retry: retry.RetryValue = False,
         pass_context: bool = False,
         queue: str = jobs.DEFAULT_QUEUE,
-        lock: Optional[str] = None,
-        queueing_lock: Optional[str] = None,
+        lock: str | None = None,
+        queueing_lock: str | None = None,
     ) -> Any:
         """
         Declare a function as a task. This method is meant to be used as a decorator::
@@ -234,7 +233,7 @@ class Blueprint:
             Passes the task execution context in the task as first
         """
 
-        def _wrap(func: Callable[..., "tasks.Task"]):
+        def _wrap(func: Callable[..., tasks.Task]):
             from procrastinate import tasks
 
             task = tasks.Task(

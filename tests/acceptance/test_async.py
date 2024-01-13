@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import pytest
 
 from procrastinate import app as app_module

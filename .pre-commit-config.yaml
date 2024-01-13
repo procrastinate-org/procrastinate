@@ -1,58 +1,62 @@
+ci:
+  skip: [pyright]
+  autoupdate_schedule: quarterly
 # See https://pre-commit.com for more information
 # See https://pre-commit.com/hooks.html for more hooks
 repos:
-- repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: v4.5.0
-  hooks:
-  - id: trailing-whitespace
-  - id: end-of-file-fixer
-  - id: check-yaml
-  - id: check-added-large-files
-
-- repo: https://github.com/psf/black
-  rev: "23.11.0"
-  hooks:
-  - id: black
-
-- repo: https://github.com/PyCQA/isort
-  rev: "5.13.2"
-  hooks:
-  - id: isort
-
-- repo: https://github.com/PyCQA/flake8
-  rev: "7.0.0"
-  hooks:
-  - id: flake8
-
-- repo: https://github.com/pre-commit/mirrors-mypy
-  rev: "v1.7.1"
-  hooks:
-  - id: mypy
-    files: ^procrastinate/
-    args: []
-    additional_dependencies:
-    - aiopg==1.4.0
-    - attrs==21.4.0
-    - click==8.0.3
-    - psycopg[pool]==3.1.13
-    - sqlalchemy[mypy]==1.4.29
-    - types-croniter==1.0.4
-    - types-psycopg2==2.9.5
-    - psycopg[binary,pool]==3.1.13
-    - types-python-dateutil==2.8.4
-
-- repo: https://github.com/asottile/pyupgrade
-  rev: "v3.15.0"
-  hooks:
-  - id: pyupgrade
-    args: [--py37-plus]
-
-- repo: https://github.com/PyCQA/doc8
-  rev: "v1.1.1"
-  hooks:
-  - id: doc8
-
-- repo: https://github.com/floatingpurr/sync_with_poetry
-  rev: 1.1.0
-  hooks:
-  - id: sync_with_poetry
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      # File names
+      - id: check-case-conflict
+      # File formats
+      - id: pretty-format-json
+      - id: check-json
+      - id: check-toml
+      - id: check-yaml
+      # Executables
+      - id: check-executables-have-shebangs
+        exclude: dev-env
+      - id: check-shebang-scripts-are-executable
+      # Git shenanigans
+      - id: check-merge-conflict
+      - id: check-added-large-files
+      # Python issues
+      - id: check-ast
+      - id: debug-statements
+      # Whitespace
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: mixed-line-ending
+  - repo: https://github.com/RobertCraigie/pyright-python
+    rev: v1.1.345
+    hooks:
+      - id: pyright
+        additional_dependencies:
+          - aiopg==1.4.0
+          - anyio==4.2.0
+          - asgiref==3.7.2
+          - attrs==23.2.0
+          - croniter==2.0.1
+          - django==4.2.9
+          - django-stubs==4.2.7
+          - importlib-resources==6.1.1
+          - psycopg[pool]==3.1.17
+          - psycopg2-binary==2.9.9
+          - python-dateutil==2.8.2
+          - sqlalchemy==2.0.25
+          - typing-extensions==4.9.0
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.1.11
+    hooks:
+      - id: ruff
+        args: [--fix, --unsafe-fixes]
+      - id: ruff-format
+  - repo: https://github.com/PyCQA/doc8
+    rev: "v1.1.1"
+    hooks:
+      - id: doc8
+  - repo: https://github.com/floatingpurr/sync_with_poetry
+    rev: 1.1.0
+    hooks:
+      - id: sync_with_poetry

@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 import time
-from typing import Any, Dict, Iterable, Optional
+from typing import Any, Iterable
 
 import attr
 
@@ -9,11 +11,11 @@ from procrastinate import jobs, tasks, types
 
 @attr.dataclass(kw_only=True)
 class JobResult:
-    start_timestamp: Optional[float] = None
-    end_timestamp: Optional[float] = None
+    start_timestamp: float | None = None
+    end_timestamp: float | None = None
     result: Any = None
 
-    def duration(self, current_timestamp: float) -> Optional[float]:
+    def duration(self, current_timestamp: float) -> float | None:
         if self.start_timestamp is None:
             return None
         return (self.end_timestamp or current_timestamp) - self.start_timestamp
@@ -55,14 +57,14 @@ class JobContext:
         Current `Task` instance
     """
 
-    app: Optional["app_module.App"] = None
-    worker_name: Optional[str] = None
-    worker_queues: Optional[Iterable[str]] = None
-    worker_id: Optional[int] = None
-    job: Optional[jobs.Job] = None
-    task: Optional[tasks.Task] = None
+    app: app_module.App | None = None
+    worker_name: str | None = None
+    worker_queues: Iterable[str] | None = None
+    worker_id: int | None = None
+    job: jobs.Job | None = None
+    task: tasks.Task | None = None
     job_result: JobResult = attr.ib(factory=JobResult)
-    additional_context: Dict = attr.ib(factory=dict)
+    additional_context: dict = attr.ib(factory=dict)
 
     def log_extra(self, action: str, **kwargs: Any) -> types.JSONDict:
         extra: types.JSONDict = {
@@ -78,7 +80,7 @@ class JobContext:
 
         return {**extra, **self.job_result.as_dict(), **kwargs}
 
-    def evolve(self, **update: Any) -> "JobContext":
+    def evolve(self, **update: Any) -> JobContext:
         return attr.evolve(self, **update)
 
     @property

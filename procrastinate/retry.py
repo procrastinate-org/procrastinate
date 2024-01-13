@@ -2,8 +2,10 @@
 A retry strategy class lets procrastinate know what to do when a job fails: should it
 try again? And when?
 """
+from __future__ import annotations
+
 import datetime
-from typing import Iterable, Optional, Type, Union
+from typing import Iterable, Union
 
 import attr
 
@@ -18,7 +20,7 @@ class BaseRetryStrategy:
 
     def get_retry_exception(
         self, exception: BaseException, attempts: int
-    ) -> Optional[exceptions.JobRetry]:
+    ) -> exceptions.JobRetry | None:
         schedule_in = self.get_schedule_in(exception=exception, attempts=attempts)
         if schedule_in is None:
             return None
@@ -26,9 +28,7 @@ class BaseRetryStrategy:
         schedule_at = utils.utcnow() + datetime.timedelta(seconds=schedule_in)
         return exceptions.JobRetry(schedule_at.replace(microsecond=0))
 
-    def get_schedule_in(
-        self, *, exception: BaseException, attempts: int
-    ) -> Optional[int]:
+    def get_schedule_in(self, *, exception: BaseException, attempts: int) -> int | None:
         """
         Parameters
         ----------
@@ -77,15 +77,13 @@ class RetryStrategy(BaseRetryStrategy):
 
     """
 
-    max_attempts: Optional[int] = None
+    max_attempts: int | None = None
     wait: int = 0
     linear_wait: int = 0
     exponential_wait: int = 0
-    retry_exceptions: Optional[Iterable[Type[Exception]]] = None
+    retry_exceptions: Iterable[type[Exception]] | None = None
 
-    def get_schedule_in(
-        self, *, exception: BaseException, attempts: int
-    ) -> Optional[int]:
+    def get_schedule_in(self, *, exception: BaseException, attempts: int) -> int | None:
         if self.max_attempts and attempts >= self.max_attempts:
             return None
         # isinstance's 2nd param must be a tuple, not an arbitrary iterable
@@ -102,7 +100,7 @@ class RetryStrategy(BaseRetryStrategy):
 RetryValue = Union[bool, int, RetryStrategy]
 
 
-def get_retry_strategy(retry: RetryValue) -> Optional[RetryStrategy]:
+def get_retry_strategy(retry: RetryValue) -> RetryStrategy | None:
     if not retry:
         return None
 

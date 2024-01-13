@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 import functools
 import re
-from typing import Any, Callable, Dict, List, Mapping, Optional
+from typing import Any, Callable, Mapping
 
 import psycopg2.errors
 import sqlalchemy
@@ -39,7 +41,7 @@ def wrap_query_exceptions(func: Callable) -> Callable:
 
     This is to handle the case where the database connection (obtained from the pool)
     was actually closed by the server. In this case, SQLAlchemy raises a ``DBAPIError``
-    with ``connection_invalidated`` set to ``True``, and also invalidates the rest of
+    with ``connection_invalidated`` set to ``True``, and also invalidates the rest of
     the connection pool. So we just retry once, to get a fresh connection.
     """
 
@@ -63,14 +65,14 @@ class SQLAlchemyPsycopg2Connector(connector.BaseConnector):
         self,
         *,
         dsn: str = "postgresql://",
-        json_dumps: Optional[Callable] = None,
-        json_loads: Optional[Callable] = None,
+        json_dumps: Callable | None = None,
+        json_loads: Callable | None = None,
         **kwargs: Any,
     ):
         """
         Synchronous connector based on SQLAlchemy with Psycopg2.
 
-        This is used if you want your ``.defer()`` calls to be purely synchronous, not
+        This is used if you want your ``.defer()`` calls to be purely synchronous, not
         asynchronous with a sync wrapper. You may need this if your program is
         multi-threaded and doen't handle async loops well
         (see `discussion-sync-defer`).
@@ -94,13 +96,13 @@ class SQLAlchemyPsycopg2Connector(connector.BaseConnector):
         """
         self.json_dumps = json_dumps
         self.json_loads = json_loads
-        self._engine: Optional[sqlalchemy.engine.Engine] = None
+        self._engine: sqlalchemy.engine.Engine | None = None
         self._engine_dsn = dsn
         self._engine_kwargs = kwargs
         self._engine_externally_set = False
 
     @wrap_exceptions
-    def open(self, engine: Optional[sqlalchemy.engine.Engine] = None) -> None:
+    def open(self, engine: sqlalchemy.engine.Engine | None = None) -> None:
         """
         Create an SQLAlchemy engine for the connector.
 
@@ -116,12 +118,12 @@ class SQLAlchemyPsycopg2Connector(connector.BaseConnector):
         else:
             self._engine = self._create_engine(self._engine_dsn, self._engine_kwargs)
 
-    def get_sync_connector(self) -> "connector.BaseConnector":
+    def get_sync_connector(self) -> connector.BaseConnector:
         return self
 
     @staticmethod
     def _create_engine(
-        dsn: str, engine_kwargs: Dict[str, Any]
+        dsn: str, engine_kwargs: dict[str, Any]
     ) -> sqlalchemy.engine.Engine:
         """
         Create an SQLAlchemy engine.
@@ -143,7 +145,7 @@ class SQLAlchemyPsycopg2Connector(connector.BaseConnector):
             raise exceptions.AppNotOpen
         return self._engine
 
-    def _wrap_json(self, arguments: Dict[str, Any]):
+    def _wrap_json(self, arguments: dict[str, Any]):
         return {
             key: Json(value, dumps=self.json_dumps)
             if isinstance(value, dict)
@@ -167,16 +169,20 @@ class SQLAlchemyPsycopg2Connector(connector.BaseConnector):
                 PERCENT_PATTERN.sub("%%", query), self._wrap_json(arguments)
             )
             mapping = cursor_result.mappings()
-            return mapping.fetchone()
+            # psycopg2's type say it returns a tuple, but it actually returns a
+            # dict when configured with RealDictCursor
+            return mapping.fetchone()  # type: ignore
 
     @wrap_exceptions
     @wrap_query_exceptions
     def execute_query_all(
         self, query: str, **arguments: Any
-    ) -> List[Mapping[str, Any]]:
+    ) -> list[Mapping[str, Any]]:
         with self.engine.begin() as connection:
             cursor_result = connection.exec_driver_sql(
                 PERCENT_PATTERN.sub("%%", query), self._wrap_json(arguments)
             )
             mapping = cursor_result.mappings()
-            return mapping.all()
+            # psycopg2's type say it returns a tuple, but it actually returns a
+            # dict when configured with RealDictCursor
+            return mapping.all()  # type: ignore

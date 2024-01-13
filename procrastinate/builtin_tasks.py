@@ -1,4 +1,4 @@
-from typing import Optional
+from __future__ import annotations
 
 from procrastinate import blueprints, job_context
 
@@ -10,8 +10,8 @@ async def remove_old_jobs(
     context: job_context.JobContext,
     *,
     max_hours: int,
-    queue: Optional[str] = None,
-    remove_error: Optional[bool] = False,
+    queue: str | None = None,
+    remove_error: bool | None = False,
 ) -> None:
     """
     This task cleans your database by removing old jobs. Note that jobs and linked

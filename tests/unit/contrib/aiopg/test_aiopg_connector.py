@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import collections
+from typing import ClassVar
 
 import psycopg2
 import pytest
@@ -159,7 +162,7 @@ async def test_listen_notify_pool_one_connection(mocker, caplog, connector):
 @pytest.fixture
 def fake_connector(mocker):
     class FakePool:
-        _free = collections.deque()
+        _free: ClassVar = collections.deque()
 
         def terminate(self):
             pass

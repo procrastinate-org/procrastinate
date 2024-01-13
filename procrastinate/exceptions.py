@@ -1,5 +1,6 @@
+from __future__ import annotations
+
 import datetime
-from typing import Optional
 
 
 class ProcrastinateException(Exception):
@@ -55,7 +56,7 @@ class JobError(ProcrastinateException):
     """
 
     def __init__(
-        self, *args, retry_exception: Optional[JobRetry] = None, critical: bool = False
+        self, *args, retry_exception: JobRetry | None = None, critical: bool = False
     ):
         super().__init__(*args)
         self.retry_exception = retry_exception
@@ -93,7 +94,7 @@ class UniqueViolation(ConnectorException):
     ``exception.constraint_name``.
     """
 
-    def __init__(self, *args, constraint_name: Optional[str]):
+    def __init__(self, *args, constraint_name: str | None):
         super().__init__(*args)
         self.constraint_name = constraint_name
 

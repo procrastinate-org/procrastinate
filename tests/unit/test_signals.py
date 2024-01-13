@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import asyncio
 import signal
 
@@ -82,7 +84,8 @@ async def test_on_stop_work_with_asyncio(kill_own_pid):
 
     try:
         with signals.on_stop(stop):
-            asyncio.ensure_future(wait_and_kill())
+            task = asyncio.ensure_future(wait_and_kill())
             await asyncio.wait_for(event.wait(), timeout=0.01)
+            assert task
     except asyncio.TimeoutError:
         pytest.fail("Signal did not awake coroutine")

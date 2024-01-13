@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from django.apps import AppConfig
 
 from procrastinate.contrib.django import migrations_magic

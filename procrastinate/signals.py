@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 import asyncio
 import logging
 import signal
 import threading
 from contextlib import contextmanager
-from typing import Any, Callable, Optional
+from typing import Any, Callable
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +37,7 @@ def on_stop(callback: Callable[[], None]):
     sigterm_handler = signal.getsignal(signal.SIGTERM)
 
     uninstalled = False
-    loop: Optional[asyncio.AbstractEventLoop]
+    loop: asyncio.AbstractEventLoop | None
     try:
         loop = asyncio.get_running_loop()
     except RuntimeError:
@@ -61,7 +63,7 @@ def on_stop(callback: Callable[[], None]):
             )
 
 
-def install(loop: Optional[asyncio.AbstractEventLoop], handler: Callable):
+def install(loop: asyncio.AbstractEventLoop | None, handler: Callable):
     logger.debug(
         "Installing signal handler", extra={"action": "install_signal_handlers"}
     )
@@ -74,7 +76,7 @@ def install(loop: Optional[asyncio.AbstractEventLoop], handler: Callable):
 
 
 def uninstall(
-    loop: Optional[asyncio.AbstractEventLoop],
+    loop: asyncio.AbstractEventLoop | None,
     sigint_handler: Any,
     sigterm_handler: Any,
 ):
