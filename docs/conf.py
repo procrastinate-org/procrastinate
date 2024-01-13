@@ -16,19 +16,18 @@
 
 import datetime
 import os
-import pathlib
-import sys
 from typing import List
 
 # -- Project information -----------------------------------------------------
 
-project = "procrastinate"
-copyright = f"{datetime.datetime.now().year}, Peopledoc"
-author = "Peopledoc"
+project = "Procrastinate"
+copyright = (
+    f"""2019-{datetime.datetime.now().year}, Joachim Jablon, Eric Lemoine, PeopleDoc"""
+)
+author = "Joachim Jablon"
 
 
 # -- General configuration ---------------------------------------------------
-sys.path.append(str(pathlib.Path("sphinxext").absolute()))
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
@@ -39,13 +38,8 @@ extensions = [
     "sphinx_autodoc_typehints",
     "sphinxcontrib.programoutput",
     "sphinx_github_changelog",
+    "sphinx_copybutton",
 ]
-try:
-    import sphinxcontrib.spelling  # noqa
-except ImportError:
-    pass
-else:
-    extensions.append("sphinxcontrib.spelling")
 
 set_type_checking_flag = True
 
@@ -65,16 +59,12 @@ default_role = "any"
 # https://github.com/sphinx-doc/sphinx/issues/7418
 suppress_warnings = ["ref.term"]
 
-# -- Spell check -------------------------------------------------------------
-
-spelling_word_list_filename = "spelling_wordlist.txt"
-
 # -- Options for HTML output -------------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = "alabaster"
+html_theme = "furo"
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
@@ -87,12 +77,21 @@ autoclass_content = "both"
 master_doc = "index"
 
 html_theme_options = {
-    "description": "Python/PostgreSQL task processing library",
-    "sidebar_width": "235px",
-    "github_user": "procrastinate-org",
-    "github_repo": "procrastinate",
-    "badge_branch": "main",
-    "github_button": True,
+    "light_css_variables": {
+        "color-brand-primary": "#e8220a",
+        "color-brand-content": "#e8220a",
+    },
+    "dark_css_variables": {
+        "color-brand-primary": "#ea9f9e",
+        "color-brand-content": "#ea9f9e",
+    },
+    "source_repository": "https://github.com/procrastinate-org/procrastinate/",
+    "source_branch": "main",
+    "source_directory": "docs/",
 }
+
+html_favicon = "favicon.ico"
+
+# -- Options for sphinx_github_changelog ---------------------------------
 
 sphinx_github_changelog_token = os.environ.get("CHANGELOG_GITHUB_TOKEN")

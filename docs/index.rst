@@ -2,7 +2,7 @@
   :end-before: end-of-index-doc
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    quickstart
    howto_index

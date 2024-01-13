@@ -187,7 +187,7 @@ to parallelize (thread-safe) I/Os.
 .. _Global Interpreter Lock: https://docs.python.org/3/glossary.html#term-global-interpreter-lock
 
 Procrastinate natively supports asynchronous job deferring, and asynchronous job
-execution (see `howto/async`, `howto/concurrency`, `howto/sync_defer`).
+execution (see `howto/concurrency`, `howto/sync_defer`).
 
 .. _discussions-pool-size:
 
