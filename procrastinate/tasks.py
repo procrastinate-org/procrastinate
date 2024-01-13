@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 import datetime
 import logging
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable
 
 from procrastinate import app as app_module
 from procrastinate import blueprints, exceptions, jobs, manager, types, utils
@@ -13,11 +15,11 @@ def configure_task(
     *,
     name: str,
     job_manager: manager.JobManager,
-    lock: Optional[str] = None,
-    queueing_lock: Optional[str] = None,
-    task_kwargs: Optional[types.JSONDict] = None,
-    schedule_at: Optional[datetime.datetime] = None,
-    schedule_in: Optional[Dict[str, int]] = None,
+    lock: str | None = None,
+    queueing_lock: str | None = None,
+    task_kwargs: types.JSONDict | None = None,
+    schedule_at: datetime.datetime | None = None,
+    schedule_in: dict[str, int] | None = None,
     queue: str = jobs.DEFAULT_QUEUE,
 ) -> jobs.JobDeferrer:
     if schedule_at and schedule_in is not None:
@@ -72,17 +74,17 @@ class Task:
         self,
         func: Callable,
         *,
-        blueprint: "blueprints.Blueprint",
+        blueprint: blueprints.Blueprint,
         # task naming
-        name: Optional[str] = None,
-        aliases: Optional[List[str]] = None,
+        name: str | None = None,
+        aliases: list[str] | None = None,
         # task specific settings
         retry: retry_module.RetryValue = False,
         pass_context: bool = False,
         # default defer arguments
         queue: str,
-        lock: Optional[str] = None,
-        queueing_lock: Optional[str] = None,
+        lock: str | None = None,
+        queueing_lock: str | None = None,
     ):
         self.queue = queue
         self.blueprint = blueprint
@@ -130,12 +132,12 @@ class Task:
     def configure(
         self,
         *,
-        lock: Optional[str] = None,
-        queueing_lock: Optional[str] = None,
-        task_kwargs: Optional[types.JSONDict] = None,
-        schedule_at: Optional[datetime.datetime] = None,
-        schedule_in: Optional[Dict[str, int]] = None,
-        queue: Optional[str] = None,
+        lock: str | None = None,
+        queueing_lock: str | None = None,
+        task_kwargs: types.JSONDict | None = None,
+        schedule_at: datetime.datetime | None = None,
+        schedule_in: dict[str, int] | None = None,
+        queue: str | None = None,
     ) -> jobs.JobDeferrer:
         """
         Configure the job with all the specific settings, defining how the job
@@ -197,7 +199,7 @@ class Task:
 
     def get_retry_exception(
         self, exception: BaseException, job: jobs.Job
-    ) -> Optional[exceptions.JobRetry]:
+    ) -> exceptions.JobRetry | None:
         if not self.retry_strategy:
             return None
 

@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 import re
 import sys
-from typing import TYPE_CHECKING, Dict, cast
+from typing import TYPE_CHECKING, cast
 
 from typing_extensions import LiteralString
 
@@ -16,7 +18,7 @@ else:
 QUERIES_REGEX = re.compile(r"(?:\n|^)-- ([a-z0-9_]+) --\n(?:-- .+\n)*", re.MULTILINE)
 
 
-def parse_query_file(query_file: str) -> Dict["str", LiteralString]:
+def parse_query_file(query_file: str) -> dict[str, LiteralString]:
     split = iter(QUERIES_REGEX.split(query_file))
     next(split)  # Consume the header of the file
     result = {}
@@ -33,7 +35,7 @@ def parse_query_file(query_file: str) -> Dict["str", LiteralString]:
     return result
 
 
-def get_queries() -> Dict["str", LiteralString]:
+def get_queries() -> dict[str, LiteralString]:
     return parse_query_file(
         (importlib_resources.files("procrastinate.sql") / "queries.sql").read_text(
             encoding="utf-8"

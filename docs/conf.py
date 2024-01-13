@@ -13,10 +13,10 @@
 # import os
 # import sys
 # sys.path.insert(0, os.path.abspath('.'))
+from __future__ import annotations
 
 import datetime
 import os
-from typing import List
 
 # -- Project information -----------------------------------------------------
 
@@ -70,7 +70,7 @@ html_theme = "furo"
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 # html_static_path = ["_static"]
-html_static_path: List[str] = []
+html_static_path: list[str] = []
 
 autoclass_content = "both"
 

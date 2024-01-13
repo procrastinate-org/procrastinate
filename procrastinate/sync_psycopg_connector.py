@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import contextlib
 import functools
 import logging
-from typing import Any, Callable, Dict, Iterator, List, Optional, TypeVar
+from typing import Any, Callable, Iterator, TypeVar
 
 import psycopg
 import psycopg.rows
@@ -44,8 +46,8 @@ class SyncPsycopgConnector(connector.BaseConnector):
     def __init__(
         self,
         *,
-        json_dumps: Optional[Callable] = None,
-        json_loads: Optional[Callable] = None,
+        json_dumps: Callable | None = None,
+        json_loads: Callable | None = None,
         **kwargs: Any,
     ):
         """
@@ -78,13 +80,13 @@ class SyncPsycopgConnector(connector.BaseConnector):
             JSON deserializer.
 
         """
-        self._pool: Optional[psycopg_pool.ConnectionPool] = None
+        self._pool: psycopg_pool.ConnectionPool | None = None
         self._pool_externally_set: bool = False
         self._json_loads = json_loads
         self._json_dumps = json_dumps
         self._pool_args = kwargs
 
-    def get_sync_connector(self) -> "connector.BaseConnector":
+    def get_sync_connector(self) -> connector.BaseConnector:
         return self
 
     @property
@@ -93,7 +95,7 @@ class SyncPsycopgConnector(connector.BaseConnector):
             raise exceptions.AppNotOpen
         return self._pool
 
-    def open(self, pool: Optional[psycopg_pool.ConnectionPool] = None) -> None:
+    def open(self, pool: psycopg_pool.ConnectionPool | None = None) -> None:
         """
         Instantiate the pool.
 
@@ -112,7 +114,7 @@ class SyncPsycopgConnector(connector.BaseConnector):
 
     @staticmethod
     @wrap_exceptions
-    def _create_pool(pool_args: Dict[str, Any]) -> psycopg_pool.ConnectionPool:
+    def _create_pool(pool_args: dict[str, Any]) -> psycopg_pool.ConnectionPool:
         pool = psycopg_pool.ConnectionPool(
             **pool_args,
             # Not specifying open=False raises a warning and will be deprecated.
@@ -137,7 +139,7 @@ class SyncPsycopgConnector(connector.BaseConnector):
         self._pool.close()
         self._pool = None
 
-    def _wrap_json(self, arguments: Dict[str, Any]):
+    def _wrap_json(self, arguments: dict[str, Any]):
         return {
             key: psycopg.types.json.Jsonb(value) if isinstance(value, dict) else value
             for key, value in arguments.items()
@@ -166,7 +168,7 @@ class SyncPsycopgConnector(connector.BaseConnector):
     @wrap_exceptions
     def execute_query_one(
         self, query: LiteralString, **arguments: Any
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         with self._get_cursor() as cursor:
             cursor.execute(query, self._wrap_json(arguments))
 
@@ -179,7 +181,7 @@ class SyncPsycopgConnector(connector.BaseConnector):
     @wrap_exceptions
     def execute_query_all(
         self, query: LiteralString, **arguments: Any
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         with self._get_cursor() as cursor:
             cursor.execute(query, self._wrap_json(arguments))
 

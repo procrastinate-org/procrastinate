@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import argparse
 import asyncio
 import functools
@@ -5,7 +7,7 @@ import json
 import logging
 import os
 import sys
-from typing import Any, Callable, Dict, List, Literal, Optional, Union
+from typing import Any, Callable, Literal, Union
 
 import procrastinate
 from procrastinate import connector, exceptions, jobs, shell, types, utils, worker
@@ -80,7 +82,7 @@ class MissingAppConnector(connector.BaseAsyncConnector):
 
 
 class ActionWithNegative(argparse._StoreTrueAction):
-    def __init__(self, *args, negative: Optional[str], **kwargs):
+    def __init__(self, *args, negative: str | None, **kwargs):
         super().__init__(*args, **kwargs)
         self.negative = negative
 
@@ -91,7 +93,7 @@ class ActionWithNegative(argparse._StoreTrueAction):
         setattr(ns, self.dest, option != self.negative)
 
 
-def store_true_with_negative(negative: Optional[str] = None):
+def store_true_with_negative(negative: str | None = None):
     """
     Return an argparse action that works like store_true but also accepts
     a flag to set the value to False. By default, any flag starting with
@@ -122,7 +124,7 @@ def load_app(app_path: str) -> procrastinate.App:
     return app
 
 
-def cast_queues(queues: str) -> Optional[List[str]]:
+def cast_queues(queues: str) -> list[str] | None:
     cleaned_queues = (queue.strip() for queue in queues.split(","))
     return [queue for queue in cleaned_queues if queue] or None
 
@@ -143,7 +145,7 @@ def env_bool(value: str) -> bool:
 def add_argument(
     parser: argparse._ActionsContainer,
     *args,
-    envvar: Optional[str] = None,
+    envvar: str | None = None,
     envvar_help: str = "",
     envvar_type: Callable | None = None,
     **kwargs,
@@ -475,7 +477,7 @@ async def worker_(
 async def defer(
     app: procrastinate.App,
     task: str,
-    json_args: Optional[str],
+    json_args: str | None,
     ignore_already_enqueued: bool,
     unknown: bool,
     **configure_kwargs,
@@ -530,7 +532,7 @@ def load_json_args(json_args: str, json_loads: Callable) -> types.JSONDict:
 def configure_task(
     app: procrastinate.App,
     task_name: str,
-    configure_kwargs: Dict[str, Any],
+    configure_kwargs: dict[str, Any],
     allow_unknown: bool,
 ) -> jobs.JobDeferrer:
     return app.configure_task(

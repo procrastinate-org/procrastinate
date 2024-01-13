@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from django.utils.crypto import get_random_string
 
 SECRET_KEY = get_random_string(50)

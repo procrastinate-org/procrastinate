@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 import asyncio
 import functools
 import logging
 import time
-from typing import Any, Dict, Iterable, Optional, Tuple
+from typing import Any, Iterable, Tuple
 
 import attr
 import croniter
@@ -26,7 +28,7 @@ class PeriodicTask:
     task: tasks.Task
     cron: str
     periodic_id: str
-    configure_kwargs: Dict[str, Any]
+    configure_kwargs: dict[str, Any]
 
     @cached_property
     def croniter(self) -> croniter.croniter:
@@ -38,9 +40,9 @@ TaskAtTime = Tuple[PeriodicTask, int]
 
 class PeriodicDeferrer:
     def __init__(self, max_delay: float = MAX_DELAY):
-        self.periodic_tasks: Dict[Tuple[str, str], PeriodicTask] = {}
+        self.periodic_tasks: dict[tuple[str, str], PeriodicTask] = {}
         # {(task_name, periodic_id): defer_timestamp}
-        self.last_defers: Dict[Tuple[str, str], int] = {}
+        self.last_defers: dict[tuple[str, str], int] = {}
         self.max_delay = max_delay
 
     def periodic_decorator(self, cron: str, periodic_id: str, **kwargs):
@@ -81,7 +83,7 @@ class PeriodicDeferrer:
         task: tasks.Task,
         cron: str,
         periodic_id: str,
-        configure_kwargs: Dict[str, Any],
+        configure_kwargs: dict[str, Any],
     ) -> PeriodicTask:
         key = (task.name, periodic_id)
         if key in self.periodic_tasks:
@@ -140,7 +142,7 @@ class PeriodicDeferrer:
                 yield periodic_task, timestamp
 
     def get_timestamps(
-        self, periodic_task: PeriodicTask, since: Optional[int], until: float
+        self, periodic_task: PeriodicTask, since: int | None, until: float
     ) -> Iterable[int]:
         cron_iterator = periodic_task.croniter
         if since:

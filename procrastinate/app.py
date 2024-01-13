@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import asyncio
 import functools
 import logging
-from typing import TYPE_CHECKING, Any, Dict, Iterable, Optional, Union
+from typing import TYPE_CHECKING, Any, Iterable
 
 from procrastinate import blueprints, exceptions, jobs, manager, schema, utils
 from procrastinate import connector as connector_module
@@ -31,7 +33,7 @@ class App(blueprints.Blueprint):
     """
 
     @classmethod
-    def from_path(cls, dotted_path: str) -> "App":
+    def from_path(cls, dotted_path: str) -> App:
         """
         Create an :py:class:`App` object by dynamically loading the
         object at the given path.
@@ -48,9 +50,9 @@ class App(blueprints.Blueprint):
         self,
         *,
         connector: connector_module.BaseConnector,
-        import_paths: Optional[Iterable[str]] = None,
-        worker_defaults: Optional[Dict] = None,
-        periodic_defaults: Optional[Dict] = None,
+        import_paths: Iterable[str] | None = None,
+        worker_defaults: dict | None = None,
+        periodic_defaults: dict | None = None,
     ):
         """
         Parameters
@@ -93,7 +95,7 @@ class App(blueprints.Blueprint):
 
         self._register_builtin_tasks()
 
-    def with_connector(self, connector: connector_module.BaseConnector) -> "App":
+    def with_connector(self, connector: connector_module.BaseConnector) -> App:
         """
         Create another app instance sychronized with this one, with a different
         connector. For all things regarding periodic tasks, the original app
@@ -114,7 +116,7 @@ class App(blueprints.Blueprint):
         app.periodic_deferrer = self.periodic_deferrer
         return app
 
-    def periodic(self, *, cron: str, periodic_id: str = "", **kwargs: Dict[str, Any]):
+    def periodic(self, *, cron: str, periodic_id: str = "", **kwargs: dict[str, Any]):
         """
         Task decorator, marks task as being scheduled for periodic deferring (see
         `howto/cron`).
@@ -176,7 +178,7 @@ class App(blueprints.Blueprint):
                 )
             raise exceptions.TaskNotFound from exc
 
-    def _worker(self, **kwargs) -> "worker.Worker":
+    def _worker(self, **kwargs) -> worker.Worker:
         from procrastinate import worker
 
         final_kwargs = {**self.worker_defaults, **kwargs}
@@ -268,10 +270,8 @@ class App(blueprints.Blueprint):
 
     def open(
         self,
-        pool_or_engine: Optional[
-            Union[connector_module.Pool, connector_module.Engine]
-        ] = None,
-    ) -> "App":
+        pool_or_engine: connector_module.Pool | connector_module.Engine | None = None,
+    ) -> App:
         self.connector.get_sync_connector().open(pool_or_engine)
         return self
 
@@ -279,7 +279,7 @@ class App(blueprints.Blueprint):
         self.connector.get_sync_connector().close()
 
     def open_async(
-        self, pool: Optional[connector_module.Pool] = None
+        self, pool: connector_module.Pool | None = None
     ) -> utils.AwaitableContext:
         open_coro = functools.partial(self.connector.open_async, pool=pool)
         return utils.AwaitableContext(
@@ -291,7 +291,7 @@ class App(blueprints.Blueprint):
     async def close_async(self) -> None:
         await self.connector.close_async()
 
-    def __enter__(self) -> "App":
+    def __enter__(self) -> App:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:

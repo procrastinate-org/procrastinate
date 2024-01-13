@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 import asyncio
 import datetime
 from collections import Counter
 from itertools import count
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from typing import Any, Dict, Iterable
 
 from procrastinate import connector, exceptions, schema, sql, types, utils
 
@@ -35,15 +37,15 @@ class InMemoryConnector(connector.BaseAsyncConnector):
         Removes anything the in-memory pseudo-database contains, to ensure test
         independence.
         """
-        self.jobs: Dict[int, JobRow] = {}
-        self.events: Dict[int, List[EventRow]] = {}
+        self.jobs: dict[int, JobRow] = {}
+        self.events: dict[int, list[EventRow]] = {}
         self.job_counter = count(1)
-        self.queries: List[Tuple[str, Dict[str, Any]]] = []
-        self.notify_event: Optional[asyncio.Event] = None
-        self.notify_channels: List[str] = []
-        self.periodic_defers: Dict[Tuple[str, str], int] = {}
+        self.queries: list[tuple[str, dict[str, Any]]] = []
+        self.notify_event: asyncio.Event | None = None
+        self.notify_channels: list[str] = []
+        self.periodic_defers: dict[tuple[str, str], int] = {}
         self.table_exists = True
-        self.states: List[str] = []
+        self.states: list[str] = []
 
     def get_sync_connector(self) -> connector.BaseConnector:
         return self
@@ -64,10 +66,10 @@ class InMemoryConnector(connector.BaseAsyncConnector):
     def execute_query(self, query: str, **arguments: Any) -> None:
         self.generic_execute(query, "run", **arguments)
 
-    def execute_query_one(self, query: str, **arguments: Any) -> Dict[str, Any]:
+    def execute_query_one(self, query: str, **arguments: Any) -> dict[str, Any]:
         return self.generic_execute(query, "one", **arguments)
 
-    def execute_query_all(self, query: str, **arguments: Any) -> List[Dict[str, Any]]:
+    def execute_query_all(self, query: str, **arguments: Any) -> list[dict[str, Any]]:
         return self.generic_execute(query, "all", **arguments)
 
     async def execute_query_async(self, query: str, **arguments: Any) -> None:
@@ -75,12 +77,12 @@ class InMemoryConnector(connector.BaseAsyncConnector):
 
     async def execute_query_one_async(
         self, query: str, **arguments: Any
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         return self.generic_execute(query, "one", **arguments)
 
     async def execute_query_all_async(
         self, query: str, **arguments: Any
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         return self.generic_execute(query, "all", **arguments)
 
     async def listen_notify(
@@ -89,10 +91,10 @@ class InMemoryConnector(connector.BaseAsyncConnector):
         self.notify_event = event
         self.notify_channels = list(channels)
 
-    def open(self, pool: Optional[connector.Pool] = None) -> None:
+    def open(self, pool: connector.Pool | None = None) -> None:
         self.states.append("open")
 
-    async def open_async(self, pool: Optional[connector.Pool] = None) -> None:
+    async def open_async(self, pool: connector.Pool | None = None) -> None:
         self.states.append("open_async")
 
     def close(self) -> None:
@@ -106,10 +108,10 @@ class InMemoryConnector(connector.BaseAsyncConnector):
     def defer_job_one(
         self,
         task_name: str,
-        lock: Optional[str],
-        queueing_lock: Optional[str],
+        lock: str | None,
+        queueing_lock: str | None,
         args: types.JSONDict,
-        scheduled_at: Optional[datetime.datetime],
+        scheduled_at: datetime.datetime | None,
         queue: str,
     ) -> JobRow:
         if queueing_lock is not None and any(
@@ -152,8 +154,8 @@ class InMemoryConnector(connector.BaseAsyncConnector):
         task_name: str,
         args: types.JSONDict,
         defer_timestamp: int,
-        lock: Optional[str],
-        queueing_lock: Optional[str],
+        lock: str | None,
+        queueing_lock: str | None,
         periodic_id: str,
     ):
         # If the periodic task has already been deferred for this timestamp
@@ -177,14 +179,14 @@ class InMemoryConnector(connector.BaseAsyncConnector):
         } - {None}
 
     @property
-    def finished_jobs(self) -> List[JobRow]:
+    def finished_jobs(self) -> list[JobRow]:
         return [
             job
             for job in self.jobs.values()
             if job["status"] in {"failed", "succeeded"}
         ]
 
-    def fetch_job_one(self, queues: Optional[Iterable[str]]) -> Dict:
+    def fetch_job_one(self, queues: Iterable[str] | None) -> dict:
         # Creating a copy of the iterable so that we can modify it while we iterate
 
         for job in self.jobs.values():

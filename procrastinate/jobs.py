@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 import datetime
 import functools
 import logging
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Dict, Optional
+from typing import TYPE_CHECKING, Any
 
 import attr
 
@@ -20,7 +22,7 @@ cached_property = getattr(functools, "cached_property", property)
 
 
 def check_aware(
-    instance: "Job", attribute: attr.Attribute, value: datetime.datetime
+    instance: Job, attribute: attr.Attribute, value: datetime.datetime
 ) -> None:
     if value and value.utcoffset() is None:
         raise ValueError("Timezone aware datetime is required")
@@ -65,20 +67,20 @@ class Job:
         Number of times the job has been tried.
     """
 
-    id: Optional[int] = None
-    status: Optional[str] = None
+    id: int | None = None
+    status: str | None = None
     queue: str
-    lock: Optional[str]
-    queueing_lock: Optional[str]
+    lock: str | None
+    queueing_lock: str | None
     task_name: str
     task_kwargs: types.JSONDict = attr.ib(factory=dict)
-    scheduled_at: Optional[datetime.datetime] = attr.ib(
+    scheduled_at: datetime.datetime | None = attr.ib(
         default=None, validator=check_aware
     )
     attempts: int = 0
 
     @classmethod
-    def from_row(cls, row: Dict[str, Any]) -> "Job":
+    def from_row(cls, row: dict[str, Any]) -> Job:
         return cls(
             id=row["id"],
             status=row["status"],
@@ -91,7 +93,7 @@ class Job:
             attempts=row["attempts"],
         )
 
-    def asdict(self) -> Dict[str, Any]:
+    def asdict(self) -> dict[str, Any]:
         return attr.asdict(self)
 
     def log_context(self) -> types.JSONDict:
@@ -103,7 +105,7 @@ class Job:
         context["call_string"] = self.call_string
         return context
 
-    def evolve(self, **kwargs: Any) -> "Job":
+    def evolve(self, **kwargs: Any) -> Job:
         return attr.evolve(self, **kwargs)
 
     @cached_property
@@ -121,7 +123,7 @@ class JobDeferrer:
     doesn't need a job_manager property.
     """
 
-    def __init__(self, job_manager: "manager.JobManager", job: Job):
+    def __init__(self, job_manager: manager.JobManager, job: Job):
         self.job = job
         self.job_manager = job_manager
 

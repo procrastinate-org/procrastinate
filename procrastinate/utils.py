@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import asyncio
 import datetime
 import importlib
@@ -14,9 +16,6 @@ from typing import (
     Coroutine,
     Generic,
     Iterable,
-    List,
-    Optional,
-    Type,
     TypeVar,
 )
 
@@ -32,7 +31,7 @@ U = TypeVar("U")
 logger = logging.getLogger(__name__)
 
 
-def load_from_path(path: str, allowed_type: Type[T]) -> T:
+def load_from_path(path: str, allowed_type: type[T]) -> T:
     """
     Import and return then object at the given full python path.
     """
@@ -108,7 +107,7 @@ async def sync_to_async(
     return await sync.sync_to_async(func)(*args, **kwargs)
 
 
-def causes(exc: Optional[BaseException]):
+def causes(exc: BaseException | None):
     """
     From a single exception with a chain of causes and contexts, make an iterable
     going through every exception in the chain.
@@ -218,8 +217,8 @@ class ExceptionRecord:
 
 async def run_tasks(
     main_coros: Iterable[Coroutine],
-    side_coros: Optional[Iterable[Coroutine]] = None,
-    graceful_stop_callback: Optional[Callable[[], Any]] = None,
+    side_coros: Iterable[Coroutine] | None = None,
+    graceful_stop_callback: Callable[[], Any] | None = None,
 ):
     """
     Run multiple coroutines in parallel: the main coroutines and the side
@@ -285,7 +284,7 @@ async def run_tasks(
         await asyncio.gather(*main_tasks)
         raise EndMain
 
-    exception_records: List[ExceptionRecord] = []
+    exception_records: list[ExceptionRecord] = []
     try:
         # side_tasks supposedly never finish, and _main always raises.
         # Consequently, it's theoretically impossible to leave this try block

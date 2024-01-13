@@ -1,9 +1,11 @@
-from typing import Any, Dict
+from __future__ import annotations
+
+from typing import Any
 
 from django.db import connections
 
 
-def connector_params(alias: str = "default") -> Dict[str, Any]:
+def connector_params(alias: str = "default") -> dict[str, Any]:
     """
     Returns parameters for in a format that is suitable to be passed to a
     connector constructor (see `howto/django`).

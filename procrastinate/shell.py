@@ -1,11 +1,13 @@
+from __future__ import annotations
+
 import cmd
 import traceback
-from typing import Any, Dict
+from typing import Any
 
 from procrastinate import jobs, manager, utils
 
 
-def parse_argument(arg: str) -> Dict[str, str]:
+def parse_argument(arg: str) -> dict[str, str]:
     splitted_args = (item.partition("=") for item in arg.split())
     return {key: value for key, _, value in splitted_args}
 
@@ -61,7 +63,7 @@ class ProcrastinateShell(cmd.Cmd):
 
         Example: list_jobs queue=default task=sums status=failed details
         """
-        kwargs: Dict[str, Any] = parse_argument(arg)
+        kwargs: dict[str, Any] = parse_argument(arg)
         details = kwargs.pop("details", None) is not None
         if "id" in kwargs:
             kwargs["id"] = int(kwargs["id"])

@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import asyncio
 import datetime
 import logging
-from typing import Any, Dict, Iterable, NoReturn, Optional
+from typing import Any, Iterable, NoReturn
 
 from procrastinate import connector, exceptions, jobs, sql, utils
 
@@ -10,7 +12,7 @@ logger = logging.getLogger(__name__)
 QUEUEING_LOCK_CONSTRAINT = "procrastinate_jobs_queueing_lock_idx"
 
 
-def get_channel_for_queues(queues: Optional[Iterable[str]] = None) -> Iterable[str]:
+def get_channel_for_queues(queues: Iterable[str] | None = None) -> Iterable[str]:
     if queues is None:
         return ["procrastinate_any_queue"]
     else:
@@ -21,7 +23,7 @@ class JobManager:
     def __init__(self, connector: connector.BaseConnector):
         self.connector = connector
 
-    async def defer_job_async(self, job: "jobs.Job") -> "jobs.Job":
+    async def defer_job_async(self, job: jobs.Job) -> jobs.Job:
         """
         Add a job in its queue for later processing by a worker.
 
@@ -44,7 +46,7 @@ class JobManager:
 
         return job.evolve(id=result["id"], status=jobs.Status.TODO.value)
 
-    def defer_job(self, job: "jobs.Job") -> "jobs.Job":
+    def defer_job(self, job: jobs.Job) -> jobs.Job:
         """
         Sync version of `defer_job_async`.
         """
@@ -57,7 +59,7 @@ class JobManager:
 
         return job.evolve(id=result["id"], status=jobs.Status.TODO.value)
 
-    def _defer_job_query_kwargs(self, job: "jobs.Job") -> Dict[str, Any]:
+    def _defer_job_query_kwargs(self, job: jobs.Job) -> dict[str, Any]:
         return {
             "query": sql.queries["defer_job"],
             "task_name": job.task_name,
@@ -69,7 +71,7 @@ class JobManager:
         }
 
     def _raise_already_enqueued(
-        self, exc: exceptions.UniqueViolation, queueing_lock: Optional[str]
+        self, exc: exceptions.UniqueViolation, queueing_lock: str | None
     ) -> NoReturn:
         if exc.constraint_name == QUEUEING_LOCK_CONSTRAINT:
             raise exceptions.AlreadyEnqueued(
@@ -80,10 +82,10 @@ class JobManager:
 
     async def defer_periodic_job(
         self,
-        job: "jobs.Job",
+        job: jobs.Job,
         periodic_id: str,
         defer_timestamp: int,
-    ) -> Optional[int]:
+    ) -> int | None:
         """
         Defer a periodic job, ensuring that no other worker will defer a job for the
         same timestamp.
@@ -113,7 +115,7 @@ class JobManager:
 
         return result["id"]
 
-    async def fetch_job(self, queues: Optional[Iterable[str]]) -> Optional["jobs.Job"]:
+    async def fetch_job(self, queues: Iterable[str] | None) -> jobs.Job | None:
         """
         Select a job in the queue, and mark it as doing.
         The worker selecting a job is then responsible for running it, and then
@@ -144,9 +146,9 @@ class JobManager:
     async def get_stalled_jobs(
         self,
         nb_seconds: int,
-        queue: Optional[str] = None,
-        task_name: Optional[str] = None,
-    ) -> Iterable["jobs.Job"]:
+        queue: str | None = None,
+        task_name: str | None = None,
+    ) -> Iterable[jobs.Job]:
         """
         Return all jobs that have been in ``doing`` state for more than a given time.
 
@@ -175,8 +177,8 @@ class JobManager:
     async def delete_old_jobs(
         self,
         nb_hours: int,
-        queue: Optional[str] = None,
-        include_error: Optional[bool] = False,
+        queue: str | None = None,
+        include_error: bool | None = False,
     ) -> None:
         """
         Delete jobs that have reached a final state (``succeeded`` or ``failed``).
@@ -206,8 +208,8 @@ class JobManager:
 
     async def finish_job(
         self,
-        job: "jobs.Job",
-        status: "jobs.Status",
+        job: jobs.Job,
+        status: jobs.Status,
         delete_job: bool,
     ) -> None:
         """
@@ -227,7 +229,7 @@ class JobManager:
     async def finish_job_by_id_async(
         self,
         job_id: int,
-        status: "jobs.Status",
+        status: jobs.Status,
         delete_job: bool,
     ) -> None:
         await self.connector.execute_query_async(
@@ -239,8 +241,8 @@ class JobManager:
 
     async def retry_job(
         self,
-        job: "jobs.Job",
-        retry_at: Optional[datetime.datetime] = None,
+        job: jobs.Job,
+        retry_at: datetime.datetime | None = None,
     ) -> None:
         """
         Indicates that a job should be retried later.
@@ -295,7 +297,7 @@ class JobManager:
         )
 
     async def listen_for_jobs(
-        self, *, event: asyncio.Event, queues: Optional[Iterable[str]] = None
+        self, *, event: asyncio.Event, queues: Iterable[str] | None = None
     ) -> None:
         """
         Listens to defer operation in the database, and raises the event each time an
@@ -343,13 +345,13 @@ class JobManager:
 
     async def list_jobs_async(
         self,
-        id: Optional[int] = None,
-        queue: Optional[str] = None,
-        task: Optional[str] = None,
-        status: Optional[str] = None,
-        lock: Optional[str] = None,
-        queueing_lock: Optional[str] = None,
-    ) -> Iterable["jobs.Job"]:
+        id: int | None = None,
+        queue: str | None = None,
+        task: str | None = None,
+        status: str | None = None,
+        lock: str | None = None,
+        queueing_lock: str | None = None,
+    ) -> Iterable[jobs.Job]:
         """
         List all procrastinate jobs given query filters.
 
@@ -385,13 +387,13 @@ class JobManager:
 
     def list_jobs(
         self,
-        id: Optional[int] = None,
-        queue: Optional[str] = None,
-        task: Optional[str] = None,
-        status: Optional[str] = None,
-        lock: Optional[str] = None,
-        queueing_lock: Optional[str] = None,
-    ) -> Iterable["jobs.Job"]:
+        id: int | None = None,
+        queue: str | None = None,
+        task: str | None = None,
+        status: str | None = None,
+        lock: str | None = None,
+        queueing_lock: str | None = None,
+    ) -> Iterable[jobs.Job]:
         """
         Sync version of `list_jobs_async`
         """
@@ -408,11 +410,11 @@ class JobManager:
 
     async def list_queues_async(
         self,
-        queue: Optional[str] = None,
-        task: Optional[str] = None,
-        status: Optional[str] = None,
-        lock: Optional[str] = None,
-    ) -> Iterable[Dict[str, Any]]:
+        queue: str | None = None,
+        task: str | None = None,
+        status: str | None = None,
+        lock: str | None = None,
+    ) -> Iterable[dict[str, Any]]:
         """
         List all queues and number of jobs per status for each queue.
 
@@ -453,11 +455,11 @@ class JobManager:
 
     def list_queues(
         self,
-        queue: Optional[str] = None,
-        task: Optional[str] = None,
-        status: Optional[str] = None,
-        lock: Optional[str] = None,
-    ) -> Iterable[Dict[str, Any]]:
+        queue: str | None = None,
+        task: str | None = None,
+        status: str | None = None,
+        lock: str | None = None,
+    ) -> Iterable[dict[str, Any]]:
         """
         Sync version of `list_queues_async`
         """
@@ -481,11 +483,11 @@ class JobManager:
 
     async def list_tasks_async(
         self,
-        queue: Optional[str] = None,
-        task: Optional[str] = None,
-        status: Optional[str] = None,
-        lock: Optional[str] = None,
-    ) -> Iterable[Dict[str, Any]]:
+        queue: str | None = None,
+        task: str | None = None,
+        status: str | None = None,
+        lock: str | None = None,
+    ) -> Iterable[dict[str, Any]]:
         """
         List all tasks and number of jobs per status for each task.
 
@@ -526,11 +528,11 @@ class JobManager:
 
     def list_tasks(
         self,
-        queue: Optional[str] = None,
-        task: Optional[str] = None,
-        status: Optional[str] = None,
-        lock: Optional[str] = None,
-    ) -> Iterable[Dict[str, Any]]:
+        queue: str | None = None,
+        task: str | None = None,
+        status: str | None = None,
+        lock: str | None = None,
+    ) -> Iterable[dict[str, Any]]:
         """
         Sync version of `list_queues`
         """
@@ -554,11 +556,11 @@ class JobManager:
 
     async def list_locks_async(
         self,
-        queue: Optional[str] = None,
-        task: Optional[str] = None,
-        status: Optional[str] = None,
-        lock: Optional[str] = None,
-    ) -> Iterable[Dict[str, Any]]:
+        queue: str | None = None,
+        task: str | None = None,
+        status: str | None = None,
+        lock: str | None = None,
+    ) -> Iterable[dict[str, Any]]:
         """
         List all locks and number of jobs per lock for each lock value.
 
@@ -601,11 +603,11 @@ class JobManager:
 
     def list_locks(
         self,
-        queue: Optional[str] = None,
-        task: Optional[str] = None,
-        status: Optional[str] = None,
-        lock: Optional[str] = None,
-    ) -> Iterable[Dict[str, Any]]:
+        queue: str | None = None,
+        task: str | None = None,
+        status: str | None = None,
+        lock: str | None = None,
+    ) -> Iterable[dict[str, Any]]:
         """
         Sync version of `list_queues`
         """

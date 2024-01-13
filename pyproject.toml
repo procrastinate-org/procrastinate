@@ -128,6 +128,9 @@ extend-ignore = [
     "E501", # line too long
 ]
 
+[tool.ruff.lint.isort]
+required-imports = ["from __future__ import annotations"]
+
 [tool.doc8]
 max-line-length = 88
 ignore-path = "docs/_build,.venv"

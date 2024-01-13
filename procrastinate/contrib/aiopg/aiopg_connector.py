@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import asyncio
 import functools
 import logging
-from typing import Any, Callable, Coroutine, Dict, Iterable, List, Optional
+from typing import Any, Callable, Coroutine, Iterable
 
 import aiopg
 import psycopg2
@@ -83,8 +85,8 @@ class AiopgConnector(connector.BaseAsyncConnector):
     def __init__(
         self,
         *,
-        json_dumps: Optional[Callable] = None,
-        json_loads: Optional[Callable] = None,
+        json_dumps: Callable | None = None,
+        json_loads: Callable | None = None,
         **kwargs: Any,
     ):
         """
@@ -137,13 +139,13 @@ class AiopgConnector(connector.BaseAsyncConnector):
             Passed to aiopg. Initial connections are not opened when the connector
             is created, but at first use of the pool.
         """
-        self._pool: Optional[aiopg.Pool] = None
+        self._pool: aiopg.Pool | None = None
         self._pool_externally_set: bool = False
         self.json_dumps = json_dumps
         self.json_loads = json_loads
         self._pool_args = self._adapt_pool_args(kwargs, json_loads)
-        self._lock: Optional[asyncio.Lock] = None
-        self._sync_connector: Optional[connector.BaseConnector] = None
+        self._lock: asyncio.Lock | None = None
+        self._sync_connector: connector.BaseConnector | None = None
 
     def get_sync_connector(self) -> connector.BaseConnector:
         if self._pool:
@@ -160,8 +162,8 @@ class AiopgConnector(connector.BaseAsyncConnector):
 
     @staticmethod
     def _adapt_pool_args(
-        pool_args: Dict[str, Any], json_loads: Optional[Callable]
-    ) -> Dict[str, Any]:
+        pool_args: dict[str, Any], json_loads: Callable | None
+    ) -> dict[str, Any]:
         """
         Adapt the pool args for ``aiopg``, using sensible defaults for Procrastinate.
         """
@@ -192,7 +194,7 @@ class AiopgConnector(connector.BaseAsyncConnector):
             raise exceptions.AppNotOpen
         return self._pool
 
-    async def open_async(self, pool: Optional[aiopg.Pool] = None) -> None:
+    async def open_async(self, pool: aiopg.Pool | None = None) -> None:
         if self._pool:
             return
         if pool:
@@ -202,7 +204,7 @@ class AiopgConnector(connector.BaseAsyncConnector):
             self._pool = await self._create_pool(self._pool_args)
 
     @wrap_exceptions
-    async def _create_pool(self, pool_args: Dict[str, Any]) -> aiopg.Pool:
+    async def _create_pool(self, pool_args: dict[str, Any]) -> aiopg.Pool:
         if self._sync_connector is not None:
             await utils.sync_to_async(self._sync_connector.close)
             self._sync_connector = None
@@ -232,7 +234,7 @@ class AiopgConnector(connector.BaseAsyncConnector):
             while self._pool._free:
                 self._pool._free.popleft().close()
 
-    def _wrap_json(self, arguments: Dict[str, Any]):
+    def _wrap_json(self, arguments: dict[str, Any]):
         return {
             key: Json(value, dumps=self.json_dumps)
             if isinstance(value, dict)
@@ -264,7 +266,7 @@ class AiopgConnector(connector.BaseAsyncConnector):
     @wrap_query_exceptions
     async def execute_query_one_async(
         self, query: str, **arguments: Any
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         with await self.pool.cursor() as cursor:
             await cursor.execute(query, self._wrap_json(arguments))
 
@@ -274,7 +276,7 @@ class AiopgConnector(connector.BaseAsyncConnector):
     @wrap_query_exceptions
     async def execute_query_all_async(
         self, query: str, **arguments: Any
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         with await self.pool.cursor() as cursor:
             await cursor.execute(query, self._wrap_json(arguments))
 

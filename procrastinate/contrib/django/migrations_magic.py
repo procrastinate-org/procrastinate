@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import itertools
 import pathlib
 import sys
@@ -8,10 +10,6 @@ from typing import (
     ClassVar,
     Iterable,
     Iterator,
-    List,
-    Optional,
-    Tuple,
-    Type,
 )
 
 import attr
@@ -63,14 +61,14 @@ class ProcrastinateMigrationsImporter(
         fullname: str,
         *args,
         **kwargs,
-    ) -> Optional[machinery.ModuleSpec]:
+    ) -> machinery.ModuleSpec | None:
         if fullname.startswith(TOP_LEVEL_NAME):
             return machinery.ModuleSpec(
                 name=fullname, loader=self, is_package=fullname == TOP_LEVEL_NAME
             )
         return None
 
-    def path_hook(self, path: str) -> "ProcrastinateMigrationsImporter":
+    def path_hook(self, path: str) -> ProcrastinateMigrationsImporter:
         if path == VIRTUAL_PATH:
             return self
         raise ImportError
@@ -85,7 +83,7 @@ def load():
     sys.path_hooks.append(importer.path_hook)
 
 
-def list_migration_files() -> Iterable[Tuple[str, str]]:
+def list_migration_files() -> Iterable[tuple[str, str]]:
     """
     Returns a list of filenames and file contents for all migration files
     """
@@ -96,7 +94,7 @@ def list_migration_files() -> Iterable[Tuple[str, str]]:
     ]
 
 
-def version_from_string(version_str) -> Tuple:
+def version_from_string(version_str) -> tuple:
     return tuple(int(e) for e in version_str.split("."))
 
 
@@ -104,12 +102,12 @@ def version_from_string(version_str) -> Tuple:
 class ProcrastinateMigration:
     filename: str
     name: str
-    version: Tuple
+    version: tuple
     index: int
     contents: str
 
     @classmethod
-    def from_file(cls, filename: str, contents: str) -> "ProcrastinateMigration":
+    def from_file(cls, filename: str, contents: str) -> ProcrastinateMigration:
         path = pathlib.PurePath(filename)
         version_str, index, name = path.stem.split("_", 2)
         return cls(
@@ -148,16 +146,16 @@ def make_migrations(
 
 
 class ProcrastinateBaseMigration(migrations.Migration):
-    initial: ClassVar[Optional[bool]]
-    operations: ClassVar[List[migrations.RunSQL]]
+    initial: ClassVar[bool | None]
+    operations: ClassVar[list[migrations.RunSQL]]
     name: ClassVar[str]
 
 
 def make_migration(
     sql_migration: ProcrastinateMigration,
-    previous_migration: Optional[Type[ProcrastinateBaseMigration]],
+    previous_migration: type[ProcrastinateBaseMigration] | None,
     counter: Iterator[int],
-) -> Type[ProcrastinateBaseMigration]:
+) -> type[ProcrastinateBaseMigration]:
     class NewMigration(ProcrastinateBaseMigration):
         initial: ClassVar = previous_migration is None
         operations: ClassVar = [migrations.RunSQL(sql=sql_migration.contents)]

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from django.core.management.base import BaseCommand
 
 from procrastinate_demos.demo_django import procrastinate_app

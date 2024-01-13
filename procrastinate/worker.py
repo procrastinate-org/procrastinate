@@ -1,10 +1,12 @@
+from __future__ import annotations
+
 import asyncio
 import functools
 import inspect
 import logging
 import time
 from enum import Enum
-from typing import Any, Awaitable, Callable, Dict, Iterable, Optional, Union
+from typing import Any, Awaitable, Callable, Iterable
 
 from procrastinate import app, exceptions, job_context, jobs, signals, tasks, utils
 
@@ -29,15 +31,15 @@ class DeleteJobCondition(Enum):
 class Worker:
     def __init__(
         self,
-        app: "app.App",
-        queues: Optional[Iterable[str]] = None,
-        name: Optional[str] = None,
+        app: app.App,
+        queues: Iterable[str] | None = None,
+        name: str | None = None,
         concurrency: int = WORKER_CONCURRENCY,
         wait: bool = True,
         timeout: float = WORKER_TIMEOUT,
         listen_notify: bool = True,
-        delete_jobs: Union[str, DeleteJobCondition] = DeleteJobCondition.NEVER.value,
-        additional_context: Optional[Dict[str, Any]] = None,
+        delete_jobs: str | DeleteJobCondition = DeleteJobCondition.NEVER.value,
+        additional_context: dict[str, Any] | None = None,
     ):
         self.app = app
         self.queues = queues
@@ -67,9 +69,9 @@ class Worker:
             worker_queues=self.queues,
             additional_context=additional_context.copy() if additional_context else {},
         )
-        self.current_contexts: Dict[int, job_context.JobContext] = {}
+        self.current_contexts: dict[int, job_context.JobContext] = {}
         self.stop_requested = False
-        self.notify_event: Optional[asyncio.Event] = None
+        self.notify_event: asyncio.Event | None = None
 
     def context_for_worker(
         self, worker_id: int, reset=False, **kwargs
@@ -239,7 +241,7 @@ class Worker:
         log_title = "Error"
         log_action = "job_error"
         log_level = logging.ERROR
-        exc_info: Union[bool, BaseException] = False
+        exc_info: bool | BaseException = False
 
         await_func: Callable[..., Awaitable]
         if inspect.iscoroutinefunction(task.func):

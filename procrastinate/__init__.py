@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from procrastinate import metadata as _metadata_module
 from procrastinate.app import App
 from procrastinate.blueprints import Blueprint
