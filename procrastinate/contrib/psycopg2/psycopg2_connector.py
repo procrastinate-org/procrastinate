@@ -210,7 +210,9 @@ class Psycopg2Connector(connector.BaseConnector):
         with self._connection() as connection:
             with connection.cursor() as cursor:
                 cursor.execute(query, self._wrap_json(arguments))
-                return cursor.fetchone()
+                # psycopg2's type say it returns a tuple, but it actually returns a
+                # dict when configured with RealDictCursor
+                return cursor.fetchone()  # type: ignore
 
     @wrap_exceptions
     @wrap_query_exceptions
@@ -218,4 +220,6 @@ class Psycopg2Connector(connector.BaseConnector):
         with self._connection() as connection:
             with connection.cursor() as cursor:
                 cursor.execute(query, self._wrap_json(arguments))
-                return cursor.fetchall()
+                # psycopg2's type say it returns a tuple, but it actually returns a
+                # dict when configured with RealDictCursor
+                return cursor.fetchall()  # type: ignore

@@ -3,16 +3,28 @@ import pathlib
 import sys
 import types
 from importlib import abc, machinery
-from typing import ClassVar, Iterable, Iterator, Optional, Tuple, Type
+from typing import (
+    TYPE_CHECKING,
+    ClassVar,
+    Iterable,
+    Iterator,
+    List,
+    Optional,
+    Tuple,
+    Type,
+)
 
 import attr
 from django.db import migrations
 
-# https://github.com/pypa/twine/pull/551
-if sys.version_info[:2] < (3, 9):  # coverage: exclude
+if TYPE_CHECKING:
     import importlib_resources
-else:  # coverage: exclude
-    import importlib.resources as importlib_resources
+else:
+    # https://github.com/pypa/twine/pull/551
+    if sys.version_info[:2] < (3, 9):  # coverage: exclude
+        import importlib_resources
+    else:  # coverage: exclude
+        import importlib.resources as importlib_resources
 
 # For a thorough explaination of what this package does, see README.md in the same
 # folder
@@ -21,12 +33,18 @@ TOP_LEVEL_NAME = "procrastinate.contrib.django.migrations"
 VIRTUAL_PATH = "<procrastinate migrations virtual path>"
 
 
-class ProcrastinateMigrationsImporter(abc.MetaPathFinder, abc.Loader):
+class ProcrastinateMigrationsImporter(
+    abc.PathEntryFinder, abc.MetaPathFinder, abc.Loader
+):
     def __init__(self):
         sql_migrations = get_all_migrations()
         self.migrations = {
             mig.name: mig for mig in make_migrations(sql_migrations=sql_migrations)
         }
+
+    # Necessary for Pyright
+    def find_module(self, fullname, path=None):
+        raise NotImplementedError
 
     def iter_modules(self, prefix):
         return [(mig, False) for mig in self.migrations]
@@ -52,7 +70,7 @@ class ProcrastinateMigrationsImporter(abc.MetaPathFinder, abc.Loader):
             )
         return None
 
-    def path_hook(self, path: str) -> Optional["ProcrastinateMigrationsImporter"]:
+    def path_hook(self, path: str) -> "ProcrastinateMigrationsImporter":
         if path == VIRTUAL_PATH:
             return self
         raise ImportError
@@ -129,12 +147,18 @@ def make_migrations(
         yield migration
 
 
+class ProcrastinateBaseMigration(migrations.Migration):
+    initial: ClassVar[Optional[bool]]
+    operations: ClassVar[List[migrations.RunSQL]]
+    name: ClassVar[str]
+
+
 def make_migration(
     sql_migration: ProcrastinateMigration,
-    previous_migration: Optional[Type[migrations.Migration]],
+    previous_migration: Optional[Type[ProcrastinateBaseMigration]],
     counter: Iterator[int],
-) -> Type[migrations.Migration]:
-    class NewMigration(migrations.Migration):
+) -> Type[ProcrastinateBaseMigration]:
+    class NewMigration(ProcrastinateBaseMigration):
         initial: ClassVar = previous_migration is None
         operations: ClassVar = [migrations.RunSQL(sql=sql_migration.contents)]
         name: ClassVar = f"{next(counter):04d}_{sql_migration.name}"

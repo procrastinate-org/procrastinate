@@ -13,6 +13,7 @@ export DEPS=$(
     ${POETRY} show\
     --only=main --only=types --top-level\
     --no-ansi --no-interaction\
+    | sed 's/psycopg /psycopg[pool]/' \
     | awk '{printf "%s%s==%s",sep,$1,($2=="(!)" ? $3 : $2); sep="|"}'
 )
 # This should be something like:

@@ -167,7 +167,9 @@ class SQLAlchemyPsycopg2Connector(connector.BaseConnector):
                 PERCENT_PATTERN.sub("%%", query), self._wrap_json(arguments)
             )
             mapping = cursor_result.mappings()
-            return mapping.fetchone()
+            # psycopg2's type say it returns a tuple, but it actually returns a
+            # dict when configured with RealDictCursor
+            return mapping.fetchone()  # type: ignore
 
     @wrap_exceptions
     @wrap_query_exceptions
@@ -179,4 +181,6 @@ class SQLAlchemyPsycopg2Connector(connector.BaseConnector):
                 PERCENT_PATTERN.sub("%%", query), self._wrap_json(arguments)
             )
             mapping = cursor_result.mappings()
-            return mapping.all()
+            # psycopg2's type say it returns a tuple, but it actually returns a
+            # dict when configured with RealDictCursor
+            return mapping.all()  # type: ignore

@@ -1,14 +1,17 @@
 import re
 import sys
-from typing import Dict, cast
+from typing import TYPE_CHECKING, Dict, cast
 
 from typing_extensions import LiteralString
 
-# https://github.com/pypa/twine/pull/551
-if sys.version_info[:2] < (3, 9):  # coverage: exclude
+if TYPE_CHECKING:
     import importlib_resources
-else:  # coverage: exclude
-    import importlib.resources as importlib_resources
+else:
+    # https://github.com/pypa/twine/pull/551
+    if sys.version_info[:2] < (3, 9):  # coverage: exclude
+        import importlib_resources
+    else:  # coverage: exclude
+        import importlib.resources as importlib_resources
 
 QUERIES_REGEX = re.compile(r"(?:\n|^)-- ([a-z0-9_]+) --\n(?:-- .+\n)*", re.MULTILINE)
 

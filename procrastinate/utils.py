@@ -12,6 +12,7 @@ from typing import (
     Awaitable,
     Callable,
     Coroutine,
+    Generic,
     Iterable,
     List,
     Optional,
@@ -171,7 +172,7 @@ def parse_datetime(raw: str) -> datetime.datetime:
     return dt
 
 
-class AwaitableContext:
+class AwaitableContext(Generic[U]):
     """
     Provides an object that can be called this way:
     - value = await AppContext(...)

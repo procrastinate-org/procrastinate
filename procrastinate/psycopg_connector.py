@@ -140,9 +140,7 @@ class PsycopgConnector(connector.BaseAsyncConnector):
     @property
     def pool(
         self,
-    ) -> psycopg_pool.AsyncConnectionPool[
-        psycopg.AsyncConnection[psycopg.rows.DictRow]
-    ]:
+    ) -> psycopg_pool.AsyncConnectionPool:
         if self._async_pool is None:  # Set by open_async
             raise exceptions.AppNotOpen
         return self._async_pool

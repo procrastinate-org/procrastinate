@@ -1,6 +1,8 @@
 import asyncio
 from typing import Any, Callable, Dict, Iterable, List, Optional
 
+from typing_extensions import LiteralString
+
 from procrastinate import exceptions, utils
 
 Pool = Any
@@ -20,13 +22,17 @@ class BaseConnector:
     def close(self) -> None:
         raise NotImplementedError
 
-    def execute_query(self, query: str, **arguments: Any) -> None:
+    def execute_query(self, query: LiteralString, **arguments: Any) -> None:
         raise NotImplementedError
 
-    def execute_query_one(self, query: str, **arguments: Any) -> Dict[str, Any]:
+    def execute_query_one(
+        self, query: LiteralString, **arguments: Any
+    ) -> Dict[str, Any]:
         raise NotImplementedError
 
-    def execute_query_all(self, query: str, **arguments: Any) -> List[Dict[str, Any]]:
+    def execute_query_all(
+        self, query: LiteralString, **arguments: Any
+    ) -> List[Dict[str, Any]]:
         raise NotImplementedError
 
     async def open_async(self, pool: Optional[Pool] = None) -> None:
@@ -35,16 +41,16 @@ class BaseConnector:
     async def close_async(self) -> None:
         raise exceptions.SyncConnectorConfigurationError
 
-    async def execute_query_async(self, query: str, **arguments: Any) -> None:
+    async def execute_query_async(self, query: LiteralString, **arguments: Any) -> None:
         raise exceptions.SyncConnectorConfigurationError
 
     async def execute_query_one_async(
-        self, query: str, **arguments: Any
+        self, query: LiteralString, **arguments: Any
     ) -> Dict[str, Any]:
         raise exceptions.SyncConnectorConfigurationError
 
     async def execute_query_all_async(
-        self, query: str, **arguments: Any
+        self, query: LiteralString, **arguments: Any
     ) -> List[Dict[str, Any]]:
         raise exceptions.SyncConnectorConfigurationError
 
@@ -61,26 +67,30 @@ class BaseAsyncConnector(BaseConnector):
     async def close_async(self) -> None:
         raise NotImplementedError
 
-    async def execute_query_async(self, query: str, **arguments: Any) -> None:
+    async def execute_query_async(self, query: LiteralString, **arguments: Any) -> None:
         raise NotImplementedError
 
     async def execute_query_one_async(
-        self, query: str, **arguments: Any
+        self, query: LiteralString, **arguments: Any
     ) -> Dict[str, Any]:
         raise NotImplementedError
 
     async def execute_query_all_async(
-        self, query: str, **arguments: Any
+        self, query: LiteralString, **arguments: Any
     ) -> List[Dict[str, Any]]:
         raise NotImplementedError
 
-    def execute_query(self, query: str, **arguments: Any) -> None:
+    def execute_query(self, query: LiteralString, **arguments: Any) -> None:
         return utils.async_to_sync(self.execute_query_async, query, **arguments)
 
-    def execute_query_one(self, query: str, **arguments: Any) -> Dict[str, Any]:
+    def execute_query_one(
+        self, query: LiteralString, **arguments: Any
+    ) -> Dict[str, Any]:
         return utils.async_to_sync(self.execute_query_one_async, query, **arguments)
 
-    def execute_query_all(self, query: str, **arguments: Any) -> List[Dict[str, Any]]:
+    def execute_query_all(
+        self, query: LiteralString, **arguments: Any
+    ) -> List[Dict[str, Any]]:
         return utils.async_to_sync(self.execute_query_all_async, query, **arguments)
 
     async def listen_notify(
