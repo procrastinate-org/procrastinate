@@ -25,7 +25,6 @@ aiopg = { version = "*", optional = true }
 anyio = "*"
 asgiref = "*"
 attrs = "*"
-configargparse = "*"
 croniter = "*"
 django = { version = ">=2.2", optional = true }
 importlib-metadata = { version = "*", python = "<3.8" }

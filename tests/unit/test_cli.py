@@ -1,8 +1,8 @@
+import argparse
 import datetime
 import json
 import logging
 
-import configargparse as argparse
 import pytest
 
 from procrastinate import app, cli, connector, exceptions, worker

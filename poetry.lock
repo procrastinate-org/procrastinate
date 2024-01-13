@@ -283,21 +283,6 @@ files = [
 ]
 
 [[package]]
-name = "configargparse"
-version = "1.7"
-description = "A drop-in replacement for argparse that allows options to also be set via config files and/or environment variables."
-optional = false
-python-versions = ">=3.5"
-files = [
-    {file = "ConfigArgParse-1.7-py3-none-any.whl", hash = "sha256:d249da6591465c6c26df64a9f73d2536e743be2f244eb3ebe61114af2f94f86b"},
-    {file = "ConfigArgParse-1.7.tar.gz", hash = "sha256:e7067471884de5478c58a511e529f0f9bd1c66bfef1dea90935438d6c23306d1"},
-]
-
-[package.extras]
-test = ["PyYAML", "mock", "pytest"]
-yaml = ["PyYAML"]
-
-[[package]]
 name = "coverage"
 version = "7.4.0"
 description = "Code coverage measurement for Python"
@@ -1684,4 +1669,4 @@ sqlalchemy = ["sqlalchemy"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8"
-content-hash = "d1084026f50cc89e387f6a283c5979e476e009250ff7fe4cd3d71644227d600c"
+content-hash = "7889420c7b7f7c067ff547dc8366de47e5a2fbdf02bc70f05e6e0e309607bdb8"

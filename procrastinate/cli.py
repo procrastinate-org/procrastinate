@@ -1,11 +1,11 @@
+import argparse
 import asyncio
 import functools
 import json
 import logging
+import os
 import sys
 from typing import Any, Callable, Dict, List, Literal, Optional, Union
-
-import configargparse as argparse
 
 import procrastinate
 from procrastinate import connector, exceptions, jobs, shell, types, utils, worker
@@ -79,7 +79,7 @@ class MissingAppConnector(connector.BaseAsyncConnector):
         raise exceptions.MissingApp
 
 
-class ActionWithNegative(argparse.argparse._StoreTrueAction):
+class ActionWithNegative(argparse._StoreTrueAction):
     def __init__(self, *args, negative: Optional[str], **kwargs):
         super().__init__(*args, **kwargs)
         self.negative = negative
@@ -127,50 +127,100 @@ def cast_queues(queues: str) -> Optional[List[str]]:
     return [queue for queue in cleaned_queues if queue] or None
 
 
+def env_bool(value: str) -> bool:
+    value = value.lower()[0]
+    if value in ["0", "n", "f"]:
+        return False
+    elif value in ["1", "y", "t"]:
+        return True
+    else:
+        raise argparse.ArgumentTypeError(
+            f"Invalid environment variable value for boolean: {value!r}. "
+            f"Expected one of 0/n/f or 1/y/t"
+        )
+
+
+def add_argument(
+    parser: argparse._ActionsContainer,
+    *args,
+    envvar: Optional[str] = None,
+    envvar_help: str = "",
+    envvar_type: Callable | None = None,
+    **kwargs,
+):
+    if envvar is not None:
+        envvar = f"{ENV_PREFIX}_{envvar.upper()}"
+        # Empty string is considered as unset
+        default = kwargs.get("default") or None
+        env_var_default = os.environ.get(envvar, default)
+        envvar_type = envvar_type or kwargs.get("type")
+        if env_var_default not in ["", None, argparse.SUPPRESS] and envvar_type:
+            env_var_default = envvar_type(env_var_default)
+
+        if env_var_default:
+            kwargs["default"] = env_var_default
+
+        kwargs["help"] = (
+            f"{kwargs.get('help', '')} "
+            f"(env: {envvar}{f': {envvar_help}' if envvar_help else ''})"
+        )
+    return parser.add_argument(*args, **kwargs)
+
+
 def get_parser() -> argparse.ArgumentParser:
-    # Important note: the FIRST long option is the one used for the
-    # variable name BUT when an envvar is use, configargparse will substitute
-    # it for the LAST option. This means in case of store_true_with_negative,
-    # we need to repeat the positive option as both the first long option AND
-    # the last option. This sucks.
+    parser_options = {
+        "allow_abbrev": False,
+        "formatter_class": argparse.ArgumentDefaultsHelpFormatter,
+    }
     parser = argparse.ArgumentParser(
         prog=PROGRAM_NAME,
         description="Interact with a Procrastinate app. See subcommands for details.",
-        add_env_var_help=True,
-        auto_env_var_prefix=f"{ENV_PREFIX}_",
+        **parser_options,
     )
-    parser.add_argument(
+    add_argument(
+        parser,
         "-a",
         "--app",
         default="",
         type=load_app,
         help="Dotted path to the Procrastinate app",
+        envvar="APP",
     )
-    parser.add_argument(
+    add_argument(
+        parser,
         "-v",
         "--verbose",
         default=0,
         action="count",
         help="Use multiple times to increase verbosity",
+        envvar="VERBOSE",
+        envvar_help="set to desired verbosity level",
+        envvar_type=int,
     )
     log_group = parser.add_argument_group("Logging")
-    log_group.add_argument(
+    add_argument(
+        log_group,
         "--log-format",
         default=logging.BASIC_FORMAT,
         help="Defines the format used for logging (see "
         "https://docs.python.org/3/library/logging.html#logrecord-attributes)",
+        envvar="LOG_FORMAT",
     )
-    log_group.add_argument(
+    add_argument(
+        log_group,
         "--log-format-style",
         default="%",
         choices=["%", "{", "$"],
         help="Defines the style for the log format string (see "
         "https://docs.python.org/3/howto/logging-cookbook.html#use-of-alternative-formatting-styles)",
+        envvar="LOG_FORMAT_STYLE",
     )
-    parser.add_argument(
+    add_argument(
+        parser,
         "-V",
         "--version",
         action="version",
+        help="Print the version and exit",
         version=f"%(prog)s, version {procrastinate.__version__}",
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -178,59 +228,72 @@ def get_parser() -> argparse.ArgumentParser:
         "worker",
         help="Launch a worker, listening on the given queues (or all queues). "
         "Values default to App.worker_defaults and then App.run_worker() defaults values.",
-        add_env_var_help=True,
-        auto_env_var_prefix=f"{ENV_PREFIX}_WORKER_",
         argument_default=argparse.SUPPRESS,
+        **parser_options,
     )
     worker_parser.set_defaults(func=worker_)
-    worker_parser.add_argument(
+    add_argument(
+        worker_parser,
         "-n",
         "--name",
         help="Name of the worker",
+        envvar="WORKER_NAME",
     )
-    worker_parser.add_argument(
+    add_argument(
+        worker_parser,
         "-q",
         "--queues",
         type=cast_queues,
         help="Comma-separated names of the queues to listen "
         "to (empty string for all queues)",
+        envvar="WORKER_QUEUES",
     )
-    worker_parser.add_argument(
+    add_argument(
+        worker_parser,
         "-c",
         "--concurrency",
         type=int,
         help="Number of parallel asynchronous jobs to process at once",
+        envvar="WORKER_CONCURRENCY",
     )
-    worker_parser.add_argument(
+    add_argument(
+        worker_parser,
         "-t",
         "--timeout",
         type=float,
         help="How long to wait for database event push before polling",
+        envvar="WORKER_TIMEOUT",
     )
-    worker_parser.add_argument(
+    add_argument(
+        worker_parser,
         "-w",
         "--wait",
         "--one-shot",
-        # See note at the top.
-        "--wait",
         action=store_true_with_negative("--one-shot"),
         help="When all jobs have been processed, whether to "
         "terminate or to wait for new jobs",
+        envvar="WORKER_WAIT",
+        envvar_help="use 0/n/f or 1/y/t",
+        envvar_type=env_bool,
     )
-    worker_parser.add_argument(
+    add_argument(
+        worker_parser,
         "-l",
         "--listen-notify",
         "--no-listen-notify",
-        # See note at the top.
-        "--listen-notify",
         action=store_true_with_negative(),
         help="Whether to actively listen for new jobs or periodically poll",
+        envvar="WORKER_LISTEN_NOTIFY",
+        envvar_help="use 0/n/f or 1/y/t",
+        envvar_type=env_bool,
     )
-    worker_parser.add_argument(
+    add_argument(
+        worker_parser,
         "--delete-jobs",
         choices=worker.DeleteJobCondition,
         type=worker.DeleteJobCondition,
-        help="Whether to delete jobs on completion",
+        help="If set, delete jobs on completion",
+        envvar="WORKER_DELETE_JOBS",
     )
 
     defer_parser = subparsers.add_parser(
@@ -238,93 +301,113 @@ def get_parser() -> argparse.ArgumentParser:
         help="Create a job from the given task, to be executed by a worker. "
         "TASK should be the name or dotted path to a task. "
         "JSON_ARGS should be a json object (a.k.a dictionary) with the job parameters",
-        add_env_var_help=True,
-        auto_env_var_prefix=f"{ENV_PREFIX}_DEFER_",
+        **parser_options,
     )
     defer_parser.set_defaults(func=defer)
-    defer_parser.add_argument(
+    add_argument(
+        defer_parser,
         "task",
         help="Name or dotted path to the task to defer",
     )
-    defer_parser.add_argument(
+    add_argument(
+        defer_parser,
         "json_args",
         nargs="?",
         # We can't cast it right away into json, because we need to use
         # the app's json loads function.
         help="JSON object with the job parameters",
+        envvar="DEFER_JSON_ARGS",
     )
-    defer_parser.add_argument(
+    add_argument(
+        defer_parser,
         "--queue",
         default=argparse.SUPPRESS,
         help="The queue for deferring. Defaults to the task's default queue",
+        envvar="DEFER_QUEUE",
     )
-    defer_parser.add_argument(
+    add_argument(
+        defer_parser,
         "--lock",
         default=argparse.SUPPRESS,
         help="A lock string. Jobs sharing the same lock will not run concurrently",
+        envvar="DEFER_LOCK",
     )
-    defer_parser.add_argument(
+    add_argument(
+        defer_parser,
         "--queueing-lock",
         default=argparse.SUPPRESS,
         help="A string value. The defer operation will fail if there already is a job "
         "waiting in the queue with the same queueing lock",
+        envvar="DEFER_QUEUEING_LOCK",
     )
-    defer_parser.add_argument(
+    add_argument(
+        defer_parser,
         "-i",
         "--ignore-already-enqueued",
         "--no-ignore-already-enqueued",
-        # See note at the top.
-        "--ignore-already-enqueued",
         action=store_true_with_negative(),
+        default=False,
         help="Exit with code 0 even if the queueing lock is already taken, while still "
-        "displaying an error (default false)",
+        "displaying an error",
+        envvar="DEFER_IGNORE_ALREADY_ENQUEUED",
+        envvar_help="use 0/n/f or 1/y/t",
+        envvar_type=env_bool,
     )
     time_group = defer_parser.add_mutually_exclusive_group()
-    time_group.add_argument(
+    add_argument(
+        time_group,
         "--at",
         default=argparse.SUPPRESS,
         type=utils.parse_datetime,
         help="ISO-8601 localized datetime after which to launch the job",
+        envvar="DEFER_AT",
     )
-    time_group.add_argument(
+    add_argument(
+        time_group,
         "--in",
         default=argparse.SUPPRESS,
         dest="in_",
         type=lambda s: {"seconds": int(s)},
         help="Number of seconds after which to launch the job",
+        envvar="DEFER_IN",
     )
-    defer_parser.add_argument(
+    add_argument(
+        defer_parser,
         "--unknown",
         "--no-unknown",
-        # See note at the top.
-        "--unknown",
         action=store_true_with_negative(),
-        help="Whether unknown tasks can be deferred (default false)",
+        default=False,
+        help="Whether unknown tasks can be deferred",
+        envvar="DEFER_UNKNOWN",
+        envvar_help="use 0/n/f or 1/y/t",
+        envvar_type=env_bool,
     )
 
     schema_parser = subparsers.add_parser(
         "schema",
         help="Apply SQL schema to the empty database. This won't work if the schema has already "
         "been applied.",
-        add_env_var_help=True,
-        auto_env_var_prefix=f"{ENV_PREFIX}_SCHEMA_",
+        **parser_options,
     )
     schema_parser.set_defaults(func=schema)
-    schema_parser.add_argument(
+    add_argument(
+        schema_parser,
         "--apply",
         action="store_const",
         const="apply",
         dest="action",
         help="Apply the schema to the DB (default)",
     )
-    schema_parser.add_argument(
+    add_argument(
+        schema_parser,
         "--read",
         action="store_const",
         const="read",
         dest="action",
         help="Read the schema SQL and output it",
     )
-    schema_parser.add_argument(
+    add_argument(
+        schema_parser,
         "--migrations-path",
         action="store_const",
         const="migrations_path",
@@ -335,16 +418,14 @@ def get_parser() -> argparse.ArgumentParser:
     healthchecks_parser = subparsers.add_parser(
         "healthchecks",
         help="Check the state of procrastinate",
-        add_env_var_help=True,
-        auto_env_var_prefix=f"{ENV_PREFIX}_HEALTHCHECKS_",
+        **parser_options,
     )
     healthchecks_parser.set_defaults(func=healthchecks)
 
     shell_parser = subparsers.add_parser(
         "shell",
         help="Administration shell for procrastinate",
-        add_env_var_help=True,
-        auto_env_var_prefix=f"{ENV_PREFIX}_SHELL_",
+        **parser_options,
     )
     shell_parser.set_defaults(func=shell_)
 
