@@ -1,9 +1,9 @@
 changelog:
   exclude:
     authors:
-      - pre-commit-ci[bot]
-      - renovate[bot]
-      - dependabot[bot]
+      - pre-commit-ci
+      - renovate
+      - dependabot
   categories:
     - title: "Breaking changes"
       labels: ["PR type: breaking 💥"]
