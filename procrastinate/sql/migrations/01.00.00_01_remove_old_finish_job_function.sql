@@ -7,8 +7,7 @@ DROP FUNCTION IF EXISTS procrastinate_finish_job(integer, procrastinate_job_stat
 DROP FUNCTION IF EXISTS procrastinate_finish_job(integer, procrastinate_job_status);
 
 -- https://github.com/procrastinate-org/procrastinate/pull/381
-DROP FUNCTION IF EXISTS procrastinate_finish_job(integer, procrastinate_job_status, timestamp with time zone, boolean);
-CREATE FUNCTION procrastinate_finish_job(job_id integer, end_status procrastinate_job_status, delete_job boolean) RETURNS void
+CREATE OR REPLACE FUNCTION procrastinate_finish_job(job_id integer, end_status procrastinate_job_status, delete_job boolean) RETURNS void
     LANGUAGE plpgsql
 AS $$
 DECLARE
@@ -37,3 +36,8 @@ BEGIN
     END IF;
 END;
 $$;
+
+-- https://github.com/procrastinate-org/procrastinate/pull/471
+DROP FUNCTION IF EXISTS procrastinate_defer_periodic_job(character varying, character varying, character varying, character varying, bigint);
+
+ALTER TABLE procrastinate_periodic_defers DROP COLUMN "queue_name";
