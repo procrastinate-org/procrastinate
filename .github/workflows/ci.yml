@@ -58,9 +58,9 @@ jobs:
           PGPASSWORD: postgres
 
       - name: Store coverage file
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: coverage
+          name: coverage-${{ matrix.python-version }}
           path: .coverage.${{ matrix.python-version }}
 
   static-typing:
@@ -102,10 +102,10 @@ jobs:
     steps:
       - uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4
 
-      - uses: actions/download-artifact@v3
-        id: download
+      - uses: actions/download-artifact@v4
         with:
-          name: "coverage"
+          pattern: coverage-*
+          merge-multiple: true
 
       - name: Display coverage
         uses: ewjoachim/python-coverage-comment-action@v3
@@ -114,7 +114,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Store Pull Request comment to be posted
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: python-coverage-comment-action
           path: python-coverage-comment-action.txt
