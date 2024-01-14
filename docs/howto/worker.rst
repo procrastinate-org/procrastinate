@@ -23,3 +23,74 @@ Naming the worker is optional.
 
     On the other hand, `App.run_worker_async` needs to run while the app is open.
     The CLI takes care of opening the app.
+
+... Inside an application
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+When running the worker inside a bigger application, you may want to use
+``install_signal_handlers=False`` so that the worker doesn't interfere with
+your application's signal handlers. Don't forget to call
+`Worker.stop` when you're ready to stop the worker. This informs the worker
+that it should stop listening to the queues and exit. You will want to wait
+for the worker task to actually exit before closing the app, so that tasks
+that were already running can get a chance to finish.
+
+.. note::
+
+    When you run the worker as a task, at any point, you can call ``task.cancel()``
+    to request the worker to gracefully stop at the next opportunity.
+    You may then wait for it to actually stop using ``await task`` if you're
+    ready to wait indefinitely, or ``asyncio.wait_for(task, timeout)`` if you
+    want to set a timeout.
+
+Here is an example FastAPI application that does this:
+
+.. code-block:: python
+
+    import asyncio
+    import logging
+    from contextlib import asynccontextmanager
+
+    from fastapi import FastAPI
+
+    from procrastinate import App, PsycopgConnector
+
+    logging.basicConfig(level=logging.DEBUG)
+
+
+    task_queue = App(connector=PsycopgConnector())
+
+
+    @task_queue.task
+    async def sleep(length):
+        await asyncio.sleep(length)
+
+
+    @asynccontextmanager
+    async def lifespan(app: FastAPI):
+        async with task_queue.open_async():
+            worker = asyncio.create_task(
+                task_queue.run_worker_async(install_signal_handlers=False)
+            )
+            # Set to 100 to test the ungraceful shutdown
+            await sleep.defer_async(length=5)
+
+            print("STARTUP")
+            yield
+            print("SHUTDOWN")
+
+            worker.cancel()
+            try:
+                await asyncio.wait_for(worker, timeout=10)
+            except asyncio.TimeoutError:
+                print("Ungraceful shutdown")
+            except asyncio.CancelledError:
+                print("Graceful shutdown")
+
+
+    app = FastAPI(lifespan=lifespan)
+
+
+    @app.get("/")
+    async def root():
+        return {"Hello": "World"}

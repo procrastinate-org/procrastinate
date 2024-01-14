@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import signal
 
 import pytest
 
@@ -86,6 +87,22 @@ async def test_run_no_listen_notify(app):
     try:
         await asyncio.sleep(0.01)
         assert app.connector.notify_event is None
+    finally:
+        running_worker.stop()
+        await asyncio.wait_for(task, timeout=0.5)
+
+
+async def test_run_no_signal_handlers(app, kill_own_pid):
+    running_worker = worker.Worker(
+        app=app, queues=["some_queue"], install_signal_handlers=False
+    )
+
+    task = asyncio.ensure_future(running_worker.run())
+    try:
+        with pytest.raises(KeyboardInterrupt):
+            await asyncio.sleep(0.01)
+            # Test that handlers are NOT installed
+            kill_own_pid(signal=signal.SIGINT)
     finally:
         running_worker.stop()
         await asyncio.wait_for(task, timeout=0.5)

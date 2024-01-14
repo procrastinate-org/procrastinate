@@ -58,12 +58,50 @@ def test_app_worker(app, mocker):
     )
 
 
-def test_app_run_worker(app, mocker):
-    run = mocker.patch("procrastinate.worker.Worker.run", return_value=asyncio.Future())
-    run.return_value.set_result(None)
-    app.run_worker(queues=["yay"])
+def test_app_run_worker(app):
+    result = []
 
-    run.assert_called_once_with()
+    @app.task
+    def my_task(a):
+        result.append(a)
+
+    my_task.defer(a=1)
+
+    app.run_worker(wait=False)
+
+    assert result == [1]
+
+
+async def test_app_run_worker_async(app):
+    result = []
+
+    @app.task
+    async def my_task(a):
+        result.append(a)
+
+    await my_task.defer_async(a=1)
+
+    await app.run_worker_async(wait=False)
+
+    assert result == [1]
+
+
+async def test_app_run_worker_async_cancel(app):
+    result = []
+
+    @app.task
+    async def my_task(a):
+        await asyncio.sleep(0.05)
+        result.append(a)
+
+    task = asyncio.create_task(app.run_worker_async())
+    await my_task.defer_async(a=1)
+    await asyncio.sleep(0.01)
+    task.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await asyncio.wait_for(task, timeout=0.1)
+
+    assert result == [1]
 
 
 def test_from_path(mocker):

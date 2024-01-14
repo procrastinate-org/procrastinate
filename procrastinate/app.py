@@ -240,10 +240,21 @@ class App(blueprints.Blueprint):
         additional_context: ``Optional[Dict[str, Any]]``
             If set extend the context received by the tasks when ``pass_context`` is set
             to ``True`` in the task definition.
+        install_signal_handlers: ``bool``
+            If ``True``, the worker will install signal handlers to gracefully stop the
+            worker. Use ``False`` if you want to handle signals yourself (e.g. if you
+            run the work as an async task in a bigger application)
+            (defaults to ``True``)
         """
         self.perform_import_paths()
         worker = self._worker(**kwargs)
-        await worker.run()
+        task = asyncio.create_task(worker.run())
+        try:
+            await asyncio.shield(task)
+        except asyncio.CancelledError:
+            worker.stop()
+            await task
+            raise
 
     def run_worker(self, **kwargs) -> None:
         """
