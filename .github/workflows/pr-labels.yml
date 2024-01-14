@@ -1,0 +1,40 @@
+name: Label PR
+
+on:
+  pull_request_target:
+    types:
+      - opened
+      - reopened
+      - edited
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - run: |
+          export LABELS=$(gh repo view $REPO --json="labels" --jq='.labels[].name | select(startswith(env.PREFIX))')
+          python <(cat <<EOF
+          import sys, os
+          from urllib.parse import quote
+          url = f"https://github.com/{os.environ['REPO']}/labels/"
+          labels = os.environ['LABELS'].strip().splitlines()
+          prefix = os.environ['PREFIX']
+          checked = "- [x] "
+          unchecked = "- [ ] "
+          for line in os.environ["BODY"].splitlines():
+            for label in labels:
+              if label.startswith(prefix) and line.strip().endswith(url + quote(label)):
+                if line.strip().startswith(checked):
+                  print(f"--add-label={label}")
+                elif line.strip().startswith(unchecked):
+                  print(f"--remove-label={label}")
+          EOF) | xargs -d '\n' gh pr --repo $REPO edit
+
+        env:
+          PREFIX: "PR type: "
+          REPO: procrastinate-org/procrastinate
+          BODY: ${{github.event.pull_request.body}}
+          NUMBER: ${{ github.event.pull_request.number }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

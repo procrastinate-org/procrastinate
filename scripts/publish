@@ -1,8 +1,0 @@
-#!/usr/bin/env bash
-set -eux
-
-# This script is expected to be passed a PYPI_TOKEN env var
-
-poetry version $(poetry run dunamai from git --pattern '^(?P<base>\d+(\.\d+)*)([-._]?((?P<stage>[a-zA-Z]+)[-._]?(?P<revision>\d+)?))?$')
-poetry publish --no-interaction --build --username "__token__" --password "$PYPI_TOKEN"
-git restore pyproject.toml

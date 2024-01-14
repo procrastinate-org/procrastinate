@@ -1,0 +1,19 @@
+changelog:
+  exclude:
+    authors:
+      - pre-commit-ci[bot]
+      - renovate[bot]
+      - dependabot[bot]
+  categories:
+    - title: "Breaking changes"
+      labels: ["PR type: breaking 💥"]
+    - title: "Features"
+      labels: ["PR type: feature ⭐️"]
+    - title: "Bug Fixes"
+      labels: ["PR type: bugfix 🕵️"]
+    - title: "Miscellaneous"
+      labels: ["PR type: miscellaneous 👾"]
+    - title: "Dependencies"
+      labels: ["PR type: dependencies 🤖"]
+    - title: "Uncategorized"
+      labels: ["*"]
