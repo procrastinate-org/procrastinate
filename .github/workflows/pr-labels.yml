@@ -30,7 +30,8 @@ jobs:
                   print(f"--add-label={label}")
                 elif line.strip().startswith(unchecked):
                   print(f"--remove-label={label}")
-          EOF) | xargs -d '\n' gh pr --repo $REPO edit
+          EOF
+          ) | xargs -no-run-if-empty --delimiter '\n' gh pr --repo $REPO edit
 
         env:
           PREFIX: "PR type: "
