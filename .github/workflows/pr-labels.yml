@@ -8,7 +8,8 @@ on:
       - edited
 
 jobs:
-  test:
+  label:
+    name: Label PR
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
