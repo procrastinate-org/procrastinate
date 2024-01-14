@@ -1,6 +1,7 @@
 Procrastinate: PostgreSQL-based Task Queue for Python
 =====================================================
 
+
 .. image:: https://img.shields.io/pypi/v/procrastinate?logo=pypi&logoColor=white
     :target: https://pypi.org/pypi/procrastinate
     :alt: Deployed to PyPI
