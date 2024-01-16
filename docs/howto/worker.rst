@@ -29,11 +29,7 @@ Naming the worker is optional.
 
 When running the worker inside a bigger application, you may want to use
 ``install_signal_handlers=False`` so that the worker doesn't interfere with
-your application's signal handlers. Don't forget to call
-`Worker.stop` when you're ready to stop the worker. This informs the worker
-that it should stop listening to the queues and exit. You will want to wait
-for the worker task to actually exit before closing the app, so that tasks
-that were already running can get a chance to finish.
+your application's signal handlers.
 
 .. note::
 
