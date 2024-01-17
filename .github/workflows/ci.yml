@@ -83,7 +83,7 @@ jobs:
       - name: Activate virtualenv
         run: echo "$(poetry env info --path)/bin" >> $GITHUB_PATH
 
-      - uses: jakebailey/pyright-action@v1
+      - uses: jakebailey/pyright-action@v2
 
   report-status:
     name: success
