@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import functools
 import inspect
 import logging
@@ -40,6 +41,7 @@ class Worker:
         listen_notify: bool = True,
         delete_jobs: str | DeleteJobCondition = DeleteJobCondition.NEVER.value,
         additional_context: dict[str, Any] | None = None,
+        install_signal_handlers: bool = True,
     ):
         self.app = app
         self.queues = queues
@@ -56,6 +58,7 @@ class Worker:
         )
 
         self.job_manager = self.app.job_manager
+        self.install_signal_handlers = install_signal_handlers
 
         if name:
             self.logger = logger.getChild(name)
@@ -115,8 +118,11 @@ class Worker:
                 action="start_worker", queues=self.queues
             ),
         )
+        context = contextlib.nullcontext()
+        if self.install_signal_handlers:
+            context = signals.on_stop(self.stop)
 
-        with signals.on_stop(self.stop):
+        with context:
             side_coros = [self.periodic_deferrer()]
             if self.wait and self.listen_notify:
                 side_coros.append(self.listener())
