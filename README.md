@@ -6,7 +6,7 @@
 |-------------------------------------------------------- | -------: | -------: | -------: | -------: | ------: | --------: |
 | procrastinate/\_\_init\_\_.py                           |       19 |        0 |        0 |        0 |    100% |           |
 | procrastinate/\_\_main\_\_.py                           |        6 |        0 |        2 |        0 |    100% |           |
-| procrastinate/app.py                                    |       80 |        1 |       10 |        0 |     99% |       265 |
+| procrastinate/app.py                                    |       86 |        1 |       10 |        0 |     99% |       276 |
 | procrastinate/blueprints.py                             |       50 |        0 |       14 |        0 |    100% |           |
 | procrastinate/builtin\_tasks.py                         |        7 |        0 |        2 |        0 |    100% |           |
 | procrastinate/cli.py                                    |      195 |        3 |       40 |        2 |     98% |48, 135, 139 |
@@ -40,8 +40,8 @@
 | procrastinate/testing.py                                |      142 |        1 |       63 |        1 |     99% |       148 |
 | procrastinate/types.py                                  |        4 |        0 |        0 |        0 |    100% |           |
 | procrastinate/utils.py                                  |      180 |        0 |       50 |        0 |    100% |           |
-| procrastinate/worker.py                                 |      165 |        0 |       42 |        0 |    100% |           |
-|                                               **TOTAL** | **2127** |   **22** |  **716** |   **13** | **99%** |           |
+| procrastinate/worker.py                                 |      170 |        0 |       44 |        0 |    100% |           |
+|                                               **TOTAL** | **2138** |   **22** |  **718** |   **13** | **99%** |           |
 
 
 ## Setup coverage badge
