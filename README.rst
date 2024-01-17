@@ -9,7 +9,7 @@ Procrastinate: PostgreSQL-based Task Queue for Python
     :target: https://pypi.org/pypi/procrastinate
     :alt: Deployed to PyPI
 
-.. image:: https://img.shields.io/github/stars/procrastinate-org/procrastinate?logo=github
+.. image:: https://img.shields.io/github/stars/procrastinate-org/procrastinate?style=flat&logo=github&color=brightgreen
     :target: https://github.com/procrastinate-org/procrastinate/
     :alt: GitHub Repository
 
@@ -32,6 +32,10 @@ Procrastinate: PostgreSQL-based Task Queue for Python
 .. image:: https://img.shields.io/badge/Contributor%20Covenant-v1.4%20adopted-ff69b4.svg
     :target: https://github.com/procrastinate-org/procrastinate/blob/main/CODE_OF_CONDUCT.md
     :alt: Contributor Covenant
+
+.. image:: https://img.shields.io/discord/1197292025725329549?logo=discord&logoColor=white&label=Discord&color=%237289da
+   :target: https://discord.gg/JWZeNq6P6Z
+   :alt: Discord
 
 **Procrastinate is looking for** `additional maintainers! <https://github.com/procrastinate-org/procrastinate/discussions/748>`_
 
