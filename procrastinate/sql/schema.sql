@@ -45,8 +45,8 @@ CREATE TABLE procrastinate_periodic_defers (
 );
 
 CREATE TABLE procrastinate_events (
-    id BIGSERIAL PRIMARY KEY,
-    job_id integer NOT NULL REFERENCES procrastinate_jobs ON DELETE CASCADE,
+    id bigserial PRIMARY KEY,
+    job_id bigint NOT NULL REFERENCES procrastinate_jobs ON DELETE CASCADE,
     type procrastinate_job_event_type,
     at timestamp with time zone DEFAULT NOW() NULL
 );
@@ -75,7 +75,8 @@ CREATE FUNCTION procrastinate_defer_job(
     queueing_lock text,
     args jsonb,
     scheduled_at timestamp with time zone
-) RETURNS bigint
+)
+    RETURNS bigint
     LANGUAGE plpgsql
 AS $$
 DECLARE
@@ -97,7 +98,8 @@ CREATE FUNCTION procrastinate_defer_periodic_job(
     _periodic_id character varying,
     _defer_timestamp bigint,
     _args jsonb
-) RETURNS bigint
+)
+    RETURNS bigint
     LANGUAGE plpgsql
 AS $$
 DECLARE
@@ -144,7 +146,10 @@ BEGIN
 END;
 $$;
 
-CREATE FUNCTION procrastinate_fetch_job(target_queue_names character varying[]) RETURNS procrastinate_jobs
+CREATE FUNCTION procrastinate_fetch_job(
+    target_queue_names character varying[]
+)
+    RETURNS procrastinate_jobs
     LANGUAGE plpgsql
 AS $$
 DECLARE
@@ -182,7 +187,8 @@ $$;
 -- procrastinate_finish_job
 -- the next_scheduled_at argument is kept for compatibility reasons, it is to be
 -- removed after 1.0.0 is released
-CREATE FUNCTION procrastinate_finish_job(job_id integer, end_status procrastinate_job_status, delete_job boolean) RETURNS void
+CREATE FUNCTION procrastinate_finish_job(job_id bigint, end_status procrastinate_job_status, delete_job boolean)
+    RETURNS void
     LANGUAGE plpgsql
 AS $$
 DECLARE
@@ -212,7 +218,8 @@ BEGIN
 END;
 $$;
 
-CREATE FUNCTION procrastinate_retry_job(job_id integer, retry_at timestamp with time zone) RETURNS void
+CREATE FUNCTION procrastinate_retry_job(job_id bigint, retry_at timestamp with time zone)
+    RETURNS void
     LANGUAGE plpgsql
 AS $$
 DECLARE
@@ -230,7 +237,8 @@ BEGIN
 END;
 $$;
 
-CREATE FUNCTION procrastinate_notify_queue() RETURNS trigger
+CREATE FUNCTION procrastinate_notify_queue()
+    RETURNS trigger
     LANGUAGE plpgsql
 AS $$
 BEGIN
@@ -240,7 +248,8 @@ BEGIN
 END;
 $$;
 
-CREATE FUNCTION procrastinate_trigger_status_events_procedure_insert() RETURNS trigger
+CREATE FUNCTION procrastinate_trigger_status_events_procedure_insert()
+    RETURNS trigger
     LANGUAGE plpgsql
 AS $$
 BEGIN
@@ -250,7 +259,8 @@ BEGIN
 END;
 $$;
 
-CREATE FUNCTION procrastinate_trigger_status_events_procedure_update() RETURNS trigger
+CREATE FUNCTION procrastinate_trigger_status_events_procedure_update()
+    RETURNS trigger
     LANGUAGE plpgsql
 AS $$
 BEGIN
@@ -285,7 +295,8 @@ BEGIN
 END;
 $$;
 
-CREATE FUNCTION procrastinate_trigger_scheduled_events_procedure() RETURNS trigger
+CREATE FUNCTION procrastinate_trigger_scheduled_events_procedure()
+    RETURNS trigger
     LANGUAGE plpgsql
 AS $$
 BEGIN
@@ -296,7 +307,8 @@ BEGIN
 END;
 $$;
 
-CREATE FUNCTION procrastinate_unlink_periodic_defers() RETURNS trigger
+CREATE FUNCTION procrastinate_unlink_periodic_defers()
+    RETURNS trigger
     LANGUAGE plpgsql
 AS $$
 BEGIN
@@ -337,7 +349,8 @@ CREATE TRIGGER procrastinate_trigger_delete_jobs
 -- Old versions of functions, for backwards compatibility (to be removed
 -- after 2.0.0)
 -- procrastinate_finish_job
-CREATE OR REPLACE FUNCTION procrastinate_finish_job(job_id integer, end_status procrastinate_job_status, next_scheduled_at timestamp with time zone, delete_job boolean) RETURNS void
+CREATE OR REPLACE FUNCTION procrastinate_finish_job(job_id integer, end_status procrastinate_job_status, next_scheduled_at timestamp with time zone, delete_job boolean)
+    RETURNS void
     LANGUAGE plpgsql
 AS $$
 DECLARE
