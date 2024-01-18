@@ -71,7 +71,7 @@ def test_migration(schema_database, migrations_database, run_migrations):
         migrations_db_session = stack.enter_context(
             S(f"postgresql:///{migrations_database}", poolclass=NullPool)
         )
-        m = Migration(schema_db_session, migrations_db_session)
+        m = Migration(migrations_db_session, schema_db_session)
         m.set_safety(False)
         m.add_all_changes()
 

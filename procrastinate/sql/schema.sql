@@ -46,7 +46,7 @@ CREATE TABLE procrastinate_periodic_defers (
 
 CREATE TABLE procrastinate_events (
     id BIGSERIAL PRIMARY KEY,
-    job_id integer NOT NULL REFERENCES procrastinate_jobs ON DELETE CASCADE,
+    job_id bigint NOT NULL REFERENCES procrastinate_jobs ON DELETE CASCADE,
     type procrastinate_job_event_type,
     at timestamp with time zone DEFAULT NOW() NULL
 );
@@ -182,7 +182,8 @@ $$;
 -- procrastinate_finish_job
 -- the next_scheduled_at argument is kept for compatibility reasons, it is to be
 -- removed after 1.0.0 is released
-CREATE FUNCTION procrastinate_finish_job(job_id integer, end_status procrastinate_job_status, delete_job boolean) RETURNS void
+CREATE FUNCTION procrastinate_finish_job(job_id bigint, end_status procrastinate_job_status, delete_job boolean)
+    RETURNS void
     LANGUAGE plpgsql
 AS $$
 DECLARE
@@ -212,7 +213,8 @@ BEGIN
 END;
 $$;
 
-CREATE FUNCTION procrastinate_retry_job(job_id integer, retry_at timestamp with time zone) RETURNS void
+CREATE FUNCTION procrastinate_retry_job(job_id bigint, retry_at timestamp with time zone)
+    RETURNS void
     LANGUAGE plpgsql
 AS $$
 DECLARE
