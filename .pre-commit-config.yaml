@@ -47,7 +47,7 @@ repos:
           - sqlalchemy==2.0.25
           - typing-extensions==4.9.0
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.1.13
+    rev: v0.1.14
     hooks:
       - id: ruff
         args: [--fix, --unsafe-fixes]
