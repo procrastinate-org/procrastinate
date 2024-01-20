@@ -33,12 +33,19 @@ author = "Joachim Jablon"
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
+    "myst_parser",
     "sphinx.ext.napoleon",
     "sphinx.ext.autodoc",
     "sphinx_autodoc_typehints",
     "sphinxcontrib.programoutput",
     "sphinx_github_changelog",
     "sphinx_copybutton",
+]
+
+myst_enable_extensions = [
+    "colon_fence",
+    "deflist",
+    "tasklist",
 ]
 
 set_type_checking_flag = True

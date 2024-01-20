@@ -14,7 +14,7 @@ charset = utf-8
 quote_type = double
 max_line_length = 88
 
-[*.rst]
+[*.md]
 max_line_length = 88
 
 [*.yml]

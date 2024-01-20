@@ -5,4 +5,4 @@ for the project.
 
 These scripts are expected to be run as-is, not in poetry or a virtualenv.
 
-See [CONTRIBUTING.rst](../CONTRIBUTING.rst) for more details.
+See [CONTRIBUTING.md](../CONTRIBUTING.md) for more details.

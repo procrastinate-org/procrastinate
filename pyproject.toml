@@ -13,7 +13,7 @@ classifiers = [
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
 ]
-readme = "README.rst"
+readme = "README.md"
 keywords = ["postgres", "task-queue"]
 homepage = "https://procrastinate.readthedocs.io/"
 repository = "https://github.com/procrastinate-org/procrastinate/"
@@ -80,6 +80,7 @@ sphinx-autodoc-typehints = "*"
 sphinx-copybutton = "*"
 sphinx-github-changelog = "*"
 sphinxcontrib-programoutput = "*"
+myst-parser = "*"
 
 [tool.poetry-dynamic-versioning]
 enable = true
