@@ -1,49 +1,15 @@
 # Procrastinate: PostgreSQL-based Task Queue for Python
 
-:::{image} https://img.shields.io/pypi/v/procrastinate?logo=pypi&logoColor=white
-:alt: Deployed to PyPI
-:target: https://pypi.org/pypi/procrastinate
-:::
-
-:::{image} https://img.shields.io/pypi/pyversions/procrastinate?logo=pypi&logoColor=white
-:alt: Deployed to PyPI
-:target: https://pypi.org/pypi/procrastinate
-:::
-
-:::{image} https://img.shields.io/github/stars/procrastinate-org/procrastinate?style=flat&logo=github&color=brightgreen
-:alt: GitHub Repository
-:target: https://github.com/procrastinate-org/procrastinate/
-:::
-
-:::{image} https://img.shields.io/github/actions/workflow/status/procrastinate-org/procrastinate/ci.yml?logo=github&branch=main
-:alt: Continuous Integration
-:target: https://github.com/procrastinate-org/procrastinate/actions?workflow=CI
-:::
-
-:::{image} https://img.shields.io/readthedocs/procrastinate/stable?logo=read-the-docs&logoColor=white
-:alt: Documentation
-:target: https://procrastinate.readthedocs.io/en/stable/badge=stable
-:::
-
-:::{image} https://img.shields.io/endpoint?logo=codecov&logoColor=white&url=https://raw.githubusercontent.com/wiki/procrastinate-org/procrastinate/python-coverage-comment-action-badge.json
-:alt: Coverage
-:target: https://github.com/marketplace/actions/python-coverage-comment
-:::
-
-:::{image} https://img.shields.io/github/license/procrastinate-org/procrastinate?logo=open-source-initiative&logoColor=white
-:alt: MIT License
-:target: https://github.com/procrastinate-org/procrastinate/blob/main/LICENSE
-:::
-
-:::{image} https://img.shields.io/badge/Contributor%20Covenant-v1.4%20adopted-ff69b4.svg
-:alt: Contributor Covenant
-:target: https://github.com/procrastinate-org/procrastinate/blob/main/CODE_OF_CONDUCT.md
-:::
-
-:::{image} https://img.shields.io/discord/1197292025725329549?logo=discord&logoColor=white&label=Discord&color=%237289da
-:alt: Discord
-:target: https://discord.gg/JWZeNq6P6Z
-:::
+[![Deployed to PyPI](https://img.shields.io/pypi/v/procrastinate?logo=pypi&logoColor=white)](https://pypi.org/pypi/procrastinate)
+[![Deployed to PyPI](https://img.shields.io/pypi/pyversions/procrastinate?logo=pypi&logoColor=white)](https://pypi.org/pypi/procrastinate)
+[![GitHub Repository](https://img.shields.io/github/stars/procrastinate-org/procrastinate?style=flat&logo=github&color=brightgreen)](https://github.com/procrastinate-org/procrastinate/)
+[![Continuous Integration](https://img.shields.io/github/actions/workflow/status/procrastinate-org/procrastinate/ci.yml?logo=github&branch=main)](https://github.com/procrastinate-org/procrastinate/actions?workflow=CI)
+[![Documentation](https://img.shields.io/readthedocs/procrastinate/stable?logo=read-the-docs&logoColor=white)](https://procrastinate.readthedocs.io/en/stable/badge=stable)
+[![Documentation](https://img.shields.io/readthedocs/procrastinate/stable?logo=read-the-docs&logoColor=white)](https://procrastinate.readthedocs.io/en/stable/badge=stable)
+[![Coverage badge](https://raw.githubusercontent.com/procrastinate-org/procrastinate/python-coverage-comment-action-data/badge.svg)](https://htmlpreview.github.io/?https://github.com/procrastinate-org/procrastinate/blob/python-coverage-comment-action-data/htmlcov/index.html)
+[![MIT License](https://img.shields.io/github/license/procrastinate-org/procrastinate?logo=open-source-initiative&logoColor=white)](https://github.com/procrastinate-org/procrastinate/blob/main/LICENSE)
+[![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-v1.4%20adopted-ff69b4.svg)](https://github.com/procrastinate-org/procrastinate/blob/main/CODE_OF_CONDUCT.md)
+[![Discord](https://img.shields.io/discord/1197292025725329549?logo=discord&logoColor=white&label=Discord&color=%237289da)](https://discord.gg/JWZeNq6P6Z)
 
 **Procrastinate is looking for** [additional maintainers!](https://github.com/procrastinate-org/procrastinate/discussions/748)
 
