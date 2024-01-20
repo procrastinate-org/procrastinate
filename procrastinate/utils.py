@@ -364,7 +364,7 @@ async def run_tasks(
 
 
 def add_namespace(name: str, namespace: str) -> str:
-    return f"{namespace}:{name}"
+    return f"{namespace}:{name}" if namespace else name
 
 
 def import_or_wrapper(*names: str) -> Iterable[types.ModuleType]:
