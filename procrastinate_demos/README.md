@@ -83,6 +83,15 @@ page should show the book as indexed after about 5 seconds.
 (The only reason why it's done in 2 jobs rather than one is to showcase
 deferring a job from another job.)
 
+You can visit the admin, too. You'll need to create a superuser first:
+
+```console
+$ procrastinate_demos/demo_django/manage.py createsuperuser
+```
+
+Then lauch the server, head to `http://localhost:8000/admin/` and see the jobs,
+the events and the periodic defers.
+
 (…Yes I’m not a frontend dev :) )
 
 [demo_async]: https://github.com/procrastinate-org/procrastinate/tree/main/procrastinate_demos/demo_async/
