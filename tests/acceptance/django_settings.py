@@ -7,9 +7,10 @@ DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql_psycopg2",
         "NAME": os.environ.get("PGDATABASE", "procrastinate"),
+        "TEST": {"NAME": "procrastinate_django_test"},
     },
 }
-
+DATABASE_ROUTERS = ["procrastinate.contrib.django.ProcrastinateReadOnlyRouter"]
 INSTALLED_APPS = [
     "procrastinate.contrib.django",
 ]

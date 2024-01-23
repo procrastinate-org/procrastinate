@@ -108,7 +108,12 @@ DJANGO_SETTINGS_MODULE = "tests.acceptance.django_settings"
 
 [tool.coverage.run]
 relative_files = true
-omit = ["procrastinate/contrib/django/migrations/*"]
+omit = [
+    "procrastinate/contrib/django/migrations/*",
+    # It really wouldn't make sense to test the admin config, I guess ?
+    "procrastinate/contrib/django/admin.py",
+
+]
 
 [tool.coverage.report]
 exclude_lines = [
@@ -117,6 +122,7 @@ exclude_lines = [
     "if TYPE_CHECKING:",
     "[ ]+\\.\\.\\.$",
 ]
+
 
 [tool.pyright]
 exclude = ["tests", ".venv"]
