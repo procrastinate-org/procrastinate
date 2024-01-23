@@ -143,6 +143,7 @@ class AiopgConnector(connector.BaseAsyncConnector):
         self._pool_externally_set: bool = False
         self.json_dumps = json_dumps
         self.json_loads = json_loads
+        self._original_kwargs = kwargs
         self._pool_args = self._adapt_pool_args(kwargs, json_loads)
         self._lock: asyncio.Lock | None = None
         self._sync_connector: connector.BaseConnector | None = None
@@ -150,13 +151,12 @@ class AiopgConnector(connector.BaseAsyncConnector):
     def get_sync_connector(self) -> connector.BaseConnector:
         if self._pool:
             return self
-        args_copy = dict(self._pool_args)
-        args_copy.pop("on_connect", None)
+
         if self._sync_connector is None:
             self._sync_connector = psycopg2_connector.Psycopg2Connector(
                 json_dumps=self.json_dumps,
                 json_loads=self.json_loads,
-                **args_copy,
+                **dict(self._original_kwargs),
             )
         return self._sync_connector
 
