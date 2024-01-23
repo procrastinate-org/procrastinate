@@ -4,6 +4,7 @@ import asyncio
 import functools
 import json
 
+import asgiref.sync
 import attr
 import pytest
 
@@ -14,7 +15,7 @@ from procrastinate.contrib.aiopg import aiopg_connector as aiopg
 async def aiopg_connector_factory(connection_params):
     connectors = []
 
-    async def _(**kwargs):
+    async def _(*, open: bool = True, **kwargs):
         json_dumps = kwargs.pop("json_dumps", None)
         json_loads = kwargs.pop("json_loads", None)
         connection_params.update(kwargs)
@@ -22,7 +23,8 @@ async def aiopg_connector_factory(connection_params):
             json_dumps=json_dumps, json_loads=json_loads, **connection_params
         )
         connectors.append(connector)
-        await connector.open_async()
+        if open:
+            await connector.open_async()
         return connector
 
     yield _
@@ -117,6 +119,24 @@ async def test_execute_query(aiopg_connector):
         "SELECT obj_description('public.procrastinate_jobs'::regclass)"
     )
     assert result == [{"obj_description": "foo"}]
+
+
+async def test_get_sync_connector(aiopg_connector_factory):
+    result = []
+
+    aiopg_connector = await aiopg_connector_factory(open=False)
+
+    @asgiref.sync.sync_to_async
+    def f():
+        sync_conn = aiopg_connector.get_sync_connector()
+        sync_conn.open()
+        try:
+            result.append(sync_conn.execute_query_one("SELECT 1"))
+        finally:
+            sync_conn.close()
+
+    await f()
+    assert list(result[0].values()) == [1]
 
 
 async def test_execute_query_interpolate(aiopg_connector):
