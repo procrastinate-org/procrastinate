@@ -13,7 +13,7 @@
 | procrastinate/connector.py                              |       41 |        0 |        0 |        0 |    100% |           |
 | procrastinate/contrib/\_\_init\_\_.py                   |        0 |        0 |        0 |        0 |    100% |           |
 | procrastinate/contrib/aiopg/\_\_init\_\_.py             |        3 |        0 |        0 |        0 |    100% |           |
-| procrastinate/contrib/aiopg/aiopg\_connector.py         |      153 |        2 |       92 |        2 |     98% |209-210, 308->307 |
+| procrastinate/contrib/aiopg/aiopg\_connector.py         |      152 |        2 |       92 |        2 |     98% |209-210, 308->307 |
 | procrastinate/contrib/django/\_\_init\_\_.py            |        4 |        0 |        0 |        0 |    100% |           |
 | procrastinate/contrib/django/apps.py                    |        8 |        0 |        0 |        0 |    100% |           |
 | procrastinate/contrib/django/migrations\_magic.py       |       74 |        0 |       29 |        0 |    100% |           |
@@ -41,7 +41,7 @@
 | procrastinate/types.py                                  |        4 |        0 |        0 |        0 |    100% |           |
 | procrastinate/utils.py                                  |      180 |        0 |       50 |        0 |    100% |           |
 | procrastinate/worker.py                                 |      170 |        0 |       44 |        0 |    100% |           |
-|                                               **TOTAL** | **2138** |   **22** |  **718** |   **13** | **99%** |           |
+|                                               **TOTAL** | **2137** |   **22** |  **718** |   **13** | **99%** |           |
 
 
 ## Setup coverage badge
