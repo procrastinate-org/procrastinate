@@ -16,8 +16,6 @@ from procrastinate import connector, exceptions
 
 logger = logging.getLogger(__name__)
 
-LISTEN_TIMEOUT = 30.0
-
 T = TypeVar("T")
 P = ParamSpec("P")
 
