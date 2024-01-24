@@ -89,8 +89,9 @@ def setup_db():
 
 
 @pytest.fixture
-def connection_params(setup_db, db_factory):
+def connection_params(setup_db, db_factory, monkeypatch):
     db_factory(dbname="procrastinate_test", template=setup_db)
+    monkeypatch.setenv("PGDATABASE", "procrastinate_test")
 
     return {"dbname": "procrastinate_test"}
 

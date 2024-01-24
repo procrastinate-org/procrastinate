@@ -31,7 +31,7 @@ U = TypeVar("U")
 logger = logging.getLogger(__name__)
 
 
-def load_from_path(path: str, allowed_type: type[T]) -> T:
+def load_from_path(path: str, allowed_type: type[T] | None = None) -> T:
     """
     Import and return then object at the given full python path.
     """
@@ -48,7 +48,7 @@ def load_from_path(path: str, allowed_type: type[T]) -> T:
     except AttributeError as exc:
         raise exceptions.LoadFromPathError(str(exc)) from exc
 
-    if not isinstance(imported, allowed_type):
+    if allowed_type and not isinstance(imported, allowed_type):
         raise exceptions.LoadFromPathError(
             f"Object at {path} is not of type {allowed_type.__name__} "
             f"but {type(imported).__name__}"
@@ -364,7 +364,7 @@ async def run_tasks(
 
 
 def add_namespace(name: str, namespace: str) -> str:
-    return f"{namespace}:{name}"
+    return f"{namespace}:{name}" if namespace else name
 
 
 def import_or_wrapper(*names: str) -> Iterable[types.ModuleType]:

@@ -4,13 +4,7 @@ Many Django projects are deployed using PostgreSQL, so using procrastinate in
 conjunction with Django would remove the necessity of having another broker to
 schedule tasks, thereby reducing infrastructure costs.
 
-It's important to note that despite there's support for Django inside
-procrastinate, there are still some [pending issues] to improve the Django
-experience - please feel free to [contribute]! Additionally, it's worth noting
-that there are other Python job scheduling libraries based on postgres'
-LISTEN/NOTIFY that integrate with Django. For instance, [django-pgpubsub] is
-more focused on Django, although it is still in the early stages of
-development.
+## Configuration
 
 To start, install procrastinate with:
 
@@ -18,115 +12,155 @@ To start, install procrastinate with:
 $ (venv) pip install 'procrastinate[django]'
 ```
 
-This tells pip to install procrastinate and consider the extra dependencies
-from the group of dependencies named `django`. For now, this group only
-contains Django itself, which you likely already have in your project's
-dependencies. So why bother?
-
-Specifying your dependency to the "`django` extras" will ensure that your
-Django version and the one we support stay in sync through time (for now, we
-support every version, but if we learn of strong incompatibilities, we'll
-update the lib: we're considering every version is compatible until proven
-otherwise). Also, while this is not the case today, if our Django integration
-ever requires other third-party packages, they will be added here.
-
 Add procrastinate Django app to your `INSTALLED_APPS`:
 
 ```python
 INSTALLED_APPS = [
     ...
     "procrastinate.contrib.django",
+    ...
 ]
 ```
-
-After that, you need to create a new directory to contain the procrastinate
-app, where you will define your tasks. This app will run independently of
-Django but will be able to access the whole Django ecosystem (it's not a Django
-app, nor will be inside any of your existing Django apps). Create a new
-directory `tasks` and fill the `tasks/__init__.py` with:
+Optionally, you can set the following to ensure that the model instances exposed by
+the Django integration are not modified through the ORM. Even if you don't,
+most ORM modifications operations will be prevented.
 
 ```python
-import django
-django.setup()  # Setup Django inside the worker so you can import/use ORM etc.
-
-from asgiref.sync import sync_to_async  # Django's ORM is still sync
-from procrastinate import App, AiopgConnector
-from procrastinate.contrib.django import connector_params
-
-from myapp.models import MyModel
-
-
-app = App(connector=AiopgConnector(**connector_params()))
-app.open()
-
-@app.task(name="mytask")
-async def mytask(obj_pk):
-    @sync_to_async
-    def work():
-        print(f"Executing mytask for object {obj_pk}...")
-        obj = MyModel.objects.get(pj=obj_pk)
-        ...
-    await work()
+DATABASE_ROUTERS = ["procrastinate.contrib.django.ProcrastinateReadOnlyRouter", ...]
 ```
 
-If you're using the ORM asynchronously, it is necessary to wrap all Django code
-with `sync_to_async`. To avoid trouble with sync/async inside your tasks, we
-recommended you to create a "service" layer/module within your app and use the
-tasks only to call service code, so your tasks will be thin and maintenance
-will be easier, since the service layer could be tested as other modules of
-your app. To learn more about this approach, watch [this talk at DjangoCon
-2019][this talk at djangocon 2019].
+## Configuring the app
 
-You can also start using the [Async ORM API] (4.1+).
+An app will be configured for you in `procrastinate.contrib.django.app`.
+You don't have to configure it yourself, but you can if you want to.
+The app uses a special connector that uses Django's database connection
+to defer jobs.
 
-To run the procrastinate worker properly, you need to set
-`DJANGO_SETTINGS_MODULE` to your project's settings module and point to the
-`tasks` app you just created:
+:::{note}
+It's likely that configuring an app yourself and using it instead of the
+one provided by Procrastinate will lead to all sorts of issues.
+There's no hard requirement not to do it, but it might get complicated.
+:::
 
+## Defining tasks
+
+After that, add your tasks to `tasks.py` in your Django app.
+You can use the sync ORM API or the [async ORM API] to access your models.
+
+```python
+from procrastinate.contrib.django import app
+
+@app.task
+def mytask1(obj_pk):
+    obj = MyModel.objects.get(pj=obj_pk)
+    ...
+
+@app.task
+async def mytask2(obj_pk):
+    obj = await MyModel.objects.aget(pj=obj_pk)
+    ...
+```
+
+## Running the worker
+
+Run the worker with the following command.
 ```console
-DJANGO_SETTINGS_MODULE=myproj.settings PYTHONPATH=. procrastinate --app=tasks.app worker
+$ (venv) ./manage.py procrastinate worker
 ```
+:::{note}
+`./manage.py procrastinate` mostly behaves like the `procrastinate` command
+itself, with some commands removed and the app is configured for you.
+You can also use other subcommands such as `./manage.py procrastinate defer`.
+Note that the `--app` option is not available, Procrastinate generates an app
+for you using a Psycopg or Aiopg connector depending on your Django setup,
+and connects using the `DATABASES` settings.
+:::
 
-Note that `tasks` won't be a Django app (so Django won't import it), but you
-still need to be able to launch tasks from your Django code (for example,
-inside a view). Since the procrastinate app is not imported by Django, you must
-create a new `app` object accessible via Django to launch tasks (this object
-won't act like a worker, it's just your bridge from Django so you can launch
-tasks). Select an app and create `myapp/tasks.py` file with the following
-contents:
+## Deferring jobs
 
-```python
-"""Expose procrastinate tasks so Django apps can call them"""
-
-from procrastinate import App, Psycopg2Connector
-from procrastinate.contrib.django import connector_params
-
-# Depending on how the Django-postgres connection is configured, you may
-# change the connector to `AiopgConnector`
-app = App(connector=Psycopg2Connector(**connector_params()))
-app.open()
-
-# Task functions
-mytask = app.configure_task(name="mytask")
-```
-
-(See {any}`connector` for more on how to instantiate your connector.)
-
-Now you can finally launch this task from your `myapp/views.py`:
-
+Defer jobs from your views:
 ```python
 from myapp.tasks import mytask
 
 def myview(request):
     ...
     mytask.defer(obj_pk=obj.pk)
+
+async def myasyncview(request):
+    ...
+    await mytask.defer_async(obj_pk=obj.pk)
 ```
 
-Procrastinate comes with its own migrations so don't forget to run
-`./manage.py migrate`.
+## Migrations
 
+Procrastinate comes with its own migrations so don't forget to run
+`./manage.py migrate`. Procrastinate's Django migrations are always kept
+in sync with your current version of Procrastinate, it's always a good idea
+to check the release notes and read the migrations when upgrading.
+
+## Models
+
+Procrastinate exposes 2 of its internal tables as Django models. You can use
+them to query the state of your jobs. They're also exposed in the Django admin.
+
+:::{note}
+We'll do our best to ensure backwards compatibility, but we won't always be
+able to do so. If you use the models directly, make sure you test your
+integration when upgrading Procrastinate.
+:::
+
+```python
+from procrastinate.contrib.django.models import (
+    ProcrastinateJob,
+    ProcrastinateEvent,
+)
+
+ProcrastinateJob.objects.filter(task_name="mytask").count()
+```
+
+:::{note}
+The `procrastinate_periodic_defers` table is not exposed as a Django model,
+because it's mainly an internal table and we couldn't find a good use case
+for it. If you find one, please [open an issue]!
+:::
+
+## Additional settings
+
+If need be, Procrastinate exposes a few Django settings:
+
+```python
+# By default, the `tasks` module in each app is auto-discovered for tasks.
+# You can change the name `tasks`` to something else, and add additional paths.
+
+# Change the name of the module where tasks are auto-discovered.
+# If set to None, auto-discovery is disabled except for paths in IMPORT_PATHS.
+AUTODISCOVER_MODULE_NAME: str | None  # (defaults to "tasks")
+# Dotted paths to additional modules containing tasks.
+IMPORT_PATHS: list[str]  # (defaults  to [])
+
+# If you just want to change the database alias used by the connector,
+# you can use this setting (it has no effect if CREATE_CONNECTOR is set)
+DATABASE_ALIAS: str,  # (defaults to "default")
+
+# These settings are passed as-is to the App constructor.
+WORKER_DEFAULTS: dict | None,  # (defaults to None)
+PERIODIC_DEFAULTS: dict | None,  # (defaults to None)
+```
+
+## Logs
+
+Procrastinate logs to the `procrastinate` logger. You can configure it
+in your `LOGGING` settings.
+
+## Alternatives
+
+It's worth noting that there are other Python job scheduling libraries based on
+postgres' LISTEN/NOTIFY that integrate with Django. For instance,
+[django-pgpubsub] is more focused on Django.
+
+[django-pgpubsub]: https://readthedocs.org/projects/django-pgpubsub/
 [async orm api]: https://docs.djangoproject.com/en/4.2/topics/async/#queries-the-orm
 [contribute]: https://github.com/procrastinate-org/procrastinate/blob/main/CONTRIBUTING.md
-[django-pgpubsub]: https://readthedocs.org/projects/django-pgpubsub/
 [pending issues]: https://github.com/procrastinate-org/procrastinate/issues?q=is%3Aissue+is%3Aopen+django
+[open an issue]: https://github.com/procrastinate-org/procrastinate/issues
 [this talk at djangocon 2019]: https://www.youtube.com/watch?v=_DIlE-yc9ZQ

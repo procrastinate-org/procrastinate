@@ -22,4 +22,7 @@ def connector_params(alias: str = "default") -> dict[str, Any]:
         Provide these keyword arguments when instantiating your connector
     """
     wrapper = connections[alias]
-    return wrapper.get_connection_params()
+    params = wrapper.get_connection_params()
+    params.pop("cursor_factory", None)
+    params.pop("context", None)
+    return params

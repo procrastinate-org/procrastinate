@@ -101,11 +101,43 @@ def test_main(mocker):
     ],
 )
 def test_parser(input, output):
-    result = vars(cli.get_parser().parse_args(input))
+    parser = cli.create_parser()
+    cli.add_arguments(parser)
+    cli.add_cli_features(parser)
+
+    result = vars(parser.parse_args(input))
 
     print(result)
     for key, value in output.items():
         assert result[key] == value
+
+
+def test_add_arguments__exclude_app():
+    parser = cli.create_parser()
+    cli.add_arguments(parser, include_app=False)
+    cli.add_cli_features(parser)
+
+    result = vars(parser.parse_args(["defer", "x"]))
+
+    assert "app" not in result
+
+
+def test_add_arguments__exclude_schema():
+    parser = cli.create_parser()
+    cli.add_arguments(parser, include_schema=False)
+    cli.add_cli_features(parser)
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["schema"])
+
+
+def test_add_arguments__exclude_healthchecks():
+    parser = cli.create_parser()
+    cli.add_arguments(parser, include_healthchecks=False)
+    cli.add_cli_features(parser)
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["healthchecks"])
 
 
 @pytest.mark.parametrize(
@@ -121,8 +153,12 @@ def test_parser(input, output):
     ],
 )
 def test_parser__error(input, error, capsys):
+    parser = cli.create_parser()
+    cli.add_arguments(parser)
+    cli.add_cli_features(parser)
+
     with pytest.raises(SystemExit):
-        cli.get_parser().parse_args(input)
+        parser.parse_args(input)
 
     assert error in capsys.readouterr().err
 

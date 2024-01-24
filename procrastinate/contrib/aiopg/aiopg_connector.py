@@ -17,8 +17,6 @@ from procrastinate.contrib.psycopg2 import psycopg2_connector
 
 logger = logging.getLogger(__name__)
 
-LISTEN_TIMEOUT = 30.0
-
 CoroutineFunction = Callable[..., Coroutine]
 
 
@@ -322,7 +320,7 @@ class AiopgConnector(connector.BaseAsyncConnector):
         self,
         event: asyncio.Event,
         connection: aiopg.Connection,
-        timeout: float = LISTEN_TIMEOUT,
+        timeout: float = connector.LISTEN_TIMEOUT,
     ) -> None:
         # We'll leave this loop with a CancelledError, when we get cancelled
         while True:

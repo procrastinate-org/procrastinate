@@ -39,8 +39,6 @@ else:
 
 logger = logging.getLogger(__name__)
 
-LISTEN_TIMEOUT = 30.0
-
 T = TypeVar("T")
 P = ParamSpec("P")
 
@@ -280,7 +278,7 @@ class PsycopgConnector(connector.BaseAsyncConnector):
         self,
         event: asyncio.Event,
         connection: psycopg.AsyncConnection,
-        timeout: float = LISTEN_TIMEOUT,
+        timeout: float = connector.LISTEN_TIMEOUT,
     ) -> None:
         # We'll leave this loop with a CancelledError, when we get cancelled
 

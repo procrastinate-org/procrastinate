@@ -16,11 +16,15 @@ Including another URLconf
 """
 from __future__ import annotations
 
-from django.urls import path
+from django.contrib import admin
+from django.contrib.staticfiles import views
+from django.urls import path, re_path
 
 from procrastinate_demos.demo_django.demo.views import CreateBookView, ListBooksView
 
 urlpatterns = [
+    path("admin/", admin.site.urls),
     path("", ListBooksView.as_view(), name="list_books"),
     path("create/", CreateBookView.as_view(), name="create_book"),
+    re_path(r"^static/(?P<path>.*)$", views.serve),
 ]

@@ -10,6 +10,8 @@ from procrastinate import exceptions, utils
 Pool = Any
 Engine = Any
 
+LISTEN_TIMEOUT = 30.0
+
 
 class BaseConnector:
     json_dumps: Callable | None = None

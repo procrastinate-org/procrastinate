@@ -169,25 +169,11 @@ def add_argument(
     return parser.add_argument(*args, **kwargs)
 
 
-def get_parser() -> argparse.ArgumentParser:
-    parser_options = {
-        "allow_abbrev": False,
-        "formatter_class": argparse.ArgumentDefaultsHelpFormatter,
-    }
-    parser = argparse.ArgumentParser(
-        prog=PROGRAM_NAME,
-        description="Interact with a Procrastinate app. See subcommands for details.",
-        **parser_options,
-    )
-    add_argument(
-        parser,
-        "-a",
-        "--app",
-        default="",
-        type=load_app,
-        help="Dotted path to the Procrastinate app",
-        envvar="APP",
-    )
+def add_cli_features(parser: argparse.ArgumentParser):
+    """
+    Add features to the parser to make it more CLI-friendly.
+    This is not necessary when the parser is used as a subparser.
+    """
     add_argument(
         parser,
         "-v",
@@ -225,7 +211,52 @@ def get_parser() -> argparse.ArgumentParser:
         help="Print the version and exit",
         version=f"%(prog)s, version {procrastinate.__version__}",
     )
+
+
+parser_options = {
+    "allow_abbrev": False,
+    "formatter_class": argparse.ArgumentDefaultsHelpFormatter,
+}
+
+
+def create_parser() -> argparse.ArgumentParser:
+    return argparse.ArgumentParser(
+        prog=PROGRAM_NAME,
+        description="Interact with a Procrastinate app. See subcommands for details.",
+        **parser_options,
+    )
+
+
+def add_arguments(
+    parser: argparse.ArgumentParser,
+    include_app: bool = True,
+    include_schema: bool = True,
+    include_healthchecks: bool = True,
+):
+    if include_app:
+        add_argument(
+            parser,
+            "-a",
+            "--app",
+            default="",
+            type=load_app,
+            help="Dotted path to the Procrastinate app",
+            envvar="APP",
+        )
+
     subparsers = parser.add_subparsers(dest="command", required=True)
+    configure_worker_parser(subparsers)
+    configure_defer_parser(subparsers)
+    if include_schema:
+        configure_schema_parser(subparsers)
+    if include_healthchecks:
+        configure_healthchecks_parser(subparsers)
+    configure_shell_parser(subparsers)
+    return parser
+
+
+def configure_worker_parser(subparsers: argparse._SubParsersAction):
+    # --- Worker ---
     worker_parser = subparsers.add_parser(
         "worker",
         help="Launch a worker, listening on the given queues (or all queues). "
@@ -298,6 +329,9 @@ def get_parser() -> argparse.ArgumentParser:
         envvar="WORKER_DELETE_JOBS",
     )
 
+
+def configure_defer_parser(subparsers: argparse._SubParsersAction):
+    # --- Defer ---
     defer_parser = subparsers.add_parser(
         "defer",
         help="Create a job from the given task, to be executed by a worker. "
@@ -385,6 +419,9 @@ def get_parser() -> argparse.ArgumentParser:
         envvar_type=env_bool,
     )
 
+
+def configure_schema_parser(subparsers: argparse._SubParsersAction):
+    # --- Schema ---
     schema_parser = subparsers.add_parser(
         "schema",
         help="Apply SQL schema to the empty database. This won't work if the schema has already "
@@ -417,6 +454,9 @@ def get_parser() -> argparse.ArgumentParser:
         help="Output the path to the directory containing the migration scripts",
     )
 
+
+def configure_healthchecks_parser(subparsers: argparse._SubParsersAction):
+    # --- Healthchecks ---
     healthchecks_parser = subparsers.add_parser(
         "healthchecks",
         help="Check the state of procrastinate",
@@ -424,6 +464,9 @@ def get_parser() -> argparse.ArgumentParser:
     )
     healthchecks_parser.set_defaults(func=healthchecks)
 
+
+def configure_shell_parser(subparsers: argparse._SubParsersAction):
+    # --- Shell ---
     shell_parser = subparsers.add_parser(
         "shell",
         help="Administration shell for procrastinate",
@@ -431,11 +474,11 @@ def get_parser() -> argparse.ArgumentParser:
     )
     shell_parser.set_defaults(func=shell_)
 
-    return parser
-
 
 async def cli(args):
-    parser = get_parser()
+    parser = create_parser()
+    add_arguments(parser)
+    add_cli_features(parser)
     parsed = vars(parser.parse_args(args))
 
     configure_logging(
@@ -443,6 +486,10 @@ async def cli(args):
         format=parsed.pop("log_format"),
         style=parsed.pop("log_format_style"),
     )
+    await execute_command(parsed)
+
+
+async def execute_command(parsed):
     parsed.pop("command")
     try:
         async with parsed.pop("app").open_async() as app:
@@ -455,6 +502,7 @@ async def cli(args):
         logger.debug("Exception details:", exc_info=exc)
         messages = [str(e) for e in utils.causes(exc)]
         exit_message = "\n".join(e.strip() for e in messages[::-1] if e)
+
         print_stderr(exit_message)
         sys.exit(1)
 

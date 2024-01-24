@@ -62,14 +62,14 @@ $ python -m procrastinate_demos.demo_sync
 In the first terminal, run the migrations, and then the Django server:
 
 ```console
-$ python -m procrastinate_demos.demo_django migrate
-$ python -m procrastinate_demos.demo_django runserver
+$ procrastinate_demos/demo_django/manage.py migrate
+$ procrastinate_demos/demo_django/manage.py runserver
 ```
 
 In the second terminal, run the procrastinate worker:
 
 ```console
-$ python -m procrastinate_demos.demo_django procrastinate_worker
+$ procrastinate_demos/demo_django/manage.py procrastinate worker
 ```
 
 In your browser (`http://localhost:8000/`), you can now: - Create a
@@ -80,6 +80,17 @@ indexing under the hood, it’s just for show). A first job is deferred to
 index the book, which waits for 5 seconds and defers a second job. The
 second job updates the book’s status to “indexed”. Reloading the list
 page should show the book as indexed after about 5 seconds.
+(The only reason why it's done in 2 jobs rather than one is to showcase
+deferring a job from another job.)
+
+You can visit the admin, too. You'll need to create a superuser first:
+
+```console
+$ procrastinate_demos/demo_django/manage.py createsuperuser
+```
+
+Then lauch the server, head to `http://localhost:8000/admin/` and see the jobs,
+the events and the periodic defers.
 
 (…Yes I’m not a frontend dev :) )
 
