@@ -67,13 +67,14 @@ Run the worker with the following command.
 ```console
 $ (venv) ./manage.py procrastinate worker
 ```
-:::{note}
+
 `./manage.py procrastinate` mostly behaves like the `procrastinate` command
 itself, with some commands removed and the app is configured for you.
 You can also use other subcommands such as `./manage.py procrastinate defer`.
-Note that the `--app` option is not available, Procrastinate generates an app
-for you using a Psycopg or Aiopg connector depending on your Django setup,
-and connects using the `DATABASES` settings.
+
+:::{note}
+Procrastinate generates an app for you using a Psycopg or Aiopg connector
+depending on your Django setup, and connects using the `DATABASES` settings.
 :::
 
 ## Deferring jobs
@@ -117,6 +118,11 @@ from procrastinate.contrib.django.models import (
 
 ProcrastinateJob.objects.filter(task_name="mytask").count()
 ```
+
+:::{note}
+The models are read-only, you can't create, update or delete jobs or events
+through the ORM.
+:::
 
 :::{note}
 The `procrastinate_periodic_defers` table is not exposed as a Django model,
