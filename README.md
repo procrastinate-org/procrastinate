@@ -96,9 +96,8 @@ feel free to open an [issue](https://github.com/procrastinate-org/procrastinate/
 *Note to my future self: add a quick note here on why this project is named*
 "[Procrastinate]" ;) .
 
-% Below this line is content specific to the README that will not appear in the doc.
-
-% end-of-index-doc
+<!--Below this line is content that will appear in the GitHub Readme but not in the
+Sphinx doc: end-of-index-doc -->
 
 ## Where to go from here
 
