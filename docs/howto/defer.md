@@ -28,7 +28,7 @@ my_task.configure(
 ).defer(a=1, b=2)
 ```
 
-See details in {any}`Task.configure`
+See details in {py:meth}`Task.configure`
 
 ## Create a job pattern, launch multiple jobs
 
@@ -49,8 +49,8 @@ that runs the jobs. You can defer a job with just the name of its task.
 app.configure_task(name="my_module.my_task", queue="some_queue").defer(a=1, b=2)
 ```
 
-Any parameter you would use for {any}`Task.configure` can be used in
-{any}`configure_task`.
+Any parameter you would use for {py:meth}`Task.configure` can be used in
+{py:meth}`App.configure_task`.
 
 ## From the command line
 

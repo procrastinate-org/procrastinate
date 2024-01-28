@@ -10,11 +10,11 @@ def mytask(context: procrastinate.JobContext, ...):
 ```
 
 This serves multiple purposes. The first one is for introspection, logs, etc. The
-{any}`JobContext` object contains all sort of useful information about the worker that
+{py:class}`JobContext` object contains all sort of useful information about the worker that
 executes the job.
 
 The other useful feature is that you can pass arbitrary context elements using
-{any}`App.run_worker` (or {any}`App.run_worker_async`) and its `additional_context` argument. In
+{py:meth}`App.run_worker` (or {py:meth}`App.run_worker_async`) and its `additional_context` argument. In
 this case the context the task function receives will have an `additional_context`
 attribute corresponding to the elements that were passed:
 

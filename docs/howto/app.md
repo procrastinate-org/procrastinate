@@ -18,4 +18,4 @@ app = procrastinate.App(
 ```
 
 If you want to put your app at the top-level of your program, be sure to check
-the relevant discussion section: {any}`top-level-app`.
+the relevant discussion section: {ref}`top-level-app`.

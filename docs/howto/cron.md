@@ -1,7 +1,7 @@
 # Launch a task periodically
 
 Procrastinate offers a way to schedule periodic deferring of tasks, with
-{any}`App.periodic`. It uses the [Unix cron] syntax:
+{py:meth}`App.periodic`. It uses the [Unix cron] syntax:
 
 ```
 # scheduled at the 0th minute of each hour
@@ -39,7 +39,7 @@ When using periodic tasks there are a few things to know:
   multiple workers, periodic tasks will only be deferred once per period.
 - When a worker starts, it will defer periodic tasks that have not been deferred yet
   but a task that is more than 10 minutes late will not be deferred. This value is
-  configurable in the {any}`App`.
+  configurable in the {py:class}`App`.
 
 ## Timestamp argument
 
@@ -49,15 +49,15 @@ scheduled for (which might be arbitrarily far in the past).
 
 ## Scheduling a job multiple times with multiple arguments
 
-It's possible to pass additional arguments to {any}`App.periodic`, they will be used
-to configure the periodic task. Arguments are identical to {any}`Task.configure`.
+It's possible to pass additional arguments to {py:meth}`App.periodic`, they will be used
+to configure the periodic task. Arguments are identical to {py:meth}`Task.configure`.
 
 This can let you add multiple periodic schedules for a single task. If you do
-that, you will need to pass a `periodic_id` argument to {any}`App.periodic`, which
+that, you will need to pass a `periodic_id` argument to {py:meth}`App.periodic`, which
 will be used by Procrastinate to distiguish the different schedules of the same
 task.
 
-Of course, you can also use arguments on {any}`App.task` which will be common to all
+Of course, you can also use arguments on {py:meth}`App.task` which will be common to all
 schedules.
 
 ```
@@ -86,7 +86,7 @@ queue `"bar"` with `value=2`. And either way, it would be deferred with the
 lock `"do_something_lock"`.
 
 :::{note}
-The arguments `schedule_in` and `schedule_at` of {any}`Task.configure` would be
+The arguments `schedule_in` and `schedule_at` of {py:meth}`Task.configure` would be
 confusing in this context, so they're ignored.
 :::
 

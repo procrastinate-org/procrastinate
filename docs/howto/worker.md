@@ -18,10 +18,10 @@ In both cases, not specifying queues will tell Procrastinate to listen to every 
 Naming the worker is optional.
 
 :::{note}
-{any}`App.run_worker` will take care of launching an event loop, opening the app,
+{py:meth}`App.run_worker` will take care of launching an event loop, opening the app,
 running the worker, and when it exists, closing the app and the event loop.
 
-On the other hand, {any}`App.run_worker_async` needs to run while the app is open.
+On the other hand, {py:meth}`App.run_worker_async` needs to run while the app is open.
 The CLI takes care of opening the app.
 :::
 

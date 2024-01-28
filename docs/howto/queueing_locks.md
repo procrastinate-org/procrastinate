@@ -15,9 +15,9 @@ my_task.configure(queueing_lock="arbitrary_string").defer(a=2)
 ```
 
 Trying to defer a task when the `queueing_lock` is active will result in an
-{any}`AlreadyEnqueued` exception, which you can choose to ignore.
+{py:class}`AlreadyEnqueued` exception, which you can choose to ignore.
 
-In the command line interface (see {any}`./defer`), you can use `--queueing-lock` and
+In the command line interface (see {doc}`defer`), you can use `--queueing-lock` and
 `--ignore-already-enqueued/-i` to control how queueing locks are used:
 
 ```console

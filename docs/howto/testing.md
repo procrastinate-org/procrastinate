@@ -1,6 +1,6 @@
 # Test your code that uses Procrastinate
 
-Procrastinate defines an {any}`InMemoryConnector` that will speed up your tests,
+Procrastinate defines an {py:class}`InMemoryConnector` that will speed up your tests,
 remove dependency to PostgreSQL and allow you to have tasks run in a
 controlled way.
 

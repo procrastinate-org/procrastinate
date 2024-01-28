@@ -40,7 +40,7 @@ Advanced strategies let you:
 - define the exception types you want to retry on (if you don't, jobs will be retried
   on any type of exceptions)
 
-Define your precise strategy using a {any}`RetryStrategy` instance:
+Define your precise strategy using a {py:class}`RetryStrategy` instance:
 
 ```
 from procrastinate import RetryStrategy
@@ -54,7 +54,7 @@ def my_other_task():
     print("Hello world")
 ```
 
-{any}`RetryStrategy` takes 3 parameters related to how long it will wait
+{py:class}`RetryStrategy` takes 3 parameters related to how long it will wait
 between retries:
 
 - `wait=5` to wait 5 seconds before each retry

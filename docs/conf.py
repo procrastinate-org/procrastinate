@@ -58,10 +58,6 @@ templates_path = ["_templates"]
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
-# When a word is enclosed between `backticks`, the role will automatically be
-# inferred. It can be set explicitely if ambiguous.
-default_role = "any"
-
 # If we don't do that, glossary checks are case sensitive.
 # https://github.com/sphinx-doc/sphinx/issues/7418
 suppress_warnings = ["ref.term"]

@@ -283,6 +283,16 @@ class App(blueprints.Blueprint):
         self,
         pool_or_engine: connector_module.Pool | connector_module.Engine | None = None,
     ) -> App:
+        """
+        Open the app synchronously.
+
+        Parameters
+        ----------
+        pool_or_engine :
+            Optional pool. Procrastinate can use an existing pool.
+            Connection parameters passed in the constructor will be ignored.
+            In case the SQLAlchemy connector is used, this can be an engine.
+        """
         self.connector.get_sync_connector().open(pool_or_engine)
         return self
 
@@ -292,6 +302,15 @@ class App(blueprints.Blueprint):
     def open_async(
         self, pool: connector_module.Pool | None = None
     ) -> utils.AwaitableContext:
+        """
+        Open the app asynchronously.
+
+        Parameters
+        ----------
+        pool :
+            Optional pool. Procrastinate can use an existing pool. Connection parameters
+            passed in the constructor will be ignored.
+        """
         open_coro = functools.partial(self.connector.open_async, pool=pool)
         return utils.AwaitableContext(
             open_coro=open_coro,

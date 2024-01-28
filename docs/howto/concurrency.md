@@ -22,4 +22,4 @@ $ procrastinate worker --concurrency=30
 ```
 
 The discussion section contains a few important guidelines regarding asynchronous
-concurrency (see {any}`discussion-async`).
+concurrency (see {ref}`discussion-async`).
