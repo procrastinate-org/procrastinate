@@ -28,14 +28,14 @@
 | procrastinate/contrib/psycopg2/\_\_init\_\_.py                    |        3 |        0 |        0 |        0 |    100% |           |
 | procrastinate/contrib/psycopg2/psycopg2\_connector.py             |      105 |        1 |       64 |        1 |     99% |        28 |
 | procrastinate/contrib/sqlalchemy/\_\_init\_\_.py                  |        3 |        0 |        0 |        0 |    100% |           |
-| procrastinate/contrib/sqlalchemy/psycopg2\_connector.py           |       82 |        1 |       50 |        0 |     99% |       122 |
+| procrastinate/contrib/sqlalchemy/psycopg2\_connector.py           |       82 |        1 |       50 |        0 |     99% |       117 |
 | procrastinate/exceptions.py                                       |       35 |        0 |        2 |        0 |    100% |           |
 | procrastinate/job\_context.py                                     |       53 |        0 |       20 |        0 |    100% |           |
 | procrastinate/jobs.py                                             |       73 |        0 |       12 |        0 |    100% |           |
 | procrastinate/manager.py                                          |       98 |        0 |       30 |        0 |    100% |           |
 | procrastinate/metadata.py                                         |        6 |        0 |        0 |        0 |    100% |           |
 | procrastinate/periodic.py                                         |       93 |        0 |       24 |        0 |    100% |           |
-| procrastinate/psycopg\_connector.py                               |      114 |        5 |       66 |        4 |     95% |160-162, 235, 261->260, 294 |
+| procrastinate/psycopg\_connector.py                               |      114 |        5 |       66 |        4 |     95% |152-154, 227, 253->252, 286 |
 | procrastinate/retry.py                                            |       38 |        0 |       14 |        0 |    100% |           |
 | procrastinate/schema.py                                           |       25 |        0 |        4 |        0 |    100% |           |
 | procrastinate/shell.py                                            |       61 |        5 |       16 |        0 |     94% |     43-47 |
