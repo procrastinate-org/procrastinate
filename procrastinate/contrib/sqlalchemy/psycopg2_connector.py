@@ -72,11 +72,6 @@ class SQLAlchemyPsycopg2Connector(connector.BaseConnector):
         """
         Synchronous connector based on SQLAlchemy with Psycopg2.
 
-        This is used if you want your ``.defer()`` calls to be purely synchronous, not
-        asynchronous with a sync wrapper. You may need this if your program is
-        multi-threaded and doen't handle async loops well
-        (see `discussion-sync-defer`).
-
         All other arguments than ``dsn``, ``json_dumps``, and ``json_loads`` are passed
         to :py:func:`create_engine` (see SQLAlchemy documentation__).
 

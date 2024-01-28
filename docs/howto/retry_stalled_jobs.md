@@ -36,7 +36,7 @@ while running jobs, then one of the remaining workers will run the
 If you have specific rules for task retry (e.g. only some tasks should be retried, based
 on specific parameters, or the duration before a task is considered stalled should
 depend on the task), you're free to make the periodic task function more complex and add
-your logic to it. See {any}`JobManager.get_stalled_jobs` for details.
+your logic to it. See {py:meth}`JobManager.get_stalled_jobs` for details.
 
 Also, note that if a task is considered stalled, it will be retried, but if it's
 actually running, then you may have your task running twice. Make sure to only retry

@@ -7,7 +7,7 @@ Let's go through a few words and their meaning.
 
 **Task**
 : A task is a function executed at a later time by another process. It is linked
-  to a default queue, and expects keyword arguments (see {any}`howto/tasks`).
+  to a default queue, and expects keyword arguments (see {doc}`howto/tasks`).
 
 **Job**
 : A job is the launching of a specific task with specific values for the
@@ -33,15 +33,15 @@ Let's go through a few words and their meaning.
   by one and executing them, and then wait for the queue to fill again.
 
 **Sub-worker**
-: In case of asynchronous concurrency (see {any}`howto/concurrency`), there are
-  sub-workers, acting like the {term}`Worker`, except there are multiple of them.
+: In case of asynchronous concurrency (see {doc}`howto/concurrency`), there are
+  sub-workers, acting like the {py:class}`Worker`, except there are multiple of them.
   They are orchestrated by the worker itself.
 
 App
 **Application**
 : This is meant to be the main entry point of Procrastinate. The app knows
   all the tasks of your project, and thanks to the job manager, it knows how
-  to launch jobs to execute your tasks (see {any}`App`).
+  to launch jobs to execute your tasks (see {py:class}`App`).
 
 **Job Manager**
 : The job manager responsibility is to operate on jobs in the database. This
@@ -59,13 +59,13 @@ App
   Schema documentation][postgresql schema documentation] for more detail.
 
 **Lock**
-: When configuring a job using {any}`Task.configure` you can attach a lock to the job.
+: When configuring a job using {py:meth}`Task.configure` you can attach a lock to the job.
   Jobs with the same lock are guaranteed to be executed in defer order, and in a
   sequential manner. No two jobs with the same lock can run simultaneously. See
-  {any}`howto/locks` for more information.
+  {doc}`howto/locks` for more information.
 
 **Queueing Lock**
-: When configuring a job using {any}`Task.configure` you can attach a queueing lock to
+: When configuring a job using {py:meth}`Task.configure` you can attach a queueing lock to
   the job. No two jobs with the same queueing lock can be waiting in the queue.
 
 

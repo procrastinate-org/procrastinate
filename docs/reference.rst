@@ -6,20 +6,29 @@ App
 
 .. autoclass:: procrastinate.App
     :members: open, open_async, task, run_worker, run_worker_async, configure_task,
-              from_path, add_tasks_from, add_task_alias, with_connector, periodic
+              from_path, add_tasks_from, add_task_alias, with_connector, periodic,
 
 Connectors
 ----------
 .. autoclass:: procrastinate.PsycopgConnector
+    :members:
+    :exclude-members: open_async, close_async
 
 .. autoclass:: procrastinate.SyncPsycopgConnector
+    :members:
+    :exclude-members: open, close
 
 .. autoclass:: procrastinate.contrib.aiopg.AiopgConnector
+    :members:
+    :exclude-members: open_async, close_async
 
 .. autoclass:: procrastinate.contrib.psycopg2.Psycopg2Connector
+    :members:
+    :exclude-members: open, close
 
 .. autoclass:: procrastinate.testing.InMemoryConnector
     :members: reset
+
 
 Tasks
 -----
@@ -90,7 +99,7 @@ Accessing the jobs in the Database
 Django
 ------
 
-.. autofunction:: procrastinate.contrib.django.connector_params
+.. automodule:: procrastinate.contrib.django
 
 
 SQLAlchemy

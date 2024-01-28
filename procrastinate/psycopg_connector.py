@@ -91,14 +91,6 @@ class PsycopgConnector(connector.BaseAsyncConnector):
         created by the pool with ``psycopg.types.json.set_json_dumps`` and
         ``psycopg.types.json.set_json_loads``.
 
-        Note: `PsycopgConnector.get_sync_connector` returns a `SyncPsycopgConnector` if
-        the connector hasn't been opened yet. In that case, opening the connector later
-        will raise a `SyncConnectorConfigurationError`. If the connector has already
-        been opened, `PsycopgConnector.get_sync_connector` will return itself (the idea
-        being that in a given process, you should either using the async connector or
-        the sync connector, but not both). In that case, it can only be used in the
-        context of a sync_to_async function (such as inside a sync job function).
-
         .. __: https://www.psycopg.org/psycopg3/docs/api/pool.html
                #psycopg_pool.AsyncConnectionPool
 

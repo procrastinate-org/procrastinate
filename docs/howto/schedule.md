@@ -1,7 +1,7 @@
 # Launch a job in the future
 
 This section is about launching a job once, but in the future. You may want to read
-the {any}`periodic launch <cron>` section.
+the {doc}`periodic launch <cron>` section.
 
 ## From the code
 

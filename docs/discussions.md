@@ -151,7 +151,7 @@ Procrastinate to get information about the jobs.
 
 If you have, for example, an synchronous web application (e.g. using Django or
 Flask), you will want to defer jobs synchronously. Procrastinate supports a
-synchronous {any}`Task.defer` function (see {any}`sync-defer`).
+synchronous {py:meth}`Task.defer` function (see {ref}`sync-defer`).
 
 :::{note}
 When you define an asynchronous connector, Procrastinate will try to
@@ -168,14 +168,14 @@ Interpreter Lock][global interpreter lock], you will not benefit from parallelis
 to parallelize (thread-safe) I/Os.
 
 Procrastinate natively supports asynchronous job deferring, and asynchronous job
-execution (see {any}`howto/concurrency`, {any}`howto/sync_defer`).
+execution (see {doc}`howto/concurrency`, {doc}`howto/sync_defer`).
 
 (discussions-pool-size)=
 
 ### Mind the size of your PostgreSQL pool
 
 You can size the PostgreSQL pool using the `max_size` argument of
-{any}`PsycopgConnector`. Procrastinate will use use one connection to listen to
+{py:class}`PsycopgConnector`. Procrastinate will use use one connection to listen to
 server-side `NOTIFY` calls (see {ref}`discussion-general`). That connection
 is not counted in the pool which is only is used for {term}`sub-workers
 <Sub-worker>`.
@@ -184,7 +184,7 @@ is not counted in the pool which is only is used for {term}`sub-workers
 In previous versions of Procrastinate, setting `max_size` to `1`:
 disabled `LISTEN/NOTIFY`. It's not the case anymore. Note that disabling
 this feature is possible with `listen_notify=False`, see
-{any}`howto/connections`.
+{doc}`howto/connections`.
 :::
 
 The relative sizing of your pool and your sub-workers all depends on the average length
@@ -204,7 +204,7 @@ many factors to take into account when [sizing your pool](https://wiki.postgresq
 Even when the database doesn't notify workers regarding newly deferred jobs, idle
 workers still poll the database every now and then, just in case.
 There could be previously locked jobs that are now free, or scheduled jobs that have
-reached the ETA. `worker_timeout` is the {any}`App.run_worker` parameter (or the
+reached the ETA. `worker_timeout` is the {py:meth}`App.run_worker` parameter (or the
 equivalent CLI flag) that sizes this "every now and then".
 
 On a non-concurrent idle worker, a database poll is run every `<worker_timeout>`
@@ -258,7 +258,7 @@ Procrastinate:
 - There are a few case where we facilitate calling Procrastinate from
   synchronous codebases, by providing a synchronous API, where we'll create an
   event loop and execute the corresponding asynchronous code in it. This is the
-  case for {any}`App.run_worker`. It's ok for a long-lived call like this one, but
+  case for {py:meth}`App.run_worker`. It's ok for a long-lived call like this one, but
   it would not be recommended to do that for short-lived calls.
 
 ## How stable is Procrastinate?

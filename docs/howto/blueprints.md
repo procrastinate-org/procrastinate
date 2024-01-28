@@ -17,7 +17,7 @@ app.add_tasks_from(tasks_blueprint, namespace="my_external_package")
 ```
 
 Blueprints are easy to use, and task creation follows the pattern and API as
-{any}`App.task`.
+{py:meth}`App.task`.
 
 Firstly, create a Blueprint instance and then create some tasks:
 
@@ -31,7 +31,7 @@ def mytask(argument, other_argument):
     ...
 ```
 
-In your project register the blueprint with the {any}`App` after you have created it:
+In your project register the blueprint with the {py:class}`App` after you have created it:
 
 ```
 from procrastinate import AiopgConnector, App

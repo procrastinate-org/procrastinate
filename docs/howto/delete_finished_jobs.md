@@ -47,7 +47,7 @@ $ procrastinate defer --queueing-lock=remove_old_jobs --ignore-already-enqueued 
     procrastinate_builtin_tasks.remove_old_jobs max_hours=72
 ```
 
-See also the {any}`periodic launch <cron>` section for related information.
+See also the {doc}`periodic launch <cron>` section for related information.
 
 ### In Python code
 
@@ -73,7 +73,7 @@ deferrer = builtin_tasks.remove_old_jobs.configure(queueing_lock="remove_old_job
 deferrer.defer(max_hours=72)
 ```
 
-The call to `defer` will raise an {any}`AlreadyEnqueued` exception if there already is
+The call to `defer` will raise an {py:class}`AlreadyEnqueued` exception if there already is
 a "remove_old_jobs" job waiting in the queue, which you may want to catch and ignore.
 
 As mentioned in the previous section you may want to run `remove_old_jobs`

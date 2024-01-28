@@ -2,7 +2,7 @@
 
 In this section, we'll see **how** to setup locks. If you want to know
 more about the locking feature (mainly the **why**), head to the Discussions
-section (see {any}`discussion-locks`).
+section (see {ref}`discussion-locks`).
 
 When deferring a job, we can provide a lock string to the `configure` method:
 

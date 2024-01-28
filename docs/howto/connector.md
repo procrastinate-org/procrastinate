@@ -6,14 +6,14 @@ Procrastinate currently provides 5 connectors:
 
 Two async connector:
 
-- {any}`PsycopgConnector`: Asynchronous connector based on psycopg v3.
-- {any}`AiopgConnector`: Asynchronous connector based on aiopg.
+- {py:class}`PsycopgConnector`: Asynchronous connector based on psycopg v3.
+- {py:class}`AiopgConnector`: Asynchronous connector based on aiopg.
 
 Three sync connectors, that may only be used for deferring jobs.
 
-- {any}`SyncPsycopgConnector`: Synchronous connector based on psycopg v3.
-- {any}`Psycopg2Connector`: Synchronous connector based on psycop2.
-- {any}`SQLAlchemyPsycopg2Connector`: This connector is specialized for SQLAlchemy
+- {py:class}`SyncPsycopgConnector`: Synchronous connector based on psycopg v3.
+- {py:class}`Psycopg2Connector`: Synchronous connector based on psycop2.
+- {py:class}`SQLAlchemyPsycopg2Connector`: This connector is specialized for SQLAlchemy
   applications. It should be used if you want to use SQLAlchemy to manage your
   database connection and share your connection pool with the rest of your app.
   It should only be used for deferring jobs, not for running them.
@@ -85,10 +85,10 @@ Please refer to the documentation of the connector you are using for more detail
 
 ### Other arguments
 
-Apart from connection parameters, the {any}`PsycopgConnector` can handle all the
+Apart from connection parameters, the {py:class}`PsycopgConnector` can handle all the
 parameters from the [psycopg_pool.AsyncConnectionPool()](https://www.psycopg.org/psycopg3/docs/api/pool.html#psycopg_pool.AsyncConnectionPool) function.
 
-Similarly, the {any}`SyncPsycopgConnector` can handle all the parameters from the
+Similarly, the {py:class}`SyncPsycopgConnector` can handle all the parameters from the
 [psycopg_pool.ConnectionPool()](https://www.psycopg.org/psycopg3/docs/api/pool.html#psycopg_pool.ConnectionPool) function.
 
 [libpq connection string]: https://www.postgresql.org/docs/current/libpq-connect.html#LIBPQ-CONNSTRING

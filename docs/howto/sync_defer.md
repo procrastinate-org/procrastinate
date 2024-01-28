@@ -2,7 +2,7 @@
 
 # Control the way synchronous calls to defer are handled
 
-When your app is synchronous (see {any}`discussion-async`), you may want to
+When your app is synchronous (see {ref}`discussion-async`), you may want to
 defer tasks synchronously.
 In most cases, if you set up an asynchronous connector, Procrastinate will
 automatically select the right connector for you. However, you can also
@@ -10,7 +10,7 @@ explicitly set up a synchronous connector.
 
 ## `SyncPsycopgConnector`
 
-By setting your {any}`App`'s connector to an instance of {any}`SyncPsycopgConnector` (or
+By setting your {py:class}`App`'s connector to an instance of {py:class}`SyncPsycopgConnector` (or
 any other synchronous connector), you will get "classic" synchronous I/O. Note
 that in this case, the only thing you'll be able to do is defer tasks. Other
 operations trigger an error with a synchronous connector.
@@ -25,21 +25,21 @@ app = procrastinate.App(
 )
 ```
 
-{any}`SyncPsycopgConnector` uses a `psycopg_pool.ConnectionPool` (see psycopg
+{py:class}`SyncPsycopgConnector` uses a `psycopg_pool.ConnectionPool` (see psycopg
 [documentation](https://www.psycopg.org/psycopg3/docs/api/pool.html#psycopg_pool.ConnectionPool)).
 
 ## `Psycopg2Connector`
 
-The {any}`Psycopg2Connector` is a connector that uses a
+The {py:class}`Psycopg2Connector` is a connector that uses a
 `psycopg2_pool.ThreadedConnectionPool`. It used to be the default connector,
-but {any}`SyncPsycopgConnector` is now the preferred option. There is no plan to
-deprecate {any}`Psycopg2Connector`.
+but {py:class}`SyncPsycopgConnector` is now the preferred option. There is no plan to
+deprecate {py:class}`Psycopg2Connector`.
 
 ## `SQLAlchemyPsycopg2Connector`
 
 If you use SQLAlchemy in your synchronous application, you may want to use an
-{any}`SQLAlchemyPsycopg2Connector` from the `contrib.sqlalchemy` module instead. The
-advantage over using a {any}`Psycopg2Connector` is that Procrastinate can use the same
+{py:class}`SQLAlchemyPsycopg2Connector` from the `contrib.sqlalchemy` module instead. The
+advantage over using a {py:class}`Psycopg2Connector` is that Procrastinate can use the same
 SQLAchemy engine (and connection pool) as the rest of your application, thereby
 minimizing the number of database connections.
 
@@ -58,7 +58,7 @@ app.open(engine)
 ## Having multiple apps
 
 If you need to have multiple connectors interact with the tasks, you can
-create multiple synchronized apps with {any}`App.with_connector`:
+create multiple synchronized apps with {py:meth}`App.with_connector`:
 
 ```
 import procrastinate

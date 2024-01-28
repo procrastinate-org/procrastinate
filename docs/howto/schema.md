@@ -9,7 +9,7 @@ By default Procrastinate uses the `public` schema, which is PostgreSQL's default
 schema, i.e. the schema that every new database contains.
 
 To have Procrastinate use another schema than `public`, change the *schema search
-path* when creating the {any}`PsycopgConnector`:
+path* when creating the {py:class}`PsycopgConnector`:
 
 ```
 app = procrastinate.App(

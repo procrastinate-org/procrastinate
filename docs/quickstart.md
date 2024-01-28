@@ -226,10 +226,10 @@ if __name__ == "__main__":
 
 ## Going further
 
-To continue with practical steps, head to the "{any}`howto_index`" section. For
-example, have a look at the locks feature: {any}`howto/locks`.
+To continue with practical steps, head to the "{doc}`howto_index`" section. For
+example, have a look at the locks feature: {doc}`howto/locks`.
 
-If you want to better understand some design decisions, head to the {any}`Discussions
+If you want to better understand some design decisions, head to the {doc}`Discussions
 <discussions>` sections.
 
 [docker]: https://docs.docker.com/
