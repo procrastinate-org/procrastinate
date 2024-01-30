@@ -4,15 +4,6 @@ from procrastinate import blueprints
 from procrastinate.contrib.django import apps
 
 
-def test_get_settings(settings):
-    settings.PROCRASTINATE_FOO = "bar"
-    assert apps.get_setting("FOO", default="baz") == "bar"
-
-
-def test_get_settings_default():
-    assert apps.get_setting("FOO", default="baz") == "baz"
-
-
 def test_get_import_paths__no_autodiscover(settings):
     settings.PROCRASTINATE_AUTODISCOVER_MODULE_NAME = None
     settings.PROCRASTINATE_IMPORT_PATHS = ["foo", "bar"]

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from django.conf import settings
 from django.db import connections
 
 
@@ -26,3 +27,7 @@ def connector_params(alias: str = "default") -> dict[str, Any]:
     params.pop("cursor_factory", None)
     params.pop("context", None)
     return params
+
+
+def get_setting(name: str, *, default) -> Any:
+    return getattr(settings, f"PROCRASTINATE_{name}", default)
