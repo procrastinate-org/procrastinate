@@ -5,7 +5,7 @@ import logging
 import sys
 from typing import TYPE_CHECKING, Any, Callable
 
-from procrastinate import exceptions, jobs, retry, utils
+from procrastinate import exceptions, jobs, periodic, retry, utils
 
 if TYPE_CHECKING:
     from procrastinate import tasks
@@ -64,6 +64,7 @@ class Blueprint:
 
     def __init__(self) -> None:
         self.tasks: dict[str, tasks.Task] = {}
+        self.periodic_registry = periodic.PeriodicRegistry()
         self._check_stack()
 
     def _check_stack(self):
@@ -167,8 +168,17 @@ class Blueprint:
             task.blueprint = self
         blueprint.tasks = new_tasks
 
-        # Finally, add the namespaced tasks to this namespace
+        # Add the namespaced tasks to this namespace
         self.tasks.update(new_tasks)
+
+        # Add periodic tasks
+        for periodic_task in blueprint.periodic_registry.periodic_tasks.values():
+            self.periodic_registry.register_task(
+                task=periodic_task.task,
+                cron=periodic_task.cron,
+                periodic_id=periodic_task.periodic_id,
+                configure_kwargs=periodic_task.configure_kwargs,
+            )
 
     def task(
         self,
@@ -255,3 +265,21 @@ class Blueprint:
             return _wrap
 
         return _wrap(_func)  # Called as @app.task
+
+    def periodic(self, *, cron: str, periodic_id: str = "", **kwargs: dict[str, Any]):
+        """
+        Task decorator, marks task as being scheduled for periodic deferring (see
+        `howto/cron`).
+
+        Parameters
+        ----------
+        cron :
+            Cron-like string. Optionally add a 6th column for seconds.
+        periodic_id :
+            Task name suffix. Used to distinguish periodic tasks with different kwargs.
+        **kwargs :
+            Additional parameters are passed to `Task.configure`.
+        """
+        return self.periodic_registry.periodic_decorator(
+            cron=cron, periodic_id=periodic_id, **kwargs
+        )

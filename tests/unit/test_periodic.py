@@ -8,8 +8,13 @@ from procrastinate import exceptions, periodic
 
 
 @pytest.fixture
-def periodic_deferrer():
-    return periodic.PeriodicDeferrer()
+def periodic_registry():
+    return periodic.PeriodicRegistry()
+
+
+@pytest.fixture
+def periodic_deferrer(periodic_registry):
+    return periodic.PeriodicDeferrer(registry=periodic_registry)
 
 
 @pytest.fixture
@@ -22,52 +27,52 @@ def task(app):
 
 
 @pytest.fixture
-def cron_task(periodic_deferrer, task):
+def cron_task(periodic_registry, task):
     def _(cron="0 0 * * *"):
-        return periodic_deferrer.register_task(
+        return periodic_registry.register_task(
             task=task, cron=cron, periodic_id="", configure_kwargs={}
         )
 
     return _
 
 
-def test_register_task(periodic_deferrer, task):
-    periodic_deferrer.register_task(
+def test_register_task(periodic_registry, task):
+    periodic_registry.register_task(
         task=task, cron="0 0 * * *", periodic_id="foo", configure_kwargs={}
     )
 
-    assert periodic_deferrer.periodic_tasks == {
+    assert periodic_registry.periodic_tasks == {
         (task.name, "foo"): periodic.PeriodicTask(
             task=task, cron="0 0 * * *", periodic_id="foo", configure_kwargs={}
         )
     }
 
 
-def test_register_task_already_registered(periodic_deferrer, task):
-    periodic_deferrer.register_task(
+def test_register_task_already_registered(periodic_registry, task):
+    periodic_registry.register_task(
         task=task, cron="0 0 * * *", periodic_id="foo", configure_kwargs={}
     )
     with pytest.raises(exceptions.TaskAlreadyRegistered):
-        periodic_deferrer.register_task(
+        periodic_registry.register_task(
             task=task, cron="0 0 * * *", periodic_id="foo", configure_kwargs={}
         )
 
 
-def test_register_task_different_id(periodic_deferrer, task):
-    periodic_deferrer.register_task(
+def test_register_task_different_id(periodic_registry, task):
+    periodic_registry.register_task(
         task=task, cron="0 0 * * *", periodic_id="foo", configure_kwargs={}
     )
 
-    periodic_deferrer.register_task(
+    periodic_registry.register_task(
         task=task, cron="0 0 * * *", periodic_id="bar", configure_kwargs={}
     )
-    assert len(periodic_deferrer.periodic_tasks) == 2
+    assert len(periodic_registry.periodic_tasks) == 2
 
 
-def test_schedule_decorator(periodic_deferrer, task):
-    periodic_deferrer.periodic_decorator(cron="0 0 * * *", periodic_id="foo")(task)
+def test_schedule_decorator(periodic_registry, task):
+    periodic_registry.periodic_decorator(cron="0 0 * * *", periodic_id="foo")(task)
 
-    assert list(periodic_deferrer.periodic_tasks.values()) == [
+    assert list(periodic_registry.periodic_tasks.values()) == [
         periodic.PeriodicTask(
             task=task, cron="0 0 * * *", periodic_id="foo", configure_kwargs={}
         )
@@ -181,10 +186,12 @@ async def test_worker_loop(mocker, task):
         def get_next_tick(self, at):
             return next(counter)
 
-    mock_deferrer = MockPeriodicDeferrer()
-    mock_deferrer.register_task(
+    registry = periodic.PeriodicRegistry()
+    registry.register_task(
         task=task, cron="* * * * *", periodic_id="", configure_kwargs={}
     )
+
+    mock_deferrer = MockPeriodicDeferrer(registry=registry)
     with pytest.raises(ValueError):
         await mock_deferrer.worker()
 

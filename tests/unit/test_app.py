@@ -155,8 +155,8 @@ def test_app_periodic(app):
     def yay(timestamp):
         pass
 
-    assert len(app.periodic_deferrer.periodic_tasks) == 1
-    assert app.periodic_deferrer.periodic_tasks[yay.name, "foo"].task == yay
+    assert len(app.periodic_registry.periodic_tasks) == 1
+    assert app.periodic_registry.periodic_tasks[yay.name, "foo"].task == yay
 
 
 @pytest.fixture
@@ -276,4 +276,4 @@ def test_with_connector(app, connector):
 
     assert app.worker_defaults == new_app.worker_defaults
     assert app.import_paths == new_app.import_paths
-    assert app.periodic_deferrer is new_app.periodic_deferrer
+    assert app.periodic_registry is new_app.periodic_registry
