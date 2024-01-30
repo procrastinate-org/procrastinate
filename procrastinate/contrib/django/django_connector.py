@@ -9,15 +9,21 @@ from django.db import connections
 from django.db.backends.base.base import BaseDatabaseWrapper
 from typing_extensions import LiteralString
 
-from procrastinate import connector
+from procrastinate import connector, psycopg_connector
+from procrastinate.contrib.aiopg import aiopg_connector
+from procrastinate.contrib.django import utils
 
 if TYPE_CHECKING:
     from psycopg.types.json import Jsonb
+
+    is_psycopg3 = True
 else:
     try:
-        from django.db.backends.postgresql.psycopg_any import Jsonb
+        from django.db.backends.postgresql.psycopg_any import Jsonb, is_psycopg3
     except ImportError:
         from psycopg2.extras import Json as Jsonb
+
+        is_psycopg3 = False
 
 
 class DjangoConnector(connector.BaseAsyncConnector):
@@ -111,3 +117,22 @@ class DjangoConnector(connector.BaseAsyncConnector):
         raise NotImplementedError(
             "listen/notify is not supported with Django connector"
         )
+
+    def get_worker_connector(self) -> connector.BaseAsyncConnector:
+        """
+        The default DjangoConnector is not suitable for workers. This function
+        returns a connector that uses the same database and is suitable for workers.
+
+        Returns
+        -------
+        ``procrastinate.contrib.aiopg.AiopgConnector`` or ``procrastinate.contrib.psycopg3.PsycopgConnector``
+            A connector that can be used in a worker
+        """
+        alias = utils.get_setting("DATABASE_ALIAS", default="default")
+
+        if is_psycopg3:
+            return psycopg_connector.PsycopgConnector(
+                kwargs=utils.connector_params(alias)
+            )
+        else:
+            return aiopg_connector.AiopgConnector(**utils.connector_params(alias))

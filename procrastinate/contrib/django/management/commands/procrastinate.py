@@ -1,21 +1,11 @@
 from __future__ import annotations
 
 import asyncio
-from typing import TYPE_CHECKING
 
 from django.core.management.base import BaseCommand
 
-from procrastinate import cli, psycopg_connector
-from procrastinate.contrib.aiopg import aiopg_connector
-from procrastinate.contrib.django import app, apps, utils
-
-if TYPE_CHECKING:
-    is_psycopg3 = True
-else:
-    try:
-        from django.db.backends.postgresql.psycopg_any import is_psycopg3
-    except ImportError:
-        is_psycopg3 = False
+from procrastinate import cli
+from procrastinate.contrib.django import app, django_connector
 
 
 class Command(BaseCommand):
@@ -32,17 +22,6 @@ class Command(BaseCommand):
 
     def handle(self, *args, **kwargs):
         kwargs = {k: v for k, v in kwargs.items() if k not in self._django_options}
-        kwargs["app"] = app.with_connector(self.get_connector())
+        if isinstance(app.connector, django_connector.DjangoConnector):
+            kwargs["app"] = app.with_connector(app.connector.get_worker_connector())
         asyncio.run(cli.execute_command(kwargs))
-
-    def get_connector(self):
-        # It's not possible to use the Django connector for the worker, so
-        # it's easier to just a classic Procrastinate connector.
-        alias = apps.get_setting("DATABASE_ALIAS", default="default")
-
-        if is_psycopg3:
-            return psycopg_connector.PsycopgConnector(
-                kwargs=utils.connector_params(alias)
-            )
-        else:
-            return aiopg_connector.AiopgConnector(**utils.connector_params(alias))
