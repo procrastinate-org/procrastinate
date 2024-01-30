@@ -6,8 +6,8 @@
 |------------------------------------------------------------------ | -------: | -------: | -------: | -------: | ------: | --------: |
 | procrastinate/\_\_init\_\_.py                                     |       19 |        0 |        0 |        0 |    100% |           |
 | procrastinate/\_\_main\_\_.py                                     |        6 |        0 |        2 |        0 |    100% |           |
-| procrastinate/app.py                                              |       86 |        1 |       10 |        0 |     99% |       276 |
-| procrastinate/blueprints.py                                       |       50 |        0 |       14 |        0 |    100% |           |
+| procrastinate/app.py                                              |       82 |        1 |       10 |        0 |     99% |       256 |
+| procrastinate/blueprints.py                                       |       55 |        0 |       16 |        0 |    100% |           |
 | procrastinate/builtin\_tasks.py                                   |        7 |        0 |        2 |        0 |    100% |           |
 | procrastinate/cli.py                                              |      214 |        3 |       46 |        2 |     98% |48, 135, 139 |
 | procrastinate/connector.py                                        |       42 |        0 |        0 |        0 |    100% |           |
@@ -34,7 +34,7 @@
 | procrastinate/jobs.py                                             |       73 |        0 |       12 |        0 |    100% |           |
 | procrastinate/manager.py                                          |       98 |        0 |       30 |        0 |    100% |           |
 | procrastinate/metadata.py                                         |        6 |        0 |        0 |        0 |    100% |           |
-| procrastinate/periodic.py                                         |       93 |        0 |       24 |        0 |    100% |           |
+| procrastinate/periodic.py                                         |       96 |        0 |       24 |        0 |    100% |           |
 | procrastinate/psycopg\_connector.py                               |      114 |        5 |       66 |        4 |     95% |152-154, 227, 253->252, 286 |
 | procrastinate/retry.py                                            |       38 |        0 |       14 |        0 |    100% |           |
 | procrastinate/schema.py                                           |       25 |        0 |        4 |        0 |    100% |           |
@@ -47,8 +47,8 @@
 | procrastinate/testing.py                                          |      142 |        1 |       63 |        1 |     99% |       148 |
 | procrastinate/types.py                                            |        4 |        0 |        0 |        0 |    100% |           |
 | procrastinate/utils.py                                            |      180 |        0 |       50 |        0 |    100% |           |
-| procrastinate/worker.py                                           |      170 |        0 |       44 |        0 |    100% |           |
-|                                                         **TOTAL** | **2314** |   **36** |  **762** |   **13** | **98%** |           |
+| procrastinate/worker.py                                           |      171 |        0 |       44 |        0 |    100% |           |
+|                                                         **TOTAL** | **2319** |   **36** |  **764** |   **13** | **98%** |           |
 
 
 ## Setup coverage badge
