@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from procrastinate import blueprints, exceptions, retry
+from procrastinate import blueprints, exceptions, periodic, retry
 
 
 def test_blueprint_task_aliases(blueprint, mocker):
@@ -120,6 +120,37 @@ def test_add_tasks_from(blueprint):
     assert my_other_task.name == "ns:bar"
 
 
+def test_add_tasks_from__periodic(blueprint):
+    other = blueprints.Blueprint()
+
+    @blueprint.periodic(cron="0 * * * 1", periodic_id="foo")
+    @blueprint.task(name="foo")
+    def my_task():
+        return "foo"
+
+    @other.periodic(cron="0 * * * 1", periodic_id="foo")
+    @other.task(name="bar")
+    def my_other_task():
+        return "bar"
+
+    blueprint.add_tasks_from(other, namespace="ns")
+
+    assert blueprint.periodic_registry.periodic_tasks == {
+        ("foo", "foo"): periodic.PeriodicTask(
+            task=my_task,
+            cron="0 * * * 1",
+            periodic_id="foo",
+            configure_kwargs={},
+        ),
+        ("ns:bar", "foo"): periodic.PeriodicTask(
+            task=my_other_task,
+            cron="0 * * * 1",
+            periodic_id="foo",
+            configure_kwargs={},
+        ),
+    }
+
+
 def test_add_tasks_from_clash(blueprint):
     other = blueprints.Blueprint()
 
@@ -197,3 +228,13 @@ def test_blueprint_task_explicit(blueprint, mocker):
     assert blueprint.tasks["foobar"] is my_task
     assert blueprint.tasks["foobar"].func is my_task.__wrapped__
     assert blueprint.tasks["a"] is blueprint.tasks["foobar"]
+
+
+def test_app_periodic(blueprint):
+    @blueprint.periodic(cron="0 * * * 1", periodic_id="foo")
+    @blueprint.task
+    def yay(timestamp):
+        pass
+
+    assert len(blueprint.periodic_registry.periodic_tasks) == 1
+    assert blueprint.periodic_registry.periodic_tasks[yay.name, "foo"].task == yay

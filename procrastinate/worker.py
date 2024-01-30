@@ -9,7 +9,16 @@ import time
 from enum import Enum
 from typing import Any, Awaitable, Callable, Iterable
 
-from procrastinate import app, exceptions, job_context, jobs, signals, tasks, utils
+from procrastinate import (
+    app,
+    exceptions,
+    job_context,
+    jobs,
+    periodic,
+    signals,
+    tasks,
+    utils,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -106,7 +115,11 @@ class Worker:
         )
 
     async def periodic_deferrer(self):
-        return await self.app.periodic_deferrer.worker()
+        deferrer = periodic.PeriodicDeferrer(
+            registry=self.app.periodic_registry,
+            **self.app.periodic_defaults,
+        )
+        return await deferrer.worker()
 
     async def run(self) -> None:
         self.notify_event = asyncio.Event()

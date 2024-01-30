@@ -38,12 +38,9 @@ class PeriodicTask:
 TaskAtTime = Tuple[PeriodicTask, int]
 
 
-class PeriodicDeferrer:
-    def __init__(self, max_delay: float = MAX_DELAY):
+class PeriodicRegistry:
+    def __init__(self):
         self.periodic_tasks: dict[tuple[str, str], PeriodicTask] = {}
-        # {(task_name, periodic_id): defer_timestamp}
-        self.last_defers: dict[tuple[str, str], int] = {}
-        self.max_delay = max_delay
 
     def periodic_decorator(self, cron: str, periodic_id: str, **kwargs):
         """
@@ -59,24 +56,6 @@ class PeriodicDeferrer:
             return task
 
         return wrapper
-
-    async def worker(self) -> None:
-        """
-        High-level command for the periodic deferrer. Launches the loop.
-        """
-        if not self.periodic_tasks:
-            logger.info(
-                "No periodic task found, periodic deferrer will not run.",
-                extra={"action": "periodic_deferrer_no_task"},
-            )
-            return
-
-        while True:
-            now = time.time()
-            await self.defer_jobs(jobs_to_defer=self.get_previous_tasks(at=now))
-            await self.wait(next_tick=self.get_next_tick(at=now))
-
-    # Internal methods
 
     def register_task(
         self,
@@ -113,6 +92,34 @@ class PeriodicDeferrer:
         )
         return periodic_task
 
+
+class PeriodicDeferrer:
+    def __init__(
+        self,
+        registry: PeriodicRegistry,
+        max_delay: float = MAX_DELAY,
+    ):
+        # {(task_name, periodic_id): defer_timestamp}
+        self.last_defers: dict[tuple[str, str], int] = {}
+        self.max_delay = max_delay
+        self.registry = registry
+
+    async def worker(self) -> None:
+        """
+        High-level command for the periodic deferrer. Launches the loop.
+        """
+        if not self.registry.periodic_tasks:
+            logger.info(
+                "No periodic task found, periodic deferrer will not run.",
+                extra={"action": "periodic_deferrer_no_task"},
+            )
+            return
+
+        while True:
+            now = time.time()
+            await self.defer_jobs(jobs_to_defer=self.get_previous_tasks(at=now))
+            await self.wait(next_tick=self.get_next_tick(at=now))
+
     def get_next_tick(self, at: float):
         """
         Return the number of seconds to wait before the next periodic task needs to be
@@ -121,7 +128,7 @@ class PeriodicDeferrer:
         """
         next_timestamp = min(
             pt.croniter.get_next(ret_type=float, start_time=at)  # type: ignore
-            for pt in self.periodic_tasks.values()
+            for pt in self.registry.periodic_tasks.values()
         )
         return next_timestamp - at
 
@@ -132,7 +139,7 @@ class PeriodicDeferrer:
         Tasks that should have been deferred more than self.max_delay seconds ago are
         ignored.
         """
-        for key, periodic_task in self.periodic_tasks.items():
+        for key, periodic_task in self.registry.periodic_tasks.items():
             for timestamp in self.get_timestamps(
                 periodic_task=periodic_task,
                 since=self.last_defers.get(key),

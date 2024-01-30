@@ -45,7 +45,7 @@ Blueprints
 ----------
 
 .. autoclass:: procrastinate.blueprints.Blueprint
-    :members: task, add_tasks_from, add_task_alias
+    :members: task, periodic, add_tasks_from, add_task_alias
 
 
 Builtin tasks

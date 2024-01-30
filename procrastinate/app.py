@@ -81,17 +81,15 @@ class App(blueprints.Blueprint):
               periodic tasks to be immediately deferred just after their first
               deployment. (defaults to 10 minutes)
         """
-        from procrastinate import periodic
 
         super().__init__()
 
         self.connector = connector
         self.import_paths = import_paths or []
         self.worker_defaults = worker_defaults or {}
-        periodic_defaults = periodic_defaults or {}
+        self.periodic_defaults = periodic_defaults or {}
 
         self.job_manager = manager.JobManager(connector=self.connector)
-        self.periodic_deferrer = periodic.PeriodicDeferrer(**periodic_defaults)
 
         self._register_builtin_tasks()
 
@@ -113,26 +111,8 @@ class App(blueprints.Blueprint):
             worker_defaults=self.worker_defaults,
         )
         app.tasks = self.tasks
-        app.periodic_deferrer = self.periodic_deferrer
+        app.periodic_registry = self.periodic_registry
         return app
-
-    def periodic(self, *, cron: str, periodic_id: str = "", **kwargs: dict[str, Any]):
-        """
-        Task decorator, marks task as being scheduled for periodic deferring (see
-        `howto/cron`).
-
-        Parameters
-        ----------
-        cron :
-            Cron-like string. Optionally add a 6th column for seconds.
-        periodic_id :
-            Task name suffix. Used to distinct periodic tasks with different kwargs.
-        **kwargs :
-            Additional parameters are passed to `Task.configure`.
-        """
-        return self.periodic_deferrer.periodic_decorator(
-            cron=cron, periodic_id=periodic_id, **kwargs
-        )
 
     def _register_builtin_tasks(self) -> None:
         from procrastinate import builtin_tasks
