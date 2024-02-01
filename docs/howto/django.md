@@ -158,6 +158,26 @@ PERIODIC_DEFAULTS: dict | None,  # (defaults to None)
 Procrastinate logs to the `procrastinate` logger. You can configure it
 in your `LOGGING` settings.
 
+## Advanced: Running the worker without the official management command
+If you want to run the worker yourself, it's possible but slightly more convoluted.
+Here's how you could do it:
+```python
+# myapp/worker.py
+from procrastinate.contrib.django import app
+
+def main():
+    # By default, the app uses the Django database connection, which is unsuitable
+    # for the worker.
+    app = app.with_connector(app.connector.get_worker_connector())
+    app.run_worker()
+
+if __name__ == "__main__":
+    main()
+```
+:::{note}
+The ``.get_worker_connector()`` method is only available on `DjangoConnector`
+and the API isn't guaranteed to be stable.
+
 ## Alternatives
 
 It's worth noting that there are other Python job scheduling libraries based on
