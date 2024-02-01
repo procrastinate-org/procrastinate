@@ -15,16 +15,16 @@
 | procrastinate/contrib/aiopg/\_\_init\_\_.py                       |        3 |        0 |        0 |        0 |    100% |           |
 | procrastinate/contrib/aiopg/aiopg\_connector.py                   |      151 |        2 |       92 |        2 |     98% |207-208, 306->305 |
 | procrastinate/contrib/django/\_\_init\_\_.py                      |        8 |        0 |        0 |        0 |    100% |           |
-| procrastinate/contrib/django/apps.py                              |       31 |        1 |        6 |        0 |     97% |        26 |
-| procrastinate/contrib/django/django\_connector.py                 |       56 |        2 |       18 |        0 |     97% |     19-20 |
+| procrastinate/contrib/django/apps.py                              |       28 |        1 |        6 |        0 |     97% |        25 |
+| procrastinate/contrib/django/django\_connector.py                 |       64 |        4 |       20 |        1 |     94% |23-26, 138 |
 | procrastinate/contrib/django/exceptions.py                        |        4 |        0 |        0 |        0 |    100% |           |
 | procrastinate/contrib/django/management/\_\_init\_\_.py           |        0 |        0 |        0 |        0 |    100% |           |
 | procrastinate/contrib/django/management/commands/\_\_init\_\_.py  |        0 |        0 |        0 |        0 |    100% |           |
-| procrastinate/contrib/django/management/commands/procrastinate.py |       25 |        9 |        6 |        0 |     58% |17-18, 34-36, 41-48 |
+| procrastinate/contrib/django/management/commands/procrastinate.py |       15 |        4 |        6 |        0 |     62% |     24-27 |
 | procrastinate/contrib/django/migrations\_magic.py                 |       74 |        0 |       29 |        0 |    100% |           |
-| procrastinate/contrib/django/models.py                            |       39 |        0 |        6 |        0 |    100% |           |
+| procrastinate/contrib/django/models.py                            |       48 |        0 |        6 |        0 |    100% |           |
 | procrastinate/contrib/django/router.py                            |        6 |        2 |        2 |        0 |     50% |     12-13 |
-| procrastinate/contrib/django/utils.py                             |        9 |        0 |        0 |        0 |    100% |           |
+| procrastinate/contrib/django/utils.py                             |       12 |        0 |        0 |        0 |    100% |           |
 | procrastinate/contrib/psycopg2/\_\_init\_\_.py                    |        3 |        0 |        0 |        0 |    100% |           |
 | procrastinate/contrib/psycopg2/psycopg2\_connector.py             |      105 |        1 |       64 |        1 |     99% |        28 |
 | procrastinate/contrib/sqlalchemy/\_\_init\_\_.py                  |        3 |        0 |        0 |        0 |    100% |           |
@@ -48,7 +48,7 @@
 | procrastinate/types.py                                            |        4 |        0 |        0 |        0 |    100% |           |
 | procrastinate/utils.py                                            |      180 |        0 |       50 |        0 |    100% |           |
 | procrastinate/worker.py                                           |      171 |        0 |       44 |        0 |    100% |           |
-|                                                         **TOTAL** | **2319** |   **36** |  **764** |   **13** | **98%** |           |
+|                                                         **TOTAL** | **2326** |   **33** |  **766** |   **14** | **98%** |           |
 
 
 ## Setup coverage badge
