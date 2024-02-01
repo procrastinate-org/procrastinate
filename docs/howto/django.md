@@ -32,9 +32,23 @@ DATABASE_ROUTERS = ["procrastinate.contrib.django.ProcrastinateReadOnlyRouter", 
 ## Configuring the app
 
 An app will be configured for you in `procrastinate.contrib.django.app`.
-You don't have to configure it yourself, but you can if you want to.
-The app uses a special connector that uses Django's database connection
-to defer jobs.
+You don't have to configure an app yourself, but you can if you want to.
+
+You can modify the app after its creation, for example to load additional tasks from
+blueprints, with:
+
+```python
+# settings.py
+PROCRASTINATE_ON_APP_READY = "myapp.procrastinate.on_app_ready"
+```
+```python
+# myapp/procrastinate.py
+import procrastinate
+
+def on_app_ready(app: procrastinate.App):
+    app.load_tasks_from(some_blueprint)
+```
+
 
 :::{note}
 It's likely that configuring an app yourself and using it instead of the

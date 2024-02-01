@@ -49,4 +49,9 @@ def create_app(blueprint: procrastinate.Blueprint) -> procrastinate.App:
     if blueprint.tasks:
         app.add_tasks_from(blueprint, namespace="")
 
+    on_app_ready_path = utils.get_setting("ON_APP_READY", default=None)
+    if on_app_ready_path:
+        on_app_ready = module_loading.import_string(on_app_ready_path)
+        on_app_ready(app)
+
     return app

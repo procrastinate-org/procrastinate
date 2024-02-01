@@ -31,3 +31,16 @@ def test_create_app():
 
 def test_create_app__no_task():
     apps.create_app(blueprint=blueprints.Blueprint())
+
+
+def on_app_ready(app):
+    app.foo = "bar"
+
+
+def test_create_app__on_app_ready(settings):
+    settings.PROCRASTINATE_ON_APP_READY = (
+        "tests.unit.contrib.django.test_apps.on_app_ready"
+    )
+    app = apps.create_app(blueprint=blueprints.Blueprint())
+
+    assert app.foo == "bar"
