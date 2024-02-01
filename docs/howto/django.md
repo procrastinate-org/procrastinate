@@ -191,6 +191,7 @@ if __name__ == "__main__":
 :::{note}
 The ``.get_worker_connector()`` method is only available on `DjangoConnector`
 and the API isn't guaranteed to be stable.
+:::
 
 ## Alternatives
 
