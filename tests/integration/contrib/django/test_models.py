@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import datetime
 
 import pytest
@@ -57,3 +58,25 @@ def test_procrastinate_event(db):
         "type": "deferred",
     }
     assert now - one_sec < at < now + one_sec
+
+
+async def test_procrastinate_periodic_defers(db):
+    @procrastinate.contrib.django.app.periodic(cron="* * * * *", periodic_id="bar")
+    @procrastinate.contrib.django.app.task(name="foo")
+    def my_task(timestamp):
+        pass
+
+    django_app = procrastinate.contrib.django.app
+    app = django_app.with_connector(django_app.connector.get_worker_connector())
+    async with app.open_async():
+        try:
+            await asyncio.wait_for(app.run_worker_async(), timeout=0.1)
+        except asyncio.TimeoutError:
+            pass
+
+    periodic_defers = []
+    async for element in models.ProcrastinatePeriodicDefer.objects.values().all():
+        periodic_defers.append(element)
+
+    assert periodic_defers[-1]["periodic_id"] == "bar"
+    assert periodic_defers[-1]["task_name"] == "foo"
