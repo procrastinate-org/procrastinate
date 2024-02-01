@@ -95,6 +95,7 @@ addopts = [
     "-vv",
     "--strict-markers",
     "-rfE",
+    "--reuse-db",
 ]
 testpaths = [
     "tests/unit",
@@ -105,6 +106,7 @@ testpaths = [
 filterwarnings = ""
 asyncio_mode = "auto"
 DJANGO_SETTINGS_MODULE = "tests.acceptance.django_settings"
+
 
 [tool.coverage.run]
 relative_files = true

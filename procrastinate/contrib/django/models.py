@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, NoReturn
+from typing import Any, ClassVar, NoReturn
 
 from django.db import models
 
@@ -87,3 +87,17 @@ class ProcrastinateEvent(ProcrastinateReadOnlyModelMixin, models.Model):
     class Meta:  # type: ignore
         managed = False
         db_table = "procrastinate_events"
+
+
+class ProcrastinatePeriodicDefer(models.Model):
+    task_name = models.CharField(max_length=128)
+    defer_timestamp = models.BigIntegerField(blank=True, null=True)
+    job = models.ForeignKey(
+        ProcrastinateJob, on_delete=models.CASCADE, blank=True, null=True
+    )
+    periodic_id = models.CharField(max_length=128)
+
+    class Meta:  # type: ignore
+        managed = False
+        db_table = "procrastinate_periodic_defers"
+        unique_together: ClassVar = [("task_name", "periodic_id", "defer_timestamp")]
