@@ -76,10 +76,15 @@ class App(blueprints.Blueprint):
             parameters are:
 
             - ``max_delay``: ``float``, in seconds. When a worker starts and there's
-              a periodic task that has not been deferred, the worker will defer the task
-              if it's been due for less that this amount of time. This avoids new
-              periodic tasks to be immediately deferred just after their first
-              deployment. (defaults to 10 minutes)
+              a periodic task that hasn't been deferred yet, it will try to defer the task
+              only if it has been overdue for less time than specified by this
+              parameter. If the task has been overdue for longer, the worker will wait
+              until the next scheduled execution. This mechanism prevents newly added
+              periodic tasks from being immediately deferred. Additionally, it ensures
+              that periodic tasks, which were not deferred due to system outages, are
+              not deferred upon application recovery (provided that the outage duration
+              is longer than ``max_delay``), that's especially important for tasks intended
+              to run during off-peak hours, such as intensive nightly tasks. (defaults to 10 minutes)
         """
 
         super().__init__()
