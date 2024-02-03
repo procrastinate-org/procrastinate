@@ -6,7 +6,7 @@
 |------------------------------------------------------------------ | -------: | -------: | -------: | -------: | ------: | --------: |
 | procrastinate/\_\_init\_\_.py                                     |       19 |        0 |        0 |        0 |    100% |           |
 | procrastinate/\_\_main\_\_.py                                     |        6 |        0 |        2 |        0 |    100% |           |
-| procrastinate/app.py                                              |       82 |        1 |       10 |        0 |     99% |       256 |
+| procrastinate/app.py                                              |       82 |        1 |       10 |        0 |     99% |       261 |
 | procrastinate/blueprints.py                                       |       55 |        0 |       16 |        0 |    100% |           |
 | procrastinate/builtin\_tasks.py                                   |        7 |        0 |        2 |        0 |    100% |           |
 | procrastinate/cli.py                                              |      214 |        3 |       46 |        2 |     98% |48, 135, 139 |
