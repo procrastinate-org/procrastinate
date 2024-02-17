@@ -4,6 +4,7 @@ import contextlib
 import pathlib
 
 import pytest
+from django.core import management
 from django.db import connection
 from migra import Migration
 from sqlalchemy.pool import NullPool
@@ -83,3 +84,7 @@ def test_django_migrations_run_properly(django_db):
     # At this point, with the db fixture, we have all migrations applied
     with connection.cursor() as cursor:
         cursor.execute("SELECT * FROM procrastinate_jobs")
+
+
+def test_no_missing_django_migration(django_db):
+    management.call_command("makemigrations", "procrastinate", dry_run=True, check=True)

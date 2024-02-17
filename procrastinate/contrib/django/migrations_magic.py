@@ -39,6 +39,10 @@ class ProcrastinateMigrationsImporter(
         self.migrations = {
             mig.name: mig for mig in make_migrations(sql_migrations=sql_migrations)
         }
+        from .static_migrations import static_migrations
+
+        for name, migration in static_migrations.items():
+            self.migrations[name] = migration
 
     # Necessary for Pyright
     def find_module(self, fullname, path=None):
