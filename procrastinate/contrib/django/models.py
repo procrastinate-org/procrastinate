@@ -52,6 +52,7 @@ class ProcrastinateJob(ProcrastinateReadOnlyModelMixin, models.Model):
         "succeeded",
         "failed",
     )
+    id = models.BigAutoField(primary_key=True)
     queue_name = models.CharField(max_length=128)
     task_name = models.CharField(max_length=128)
     lock = models.TextField(unique=True, blank=True, null=True)
@@ -78,6 +79,7 @@ class ProcrastinateEvent(ProcrastinateReadOnlyModelMixin, models.Model):
         "cancelled",
         "scheduled",
     )
+    id = models.BigAutoField(primary_key=True)
     job = models.ForeignKey(ProcrastinateJob, on_delete=models.CASCADE)
     type = models.CharField(max_length=32, choices=[(e, e) for e in TYPES])
     at = models.DateTimeField(blank=True, null=True)
@@ -90,6 +92,7 @@ class ProcrastinateEvent(ProcrastinateReadOnlyModelMixin, models.Model):
 
 
 class ProcrastinatePeriodicDefer(models.Model):
+    id = models.BigAutoField(primary_key=True)
     task_name = models.CharField(max_length=128)
     defer_timestamp = models.BigIntegerField(blank=True, null=True)
     job = models.ForeignKey(
