@@ -21,9 +21,10 @@
 | procrastinate/contrib/django/management/\_\_init\_\_.py           |        0 |        0 |        0 |        0 |    100% |           |
 | procrastinate/contrib/django/management/commands/\_\_init\_\_.py  |        0 |        0 |        0 |        0 |    100% |           |
 | procrastinate/contrib/django/management/commands/procrastinate.py |       15 |        4 |        6 |        0 |     62% |     24-27 |
-| procrastinate/contrib/django/migrations\_magic.py                 |       74 |        0 |       29 |        0 |    100% |           |
-| procrastinate/contrib/django/models.py                            |       48 |        0 |        6 |        0 |    100% |           |
+| procrastinate/contrib/django/migrations\_magic.py                 |       77 |        0 |       31 |        0 |    100% |           |
+| procrastinate/contrib/django/models.py                            |       51 |        0 |        6 |        0 |    100% |           |
 | procrastinate/contrib/django/router.py                            |        6 |        2 |        2 |        0 |     50% |     12-13 |
+| procrastinate/contrib/django/static\_migrations.py                |       10 |        0 |        0 |        0 |    100% |           |
 | procrastinate/contrib/django/utils.py                             |       12 |        0 |        0 |        0 |    100% |           |
 | procrastinate/contrib/psycopg2/\_\_init\_\_.py                    |        3 |        0 |        0 |        0 |    100% |           |
 | procrastinate/contrib/psycopg2/psycopg2\_connector.py             |      105 |        1 |       64 |        1 |     99% |        28 |
@@ -48,7 +49,7 @@
 | procrastinate/types.py                                            |        4 |        0 |        0 |        0 |    100% |           |
 | procrastinate/utils.py                                            |      180 |        0 |       50 |        0 |    100% |           |
 | procrastinate/worker.py                                           |      171 |        0 |       44 |        0 |    100% |           |
-|                                                         **TOTAL** | **2330** |   **33** |  **768** |   **14** | **98%** |           |
+|                                                         **TOTAL** | **2346** |   **33** |  **770** |   **14** | **98%** |           |
 
 
 ## Setup coverage badge
