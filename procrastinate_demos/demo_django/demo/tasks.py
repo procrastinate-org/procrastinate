@@ -2,12 +2,15 @@ from __future__ import annotations
 
 import time
 
+from django.db import transaction
+
 from procrastinate.contrib.django import app
 
 from .models import Book
 
 
 @app.task(queue="index")
+@transaction.atomic
 def index_book(book_id: int):
     time.sleep(5)
     # Sync ORM call
