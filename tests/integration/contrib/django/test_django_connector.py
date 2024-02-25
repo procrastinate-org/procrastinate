@@ -3,6 +3,8 @@ from __future__ import annotations
 import pytest
 from django.core import exceptions
 
+from procrastinate import psycopg_connector
+from procrastinate.contrib.aiopg import aiopg_connector
 from procrastinate.contrib.django import django_connector as django_connector_module
 
 
@@ -75,3 +77,40 @@ def test_execute_query_sync(django_connector):
         "SELECT obj_description('public.procrastinate_jobs'::regclass)"
     )
     assert result == [{"obj_description": "foo"}]
+
+
+@pytest.mark.parametrize(
+    "installed, type",
+    [
+        ({"psycopg3"}, psycopg_connector.PsycopgConnector),
+        ({"aiopg"}, aiopg_connector.AiopgConnector),
+    ],
+)
+async def test_get_worker_connector(installed, type, django_connector, mocker):
+    def package_is_installed(name):
+        return name in installed
+
+    mocker.patch(
+        "procrastinate.contrib.django.utils.package_is_installed",
+        side_effect=package_is_installed,
+    )
+
+    connector = django_connector.get_worker_connector()
+
+    assert isinstance(connector, type)
+
+    await connector.open_async()
+    try:
+        assert await connector.execute_query_one_async("SELECT 1 as x") == {"x": 1}
+    finally:
+        await connector.close_async()
+
+
+async def test_get_worker_connector__error(django_connector, mocker):
+    mocker.patch(
+        "procrastinate.contrib.django.utils.package_is_installed",
+        return_value=False,
+    )
+
+    with pytest.raises(exceptions.ImproperlyConfigured):
+        django_connector.get_worker_connector()

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib.util
 from typing import Any
 
 from django.conf import settings
@@ -31,3 +32,7 @@ def connector_params(alias: str = "default") -> dict[str, Any]:
 
 def get_setting(name: str, *, default) -> Any:
     return getattr(settings, f"PROCRASTINATE_{name}", default)
+
+
+def package_is_installed(name: str) -> bool:
+    return bool(importlib.util.find_spec(name))
