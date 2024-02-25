@@ -87,8 +87,10 @@ itself, with some commands removed and the app is configured for you.
 You can also use other subcommands such as `./manage.py procrastinate defer`.
 
 :::{note}
-Procrastinate generates an app for you using a Psycopg or Aiopg connector
-depending on your Django setup, and connects using the `DATABASES` settings.
+Procrastinate generates an app for you using a `Psycopg` (by default) or
+`Aiopg` connector depending on whether `psycopg3` or `aiopg` is
+installed, and connects using the `DATABASES` settings. If neither library is
+installed, an error will be raised.
 :::
 
 ## Deferring jobs
@@ -189,8 +191,12 @@ if __name__ == "__main__":
     main()
 ```
 :::{note}
-The ``.get_worker_connector()`` method is only available on `DjangoConnector`
+The `.get_worker_connector()` method is only available on `DjangoConnector`
 and the API isn't guaranteed to be stable.
+:::
+:::{note}
+As mentionned above, either `psycopg` or `aiopg` need to be installed.
+`psycopg` will be used by default.
 :::
 
 ## Alternatives
