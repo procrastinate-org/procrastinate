@@ -15,15 +15,11 @@ from procrastinate.contrib.django import utils
 
 if TYPE_CHECKING:
     from psycopg.types.json import Jsonb
-
-    is_psycopg3 = True
 else:
     try:
-        from django.db.backends.postgresql.psycopg_any import Jsonb, is_psycopg3
+        from django.db.backends.postgresql.psycopg_any import Jsonb
     except ImportError:
         from psycopg2.extras import Json as Jsonb
-
-        is_psycopg3 = False
 
 
 class DjangoConnector(connector.BaseAsyncConnector):
@@ -122,6 +118,8 @@ class DjangoConnector(connector.BaseAsyncConnector):
         """
         The default DjangoConnector is not suitable for workers. This function
         returns a connector that uses the same database and is suitable for workers.
+        The type of connector returned is a `PsycopgConnector` if psycopg3 is installed,
+        otherwise an `AiopgConnector`.
 
         Returns
         -------
@@ -130,9 +128,15 @@ class DjangoConnector(connector.BaseAsyncConnector):
         """
         alias = utils.get_setting("DATABASE_ALIAS", default="default")
 
-        if is_psycopg3:
+        if utils.package_is_installed("psycopg3"):
             return psycopg_connector.PsycopgConnector(
                 kwargs=utils.connector_params(alias)
             )
-        else:
+        if utils.package_is_installed("aiopg"):
             return aiopg_connector.AiopgConnector(**utils.connector_params(alias))
+
+        raise django_exceptions.ImproperlyConfigured(
+            "You must install either psycopg(3) or aiopg to use "
+            "``./manage.py procrastinate`` or "
+            "``app.connector.get_worker_connector()``."
+        )
