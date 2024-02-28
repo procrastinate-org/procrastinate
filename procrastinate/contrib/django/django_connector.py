@@ -9,8 +9,7 @@ from django.db import connections
 from django.db.backends.base.base import BaseDatabaseWrapper
 from typing_extensions import LiteralString
 
-from procrastinate import connector, psycopg_connector
-from procrastinate.contrib.aiopg import aiopg_connector
+from procrastinate import connector
 from procrastinate.contrib.django import utils
 
 if TYPE_CHECKING:
@@ -129,10 +128,14 @@ class DjangoConnector(connector.BaseAsyncConnector):
         alias = utils.get_setting("DATABASE_ALIAS", default="default")
 
         if utils.package_is_installed("psycopg3"):
+            from procrastinate import psycopg_connector
+
             return psycopg_connector.PsycopgConnector(
                 kwargs=utils.connector_params(alias)
             )
         if utils.package_is_installed("aiopg"):
+            from procrastinate.contrib.aiopg import aiopg_connector
+
             return aiopg_connector.AiopgConnector(**utils.connector_params(alias))
 
         raise django_exceptions.ImproperlyConfigured(
