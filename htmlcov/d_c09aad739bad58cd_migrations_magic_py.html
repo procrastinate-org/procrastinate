@@ -67,7 +67,7 @@
             <a id="nextFileLink" class="nav" href="d_c09aad739bad58cd_models_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.4.3">coverage.py v7.4.3</a>,
-            created at 2024-02-26 00:24 +0000
+            created at 2024-02-28 23:32 +0000
         </p>
         <aside class="hidden">
             <button type="button" class="button_next_chunk" data-shortcut="j"/>
@@ -241,7 +241,7 @@
     <p class="run"><span class="n"><a id="t157" href="#t157">157</a></span><span class="t">    <span class="key">class</span> <span class="nam">NewMigration</span><span class="op">(</span><span class="nam">migrations</span><span class="op">.</span><span class="nam">Migration</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t158" href="#t158">158</a></span><span class="t">        <span class="nam">initial</span><span class="op">:</span> <span class="nam">ClassVar</span> <span class="op">=</span> <span class="nam">previous_migration</span> <span class="key">is</span> <span class="key">None</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t159" href="#t159">159</a></span><span class="t">        <span class="nam">operations</span><span class="op">:</span> <span class="nam">ClassVar</span> <span class="op">=</span> <span class="op">[</span><span class="nam">migrations</span><span class="op">.</span><span class="nam">RunSQL</span><span class="op">(</span><span class="nam">sql</span><span class="op">=</span><span class="nam">sql_migration</span><span class="op">.</span><span class="nam">contents</span><span class="op">)</span><span class="op">]</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t160" href="#t160">160</a></span><span class="t">        <span class="nam">name</span><span class="op">:</span> <span class="nam">ClassVar</span> <span class="op">=</span> <span class="str">f"{next(counter):04d}_{sql_migration.name}"</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t160" href="#t160">160</a></span><span class="t">        <span class="nam">name</span><span class="op">:</span> <span class="nam">ClassVar</span> <span class="op">=</span> <span class="fst">f"</span><span class="op">{</span><span class="nam">next</span><span class="op">(</span><span class="nam">counter</span><span class="op">)</span><span class="op">:</span><span class="fst">04d</span><span class="op">}</span><span class="fst">_</span><span class="op">{</span><span class="nam">sql_migration</span><span class="op">.</span><span class="nam">name</span><span class="op">}</span><span class="fst">"</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t161" href="#t161">161</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t162" href="#t162">162</a></span><span class="t">        <span class="key">if</span> <span class="nam">previous_migration</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t163" href="#t163">163</a></span><span class="t">            <span class="nam">dependencies</span><span class="op">:</span> <span class="nam">ClassVar</span> <span class="op">=</span> <span class="op">[</span><span class="op">(</span><span class="str">"procrastinate"</span><span class="op">,</span> <span class="nam">previous_migration</span><span class="op">.</span><span class="nam">name</span><span class="op">)</span><span class="op">]</span>&nbsp;</span><span class="r"></span></p>
@@ -256,7 +256,7 @@
             <a id="nextFileLink" class="nav" href="d_c09aad739bad58cd_models_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.4.3">coverage.py v7.4.3</a>,
-            created at 2024-02-26 00:24 +0000
+            created at 2024-02-28 23:32 +0000
         </p>
     </div>
 </footer>

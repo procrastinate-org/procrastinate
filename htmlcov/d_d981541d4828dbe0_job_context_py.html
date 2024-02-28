@@ -67,7 +67,7 @@
             <a id="nextFileLink" class="nav" href="d_d981541d4828dbe0_jobs_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.4.3">coverage.py v7.4.3</a>,
-            created at 2024-02-26 00:24 +0000
+            created at 2024-02-28 23:32 +0000
         </p>
         <aside class="hidden">
             <button type="button" class="button_next_chunk" data-shortcut="j"/>
@@ -170,17 +170,17 @@
     <p class="run"><span class="n"><a id="t86" href="#t86">86</a></span><span class="t">    <span class="op">@</span><span class="nam">property</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t87" href="#t87">87</a></span><span class="t">    <span class="key">def</span> <span class="nam">queues_display</span><span class="op">(</span><span class="nam">self</span><span class="op">)</span> <span class="op">-></span> <span class="nam">str</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t88" href="#t88">88</a></span><span class="t">        <span class="key">if</span> <span class="nam">self</span><span class="op">.</span><span class="nam">worker_queues</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t89" href="#t89">89</a></span><span class="t">            <span class="key">return</span> <span class="str">f"queues {', '.join(self.worker_queues)}"</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t89" href="#t89">89</a></span><span class="t">            <span class="key">return</span> <span class="fst">f"</span><span class="fst">queues </span><span class="op">{</span><span class="str">', '</span><span class="op">.</span><span class="nam">join</span><span class="op">(</span><span class="nam">self</span><span class="op">.</span><span class="nam">worker_queues</span><span class="op">)</span><span class="op">}</span><span class="fst">"</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t90" href="#t90">90</a></span><span class="t">        <span class="key">else</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t91" href="#t91">91</a></span><span class="t">            <span class="key">return</span> <span class="str">"all queues"</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t92" href="#t92">92</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t93" href="#t93">93</a></span><span class="t">    <span class="key">def</span> <span class="nam">job_description</span><span class="op">(</span><span class="nam">self</span><span class="op">,</span> <span class="nam">current_timestamp</span><span class="op">:</span> <span class="nam">float</span><span class="op">)</span> <span class="op">-></span> <span class="nam">str</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t94" href="#t94">94</a></span><span class="t">        <span class="nam">message</span> <span class="op">=</span> <span class="str">f"worker {self.worker_id}: "</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t94" href="#t94">94</a></span><span class="t">        <span class="nam">message</span> <span class="op">=</span> <span class="fst">f"</span><span class="fst">worker </span><span class="op">{</span><span class="nam">self</span><span class="op">.</span><span class="nam">worker_id</span><span class="op">}</span><span class="fst">: </span><span class="fst">"</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t95" href="#t95">95</a></span><span class="t">        <span class="key">if</span> <span class="nam">self</span><span class="op">.</span><span class="nam">job</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t96" href="#t96">96</a></span><span class="t">            <span class="nam">message</span> <span class="op">+=</span> <span class="nam">self</span><span class="op">.</span><span class="nam">job</span><span class="op">.</span><span class="nam">call_string</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t97" href="#t97">97</a></span><span class="t">            <span class="nam">duration</span> <span class="op">=</span> <span class="nam">self</span><span class="op">.</span><span class="nam">job_result</span><span class="op">.</span><span class="nam">duration</span><span class="op">(</span><span class="nam">current_timestamp</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t98" href="#t98">98</a></span><span class="t">            <span class="key">if</span> <span class="nam">duration</span> <span class="key">is</span> <span class="key">not</span> <span class="key">None</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t99" href="#t99">99</a></span><span class="t">                <span class="nam">message</span> <span class="op">+=</span> <span class="str">f" (started {duration:.3f} s ago)"</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t99" href="#t99">99</a></span><span class="t">                <span class="nam">message</span> <span class="op">+=</span> <span class="fst">f"</span><span class="fst"> (started </span><span class="op">{</span><span class="nam">duration</span><span class="op">:</span><span class="fst">.3f</span><span class="op">}</span><span class="fst"> s ago)</span><span class="fst">"</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t100" href="#t100">100</a></span><span class="t">        <span class="key">else</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t101" href="#t101">101</a></span><span class="t">            <span class="nam">message</span> <span class="op">+=</span> <span class="str">"no current job"</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t102" href="#t102">102</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
@@ -194,7 +194,7 @@
             <a id="nextFileLink" class="nav" href="d_d981541d4828dbe0_jobs_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.4.3">coverage.py v7.4.3</a>,
-            created at 2024-02-26 00:24 +0000
+            created at 2024-02-28 23:32 +0000
         </p>
     </div>
 </footer>

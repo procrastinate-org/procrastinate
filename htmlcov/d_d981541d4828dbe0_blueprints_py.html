@@ -67,7 +67,7 @@
             <a id="nextFileLink" class="nav" href="d_d981541d4828dbe0_builtin_tasks_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.4.3">coverage.py v7.4.3</a>,
-            created at 2024-02-26 00:24 +0000
+            created at 2024-02-28 23:32 +0000
         </p>
         <aside class="hidden">
             <button type="button" class="button_next_chunk" data-shortcut="j"/>
@@ -166,8 +166,8 @@
     <p class="pln"><span class="n"><a id="t82" href="#t82">82</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t83" href="#t83">83</a></span><span class="t">        <span class="key">if</span> <span class="nam">name</span> <span class="op">==</span> <span class="str">"__main__"</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t84" href="#t84">84</a></span><span class="t">            <span class="nam">logger</span><span class="op">.</span><span class="nam">warning</span><span class="op">(</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t85" href="#t85">85</a></span><span class="t">                <span class="str">f"{type(self).__name__} is instantiated in the main Python module "</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t86" href="#t86">86</a></span><span class="t">                <span class="str">f"({sys.argv[0]}). "</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t85" href="#t85">85</a></span><span class="t">                <span class="fst">f"</span><span class="op">{</span><span class="nam">type</span><span class="op">(</span><span class="nam">self</span><span class="op">)</span><span class="op">.</span><span class="nam">__name__</span><span class="op">}</span><span class="fst"> is instantiated in the main Python module </span><span class="fst">"</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t86" href="#t86">86</a></span><span class="t">                <span class="fst">f"</span><span class="fst">(</span><span class="op">{</span><span class="nam">sys</span><span class="op">.</span><span class="nam">argv</span><span class="op">[</span><span class="num">0</span><span class="op">]</span><span class="op">}</span><span class="fst">). </span><span class="fst">"</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t87" href="#t87">87</a></span><span class="t">                <span class="str">"See https://procrastinate.readthedocs.io/en/stable/discussions.html#top-level-app"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t88" href="#t88">88</a></span><span class="t">                <span class="nam">extra</span><span class="op">=</span><span class="op">{</span><span class="str">"action"</span><span class="op">:</span> <span class="str">"app_defined_in___main__"</span><span class="op">}</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t89" href="#t89">89</a></span><span class="t">            <span class="op">)</span>&nbsp;</span><span class="r"></span></p>
@@ -198,7 +198,7 @@
     <p class="pln"><span class="n"><a id="t114" href="#t114">114</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t115" href="#t115">115</a></span><span class="t">        <span class="key">if</span> <span class="nam">name</span> <span class="key">in</span> <span class="nam">self</span><span class="op">.</span><span class="nam">tasks</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t116" href="#t116">116</a></span><span class="t">            <span class="key">raise</span> <span class="nam">exceptions</span><span class="op">.</span><span class="nam">TaskAlreadyRegistered</span><span class="op">(</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t117" href="#t117">117</a></span><span class="t">                <span class="str">f"A task named {name} was already registered"</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t117" href="#t117">117</a></span><span class="t">                <span class="fst">f"</span><span class="fst">A task named </span><span class="op">{</span><span class="nam">name</span><span class="op">}</span><span class="fst"> was already registered</span><span class="fst">"</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t118" href="#t118">118</a></span><span class="t">            <span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t119" href="#t119">119</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t120" href="#t120">120</a></span><span class="t">        <span class="nam">result_dict</span> <span class="op">=</span> <span class="nam">self</span><span class="op">.</span><span class="nam">tasks</span> <span class="key">if</span> <span class="nam">to</span> <span class="key">is</span> <span class="key">None</span> <span class="key">else</span> <span class="nam">to</span>&nbsp;</span><span class="r"></span></p>
@@ -243,7 +243,7 @@
     <p class="pln"><span class="n"><a id="t159" href="#t159">159</a></span><span class="t">        <span class="op">}</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t160" href="#t160">160</a></span><span class="t">        <span class="key">if</span> <span class="nam">set</span><span class="op">(</span><span class="nam">self</span><span class="op">.</span><span class="nam">tasks</span><span class="op">)</span> <span class="op">&amp;</span> <span class="nam">set</span><span class="op">(</span><span class="nam">new_tasks</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t161" href="#t161">161</a></span><span class="t">            <span class="key">raise</span> <span class="nam">exceptions</span><span class="op">.</span><span class="nam">TaskAlreadyRegistered</span><span class="op">(</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t162" href="#t162">162</a></span><span class="t">                <span class="str">f"A namespace named {namespace} was already registered"</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t162" href="#t162">162</a></span><span class="t">                <span class="fst">f"</span><span class="fst">A namespace named </span><span class="op">{</span><span class="nam">namespace</span><span class="op">}</span><span class="fst"> was already registered</span><span class="fst">"</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t163" href="#t163">163</a></span><span class="t">            <span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t164" href="#t164">164</a></span><span class="t">        <span class="com"># Modify existing tasks and other blueprint to add the namespace, and</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t165" href="#t165">165</a></span><span class="t">        <span class="com"># set the blueprint</span>&nbsp;</span><span class="r"></span></p>
@@ -376,7 +376,7 @@
             <a id="nextFileLink" class="nav" href="d_d981541d4828dbe0_builtin_tasks_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.4.3">coverage.py v7.4.3</a>,
-            created at 2024-02-26 00:24 +0000
+            created at 2024-02-28 23:32 +0000
         </p>
     </div>
 </footer>
