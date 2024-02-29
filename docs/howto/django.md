@@ -49,7 +49,6 @@ def on_app_ready(app: procrastinate.App):
     app.add_tasks_from(some_blueprint)
 ```
 
-
 :::{note}
 It's likely that configuring an app yourself and using it instead of the
 one provided by Procrastinate will lead to all sorts of issues.
@@ -167,12 +166,28 @@ DATABASE_ALIAS: str,  # (defaults to "default")
 # These settings are passed as-is to the App constructor.
 WORKER_DEFAULTS: dict | None,  # (defaults to None)
 PERIODIC_DEFAULTS: dict | None,  # (defaults to None)
+
+# Dotted path to a function to run when the app is ready (see above).
+PROCRASTINATE_ON_APP_READY: str
 ```
 
 ## Logs
 
 Procrastinate logs to the `procrastinate` logger. You can configure it
 in your `LOGGING` settings.
+
+## Startup actions
+
+If you need to interact with Procrastinate at startup, you may be tempted to
+put some code directly at the top-level of a module, for it to run at import
+time. The `procrastinate.contrib.django` app is not started yet and will
+raise an error in this case. The recommended ways to do this is:
+
+- Use the `PROCRASTINATE_ON_APP_READY` setting to run code when the app is
+  ready.
+- Use Django's [`AppConfig.ready()`] method to run your code when the app is
+  started. In that case, ensure that the `procrastinate.contrib.django` app
+  is located before your app in the `INSTALLED_APPS` list.
 
 ## Advanced: Running the worker without the official management command
 If you want to run the worker yourself, it's possible but slightly more convoluted.
@@ -211,3 +226,4 @@ postgres' LISTEN/NOTIFY that integrate with Django. For instance,
 [pending issues]: https://github.com/procrastinate-org/procrastinate/issues?q=is%3Aissue+is%3Aopen+django
 [open an issue]: https://github.com/procrastinate-org/procrastinate/issues
 [this talk at djangocon 2019]: https://www.youtube.com/watch?v=_DIlE-yc9ZQ
+[`AppConfig.ready()`]: https://docs.djangoproject.com/en/5.0/ref/applications/#django.apps.AppConfig.ready

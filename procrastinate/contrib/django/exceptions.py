@@ -5,3 +5,7 @@ from procrastinate import exceptions
 
 class ReadOnlyModel(exceptions.ProcrastinateException):
     pass
+
+
+class DjangoNotReady(exceptions.ProcrastinateException):
+    pass

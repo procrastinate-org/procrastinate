@@ -283,3 +283,6 @@ class Blueprint:
         return self.periodic_registry.periodic_decorator(
             cron=cron, periodic_id=periodic_id, **kwargs
         )
+
+    def will_configure_task(self) -> None:
+        raise exceptions.UnboundTaskError

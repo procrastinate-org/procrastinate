@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import datetime
 import logging
-from typing import Any, Callable
+from typing import Any, Callable, cast
 
 from procrastinate import app as app_module
 from procrastinate import blueprints, exceptions, jobs, manager, types, utils
@@ -179,10 +179,9 @@ class Task:
         ValueError
             If you try to define both schedule_at and schedule_in
         """
-        if not isinstance(self.blueprint, app_module.App):
-            raise exceptions.UnboundTaskError
+        self.blueprint.will_configure_task()
 
-        app = self.blueprint
+        app = cast(app_module.App, self.blueprint)
 
         return configure_task(
             name=self.name,
