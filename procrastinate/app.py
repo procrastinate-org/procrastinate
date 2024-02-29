@@ -131,6 +131,9 @@ class App(blueprints.Blueprint):
             alias="procrastinate.builtin_tasks.remove_old_jobs",
         )
 
+    def will_configure_task(self) -> None:
+        pass
+
     def configure_task(
         self, name: str, *, allow_unknown: bool = True, **kwargs: Any
     ) -> jobs.JobDeferrer:
