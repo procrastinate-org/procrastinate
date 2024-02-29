@@ -2,6 +2,7 @@
 A retry strategy class lets procrastinate know what to do when a job fails: should it
 try again? And when?
 """
+
 from __future__ import annotations
 
 import datetime

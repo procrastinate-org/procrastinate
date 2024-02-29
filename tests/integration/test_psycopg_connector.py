@@ -205,5 +205,4 @@ async def test_loop_notify_timeout(psycopg_connector):
     assert not event.is_set()
 
 
-async def test_destructor():
-    ...
+async def test_destructor(): ...
