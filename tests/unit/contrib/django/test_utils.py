@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from unittest.mock import patch
-
 import pytest
 
 from procrastinate.contrib.django import utils
@@ -42,5 +40,5 @@ def test_package_is_installed(package_name, expected):
 )
 def test_package_is_version(version, version_wanted, expected, mocker):
     mocker.patch("importlib.metadata.version", return_value=version)
-    
+
     assert utils.package_is_version("abcd", version_wanted) is expected
