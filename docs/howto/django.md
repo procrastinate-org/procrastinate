@@ -87,7 +87,7 @@ You can also use other subcommands such as `./manage.py procrastinate defer`.
 
 :::{note}
 Procrastinate generates an app for you using a `Psycopg` (by default) or
-`Aiopg` connector depending on whether `psycopg3` or `aiopg` is
+`Aiopg` connector depending on whether `psycopg` version 3 or `aiopg` is
 installed, and connects using the `DATABASES` settings. If neither library is
 installed, an error will be raised.
 :::

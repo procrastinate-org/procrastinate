@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import importlib.metadata
 from typing import Any
 
 from django.conf import settings
@@ -36,3 +37,11 @@ def get_setting(name: str, *, default) -> Any:
 
 def package_is_installed(name: str) -> bool:
     return bool(importlib.util.find_spec(name))
+
+
+def package_is_version(name: str, version: int) -> bool:
+    """Assumes the version is written with dots"""
+    v = metadata.version(name)
+    if "." not in v:
+        return False
+    return int(v.split(".")[0]) == version
