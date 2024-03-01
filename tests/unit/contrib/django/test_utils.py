@@ -40,7 +40,7 @@ def test_package_is_installed(package_name, expected):
         (None, 3, False),
     ],
 )
-def test_package_is_version(version, version_wanted, expected):
-    with patch("importlib.metadata.version") as mock:
-        mock.return_value = version
-        assert utils.package_is_version("abcd", version_wanted) is expected
+def test_package_is_version(version, version_wanted, expected, mocker):
+    mocker.patch("importlib.metadata.version", return_value=version)
+    
+    assert utils.package_is_version("abcd", version_wanted) is expected
