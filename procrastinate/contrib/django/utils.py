@@ -39,9 +39,9 @@ def package_is_installed(name: str) -> bool:
     return bool(importlib.util.find_spec(name))
 
 
-def package_is_version(name: str, version: int) -> bool:
-    """Assumes the version is written with dots"""
-    v = importlib.metadata.version(name)
-    if not v or "." not in v:
-        return False
-    return int(v.split(".")[0]) == version
+def package_is_version(name: str, major: int) -> bool:
+    """
+    Check if package's (PEP440) version matches given major version number
+    """
+    version = importlib.metadata.version(name)
+    return bool(version) and version.split(".")[0] == f"{major}"
