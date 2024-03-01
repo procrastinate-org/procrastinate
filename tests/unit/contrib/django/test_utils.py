@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-import pytest
 from unittest.mock import patch
+
+import pytest
 
 from procrastinate.contrib.django import utils
 
@@ -28,6 +29,7 @@ def test_get_settings_default():
 )
 def test_package_is_installed(package_name, expected):
     assert utils.package_is_installed(package_name) is expected
+
 
 @pytest.mark.parametrize(
     "version, version_wanted,expected",
