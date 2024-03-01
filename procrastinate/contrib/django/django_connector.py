@@ -127,7 +127,9 @@ class DjangoConnector(connector.BaseAsyncConnector):
         """
         alias = utils.get_setting("DATABASE_ALIAS", default="default")
 
-        if utils.package_is_installed("psycopg") and utils.package_is_version("psycopg", 3):
+        if utils.package_is_installed("psycopg") and utils.package_is_version(
+            "psycopg", 3
+        ):
             from procrastinate import psycopg_connector
 
             return psycopg_connector.PsycopgConnector(
