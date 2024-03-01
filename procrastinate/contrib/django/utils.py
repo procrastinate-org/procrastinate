@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib.metadata
 import importlib.util
 from typing import Any
 
@@ -36,3 +37,11 @@ def get_setting(name: str, *, default) -> Any:
 
 def package_is_installed(name: str) -> bool:
     return bool(importlib.util.find_spec(name))
+
+
+def package_is_version(name: str, major: int) -> bool:
+    """
+    Check if package's (PEP440) version matches given major version number
+    """
+    version = importlib.metadata.version(name)
+    return bool(version) and version.split(".")[0] == f"{major}"

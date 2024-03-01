@@ -82,7 +82,7 @@ def test_execute_query_sync(django_connector):
 @pytest.mark.parametrize(
     "installed, type",
     [
-        ({"psycopg3"}, psycopg_connector.PsycopgConnector),
+        ({"psycopg"}, psycopg_connector.PsycopgConnector),
         ({"aiopg"}, aiopg_connector.AiopgConnector),
     ],
 )
