@@ -41,7 +41,7 @@ def package_is_installed(name: str) -> bool:
 
 def package_is_version(name: str, version: int) -> bool:
     """Assumes the version is written with dots"""
-    v = metadata.version(name)
-    if "." not in v:
+    v = importlib.metadata.version(name)
+    if not v or "." not in v:
         return False
     return int(v.split(".")[0]) == version
