@@ -7,7 +7,7 @@
 | procrastinate/\_\_init\_\_.py                                     |       19 |        0 |        0 |        0 |    100% |           |
 | procrastinate/\_\_main\_\_.py                                     |        6 |        0 |        2 |        0 |    100% |           |
 | procrastinate/app.py                                              |       84 |        1 |       10 |        0 |     99% |       264 |
-| procrastinate/blueprints.py                                       |       57 |        0 |       14 |        0 |    100% |           |
+| procrastinate/blueprints.py                                       |       58 |        0 |       14 |        0 |    100% |           |
 | procrastinate/builtin\_tasks.py                                   |        7 |        0 |        2 |        0 |    100% |           |
 | procrastinate/cli.py                                              |      214 |        3 |       42 |        2 |     98% |48, 135, 139 |
 | procrastinate/connector.py                                        |       42 |        0 |        0 |        0 |    100% |           |
@@ -50,7 +50,7 @@
 | procrastinate/types.py                                            |        4 |        0 |        0 |        0 |    100% |           |
 | procrastinate/utils.py                                            |      180 |        0 |       46 |        0 |    100% |           |
 | procrastinate/worker.py                                           |      171 |        0 |       42 |        0 |    100% |           |
-|                                                         **TOTAL** | **2374** |   **31** |  **688** |   **13** | **98%** |           |
+|                                                         **TOTAL** | **2375** |   **31** |  **688** |   **13** | **98%** |           |
 
 
 ## Setup coverage badge
