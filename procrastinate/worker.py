@@ -234,8 +234,8 @@ class Worker:
     def find_task(self, task_name: str) -> tasks.Task:
         try:
             return self.app.tasks[task_name]
-        except KeyError:
-            raise exceptions.TaskNotFound
+        except KeyError as exc:
+            raise exceptions.TaskNotFound from exc
 
     async def run_job(self, job: jobs.Job, worker_id: int) -> None:
         task_name = job.task_name

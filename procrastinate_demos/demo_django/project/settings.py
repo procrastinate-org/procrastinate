@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -126,16 +127,46 @@ STATIC_URL = "static/"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+
+# This emulates what a normal structured logging setup (e.g. structlog)
+# would get you out of the box, but we didn't want the demo to depend on
+# a specific logging library.
+class ProcrastinateFilter(logging.Filter):
+    _reserved_log_keys = frozenset(
+        """args asctime created exc_info exc_text filename
+        funcName levelname levelno lineno module msecs message msg name pathname
+        process processName relativeCreated stack_info thread threadName""".split()
+    )
+
+    def filter(self, record: logging.LogRecord):
+        record.procrastinate = {}
+        for key, value in vars(record).items():
+            if not key.startswith("_") and key not in self._reserved_log_keys | {
+                "procrastinate"
+            }:
+                record.procrastinate[key] = value  # type: ignore
+        return True
+
+
 LOGGING = {
     "version": 1,
     "formatters": {
-        "procrastinate": {"format": "%(asctime)s %(levelname)-7s %(name)s %(message)s"},
+        "procrastinate": {
+            "format": "%(asctime)s %(levelname)-7s %(name)s %(message)s %(procrastinate)s"
+        },
     },
     "handlers": {
         "procrastinate": {
             "level": "DEBUG",
             "class": "logging.StreamHandler",
             "formatter": "procrastinate",
+            "filters": ["procrastinate"],
+        },
+    },
+    "filters": {
+        "procrastinate": {
+            "()": "procrastinate_demos.demo_django.project.settings.ProcrastinateFilter",
+            "name": "procrastinate",
         },
     },
     "loggers": {
@@ -146,3 +177,5 @@ LOGGING = {
         },
     },
 }
+
+PROCRASTINATE_ON_APP_READY = "procrastinate_demos.demo_django.demo.tasks.on_app_ready"

@@ -168,6 +168,15 @@ class Blueprint:
             task.blueprint = self
         blueprint.tasks = new_tasks
 
+        logger.info(
+            "Adding tasks from blueprint",
+            extra={
+                "action": "loading_blueprint",
+                "namespace": namespace,
+                "tasks": [t.name for t in new_tasks.values()],
+            },
+        )
+
         # Add the namespaced tasks to this namespace
         self.tasks.update(new_tasks)
 

@@ -18,8 +18,17 @@ class ProcrastinateLogFilter(logging.Filter):
 logging.getLogger("procrastinate").addFilter(ProcrastinateLogFilter)
 ```
 
-We'll try to document what attribute is available on each log, but one common thing is
-the "action" attribute, that describes the event that triggered the logging. You can
+One extra attribute that should be common to all procrastinate logs is
+`action` attribute, that describes the event that triggered the logging. You can
 match on this.
 
+By default, extra attributes are not shown in the log output. The easiest way
+to see them is to use a structured logging library such as [`structlog`].
+
+If you want a minimal example of a logging setup that displays the extra
+attributes without using third party logging libraries, look at the
+[Django demo]
+
 [extra]: https://timber.io/blog/the-pythonic-guide-to-logging/#adding-context
+[`structlog`]: https://www.structlog.org/en/stable/
+[Django demo]: https://github.com/procrastinate-org/procrastinate/blob/main/procrastinate_demos/demo_django/project/settings.py#L151
