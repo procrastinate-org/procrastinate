@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytest
 
 from procrastinate import app, blueprints
-from procrastinate.contrib.django import exceptions, placeholder
+from procrastinate.contrib.django import exceptions, procrastinate_app
 
 
 def test__not_ready():
@@ -15,16 +15,16 @@ def test__not_ready():
         exceptions.DjangoNotReady,
         match=message,
     ):
-        placeholder._not_ready("foo")
+        procrastinate_app._not_ready("foo")
 
 
 def test_FutureApp__not_ready():
     with pytest.raises(exceptions.DjangoNotReady):
-        placeholder.FutureApp().open()
+        procrastinate_app.FutureApp().open()
 
 
 def test_FutureApp__defer():
-    app = placeholder.FutureApp()
+    app = procrastinate_app.FutureApp()
 
     @app.task
     def foo():
@@ -38,4 +38,4 @@ def test_FutureApp__shadowed_methods():
     ignored = {"from_path"}
     added = {"will_configure_task"}
     app_methods = set(dir(app.App)) - set(dir(blueprints.Blueprint)) - ignored | added
-    assert sorted(placeholder.FutureApp._shadowed_methods) == sorted(app_methods)
+    assert sorted(procrastinate_app.FutureApp._shadowed_methods) == sorted(app_methods)

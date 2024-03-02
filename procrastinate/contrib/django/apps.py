@@ -6,10 +6,8 @@ from django import apps
 from django.utils import module_loading
 
 import procrastinate
-from procrastinate.contrib import django as contrib_django
-from procrastinate.contrib.django import migrations_magic, utils
 
-from . import django_connector
+from . import django_connector, migrations_magic, procrastinate_app, utils
 
 
 class ProcrastinateConfig(apps.AppConfig):
@@ -18,11 +16,13 @@ class ProcrastinateConfig(apps.AppConfig):
 
     def ready(self) -> None:
         migrations_magic.load()
-        contrib_django.app = create_app(blueprint=contrib_django.app)
+        procrastinate_app._current_app = create_app(
+            blueprint=procrastinate_app._current_app
+        )
 
     @property
     def app(self) -> procrastinate.App:
-        return contrib_django.app
+        return procrastinate_app.app
 
 
 def get_import_paths() -> Iterable[str]:
