@@ -174,7 +174,10 @@ PROCRASTINATE_ON_APP_READY: str
 ## Logs
 
 Procrastinate logs to the `procrastinate` logger. You can configure it
-in your `LOGGING` settings.
+in your `LOGGING` settings. The exact setup depends on whether you use
+a structured logging library such as [`structlog`].
+
+See {doc}`logging` for more information.
 
 ## Startup actions
 
@@ -227,3 +230,4 @@ postgres' LISTEN/NOTIFY that integrate with Django. For instance,
 [open an issue]: https://github.com/procrastinate-org/procrastinate/issues
 [this talk at djangocon 2019]: https://www.youtube.com/watch?v=_DIlE-yc9ZQ
 [`AppConfig.ready()`]: https://docs.djangoproject.com/en/5.0/ref/applications/#django.apps.AppConfig.ready
+[`structlog`]: https://www.structlog.org/en/stable/
