@@ -7,7 +7,7 @@ controlled way.
 To use it, you can do:
 
 ```
-app = procrastinate.App(connector=procrastinate.testing.InMemoryConnector())
+testing_app = normal_app.with_connector(procrastinate.testing.InMemoryConnector())
 
 # Run the jobs your tests created, then stop the worker
 app.run_worker(wait=False)

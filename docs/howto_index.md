@@ -2,7 +2,6 @@
 
 :::{toctree}
 :caption: Basics
-:titlesonly: true
 
 howto/app
 howto/connector
@@ -15,7 +14,6 @@ howto/command_line
 
 :::{toctree}
 :caption: Advanced features
-:titlesonly: true
 
 howto/context
 howto/locks
@@ -26,14 +24,26 @@ howto/retry
 howto/middleware
 howto/events
 howto/sync_defer
-howto/django
 howto/custom_json_encoder_decoder
 howto/blueprints
 :::
 
 :::{toctree}
+:caption: Django integration
+
+howto/django/configuration
+howto/django/basic_usage
+howto/django/migrations
+howto/django/models
+howto/django/settings
+howto/django/logs
+howto/django/tests
+howto/django/startup_actions
+howto/django/scripts
+:::
+
+:::{toctree}
 :caption: Going to production
-:titlesonly: true
 
 howto/testing
 howto/logging
