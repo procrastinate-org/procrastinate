@@ -16,8 +16,8 @@ class ProcrastinateConfig(apps.AppConfig):
 
     def ready(self) -> None:
         migrations_magic.load()
-        procrastinate_app._current_app = create_app(
-            blueprint=procrastinate_app._current_app
+        procrastinate_app.current_app = create_app(
+            blueprint=procrastinate_app.current_app
         )
 
     @property
