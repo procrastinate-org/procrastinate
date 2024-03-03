@@ -91,7 +91,7 @@ class ProcrastinateEvent(ProcrastinateReadOnlyModelMixin, models.Model):
         db_table = "procrastinate_events"
 
 
-class ProcrastinatePeriodicDefer(models.Model):
+class ProcrastinatePeriodicDefer(ProcrastinateReadOnlyModelMixin, models.Model):
     id = models.BigAutoField(primary_key=True)
     task_name = models.CharField(max_length=128)
     defer_timestamp = models.BigIntegerField(blank=True, null=True)
