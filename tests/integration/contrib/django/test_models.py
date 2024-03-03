@@ -34,6 +34,20 @@ def test_procrastinate_job__no_create(db):
         models.ProcrastinateJob.objects.create(task_name="test_task")
 
 
+def test_procrastinate_job__create__with_setting(db, settings):
+    settings.PROCRASTINATE_READONLY_MODELS = False
+    assert models.ProcrastinateJob.objects.create(
+        task_name="test_task",
+        queue_name="foo",
+        lock="bar",
+        args={"a": 1, "b": 2},
+        status="todo",
+        scheduled_at=datetime.datetime.now(datetime.timezone.utc),
+        attempts=0,
+        queueing_lock="baz",
+    )
+
+
 def test_procrastinate_job__no_save(db):
     with pytest.raises(procrastinate.contrib.django.exceptions.ReadOnlyModel):
         models.ProcrastinateJob().save()
@@ -52,9 +66,9 @@ def test_procrastinate_event(db):
     one_sec = datetime.timedelta(seconds=1)
     event = models.ProcrastinateEvent.objects.values().get(job_id=job_id)
     at = event.pop("at")
+    event.pop("id")
     assert event == {
-        "id": 2,
-        "job_id": 2,
+        "job_id": job_id,
         "type": "deferred",
     }
     assert now - one_sec < at < now + one_sec

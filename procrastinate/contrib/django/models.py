@@ -4,7 +4,7 @@ from typing import Any, ClassVar, NoReturn
 
 from django.db import models
 
-from . import exceptions
+from . import exceptions, utils
 
 
 def _read_only(*args, **kwargs) -> NoReturn:
@@ -15,17 +15,25 @@ def _read_only(*args, **kwargs) -> NoReturn:
     )
 
 
-class ProcrastinateReadOnlyModelMixin:
-    def save(self, *args, **kwargs) -> NoReturn:
-        _read_only()
+def _is_readonly() -> bool:
+    return utils.get_setting("READONLY_MODELS", default=True)
 
-    def delete(self, *args, **kwargs) -> NoReturn:
-        _read_only()
+
+class ProcrastinateReadOnlyModelMixin:
+    def save(self, *args, **kwargs) -> Any:
+        if _is_readonly():
+            _read_only()
+        return super().save(*args, **kwargs)  # type: ignore
+
+    def delete(self, *args, **kwargs) -> Any:
+        if _is_readonly():
+            _read_only()
+        return super().delete(*args, **kwargs)  # type: ignore
 
 
 class ProcrastinateReadOnlyManager(models.Manager):
-    def __getattribute__(self, __name: str) -> Any:
-        if __name in [
+    def __getattribute__(self, name: str) -> Any:
+        if _is_readonly() and name in {
             "create",
             "acreate",
             "get_or_create",
@@ -40,9 +48,9 @@ class ProcrastinateReadOnlyManager(models.Manager):
             "abulk_update",
             "delete",
             "adelete",
-        ]:
+        }:
             return _read_only
-        return super().__getattribute__(__name)
+        return super().__getattribute__(name)
 
 
 class ProcrastinateJob(ProcrastinateReadOnlyModelMixin, models.Model):
