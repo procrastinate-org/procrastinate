@@ -31,24 +31,29 @@ class ProcrastinateReadOnlyModelMixin:
         return super().delete(*args, **kwargs)  # type: ignore
 
 
+_edit_methods = frozenset(
+    (
+        "create",
+        "acreate",
+        "get_or_create",
+        "aget_or_create",
+        "bulk_create",
+        "abulk_create",
+        "update",
+        "aupdate",
+        "update_or_create",
+        "aupdate_or_create",
+        "bulk_update",
+        "abulk_update",
+        "delete",
+        "adelete",
+    )
+)
+
+
 class ProcrastinateReadOnlyManager(models.Manager):
     def __getattribute__(self, name: str) -> Any:
-        if _is_readonly() and name in {
-            "create",
-            "acreate",
-            "get_or_create",
-            "aget_or_create",
-            "bulk_create",
-            "abulk_create",
-            "update",
-            "aupdate",
-            "update_or_create",
-            "aupdate_or_create",
-            "bulk_update",
-            "abulk_update",
-            "delete",
-            "adelete",
-        }:
+        if name in _edit_methods and _is_readonly():
             return _read_only
         return super().__getattribute__(name)
 
