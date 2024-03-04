@@ -13,6 +13,8 @@ changelog:
       labels: ["PR type: bugfix 🕵️"]
     - title: "Miscellaneous"
       labels: ["PR type: miscellaneous 👾"]
+    - title: "Documentation"
+      labels: ["PR type: documentation 📚"]
     - title: "Dependencies"
       labels: ["PR type: dependencies 🤖"]
     - title: "Uncategorized"
