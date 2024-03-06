@@ -26,10 +26,11 @@ or events through the ORM.
 
 ## Reference documentation
 
-:::{automodule} procrastinate.contrib.django.models
-    :members:
-:members: ProcrastinateJob, ProcrastinateEvent, ProcrastinatePeriodicDefer
-:::
+
+```{eval-rst}
+.. automodule:: procrastinate.contrib.django.models
+    :members: ProcrastinateJob, ProcrastinateEvent, ProcrastinatePeriodicDefer
+```
 
 
 ## Making the models writable in tests
