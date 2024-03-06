@@ -4,7 +4,7 @@ from typing import Any, ClassVar, NoReturn
 
 from django.db import models
 
-from . import exceptions
+from . import exceptions, utils
 
 
 def _read_only(*args, **kwargs) -> NoReturn:
@@ -15,34 +15,47 @@ def _read_only(*args, **kwargs) -> NoReturn:
     )
 
 
-class ProcrastinateReadOnlyModelMixin:
-    def save(self, *args, **kwargs) -> NoReturn:
-        _read_only()
+def _is_readonly() -> bool:
+    return utils.get_setting("READONLY_MODELS", default=True)
 
-    def delete(self, *args, **kwargs) -> NoReturn:
-        _read_only()
+
+class ProcrastinateReadOnlyModelMixin:
+    def save(self, *args, **kwargs) -> Any:
+        if _is_readonly():
+            _read_only()
+        return super().save(*args, **kwargs)  # type: ignore
+
+    def delete(self, *args, **kwargs) -> Any:
+        if _is_readonly():
+            _read_only()
+        return super().delete(*args, **kwargs)  # type: ignore
+
+
+_edit_methods = frozenset(
+    (
+        "create",
+        "acreate",
+        "get_or_create",
+        "aget_or_create",
+        "bulk_create",
+        "abulk_create",
+        "update",
+        "aupdate",
+        "update_or_create",
+        "aupdate_or_create",
+        "bulk_update",
+        "abulk_update",
+        "delete",
+        "adelete",
+    )
+)
 
 
 class ProcrastinateReadOnlyManager(models.Manager):
-    def __getattribute__(self, __name: str) -> Any:
-        if __name in [
-            "create",
-            "acreate",
-            "get_or_create",
-            "aget_or_create",
-            "bulk_create",
-            "abulk_create",
-            "update",
-            "aupdate",
-            "update_or_create",
-            "aupdate_or_create",
-            "bulk_update",
-            "abulk_update",
-            "delete",
-            "adelete",
-        ]:
+    def __getattribute__(self, name: str) -> Any:
+        if name in _edit_methods and _is_readonly():
             return _read_only
-        return super().__getattribute__(__name)
+        return super().__getattribute__(name)
 
 
 class ProcrastinateJob(ProcrastinateReadOnlyModelMixin, models.Model):
@@ -91,7 +104,7 @@ class ProcrastinateEvent(ProcrastinateReadOnlyModelMixin, models.Model):
         db_table = "procrastinate_events"
 
 
-class ProcrastinatePeriodicDefer(models.Model):
+class ProcrastinatePeriodicDefer(ProcrastinateReadOnlyModelMixin, models.Model):
     id = models.BigAutoField(primary_key=True)
     task_name = models.CharField(max_length=128)
     defer_timestamp = models.BigIntegerField(blank=True, null=True)

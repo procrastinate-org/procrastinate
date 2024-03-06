@@ -18,6 +18,8 @@ from __future__ import annotations
 import datetime
 import os
 
+import django
+
 # -- Project information -----------------------------------------------------
 
 project = "Procrastinate"
@@ -98,3 +100,8 @@ html_favicon = "favicon.ico"
 # -- Options for sphinx_github_changelog ---------------------------------
 
 sphinx_github_changelog_token = os.environ.get("CHANGELOG_GITHUB_TOKEN")
+
+# Provide settings so that Django models are importable
+os.environ["DJANGO_SETTINGS_MODULE"] = "tests.acceptance.django_settings"
+
+django.setup()

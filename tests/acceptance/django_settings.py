@@ -10,7 +10,6 @@ DATABASES = {
         "TEST": {"NAME": "procrastinate_django_test"},
     },
 }
-DATABASE_ROUTERS = ["procrastinate.contrib.django.ProcrastinateReadOnlyRouter"]
 INSTALLED_APPS = [
     "procrastinate.contrib.django",
 ]

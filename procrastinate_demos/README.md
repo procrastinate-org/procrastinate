@@ -16,7 +16,7 @@ production-ready code, and if you want to run them, you'll need to set
 up the Procrastinate development environment (see
 [contributing doc](contributing))
 
-To run the demos, set PROCRATINATE_APP to
+To run the demos, set PROCRASTINATE_APP to
 `procrastinate_demos.<demo_name>.app.app`, then run the
 `procrastinate` CLI or `python -m procrastinate_demos.<demo_name>`
 for the application main entrypoint.

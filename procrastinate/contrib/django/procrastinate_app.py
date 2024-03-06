@@ -54,10 +54,10 @@ class FutureApp(blueprints.Blueprint):
 
 class ProxyApp:
     def __repr__(self) -> str:
-        return repr(_current_app)
+        return repr(current_app)
 
     def __getattr__(self, name):
-        return getattr(_current_app, name)
+        return getattr(current_app, name)
 
 
 # Users may import the app before it's ready, so we're defining a proxy
@@ -69,4 +69,4 @@ app: app_module.App = cast(app_module.App, ProxyApp())
 # ProcrastinateConfig.ready() method.
 # This blueprint has special implementations for App methods so that if
 # users try to use the app before it's ready, they get a helpful error message.
-_current_app: app_module.App = cast(app_module.App, FutureApp())
+current_app: app_module.App = cast(app_module.App, FutureApp())
