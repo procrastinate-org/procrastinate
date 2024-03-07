@@ -278,7 +278,7 @@ class Blueprint:
     def periodic(self, *, cron: str, periodic_id: str = "", **kwargs: dict[str, Any]):
         """
         Task decorator, marks task as being scheduled for periodic deferring (see
-        `howto/cron`).
+        `howto/advanced/cron`).
 
         Parameters
         ----------

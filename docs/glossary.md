@@ -7,7 +7,7 @@ Let's go through a few words and their meaning.
 
 **Task**
 : A task is a function executed at a later time by another process. It is linked
-  to a default queue, and expects keyword arguments (see {doc}`howto/tasks`).
+  to a default queue, and expects keyword arguments (see {doc}`howto/basics/tasks`).
 
 **Job**
 : A job is the launching of a specific task with specific values for the
@@ -33,7 +33,7 @@ Let's go through a few words and their meaning.
   by one and executing them, and then wait for the queue to fill again.
 
 **Sub-worker**
-: In case of asynchronous concurrency (see {doc}`howto/concurrency`), there are
+: In case of asynchronous concurrency (see {doc}`howto/production/concurrency`), there are
   sub-workers, acting like the {py:class}`Worker`, except there are multiple of them.
   They are orchestrated by the worker itself.
 
@@ -62,7 +62,7 @@ App
 : When configuring a job using {py:meth}`Task.configure` you can attach a lock to the job.
   Jobs with the same lock are guaranteed to be executed in defer order, and in a
   sequential manner. No two jobs with the same lock can run simultaneously. See
-  {doc}`howto/locks` for more information.
+  {doc}`howto/advanced/locks` for more information.
 
 **Queueing Lock**
 : When configuring a job using {py:meth}`Task.configure` you can attach a queueing lock to

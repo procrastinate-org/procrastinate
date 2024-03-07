@@ -227,7 +227,7 @@ if __name__ == "__main__":
 ## Going further
 
 To continue with practical steps, head to the "{doc}`howto_index`" section. For
-example, have a look at the locks feature: {doc}`howto/locks`.
+example, have a look at the locks feature: {doc}`howto/advanced/locks`.
 
 If you want to better understand some design decisions, head to the {doc}`Discussions
 <discussions>` sections.

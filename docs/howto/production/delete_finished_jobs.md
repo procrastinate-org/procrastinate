@@ -47,7 +47,7 @@ $ procrastinate defer --queueing-lock=remove_old_jobs --ignore-already-enqueued 
     procrastinate_builtin_tasks.remove_old_jobs max_hours=72
 ```
 
-See also the {doc}`periodic launch <cron>` section for related information.
+See also {doc}`../advanced/cron` for related information.
 
 ### In Python code
 

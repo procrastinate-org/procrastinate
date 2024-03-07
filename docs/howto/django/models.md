@@ -44,7 +44,7 @@ jobs in normal operation.
 :::
 
 :::{note}
-This is not the only testing mechanism available. See {doc}`../testing` for more
+This is not the only testing mechanism available. See {doc}`../production/testing` for more
 features, potentially better suited for some kinds of tests and more details on
 this setting.
 :::

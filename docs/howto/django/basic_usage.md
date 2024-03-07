@@ -19,7 +19,7 @@ async def mytask2(obj_pk):
     ...
 ```
 
-See {doc}`../tasks` for more details on how to define tasks.
+See {doc}`../basics/tasks` for more details on how to define tasks.
 
 ## Running the worker & other CLI commands
 
@@ -39,7 +39,7 @@ default) or `Aiopg` connector depending on whether `psycopg` version 3 or
 library is installed, an error will be raised.
 :::
 
-See {doc}`../command_line` for more details on the CLI.
+See {doc}`../basics/command_line` for more details on the CLI.
 If you prefer writing your own scripts, see {doc}`scripts`.
 
 ## Deferring jobs
@@ -58,5 +58,5 @@ async def myasyncview(request):
     await mytask.defer_async(obj_pk=obj.pk)
 ```
 
-See {doc}`../defer` for more details on how to defer jobs.
+See {doc}`../basics/defer` for more details on how to defer jobs.
 [async orm api]: https://docs.djangoproject.com/en/4.2/topics/async/#queries-the-orm

@@ -205,7 +205,7 @@ class App(blueprints.Blueprint):
         concurrency : ``int``
             Indicates how many asynchronous jobs the worker can run in parallel.
             Do not use concurrency if you have synchronous blocking tasks.
-            See `howto/concurrency` (defaults to ``1``).
+            See `howto/production/concurrency` (defaults to ``1``).
         name : ``Optional[str]``
             Name of the worker. Will be passed in the `JobContext` and used in the
             logs (defaults to ``None`` which will result in the worker named

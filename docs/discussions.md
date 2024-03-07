@@ -130,7 +130,7 @@ following jobs with the same lock will not run until the interrupted job is eith
 manually set to "failed" or "succeeded". If a job simply fails, following jobs with the
 same locks may run.
 
-For a more practical approach, see {doc}`howto/locks`.
+For a more practical approach, see {doc}`howto/advanced/locks`.
 
 (discussion-async)=
 
@@ -168,7 +168,7 @@ Interpreter Lock][global interpreter lock], you will not benefit from parallelis
 to parallelize (thread-safe) I/Os.
 
 Procrastinate natively supports asynchronous job deferring, and asynchronous job
-execution (see {doc}`howto/concurrency`, {doc}`howto/sync_defer`).
+execution (see {doc}`howto/production/concurrency`, {doc}`howto/advanced/sync_defer`).
 
 (discussions-pool-size)=
 
@@ -184,7 +184,7 @@ is not counted in the pool which is only is used for {term}`sub-workers
 In previous versions of Procrastinate, setting `max_size` to `1`:
 disabled `LISTEN/NOTIFY`. It's not the case anymore. Note that disabling
 this feature is possible with `listen_notify=False`, see
-{doc}`howto/connections`.
+{doc}`howto/production/connections`.
 :::
 
 The relative sizing of your pool and your sub-workers all depends on the average length

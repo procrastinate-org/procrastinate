@@ -30,7 +30,7 @@ EOF  cancel  exit  help  list_locks  list_jobs  list_queues  list_tasks  retry
 ```
 
 As usual, you should use `--app` argument or `PROCRASTINATE_APP` environment
-variable to specify the application you want to use (see {doc}`command_line`).
+variable to specify the application you want to use (see {doc}`../basics/command_line`).
 
 There are commands to list all the jobs (`list_jobs`), tasks (`list_tasks`),
 queues (`list_queues`) and locks (`list_locks`).

@@ -15,7 +15,7 @@ database using any PostgreSQL client, including `psql` and `PGAdmin`.
 :::{note}
 If you use Django, instead of using the SQL migration scripts directly, you way want
 to rely on the Procrastinate Django app, and the Django database migration scripts
-this app provides. See {doc}`django/migrations` for more information.
+this app provides. See {doc}`../django/migrations` for more information.
 :::
 
 The migration scripts are located in the `procrastinate/sql/migrations` directory of

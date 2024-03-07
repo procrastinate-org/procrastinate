@@ -14,4 +14,4 @@ in sync with your current version of Procrastinate, it's always a good idea
 to check the release notes and read the migrations when upgrading so that you
 know what will be happening to the database.
 
-See {doc}`../migrations` for more information on migrations.
+See {doc}`../production/migrations` for more information on migrations.
