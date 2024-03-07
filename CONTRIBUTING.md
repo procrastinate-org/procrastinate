@@ -33,7 +33,7 @@ The `export` command below will be necessary whenever you want to interact
 with the database (using the project locally, launching tests, ...). These are
 standard [libpq environment variables] environment variables, and the values
 used below correspond to the Docker setup. Feel free to adjust them as
-necessary.
+necessary (The `dev-env` script will set them for you).
 
 ```console
 $ export PGDATABASE=procrastinate PGHOST=localhost PGUSER=postgres PGPASSWORD=password
@@ -128,6 +128,13 @@ This will keep you from creating a commit if there's a linting problem.
 In addition, an [editorconfig] file will help your favorite editor to respect
 procrastinate coding style. It is automatically used by most famous IDEs, such as
 Pycharm and VS Code.
+
+
+### Write the documentation
+
+The documentation is written in `Markdown` and built with `Sphinx` and `MyST`.
+Docstrings are written in `reStructuredText` (because writing them in `MyST` is
+still a bit complicated, it seems).
 
 ### Build the documentation
 
@@ -383,22 +390,8 @@ $ docker-compose down
 Yes, in order to provide both a synchronous **and** asynchronous API, Procrastinate
 needs to be asynchronous at core.
 
-We're using a trick to avoid implementing two almost identical APIs for synchronous
-and asynchronous usage. Find out more in the documentation, in the Discussions
-section. If you need information on how to work with asynchronous Python, check out:
-
-- The official documentation: <https://docs.python.org/3/library/asyncio.html>
-- A more accessible guide by Brad Solomon: <https://realpython.com/async-io-python/>
-
-## Things that could be done more cleanly
-
-As much as we'd like for our boilerplate to be perfect, there are still
-small things that can be improved:
-
-- mypy dependencies in pre-commit, we need to duplicate them. Though
-  this time, there is a script (`scripts/typing-package-versions`) that gives
-  you the lines to paste in `.pre-commit-config.yaml`. It's still expected to
-  be done manually though.
+When possible, we're trying to avoid duplicating code, with designs such as
+["hoisting the I/O"](https://www.youtube.com/watch?v=PBQN62oUnN8).
 
 ## Core contributor additional documentation
 
@@ -408,22 +401,23 @@ Please remember to tag Issues with appropriate labels.
 
 ### Pull Requests
 
-PR labels help `release-drafter` pre-fill the next release draft. They're not
+PR labels help pre-filling the next release draft. They're not
 mandatory, but releasing will be easier if they're present.
 
 ### Release a new version
 
-There should be an active Release Draft with the changelog in GitHub releases. Make
-relevant edits to the changelog, (see `TODO`) including listing the migrations
-for the release. Click on Release, that's it, the rest is automated.
+Draft a new release, Generate release notes, add `## Migrations`. Make relevant
+edits to the changelog, (see `TODO`). Click on Release, that's it, the rest is
+automated. This works with pre-release too.
 
-When creating the release, GitHub will save the release info and create a tag with
-the provided version. The new tag will be seen by GitHub Actions, which will then
-create a wheel (using the tag as version number, thanks to our `setup.py`), and push
-it to PyPI (using the new API tokens). That tag should also trigger a ReadTheDocs
-build, which will read GitHub releases (thanks to our `changelog` extension)
-which will  write the changelog in the published documentation (transformed from
-`Markdown` to `RestructuredText`).
+When creating the release, GitHub will save the release info and create a tag
+with the provided version. The new tag will be seen by GitHub Actions, which
+will then create a wheel (using the tag as version number, thanks to
+`poetry-dynamic-versioning`), and push it to PyPI (using Trusted publishing).
+That tag should also trigger a ReadTheDocs build, which will read GitHub
+releases (thanks to our `changelog` extension) which will write the changelog
+in the published documentation (transformed from `Markdown` to
+`RestructuredText`).
 
 After a new major version is released (e.g. `2.0.0`), in preparation for the next
 minor release (`2.1.0`), the migration scripts in the `future_migrations` directory
@@ -440,5 +434,5 @@ also rebuild the stable and latest doc on [readthedocs](https://readthedocs.org/
 [pipx]: https://pipx.pypa.io/stable/
 [poetry]: https://python-poetry.org/
 [pre-commit]: https://pre-commit.com/
-[procrastinate releases]: https://github.com/procrastinate-org/procrastinate/releases
-[pytest]: https://docs.pytest.org/en/latest/
+[Procrastinate releases]: https://github.com/procrastinate-org/procrastinate/releases
+[Pytest]: https://docs.pytest.org/en/latest/
