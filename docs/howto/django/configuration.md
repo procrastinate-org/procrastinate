@@ -27,7 +27,7 @@ INSTALLED_APPS = [
 ## Configuring the app
 
 An app will be configured for you in `procrastinate.contrib.django.app`.
-You don't have to configure an app yourself, but you can if you want to.
+You don't have to configure an app yourself.
 
 You can modify the app after its creation, for example to load additional tasks from
 blueprints, with:
