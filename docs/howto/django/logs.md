@@ -11,7 +11,7 @@ a structured logging library such as [`structlog`], you should see all the
 logs structured attributes.
 :::
 
-See {doc}`../logging` for more information.
+See {doc}`../production/logging` for more information.
 
 Here is an example of a basic settings where you can configure Procrastinate
 logs specifically. Without additional configuration, this will be lacking extra

@@ -36,7 +36,7 @@ or events through the ORM.
 ## Making the models writable in tests
 
 If you need to interact with the tables in your tests, a setting is provided:
-`PROCASTINATE_READONLY_MODELS`. If set to `False`, the models will be writable.
+`PROCRASTINATE_READONLY_MODELS`. If set to `False`, the models will be writable.
 
 :::{warning}
 This is only intended for tests and should not be used for deferring or retrying
@@ -44,7 +44,7 @@ jobs in normal operation.
 :::
 
 :::{note}
-This is not the only testing mechanism available. See {doc}`../testing` for more
+This is not the only testing mechanism available. See {doc}`../production/testing` for more
 features, potentially better suited for some kinds of tests and more details on
 this setting.
 :::
