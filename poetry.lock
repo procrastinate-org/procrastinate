@@ -1475,13 +1475,13 @@ rtd = ["ipython", "myst-nb", "sphinx", "sphinx-book-theme", "sphinx-examples"]
 
 [[package]]
 name = "sphinx-github-changelog"
-version = "1.2.1"
+version = "1.3.0"
 description = "Build a sphinx changelog from GitHub Releases"
 optional = false
-python-versions = ">=3.7,<4.0"
+python-versions = ">=3.8,<4.0"
 files = [
-    {file = "sphinx_github_changelog-1.2.1-py3-none-any.whl", hash = "sha256:27b8906220c8010f116b61c90980f84d12f9446fb144f7c575c124e9c92e6c46"},
-    {file = "sphinx_github_changelog-1.2.1.tar.gz", hash = "sha256:20affb353bf02c89b868c2e5b9c61693dd22f3d2b2e134063c49f9e0d69352a5"},
+    {file = "sphinx_github_changelog-1.3.0-py3-none-any.whl", hash = "sha256:eb5424d590ae7866e77b8db7eecf283678cba76b74d90b17bc4f3872976407eb"},
+    {file = "sphinx_github_changelog-1.3.0.tar.gz", hash = "sha256:b898adc52131147305b9cb893c2a4cad0ba2912178ed8f88b62bf6f43a2baaa4"},
 ]
 
 [package.dependencies]
