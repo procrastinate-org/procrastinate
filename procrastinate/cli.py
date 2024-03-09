@@ -86,9 +86,9 @@ class ActionWithNegative(argparse._StoreTrueAction):
         super().__init__(*args, **kwargs)
         self.negative = negative
 
-    def __call__(self, parser, ns, values, option):
+    def __call__(self, parser, ns, values, option=None):
         if self.negative is None:
-            setattr(ns, self.dest, not option.startswith("--no-"))
+            setattr(ns, self.dest, option and not option.startswith("--no-"))
             return
         setattr(ns, self.dest, option != self.negative)
 
