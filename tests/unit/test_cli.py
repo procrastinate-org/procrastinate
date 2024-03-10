@@ -131,13 +131,15 @@ def test_add_arguments__exclude_schema():
         parser.parse_args(["schema"])
 
 
-def test_add_arguments__exclude_healthchecks():
+def test_add_arguments__custom_healthchecks():
+    async def healthchecks(app):
+        pass
+
     parser = cli.create_parser()
-    cli.add_arguments(parser, include_healthchecks=False)
+    cli.add_arguments(parser, custom_healthchecks=healthchecks)
     cli.add_cli_features(parser)
 
-    with pytest.raises(SystemExit):
-        parser.parse_args(["healthchecks"])
+    assert parser.parse_args(["healthchecks"]).func == healthchecks
 
 
 @pytest.mark.parametrize(
