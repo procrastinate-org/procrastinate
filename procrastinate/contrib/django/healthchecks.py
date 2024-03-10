@@ -4,7 +4,7 @@ from asgiref import sync
 from django.core import exceptions as django_exceptions
 from django.db import connections
 from django.db import utils as db_utils
-from django.db.migrations.executor import MigrationExecutor
+from django.db.migrations import executor as executor_module
 
 from procrastinate import app as procrastinate_app
 from procrastinate import exceptions
@@ -17,7 +17,6 @@ from . import settings
 def healthchecks(app: procrastinate_app.App):
     alias = settings.settings.DATABASE_ALIAS
     connection = connections[alias]
-
     try:
         connection.ensure_connection()
     except db_utils.DatabaseError as exc:
@@ -26,7 +25,7 @@ def healthchecks(app: procrastinate_app.App):
     print("Database connection: OK")
 
     try:
-        executor = MigrationExecutor(connections[alias])
+        executor = executor_module.MigrationExecutor(connections[alias])
     except django_exceptions.ImproperlyConfigured as exc:
         raise exceptions.ConnectorException() from exc
 
