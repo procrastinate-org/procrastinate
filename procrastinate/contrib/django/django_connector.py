@@ -10,7 +10,7 @@ from django.db.backends.base.base import BaseDatabaseWrapper
 from typing_extensions import LiteralString
 
 from procrastinate import connector
-from procrastinate.contrib.django import utils
+from procrastinate.contrib.django import settings, utils
 
 if TYPE_CHECKING:
     from psycopg.types.json import Jsonb
@@ -125,7 +125,7 @@ class DjangoConnector(connector.BaseAsyncConnector):
         ``procrastinate.contrib.aiopg.AiopgConnector`` or ``procrastinate.contrib.psycopg3.PsycopgConnector``
             A connector that can be used in a worker
         """
-        alias = utils.get_setting("DATABASE_ALIAS", default="default")
+        alias = settings.settings.DATABASE_ALIAS
 
         if utils.package_is_installed("psycopg") and utils.package_is_version(
             "psycopg", 3

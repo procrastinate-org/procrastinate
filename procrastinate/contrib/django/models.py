@@ -4,7 +4,7 @@ from typing import Any, ClassVar, NoReturn
 
 from django.db import models
 
-from . import exceptions, utils
+from . import exceptions, settings
 
 
 def _read_only(*args, **kwargs) -> NoReturn:
@@ -16,7 +16,7 @@ def _read_only(*args, **kwargs) -> NoReturn:
 
 
 def _is_readonly() -> bool:
-    return utils.get_setting("READONLY_MODELS", default=True)
+    return settings.settings.READONLY_MODELS
 
 
 class ProcrastinateReadOnlyModelMixin:

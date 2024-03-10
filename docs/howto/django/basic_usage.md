@@ -25,18 +25,19 @@ See {doc}`../basics/tasks` for more details on how to define tasks.
 
 Run the worker with the following command.
 ```console
-$ (venv) ./manage.py procrastinate worker
+(venv) $ ./manage.py procrastinate worker
 ```
 
 `./manage.py procrastinate` mostly behaves like the `procrastinate` command
-itself, with some commands removed and the app is configured for you.
-Apart from `worker`, subcommands such as `defer` are supported.
+itself. The subcommand `schema` is not available, as Procrastinate will use
+Django migrations. The `--app` option is also not available, as Procrastinate
+the automatically provided app (see {doc}`configuration`).
 
 :::{note}
-Procrastinate generates a fully async connector for you using a `Psycopg` (by
-default) or `Aiopg` connector depending on whether `psycopg` version 3 or
-`aiopg` is installed, and connects using the `DATABASES` settings. If neither
-library is installed, an error will be raised.
+As a fully async connector is needed to run the worker, Procrastinate generates
+one for you using `Psycopg` (by default) or `Aiopg` depending on
+whether `psycopg` version 3 or `aiopg` is installed, and connects using the
+`DATABASES` settings. If neither library is installed, an error will be raised.
 :::
 
 See {doc}`../basics/command_line` for more details on the CLI.
@@ -60,3 +61,16 @@ async def myasyncview(request):
 
 See {doc}`../basics/defer` for more details on how to defer jobs.
 [async orm api]: https://docs.djangoproject.com/en/4.2/topics/async/#queries-the-orm
+
+## Checking proper configuration
+
+You can check that Procrastinate is properly configured by running the following command:
+```console
+(venv) $ ./manage.py procrastinate healthchecks
+Database connection: OK
+Migrations: OK
+Default Django Procrastinate App: OK
+Worker App: OK
+```
+
+See {doc}`../production/monitoring` for more details on healthchecks.

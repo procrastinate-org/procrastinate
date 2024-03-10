@@ -5,7 +5,7 @@ import asyncio
 from django.core.management.base import BaseCommand
 
 from procrastinate import cli
-from procrastinate.contrib.django import app, django_connector
+from procrastinate.contrib.django import app, django_connector, healthchecks
 
 
 class Command(BaseCommand):
@@ -17,7 +17,7 @@ class Command(BaseCommand):
             parser,
             include_app=False,
             include_schema=False,
-            include_healthchecks=False,
+            custom_healthchecks=healthchecks.healthchecks,
         )
 
     def handle(self, *args, **kwargs):

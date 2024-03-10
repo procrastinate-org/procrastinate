@@ -7,7 +7,7 @@ from django.utils import module_loading
 
 import procrastinate
 
-from . import django_connector, migrations_magic, procrastinate_app, utils
+from . import django_connector, migrations_magic, procrastinate_app, settings
 
 
 class ProcrastinateConfig(apps.AppConfig):
@@ -26,30 +26,30 @@ class ProcrastinateConfig(apps.AppConfig):
 
 
 def get_import_paths() -> Iterable[str]:
-    module_name = utils.get_setting("AUTODISCOVER_MODULE_NAME", default="tasks")
+    module_name = settings.settings.AUTODISCOVER_MODULE_NAME
     if module_name:
         # It's ok that we don't yield the discovered modules here, the
         # important thing is that they are imported.
         module_loading.autodiscover_modules(module_name)
 
-    yield from utils.get_setting("IMPORT_PATHS", default=[])
+    yield from settings.settings.IMPORT_PATHS
 
 
 def create_app(blueprint: procrastinate.Blueprint) -> procrastinate.App:
     connector = django_connector.DjangoConnector(
-        alias=utils.get_setting("DATABASE_ALIAS", default="default")
+        alias=settings.settings.DATABASE_ALIAS,
     )
     app = procrastinate.App(
         connector=connector,
         import_paths=list(get_import_paths()),
-        worker_defaults=utils.get_setting("WORKER_DEFAULTS", default=None),
-        periodic_defaults=utils.get_setting("PERIODIC_DEFAULTS", default=None),
+        worker_defaults=settings.settings.WORKER_DEFAULTS,
+        periodic_defaults=settings.settings.PERIODIC_DEFAULTS,
     )
 
     if blueprint.tasks:
         app.add_tasks_from(blueprint, namespace="")
 
-    on_app_ready_path = utils.get_setting("ON_APP_READY", default=None)
+    on_app_ready_path = settings.settings.ON_APP_READY
     if on_app_ready_path:
         on_app_ready = module_loading.import_string(on_app_ready_path)
         on_app_ready(app)
