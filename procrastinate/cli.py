@@ -7,7 +7,7 @@ import json
 import logging
 import os
 import sys
-from typing import Any, Callable, Literal, Union
+from typing import Any, Awaitable, Callable, Literal, Union
 
 import procrastinate
 from procrastinate import connector, exceptions, jobs, shell, types, utils, worker
@@ -231,7 +231,7 @@ def add_arguments(
     parser: argparse.ArgumentParser,
     include_app: bool = True,
     include_schema: bool = True,
-    include_healthchecks: bool = True,
+    custom_healthchecks: Callable[[procrastinate.App], Awaitable[None]] | None = None,
 ):
     if include_app:
         add_argument(
@@ -249,8 +249,7 @@ def add_arguments(
     configure_defer_parser(subparsers)
     if include_schema:
         configure_schema_parser(subparsers)
-    if include_healthchecks:
-        configure_healthchecks_parser(subparsers)
+    configure_healthchecks_parser(subparsers, custom_healthchecks=custom_healthchecks)
     configure_shell_parser(subparsers)
     return parser
 
@@ -455,14 +454,17 @@ def configure_schema_parser(subparsers: argparse._SubParsersAction):
     )
 
 
-def configure_healthchecks_parser(subparsers: argparse._SubParsersAction):
+def configure_healthchecks_parser(
+    subparsers: argparse._SubParsersAction,
+    custom_healthchecks: Callable[[procrastinate.App], Awaitable[None]] | None = None,
+):
     # --- Healthchecks ---
     healthchecks_parser = subparsers.add_parser(
         "healthchecks",
         help="Check the state of procrastinate",
         **parser_options,
     )
-    healthchecks_parser.set_defaults(func=healthchecks)
+    healthchecks_parser.set_defaults(func=custom_healthchecks or healthchecks)
 
 
 def configure_shell_parser(subparsers: argparse._SubParsersAction):
