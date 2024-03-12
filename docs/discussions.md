@@ -253,7 +253,7 @@ Procrastinate:
   driver. Under the hood, we have factored as much as possible the non-I/O
   parts of the code, so that the synchronous and asynchronous versions are
   only separate in the way they handle I/Os.
-- For executing a synchrnous task: we use `asgiref.sync.sync_to_async` to run the
+- For executing a synchronous task: we use `asgiref.sync.sync_to_async` to run the
   synchronous code in a thread.
 - There are a few case where we facilitate calling Procrastinate from
   synchronous codebases, by providing a synchronous API, where we'll create an
