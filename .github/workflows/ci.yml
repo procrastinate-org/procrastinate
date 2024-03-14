@@ -74,8 +74,8 @@ jobs:
 
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.8'  # Important for importlib_metadata
-          cache: 'poetry'
+          python-version: "3.8" # Important for importlib_metadata
+          cache: "poetry"
 
       - name: Install dependencies
         run: poetry install --all-extras --with=types
@@ -83,7 +83,17 @@ jobs:
       - name: Activate virtualenv
         run: echo "$(poetry env info --path)/bin" >> $GITHUB_PATH
 
+      - name: Extract pyright version from pre-commit
+        id: pre-commit-pyright-version
+        run: >
+          yq '.repos
+          | filter(.repo == "https://github.com/RobertCraigie/pyright-python").0.rev
+          | "pyright-version="+sub("^v", "")'
+          .pre-commit-config.yaml >> $GITHUB_OUTPUT
+
       - uses: jakebailey/pyright-action@v2
+        with:
+          version: ${{ steps.pre-commit-pyright-version.outputs.pyright-version }}
 
   report-status:
     name: success
