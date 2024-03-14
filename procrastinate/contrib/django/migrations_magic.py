@@ -155,9 +155,9 @@ def make_migration(
     counter: Iterator[int],
 ) -> type[migrations.Migration]:
     class NewMigration(migrations.Migration):
-        initial: ClassVar = previous_migration is None
-        operations: ClassVar = [migrations.RunSQL(sql=sql_migration.contents)]
-        name: ClassVar = f"{next(counter):04d}_{sql_migration.name}"
+        initial = previous_migration is None
+        operations = [migrations.RunSQL(sql=sql_migration.contents)]
+        name = f"{next(counter):04d}_{sql_migration.name}"
 
         if previous_migration:
             dependencies: ClassVar = [("procrastinate", previous_migration.name)]
