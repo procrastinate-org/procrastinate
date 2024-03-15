@@ -3,7 +3,7 @@
 ## Defining tasks
 
 Add your tasks to `tasks.py` in your Django app.
-Inside tasks, you can use the classical ORM API or the [async ORM API] to access your models.
+Inside tasks, you can use the classical ORM API or the async ORM API to access your models.
 
 ```python
 from procrastinate.contrib.django import app
