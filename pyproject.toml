@@ -131,6 +131,8 @@ exclude = ["tests", ".venv"]
 
 [tool.ruff]
 extend-exclude = [".venv", "migrations"]
+
+[tool.ruff.lint]
 extend-select = [
     "UP",  # pyupgrade
     "I",   # isort
@@ -141,6 +143,9 @@ extend-select = [
 fixable = ["ALL"]
 extend-ignore = [
     "E501", # line too long
+    # It's not exactly false but it's not supported enough by our dependencies,
+    # so ruff is fighting with Pyright on this.
+    "RUF012", # Mutable class attributes should be annotated with `typing.ClassVar`
 ]
 
 [tool.ruff.lint.isort]
