@@ -45,7 +45,7 @@ def on_app_ready(app: procrastinate.App):
 ```
 
 :::{note}
-While not recoomended, you may decide to use a different app from the one
+While not recommended, you may decide to use a different app from the one
 provided in `procrastinate.contrib.django.app`, it's not strictly incompatible,
 but it might be more complicated and you may run into issues.
 :::
