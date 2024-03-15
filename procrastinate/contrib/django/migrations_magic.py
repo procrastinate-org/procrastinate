@@ -7,7 +7,6 @@ import types
 from importlib import abc, machinery
 from typing import (
     TYPE_CHECKING,
-    ClassVar,
     Iterable,
     Iterator,
 )
@@ -160,6 +159,6 @@ def make_migration(
         name = f"{next(counter):04d}_{sql_migration.name}"
 
         if previous_migration:
-            dependencies: ClassVar = [("procrastinate", previous_migration.name)]
+            dependencies = [("procrastinate", previous_migration.name)]
 
     return NewMigration

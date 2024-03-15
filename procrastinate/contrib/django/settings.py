@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, ClassVar
+from typing import Any
 
 from django.conf import settings as django_settings
 from typing_extensions import dataclass_transform
@@ -17,13 +17,13 @@ class BaseSettings:
 
 
 class Settings(BaseSettings):
-    AUTODISCOVER_MODULE_NAME: ClassVar[str] = "tasks"
-    IMPORT_PATHS: ClassVar[list[str]] = []
-    DATABASE_ALIAS: ClassVar[str] = "default"
-    WORKER_DEFAULTS: ClassVar[dict[str, str] | None] = None
-    PERIODIC_DEFAULTS: ClassVar[dict[str, str] | None] = None
-    ON_APP_READY: ClassVar[str | None] = None
-    READONLY_MODELS: ClassVar[bool] = True
+    AUTODISCOVER_MODULE_NAME: str = "tasks"
+    IMPORT_PATHS: list[str] = []
+    DATABASE_ALIAS: str = "default"
+    WORKER_DEFAULTS: dict[str, str] | None = None
+    PERIODIC_DEFAULTS: dict[str, str] | None = None
+    ON_APP_READY: str | None = None
+    READONLY_MODELS: bool = True
 
 
 settings = Settings()

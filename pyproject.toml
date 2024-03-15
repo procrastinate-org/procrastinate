@@ -131,6 +131,8 @@ exclude = ["tests", ".venv"]
 
 [tool.ruff]
 extend-exclude = [".venv", "migrations"]
+
+[tool.ruff.lint]
 extend-select = [
     "UP",  # pyupgrade
     "I",   # isort

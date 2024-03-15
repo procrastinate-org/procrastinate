@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, ClassVar, NoReturn
+from typing import Any, NoReturn
 
 from django.db import models
 
@@ -116,4 +116,4 @@ class ProcrastinatePeriodicDefer(ProcrastinateReadOnlyModelMixin, models.Model):
     class Meta:  # type: ignore
         managed = False
         db_table = "procrastinate_periodic_defers"
-        unique_together: ClassVar = [("task_name", "periodic_id", "defer_timestamp")]
+        unique_together = [("task_name", "periodic_id", "defer_timestamp")]

@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import ClassVar
-
 from django.db import migrations, models
 
 import procrastinate.contrib.django.models
@@ -12,11 +10,11 @@ static_migrations = {}
 class Migration(migrations.Migration):
     initial = True
 
-    dependencies: ClassVar = [
+    dependencies = [
         ("procrastinate", "0024_job_id_bigint"),
     ]
 
-    operations: ClassVar = [
+    operations = [
         migrations.CreateModel(
             name="ProcrastinateEvent",
             fields=[
