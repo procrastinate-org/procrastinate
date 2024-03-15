@@ -10,10 +10,5 @@
     "enabled": true,
     "automerge": true,
   },
-  "packageRules": [
-    {
-      "automerge": true,
-      "groupName": "Deps",
-    },
-  ],
+  "automerge": true,
 }
