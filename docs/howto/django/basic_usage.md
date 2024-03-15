@@ -5,6 +5,8 @@
 Add your tasks to `tasks.py` in your Django app.
 Inside tasks, you can use the classical ORM API or the [async ORM API] to access your models.
 
+[async ORM API]: https://docs.djangoproject.com/en/4.2/topics/async/#queries-the-orm
+
 ```python
 from procrastinate.contrib.django import app
 
@@ -60,7 +62,7 @@ async def myasyncview(request):
 ```
 
 See {doc}`../basics/defer` for more details on how to defer jobs.
-[async orm api]: https://docs.djangoproject.com/en/4.2/topics/async/#queries-the-orm
+
 
 ## Checking proper configuration
 
