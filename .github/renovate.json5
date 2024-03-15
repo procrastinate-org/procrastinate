@@ -12,27 +12,8 @@
   },
   "packageRules": [
     {
-      "matchUpdateTypes": [
-        "major",
-      ],
-      "groupName": "Deps with major upgrades",
-    },
-    {
-      "matchUpdateTypes": [
-        "minor",
-        "patch",
-        "pin",
-        "digest",
-      ],
       "automerge": true,
-      "groupName": "Deps with minor upgrades",
-    },
-    {
-      "matchDepTypes": [
-        "devDependencies",
-      ],
-      "automerge": true,
-      "groupName": "Dev dependencies",
+      "groupName": "Deps",
     },
   ],
 }
