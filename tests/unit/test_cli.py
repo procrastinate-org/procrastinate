@@ -60,14 +60,16 @@ def test_main(mocker):
             ["defer", "x", "--at", "2023-01-01T00:00:00"],
             {
                 "command": "defer",
-                "at": datetime.datetime(2023, 1, 1, tzinfo=datetime.timezone.utc),
+                "schedule_at": datetime.datetime(
+                    2023, 1, 1, tzinfo=datetime.timezone.utc
+                ),
             },
         ),
         (
             ["defer", "x", "--in", "3600"],
             {
                 "command": "defer",
-                "in_": {"seconds": 3600},
+                "schedule_in": {"seconds": 3600},
             },
         ),
         (
