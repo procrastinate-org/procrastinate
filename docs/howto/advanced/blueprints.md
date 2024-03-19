@@ -4,7 +4,7 @@ Procrastinate provides Blueprints as a way to factor a large number of tasks
 into smaller self contained collections.
 
 You may want to create a collection for simple organsational reasons within the
-same project. Or you may want to maintain a collection of tasks in a seperate
+same project. Or you may want to maintain a collection of tasks in a separate
 package which is maintained independently of your Procrastinate codebase:
 
 ```
