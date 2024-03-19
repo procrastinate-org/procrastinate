@@ -175,7 +175,7 @@ execution (see {doc}`howto/production/concurrency`, {doc}`howto/advanced/sync_de
 ### Mind the size of your PostgreSQL pool
 
 You can size the PostgreSQL pool using the `max_size` argument of
-{py:class}`PsycopgConnector`. Procrastinate will use use one connection to listen to
+{py:class}`PsycopgConnector`. Procrastinate will use one connection to listen to
 server-side `NOTIFY` calls (see {ref}`discussion-general`). That connection
 is not counted in the pool which is only is used for {term}`sub-workers
 <Sub-worker>`.
