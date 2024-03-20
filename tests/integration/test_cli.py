@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import dataclasses
+import datetime
 import logging
 import os
 
@@ -167,6 +168,67 @@ async def test_defer(entrypoint, cli_app, connector):
             "task_name": "hello",
         }
     }
+
+
+async def test_defer_at(entrypoint, cli_app, connector):
+    @cli_app.task(name="hello")
+    def mytask(a):
+        pass
+
+    # No space in the json helps entrypoint() to simply split args
+    result = await entrypoint(
+        """defer --lock=sherlock --at=2020-01-01T12:00:00Z hello {"a":1}"""
+    )
+
+    assert "Launching a job: hello(a=1)\n" in result.stderr
+    assert result.exit_code == 0
+    assert connector.jobs == {
+        1: {
+            "args": {"a": 1},
+            "attempts": 0,
+            "id": 1,
+            "lock": "sherlock",
+            "queueing_lock": None,
+            "queue_name": "default",
+            "scheduled_at": datetime.datetime(
+                2020, 1, 1, 12, tzinfo=datetime.timezone.utc
+            ),
+            "status": "todo",
+            "task_name": "hello",
+        }
+    }
+
+
+async def test_defer_in(entrypoint, cli_app, connector):
+    @cli_app.task(name="hello")
+    def mytask(a):
+        pass
+
+    now = datetime.datetime.now(datetime.timezone.utc)
+
+    # No space in the json helps entrypoint() to simply split args
+    result = await entrypoint("""defer --lock=sherlock --in=10 hello {"a":1}""")
+
+    assert "Launching a job: hello(a=1)\n" in result.stderr
+    assert result.exit_code == 0
+    assert len(connector.jobs) == 1
+    job = connector.jobs[1]
+    scheduled_at = job.pop("scheduled_at")
+    assert job == {
+        "args": {"a": 1},
+        "attempts": 0,
+        "id": 1,
+        "lock": "sherlock",
+        "queueing_lock": None,
+        "queue_name": "default",
+        "status": "todo",
+        "task_name": "hello",
+    }
+    assert (
+        now + datetime.timedelta(seconds=9)
+        < scheduled_at
+        < now + datetime.timedelta(seconds=11)
+    )
 
 
 async def test_defer_queueing_lock(entrypoint, cli_app, connector):
