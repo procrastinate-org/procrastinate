@@ -286,6 +286,17 @@ files = [
 ]
 
 [[package]]
+name = "contextlib2"
+version = "21.6.0"
+description = "Backports and enhancements for the contextlib module"
+optional = false
+python-versions = ">=3.6"
+files = [
+    {file = "contextlib2-21.6.0-py2.py3-none-any.whl", hash = "sha256:3fbdb64466afd23abaf6c977627b75b6139a5a3e8ce38405c5b413aed7a0471f"},
+    {file = "contextlib2-21.6.0.tar.gz", hash = "sha256:ab1e2bfe1d01d968e1b7e8d9023bc51ef3509bba217bb730cee3827e1ee82869"},
+]
+
+[[package]]
 name = "coverage"
 version = "7.4.4"
 description = "Code coverage measurement for Python"
@@ -1829,4 +1840,4 @@ sqlalchemy = ["sqlalchemy"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8"
-content-hash = "a24d4cf663211fbee4c8d940fbb80363f7ec6ab5b8721e7dd353e0aa84bf55c3"
+content-hash = "050bd48624b2d48e761d3bfb650c0649936f4cfdae6672bdbdaad9daceb9595b"

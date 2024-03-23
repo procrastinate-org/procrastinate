@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import functools
 import logging
-from typing import Any, Callable, Coroutine, Iterable
+from typing import Any, AsyncGenerator, Callable, Coroutine, Iterable
 
 import aiopg
 import psycopg2
@@ -20,26 +20,19 @@ logger = logging.getLogger(__name__)
 CoroutineFunction = Callable[..., Coroutine]
 
 
-def wrap_exceptions(coro: CoroutineFunction) -> CoroutineFunction:
+@utils.async_context_decorator
+async def wrap_exceptions() -> AsyncGenerator[None, None]:
     """
     Wrap psycopg2 and aiopg errors as connector exceptions.
 
     This decorator is expected to be used on coroutine functions only.
     """
-
-    @functools.wraps(coro)
-    async def wrapped(*args, **kwargs):
-        try:
-            return await coro(*args, **kwargs)
-        except psycopg2.errors.UniqueViolation as exc:
-            raise exceptions.UniqueViolation(constraint_name=exc.diag.constraint_name)
-        except psycopg2.Error as exc:
-            raise exceptions.ConnectorException from exc
-
-    # Attaching a custom attribute to ease testability and make the
-    # decorator more introspectable
-    wrapped._exceptions_wrapped = True  # type: ignore
-    return wrapped
+    try:
+        yield
+    except psycopg2.errors.UniqueViolation as exc:
+        raise exceptions.UniqueViolation(constraint_name=exc.diag.constraint_name)
+    except psycopg2.Error as exc:
+        raise exceptions.ConnectorException from exc
 
 
 def wrap_query_exceptions(coro: CoroutineFunction) -> CoroutineFunction:
@@ -167,7 +160,7 @@ class AiopgConnector(connector.BaseAsyncConnector):
         """
         base_on_connect = pool_args.pop("on_connect", None)
 
-        @wrap_exceptions
+        @wrap_exceptions()
         async def on_connect(connection):
             if base_on_connect:
                 await base_on_connect(connection)
@@ -201,7 +194,7 @@ class AiopgConnector(connector.BaseAsyncConnector):
         else:
             self._pool = await self._create_pool(self._pool_args)
 
-    @wrap_exceptions
+    @wrap_exceptions()
     async def _create_pool(self, pool_args: dict[str, Any]) -> aiopg.Pool:
         if self._sync_connector is not None:
             await utils.sync_to_async(self._sync_connector.close)
@@ -209,7 +202,7 @@ class AiopgConnector(connector.BaseAsyncConnector):
 
         return await aiopg.create_pool(**pool_args)
 
-    @wrap_exceptions
+    @wrap_exceptions()
     async def close_async(self) -> None:
         """
         Close the pool and awaits all connections to be released.
@@ -246,13 +239,13 @@ class AiopgConnector(connector.BaseAsyncConnector):
     # Because of this, it's easier to have 2 distinct methods for executing from
     # a pool or from a connection
 
-    @wrap_exceptions
+    @wrap_exceptions()
     @wrap_query_exceptions
     async def execute_query_async(self, query: str, **arguments: Any) -> None:
         with await self.pool.cursor() as cursor:
             await cursor.execute(query, self._wrap_json(arguments))
 
-    @wrap_exceptions
+    @wrap_exceptions()
     @wrap_query_exceptions
     async def _execute_query_connection(
         self, query: str, connection: aiopg.Connection, **arguments: Any
@@ -260,7 +253,7 @@ class AiopgConnector(connector.BaseAsyncConnector):
         async with connection.cursor() as cursor:
             await cursor.execute(query, self._wrap_json(arguments))
 
-    @wrap_exceptions
+    @wrap_exceptions()
     @wrap_query_exceptions
     async def execute_query_one_async(
         self, query: str, **arguments: Any
@@ -270,7 +263,7 @@ class AiopgConnector(connector.BaseAsyncConnector):
 
             return await cursor.fetchone()
 
-    @wrap_exceptions
+    @wrap_exceptions()
     @wrap_query_exceptions
     async def execute_query_all_async(
         self, query: str, **arguments: Any
@@ -288,7 +281,7 @@ class AiopgConnector(connector.BaseAsyncConnector):
             }
         )
 
-    @wrap_exceptions
+    @wrap_exceptions()
     async def listen_notify(
         self, event: asyncio.Event, channels: Iterable[str]
     ) -> None:
@@ -315,7 +308,7 @@ class AiopgConnector(connector.BaseAsyncConnector):
                 event.set()
                 await self._loop_notify(event=event, connection=connection)
 
-    @wrap_exceptions
+    @wrap_exceptions()
     async def _loop_notify(
         self,
         event: asyncio.Event,

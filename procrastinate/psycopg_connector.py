@@ -2,20 +2,18 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
-import functools
 import logging
 from typing import (
     TYPE_CHECKING,
     Any,
+    AsyncGenerator,
     AsyncIterator,
     Callable,
-    Coroutine,
     Iterable,
-    TypeVar,
     cast,
 )
 
-from typing_extensions import LiteralString, ParamSpec
+from typing_extensions import LiteralString
 
 from procrastinate import connector, exceptions, sql, sync_psycopg_connector, utils
 
@@ -39,32 +37,11 @@ else:
 
 logger = logging.getLogger(__name__)
 
-T = TypeVar("T")
-P = ParamSpec("P")
 
-
-def wrap_exceptions(
-    coro: Callable[P, Coroutine[None, Any, T]],
-) -> Callable[P, Coroutine[None, Any, T]]:
-    """
-    Wrap psycopg errors as connector exceptions.
-
-    This decorator is expected to be used on coroutine functions only.
-    """
-
-    @functools.wraps(coro)
-    async def wrapped(*args: P.args, **kwargs: P.kwargs) -> T:
-        try:
-            return await coro(*args, **kwargs)
-        except psycopg.errors.UniqueViolation as exc:
-            raise exceptions.UniqueViolation(constraint_name=exc.diag.constraint_name)
-        except psycopg.Error as exc:
-            raise exceptions.ConnectorException from exc
-
-    # Attaching a custom attribute to ease testability and make the
-    # decorator more introspectable
-    wrapped._exceptions_wrapped = True  # type: ignore
-    return wrapped
+@utils.async_context_decorator
+async def wrap_exceptions() -> AsyncGenerator[None, None]:
+    with sync_psycopg_connector.wrap_exceptions():
+        yield
 
 
 class PsycopgConnector(connector.BaseAsyncConnector):
@@ -162,7 +139,7 @@ class PsycopgConnector(connector.BaseAsyncConnector):
             await self._async_pool.open(wait=True)  # type: ignore
 
     @staticmethod
-    @wrap_exceptions
+    @wrap_exceptions()
     async def _create_pool(
         pool_args: dict[str, Any],
     ) -> psycopg_pool.AsyncConnectionPool:
@@ -177,7 +154,7 @@ class PsycopgConnector(connector.BaseAsyncConnector):
             check=psycopg_pool.AsyncConnectionPool.check_connection,
         )
 
-    @wrap_exceptions
+    @wrap_exceptions()
     async def close_async(self) -> None:
         """
         Close the pool and awaits all connections to be released.
@@ -209,12 +186,12 @@ class PsycopgConnector(connector.BaseAsyncConnector):
                     )
                 yield cursor
 
-    @wrap_exceptions
+    @wrap_exceptions()
     async def execute_query_async(self, query: LiteralString, **arguments: Any) -> None:
         async with self._get_cursor() as cursor:
             await cursor.execute(query, self._wrap_json(arguments))
 
-    @wrap_exceptions
+    @wrap_exceptions()
     async def execute_query_one_async(
         self, query: LiteralString, **arguments: Any
     ) -> dict[str, Any]:
@@ -227,7 +204,7 @@ class PsycopgConnector(connector.BaseAsyncConnector):
                 raise exceptions.NoResult
             return result
 
-    @wrap_exceptions
+    @wrap_exceptions()
     async def execute_query_all_async(
         self, query: LiteralString, **arguments: Any
     ) -> list[dict[str, Any]]:
@@ -245,7 +222,7 @@ class PsycopgConnector(connector.BaseAsyncConnector):
             **{key: psycopg.sql.Identifier(value) for key, value in identifiers.items()}
         )
 
-    @wrap_exceptions
+    @wrap_exceptions()
     async def listen_notify(
         self, event: asyncio.Event, channels: Iterable[str]
     ) -> None:
@@ -265,7 +242,7 @@ class PsycopgConnector(connector.BaseAsyncConnector):
                 event.set()
                 await self._loop_notify(event=event, connection=connection)
 
-    @wrap_exceptions
+    @wrap_exceptions()
     async def _loop_notify(
         self,
         event: asyncio.Event,

@@ -7,7 +7,7 @@ from procrastinate import exceptions, sync_psycopg_connector
 
 
 def test_wrap_exceptions_wraps():
-    @sync_psycopg_connector.wrap_exceptions
+    @sync_psycopg_connector.wrap_exceptions()
     def func():
         raise psycopg.DatabaseError
 
@@ -16,7 +16,7 @@ def test_wrap_exceptions_wraps():
 
 
 def test_wrap_exceptions_success():
-    @sync_psycopg_connector.wrap_exceptions
+    @sync_psycopg_connector.wrap_exceptions()
     def func(a, b):
         return a, b
 
@@ -35,7 +35,7 @@ def test_wrap_exceptions_success():
 )
 def test_wrap_exceptions_applied(method_name):
     connector = sync_psycopg_connector.SyncPsycopgConnector()
-    assert getattr(connector, method_name)._exceptions_wrapped is True
+    assert hasattr(getattr(connector, method_name), "__wrapped__")
 
 
 @pytest.fixture

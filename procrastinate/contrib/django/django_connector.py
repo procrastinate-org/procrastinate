@@ -1,7 +1,13 @@
 from __future__ import annotations
 
 import asyncio
-from typing import TYPE_CHECKING, Any, Iterable
+import contextlib
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Generator,
+    Iterable,
+)
 
 import asgiref.sync
 from django.core import exceptions as django_exceptions
@@ -14,11 +20,28 @@ from procrastinate.contrib.django import settings, utils
 
 if TYPE_CHECKING:
     from psycopg.types.json import Jsonb
+
+    is_psycopg3 = True
 else:
     try:
-        from django.db.backends.postgresql.psycopg_any import Jsonb
+        from django.db.backends.postgresql.psycopg_any import Jsonb, is_psycopg3
     except ImportError:
         from psycopg2.extras import Json as Jsonb
+
+        is_psycopg3 = False
+
+
+@contextlib.contextmanager
+def wrap_exceptions() -> Generator[None, None, None]:
+    if is_psycopg3:
+        from procrastinate.sync_psycopg_connector import wrap_exceptions as wrap
+    else:
+        from procrastinate.contrib.psycopg2.psycopg2_connector import (
+            wrap_exceptions as wrap,
+        )
+
+    with wrap():
+        yield
 
 
 class DjangoConnector(connector.BaseAsyncConnector):
@@ -88,10 +111,12 @@ class DjangoConnector(connector.BaseAsyncConnector):
             for key, value in arguments.items()
         }
 
+    @wrap_exceptions()
     def execute_query(self, query: LiteralString, **arguments: Any) -> None:
         with self.connection.cursor() as cursor:
             cursor.execute(query, self._wrap_json(arguments))
 
+    @wrap_exceptions()
     def execute_query_one(
         self, query: LiteralString, **arguments: Any
     ) -> dict[str, Any]:
@@ -99,6 +124,7 @@ class DjangoConnector(connector.BaseAsyncConnector):
             cursor.execute(query, self._wrap_json(arguments))
             return next(self._dictfetch(cursor))
 
+    @wrap_exceptions()
     def execute_query_all(
         self, query: LiteralString, **arguments: Any
     ) -> list[dict[str, Any]]:

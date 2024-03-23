@@ -1,43 +1,35 @@
 from __future__ import annotations
 
 import contextlib
-import functools
 import logging
-from typing import Any, Callable, Iterator, TypeVar
+from typing import Any, Callable, Generator, Iterator
 
 import psycopg
 import psycopg.rows
 import psycopg.sql
 import psycopg.types.json
 import psycopg_pool
-from typing_extensions import LiteralString, ParamSpec
+from typing_extensions import LiteralString
 
 from procrastinate import connector, exceptions
 
 logger = logging.getLogger(__name__)
 
-T = TypeVar("T")
-P = ParamSpec("P")
 
-
-def wrap_exceptions(func: Callable[P, T]) -> Callable[P, T]:
+@contextlib.contextmanager
+def wrap_exceptions() -> Generator[None, None, None]:
     """
     Wrap psycopg errors as connector exceptions.
+
+    This decorator is expected to be used on coroutine functions only.
     """
 
-    @functools.wraps(func)
-    def wrapped(*args: P.args, **kwargs: P.kwargs) -> T:
-        try:
-            return func(*args, **kwargs)
-        except psycopg.errors.UniqueViolation as exc:
-            raise exceptions.UniqueViolation(constraint_name=exc.diag.constraint_name)
-        except psycopg.Error as exc:
-            raise exceptions.ConnectorException from exc
-
-    # Attaching a custom attribute to ease testability and make the
-    # decorator more introspectable
-    wrapped._exceptions_wrapped = True  # type: ignore
-    return wrapped
+    try:
+        yield
+    except psycopg.errors.UniqueViolation as exc:
+        raise exceptions.UniqueViolation(constraint_name=exc.diag.constraint_name)
+    except psycopg.Error as exc:
+        raise exceptions.ConnectorException from exc
 
 
 class SyncPsycopgConnector(connector.BaseConnector):
@@ -111,7 +103,7 @@ class SyncPsycopgConnector(connector.BaseConnector):
             self._pool.open(wait=True)
 
     @staticmethod
-    @wrap_exceptions
+    @wrap_exceptions()
     def _create_pool(pool_args: dict[str, Any]) -> psycopg_pool.ConnectionPool:
         pool = psycopg_pool.ConnectionPool(
             **pool_args,
@@ -125,7 +117,7 @@ class SyncPsycopgConnector(connector.BaseConnector):
         )
         return pool
 
-    @wrap_exceptions
+    @wrap_exceptions()
     def close(self) -> None:
         """
         Close the pool and s all connections to be released.
@@ -158,12 +150,12 @@ class SyncPsycopgConnector(connector.BaseConnector):
                     )
                 yield cursor
 
-    @wrap_exceptions
+    @wrap_exceptions()
     def execute_query(self, query: LiteralString, **arguments: Any) -> None:
         with self.pool.connection() as conn:
             conn.execute(query, self._wrap_json(arguments))
 
-    @wrap_exceptions
+    @wrap_exceptions()
     def execute_query_one(
         self, query: LiteralString, **arguments: Any
     ) -> dict[str, Any]:
@@ -176,7 +168,7 @@ class SyncPsycopgConnector(connector.BaseConnector):
                 raise exceptions.NoResult
             return result
 
-    @wrap_exceptions
+    @wrap_exceptions()
     def execute_query_all(
         self, query: LiteralString, **arguments: Any
     ) -> list[dict[str, Any]]:

@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import datetime
 import importlib
 import inspect
 import logging
 import pathlib
+import sys
 import types
 from typing import (
     Any,
@@ -423,3 +425,12 @@ async def gen_with_timeout(
                 raise
             else:
                 return
+
+
+def async_context_decorator(func: Callable) -> Callable:
+    if sys.version_info < (3, 10):
+        import contextlib2
+
+        return contextlib2.asynccontextmanager(func)
+    else:
+        return contextlib.asynccontextmanager(func)

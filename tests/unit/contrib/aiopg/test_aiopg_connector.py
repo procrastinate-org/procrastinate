@@ -41,7 +41,7 @@ async def test_adapt_pool_args_on_connect(mocker):
     ],
 )
 async def test_wrap_exceptions_wraps(exc_type, expected_type):
-    @aiopg_connector.wrap_exceptions
+    @aiopg_connector.wrap_exceptions()
     async def corofunc():
         raise exc_type
 
@@ -52,7 +52,7 @@ async def test_wrap_exceptions_wraps(exc_type, expected_type):
 
 
 async def test_wrap_exceptions_success():
-    @aiopg_connector.wrap_exceptions
+    @aiopg_connector.wrap_exceptions()
     async def corofunc(a, b):
         return a, b
 
@@ -143,7 +143,7 @@ async def test_wrap_query_exceptions_success(mocker):
     ],
 )
 def test_wrap_exceptions_applied(method_name, connector):
-    assert getattr(connector, method_name)._exceptions_wrapped is True
+    assert hasattr(getattr(connector, method_name), "__wrapped__")
 
 
 async def test_listen_notify_pool_one_connection(mocker, caplog, connector):
