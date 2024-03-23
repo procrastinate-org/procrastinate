@@ -12,7 +12,7 @@ def connector():
 
 
 async def test_wrap_exceptions_wraps():
-    @psycopg_connector.wrap_exceptions
+    @psycopg_connector.wrap_exceptions()
     async def corofunc():
         raise psycopg.DatabaseError
 
@@ -23,7 +23,7 @@ async def test_wrap_exceptions_wraps():
 
 
 async def test_wrap_exceptions_success():
-    @psycopg_connector.wrap_exceptions
+    @psycopg_connector.wrap_exceptions()
     async def corofunc(a, b):
         return a, b
 
@@ -42,7 +42,7 @@ async def test_wrap_exceptions_success():
     ],
 )
 def test_wrap_exceptions_applied(method_name, connector):
-    assert getattr(connector, method_name)._exceptions_wrapped is True
+    assert hasattr(getattr(connector, method_name), "__wrapped__")
 
 
 async def test_open_async_no_pool_specified(mocker, connector):

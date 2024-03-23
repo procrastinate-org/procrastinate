@@ -3,7 +3,7 @@ from __future__ import annotations
 import contextlib
 import functools
 import logging
-from typing import Any, Callable, Iterator
+from typing import Any, Callable, Generator, Iterator
 
 import psycopg2
 import psycopg2.errors
@@ -15,24 +15,17 @@ from procrastinate import connector, exceptions
 logger = logging.getLogger(__name__)
 
 
-def wrap_exceptions(func: Callable) -> Callable:
+@contextlib.contextmanager
+def wrap_exceptions() -> Generator[None, None, None]:
     """
     Wrap psycopg2 errors as connector exceptions.
     """
-
-    @functools.wraps(func)
-    def wrapped(*args, **kwargs):
-        try:
-            return func(*args, **kwargs)
-        except psycopg2.errors.UniqueViolation as exc:
-            raise exceptions.UniqueViolation(constraint_name=exc.diag.constraint_name)
-        except psycopg2.Error as exc:
-            raise exceptions.ConnectorException from exc
-
-    # Attaching a custom attribute to ease testability and make the
-    # decorator more introspectable
-    wrapped._exceptions_wrapped = True  # type: ignore
-    return wrapped
+    try:
+        yield
+    except psycopg2.errors.UniqueViolation as exc:
+        raise exceptions.UniqueViolation(constraint_name=exc.diag.constraint_name)
+    except psycopg2.Error as exc:
+        raise exceptions.ConnectorException from exc
 
 
 def wrap_query_exceptions(func: Callable) -> Callable:
@@ -68,7 +61,7 @@ def wrap_query_exceptions(func: Callable) -> Callable:
 
 
 class Psycopg2Connector(connector.BaseConnector):
-    @wrap_exceptions
+    @wrap_exceptions()
     def __init__(
         self,
         *,
@@ -150,11 +143,11 @@ class Psycopg2Connector(connector.BaseConnector):
             self._pool = self._create_pool(self._pool_args)
 
     @staticmethod
-    @wrap_exceptions
+    @wrap_exceptions()
     def _create_pool(pool_args: dict[str, Any]) -> psycopg2.pool.AbstractConnectionPool:
         return psycopg2.pool.ThreadedConnectionPool(**pool_args)
 
-    @wrap_exceptions
+    @wrap_exceptions()
     def close(self) -> None:
         """
         Close the pool
@@ -194,14 +187,14 @@ class Psycopg2Connector(connector.BaseConnector):
             connection.commit()
             self.pool.putconn(connection)
 
-    @wrap_exceptions
+    @wrap_exceptions()
     @wrap_query_exceptions
     def execute_query(self, query: str, **arguments: Any) -> None:
         with self._connection() as connection:
             with connection.cursor() as cursor:
                 cursor.execute(query, self._wrap_json(arguments))
 
-    @wrap_exceptions
+    @wrap_exceptions()
     @wrap_query_exceptions
     def execute_query_one(self, query: str, **arguments: Any) -> dict[str, Any]:
         with self._connection() as connection:
@@ -211,7 +204,7 @@ class Psycopg2Connector(connector.BaseConnector):
                 # dict when configured with RealDictCursor
                 return cursor.fetchone()  # type: ignore
 
-    @wrap_exceptions
+    @wrap_exceptions()
     @wrap_query_exceptions
     def execute_query_all(self, query: str, **arguments: Any) -> dict[str, Any]:
         with self._connection() as connection:

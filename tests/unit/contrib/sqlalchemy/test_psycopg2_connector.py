@@ -11,7 +11,7 @@ from procrastinate.contrib.sqlalchemy import (
 
 
 def test_wrap_exceptions_wraps():
-    @sqlalchemy_psycopg2_connector.wrap_exceptions
+    @sqlalchemy_psycopg2_connector.wrap_exceptions()
     def func():
         raise sqlalchemy.exc.OperationalError(
             statement="SELECT 1", params={}, orig=psycopg2.DatabaseError()
@@ -25,7 +25,7 @@ def test_wrap_exceptions_unique_violation(mocker):
     class UniqueViolation(psycopg2.errors.UniqueViolation):
         diag = None
 
-    @sqlalchemy_psycopg2_connector.wrap_exceptions
+    @sqlalchemy_psycopg2_connector.wrap_exceptions()
     def func():
         exc = UniqueViolation()
         exc.diag = mocker.Mock(constraint_name="constraint name")
@@ -38,7 +38,7 @@ def test_wrap_exceptions_unique_violation(mocker):
 
 
 def test_wrap_exceptions_integrity_error_not_unique(mocker):
-    @sqlalchemy_psycopg2_connector.wrap_exceptions
+    @sqlalchemy_psycopg2_connector.wrap_exceptions()
     def func():
         exc = Exception()
         exc.diag = mocker.Mock(constraint_name="constraint name")
@@ -49,7 +49,7 @@ def test_wrap_exceptions_integrity_error_not_unique(mocker):
 
 
 def test_wrap_exceptions_success():
-    @sqlalchemy_psycopg2_connector.wrap_exceptions
+    @sqlalchemy_psycopg2_connector.wrap_exceptions()
     def func(a, b):
         return a, b
 
@@ -127,7 +127,7 @@ def test_wrap_query_exceptions_success(mocker):
 )
 def test_wrap_exceptions_applied(method_name):
     connector = sqlalchemy_psycopg2_connector.SQLAlchemyPsycopg2Connector()
-    assert getattr(connector, method_name)._exceptions_wrapped is True
+    assert hasattr(getattr(connector, method_name), "__wrapped__")
 
 
 @pytest.fixture

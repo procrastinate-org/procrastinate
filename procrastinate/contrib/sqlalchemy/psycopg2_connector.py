@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+import contextlib
 import functools
 import re
-from typing import Any, Callable, Mapping
+from typing import Any, Callable, Generator, Mapping
 
 import psycopg2.errors
 import sqlalchemy
@@ -11,28 +12,19 @@ from psycopg2.extras import Json
 from procrastinate import connector, exceptions
 
 
-def wrap_exceptions(func: Callable) -> Callable:
+@contextlib.contextmanager
+def wrap_exceptions() -> Generator[None, None, None]:
     """
     Wrap SQLAlchemy errors as connector exceptions.
     """
-
-    @functools.wraps(func)
-    def wrapped(*args, **kwargs):
-        try:
-            return func(*args, **kwargs)
-        except sqlalchemy.exc.IntegrityError as exc:
-            if isinstance(exc.orig, psycopg2.errors.UniqueViolation):
-                raise exceptions.UniqueViolation(
-                    constraint_name=exc.orig.diag.constraint_name
-                )
-            raise exceptions.ConnectorException from exc
-        except sqlalchemy.exc.SQLAlchemyError as exc:
-            raise exceptions.ConnectorException from exc
-
-    # Attaching a custom attribute to ease testability and make the
-    # decorator more introspectable
-    wrapped._exceptions_wrapped = True  # type: ignore
-    return wrapped
+    try:
+        yield
+    except sqlalchemy.exc.SQLAlchemyError as exc:
+        if isinstance(exc.orig, psycopg2.errors.UniqueViolation):
+            raise exceptions.UniqueViolation(
+                constraint_name=exc.orig.diag.constraint_name
+            )
+        raise exceptions.ConnectorException from exc
 
 
 def wrap_query_exceptions(func: Callable) -> Callable:
@@ -96,8 +88,8 @@ class SQLAlchemyPsycopg2Connector(connector.BaseConnector):
         self._engine_kwargs = kwargs
         self._engine_externally_set = False
 
-    @wrap_exceptions
-    def open(self, engine: sqlalchemy.engine.Engine | None = None) -> None:
+    @wrap_exceptions()
+    def open(self, engine: sqlalchemy.engine.Engine | None = None) -> None:  # type: ignore
         """
         Create an SQLAlchemy engine for the connector.
 
@@ -125,7 +117,7 @@ class SQLAlchemyPsycopg2Connector(connector.BaseConnector):
         """
         return sqlalchemy.create_engine(url=dsn, **engine_kwargs)
 
-    @wrap_exceptions
+    @wrap_exceptions()
     def close(self) -> None:
         """
         Dispose of the connection pool used by the SQLAlchemy engine.
@@ -148,7 +140,7 @@ class SQLAlchemyPsycopg2Connector(connector.BaseConnector):
             for key, value in arguments.items()
         }
 
-    @wrap_exceptions
+    @wrap_exceptions()
     @wrap_query_exceptions
     def execute_query(self, query: str, **arguments: Any) -> None:
         with self.engine.begin() as connection:
@@ -156,7 +148,7 @@ class SQLAlchemyPsycopg2Connector(connector.BaseConnector):
                 PERCENT_PATTERN.sub("%%", query), self._wrap_json(arguments)
             )
 
-    @wrap_exceptions
+    @wrap_exceptions()
     @wrap_query_exceptions
     def execute_query_one(self, query: str, **arguments: Any) -> Mapping[str, Any]:
         with self.engine.begin() as connection:
@@ -168,7 +160,7 @@ class SQLAlchemyPsycopg2Connector(connector.BaseConnector):
             # dict when configured with RealDictCursor
             return mapping.fetchone()  # type: ignore
 
-    @wrap_exceptions
+    @wrap_exceptions()
     @wrap_query_exceptions
     def execute_query_all(
         self, query: str, **arguments: Any
