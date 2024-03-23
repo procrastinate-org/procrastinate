@@ -485,3 +485,22 @@ async def test_async_gen_timeout__complete():
         result.append(i)
 
     assert result == [1, 2, 3]
+
+
+async def test_async_context_decorator():
+    result = []
+
+    @utils.async_context_decorator
+    async def func():
+        result.append(1)
+        yield
+        result.append(3)
+
+    @func()
+    async def func2():
+        result.append(2)
+        return 4
+
+    assert await func2() == 4
+
+    assert result == [1, 2, 3]

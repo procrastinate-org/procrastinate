@@ -38,7 +38,7 @@ else:
 logger = logging.getLogger(__name__)
 
 
-@contextlib.asynccontextmanager
+@utils.async_context_decorator
 async def wrap_exceptions() -> AsyncGenerator[None, None]:
     with sync_psycopg_connector.wrap_exceptions():
         yield

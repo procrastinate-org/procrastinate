@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-import contextlib
 import functools
 import logging
 from typing import Any, AsyncGenerator, Callable, Coroutine, Iterable
@@ -21,7 +20,7 @@ logger = logging.getLogger(__name__)
 CoroutineFunction = Callable[..., Coroutine]
 
 
-@contextlib.asynccontextmanager
+@utils.async_context_decorator
 async def wrap_exceptions() -> AsyncGenerator[None, None]:
     """
     Wrap psycopg2 and aiopg errors as connector exceptions.

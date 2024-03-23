@@ -28,6 +28,7 @@ aiopg = { version = "*", optional = true }
 anyio = "*"
 asgiref = "*"
 attrs = "*"
+contextlib2 = { version = "*", python = "<3.10" }
 croniter = "*"
 django = { version = ">=2.2", optional = true }
 importlib-metadata = { version = "*", python = "<3.8" }
