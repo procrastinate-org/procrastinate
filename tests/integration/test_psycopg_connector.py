@@ -8,7 +8,7 @@ import asgiref.sync
 import attr
 import pytest
 
-from procrastinate import psycopg_connector
+from procrastinate import exceptions, psycopg_connector
 
 
 @pytest.fixture
@@ -95,6 +95,20 @@ async def test_execute_query(psycopg_connector):
         "SELECT obj_description('public.procrastinate_jobs'::regclass)"
     )
     assert result == [{"obj_description": "foo"}]
+
+
+async def test_wrap_exceptions(psycopg_connector):
+    await psycopg_connector.execute_query_async(
+        """SELECT procrastinate_defer_job(
+            'queue', 'foo', NULL, 'lock', '{}', NULL
+        ) AS id;"""
+    )
+    with pytest.raises(exceptions.UniqueViolation):
+        await psycopg_connector.execute_query_async(
+            """SELECT procrastinate_defer_job(
+                'queue', 'foo', NULL, 'lock', '{}', NULL
+            ) AS id;"""
+        )
 
 
 async def test_execute_query_sync(psycopg_connector):
@@ -203,6 +217,3 @@ async def test_loop_notify_timeout(psycopg_connector):
         pytest.fail("Failed to detect that connection was closed and stop")
 
     assert not event.is_set()
-
-
-async def test_destructor(): ...
