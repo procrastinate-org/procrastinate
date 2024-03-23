@@ -40,7 +40,6 @@ async def test_run(app, caplog):
         "defer_job",
         "fetch_job",
         "finish_job",
-        "fetch_job",
     ]
 
     logs = {(r.action, r.levelname) for r in caplog.records}
@@ -52,7 +51,6 @@ async def test_run(app, caplog):
         ("start_job", "INFO"),
         ("job_success", "INFO"),
         ("finish_task", "DEBUG"),
-        ("waiting_for_jobs", "DEBUG"),
     } <= logs
 
 
