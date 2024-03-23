@@ -8,9 +8,9 @@ def extract_metadata() -> Mapping[str, str]:
     metadata = importlib_metadata.metadata("procrastinate")
 
     return {
-        "author": metadata["Author"],
-        "email": metadata["Author-email"],
-        "license": metadata["License"],
-        "url": metadata["Home-page"],
-        "version": metadata["Version"],
+        "author": metadata.get("Author", ""),
+        "email": metadata.get("Author-email", ""),
+        "license": metadata.get("License", ""),
+        "url": metadata.get("Home-page", ""),
+        "version": metadata.get("Version", ""),
     }
