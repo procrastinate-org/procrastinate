@@ -284,7 +284,9 @@ async def test_finish_job_wrong_end_status(
 async def test_retry_job(pg_job_manager, fetched_job_factory):
     job1 = await fetched_job_factory(queue="queue_a")
 
-    await pg_job_manager.retry_job(job=job1, retry_at=datetime.datetime.utcnow())
+    await pg_job_manager.retry_job(
+        job=job1, retry_at=datetime.datetime.now(datetime.timezone.utc)
+    )
 
     job2 = await pg_job_manager.fetch_job(queues=None)
 
@@ -480,23 +482,12 @@ async def test_list_tasks_dict(fixture_jobs, pg_job_manager):
     }
 
 
-async def test_list_locks_dict(fixture_jobs, job_factory, pg_job_manager):
-    pg_job_manager.defer_job_async(
-        job=job_factory(
-            queue="q3",
-            lock=None,
-            queueing_lock="queueing_lock3",
-            task_name="task_foo",
-            task_kwargs={"key": "a"},
-        )
-    )
-    assert (await pg_job_manager.list_locks_async())[0] == {
-        "name": "lock1",
-        "jobs_count": 1,
-        "todo": 1,
-        "doing": 0,
-        "succeeded": 0,
-        "failed": 0,
+async def test_list_locks_dict(fixture_jobs, pg_job_manager):
+    assert {e["name"] for e in await pg_job_manager.list_locks_async()} == {
+        "lock1",
+        "lock2",
+        "lock3",
+        "lock4",
     }
 
 

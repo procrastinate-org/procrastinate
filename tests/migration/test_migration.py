@@ -2,15 +2,25 @@ from __future__ import annotations
 
 import contextlib
 import pathlib
+import warnings
 
 import pytest
 from django.core import management
 from django.db import connection
-from migra import Migration
 from sqlalchemy.pool import NullPool
 from sqlbag import S
 
 from procrastinate import psycopg_connector, schema
+
+with warnings.catch_warnings(record=True):
+    # migra uses schemainspect which uses pkg_resources which is deprecated
+    warnings.filterwarnings(
+        action="ignore", category=DeprecationWarning, module="pkg_resources"
+    )
+    warnings.filterwarnings(
+        action="ignore", category=DeprecationWarning, module="schemainspect"
+    )
+    from migra import Migration
 
 
 @pytest.fixture

@@ -71,6 +71,9 @@ pytest-cov = "*"
 pytest-django = "*"
 pytest-mock = "*"
 migra = "*"
+# migra depends on schemainspect, which has an implicit dependency on setuptools
+# (pkg_resources).
+setuptools = { version = "*", python = ">=3.12" }
 
 [tool.poetry.group.docs.dependencies]
 django = ">=2.2"
@@ -103,7 +106,10 @@ testpaths = [
     "tests/acceptance",
     "tests/migration",
 ]
-filterwarnings = ""
+filterwarnings = """
+    error
+    ignore:unclosed.+:ResourceWarning
+"""
 asyncio_mode = "auto"
 DJANGO_SETTINGS_MODULE = "tests.acceptance.django_settings"
 
