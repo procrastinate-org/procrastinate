@@ -13,10 +13,10 @@
 | procrastinate/connector.py                                        |       42 |        0 |        0 |        0 |    100% |           |
 | procrastinate/contrib/\_\_init\_\_.py                             |        0 |        0 |        0 |        0 |    100% |           |
 | procrastinate/contrib/aiopg/\_\_init\_\_.py                       |        3 |        0 |        0 |        0 |    100% |           |
-| procrastinate/contrib/aiopg/aiopg\_connector.py                   |      151 |        2 |       88 |        2 |     98% |207-208, 306->305 |
+| procrastinate/contrib/aiopg/aiopg\_connector.py                   |      148 |        2 |       88 |        2 |     98% |200-201, 299->298 |
 | procrastinate/contrib/django/\_\_init\_\_.py                      |        5 |        0 |        0 |        0 |    100% |           |
 | procrastinate/contrib/django/apps.py                              |       30 |        1 |        8 |        0 |     97% |        25 |
-| procrastinate/contrib/django/django\_connector.py                 |       66 |        2 |       18 |        0 |     98% |     20-21 |
+| procrastinate/contrib/django/django\_connector.py                 |       78 |        4 |       30 |        1 |     95% | 28-31, 39 |
 | procrastinate/contrib/django/exceptions.py                        |        6 |        0 |        0 |        0 |    100% |           |
 | procrastinate/contrib/django/healthchecks.py                      |       32 |        0 |        4 |        0 |    100% |           |
 | procrastinate/contrib/django/management/\_\_init\_\_.py           |        0 |        0 |        0 |        0 |    100% |           |
@@ -29,29 +29,29 @@
 | procrastinate/contrib/django/static\_migrations.py                |        9 |        0 |        0 |        0 |    100% |           |
 | procrastinate/contrib/django/utils.py                             |       16 |        0 |        0 |        0 |    100% |           |
 | procrastinate/contrib/psycopg2/\_\_init\_\_.py                    |        3 |        0 |        0 |        0 |    100% |           |
-| procrastinate/contrib/psycopg2/psycopg2\_connector.py             |      105 |        1 |       62 |        1 |     99% |        28 |
+| procrastinate/contrib/psycopg2/psycopg2\_connector.py             |      102 |        1 |       62 |        1 |     99% |        26 |
 | procrastinate/contrib/sqlalchemy/\_\_init\_\_.py                  |        3 |        0 |        0 |        0 |    100% |           |
-| procrastinate/contrib/sqlalchemy/psycopg2\_connector.py           |       82 |        1 |       48 |        0 |     99% |       117 |
+| procrastinate/contrib/sqlalchemy/psycopg2\_connector.py           |       78 |        1 |       46 |        0 |     99% |       109 |
 | procrastinate/exceptions.py                                       |       35 |        0 |        2 |        0 |    100% |           |
 | procrastinate/job\_context.py                                     |       53 |        0 |       20 |        0 |    100% |           |
 | procrastinate/jobs.py                                             |       73 |        0 |       12 |        0 |    100% |           |
 | procrastinate/manager.py                                          |       98 |        0 |       14 |        0 |    100% |           |
 | procrastinate/metadata.py                                         |        6 |        0 |        0 |        0 |    100% |           |
 | procrastinate/periodic.py                                         |       96 |        0 |       24 |        0 |    100% |           |
-| procrastinate/psycopg\_connector.py                               |      114 |        5 |       62 |        4 |     95% |152-154, 227, 253->252, 286 |
+| procrastinate/psycopg\_connector.py                               |      104 |        5 |       62 |        4 |     95% |129-131, 204, 230->229, 263 |
 | procrastinate/retry.py                                            |       38 |        0 |       14 |        0 |    100% |           |
 | procrastinate/schema.py                                           |       25 |        0 |        4 |        0 |    100% |           |
 | procrastinate/shell.py                                            |       61 |        5 |       14 |        0 |     93% |     43-47 |
 | procrastinate/signals.py                                          |       44 |        0 |       10 |        0 |    100% |           |
 | procrastinate/sql/\_\_init\_\_.py                                 |       21 |        0 |        0 |        0 |    100% |           |
 | procrastinate/sql/migrations/\_\_init\_\_.py                      |        0 |        0 |        0 |        0 |    100% |           |
-| procrastinate/sync\_psycopg\_connector.py                         |       87 |        3 |       46 |        3 |     95% |33, 151, 176 |
+| procrastinate/sync\_psycopg\_connector.py                         |       81 |        2 |       46 |        2 |     97% |  143, 168 |
 | procrastinate/tasks.py                                            |       46 |        0 |        8 |        0 |    100% |           |
 | procrastinate/testing.py                                          |      142 |        1 |       45 |        1 |     99% |       148 |
 | procrastinate/types.py                                            |        4 |        0 |        0 |        0 |    100% |           |
-| procrastinate/utils.py                                            |      180 |        0 |       46 |        0 |    100% |           |
+| procrastinate/utils.py                                            |      187 |        0 |       48 |        0 |    100% |           |
 | procrastinate/worker.py                                           |      171 |        0 |       42 |        0 |    100% |           |
-|                                                         **TOTAL** | **2422** |   **26** |  **694** |   **15** | **99%** |           |
+|                                                         **TOTAL** | **2415** |   **27** |  **706** |   **15** | **99%** |           |
 
 
 ## Setup coverage badge
