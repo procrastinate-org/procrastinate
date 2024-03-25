@@ -38,7 +38,7 @@
 | procrastinate/manager.py                                          |       98 |        0 |       14 |        0 |    100% |           |
 | procrastinate/metadata.py                                         |        6 |        0 |        0 |        0 |    100% |           |
 | procrastinate/periodic.py                                         |       96 |        0 |       24 |        0 |    100% |           |
-| procrastinate/psycopg\_connector.py                               |      104 |        5 |       62 |        4 |     95% |129-131, 204, 230->229, 263 |
+| procrastinate/psycopg\_connector.py                               |      104 |        5 |       58 |        4 |     94% |139-141, 214, 240->239, 273 |
 | procrastinate/retry.py                                            |       38 |        0 |       14 |        0 |    100% |           |
 | procrastinate/schema.py                                           |       25 |        0 |        4 |        0 |    100% |           |
 | procrastinate/shell.py                                            |       61 |        5 |       14 |        0 |     93% |     43-47 |
@@ -51,7 +51,7 @@
 | procrastinate/types.py                                            |        4 |        0 |        0 |        0 |    100% |           |
 | procrastinate/utils.py                                            |      187 |        0 |       48 |        0 |    100% |           |
 | procrastinate/worker.py                                           |      171 |        0 |       42 |        0 |    100% |           |
-|                                                         **TOTAL** | **2415** |   **27** |  **706** |   **15** | **99%** |           |
+|                                                         **TOTAL** | **2415** |   **27** |  **702** |   **15** | **99%** |           |
 
 
 ## Setup coverage badge
