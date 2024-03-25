@@ -50,19 +50,20 @@ class PsycopgConnector(connector.BaseAsyncConnector):
         *,
         json_dumps: Callable | None = None,
         json_loads: Callable | None = None,
+        pool_factory: Callable[
+            ..., psycopg_pool.AsyncConnectionPool
+        ] = psycopg_pool.AsyncConnectionPool,
         **kwargs: Any,
     ):
         """
         Create a PostgreSQL connector using psycopg. The connector uses an
         ``psycopg_pool.AsyncConnectionPool``, which is created internally, or
-        set into the connector by calling `App.open_async`.
+        set into the connector by calling `App.open_async`. You can also pass
+        custom callable which returns ``psycopg_pool.AsyncConnectionPool`` instance
+        as ``pool_factory`` kwarg.
 
-        Note that if you want to use a ``psycopg_pool.AsyncNullConnectionPool``,
-        you will need to initialize it yourself and pass it to the connector
-        through the ``App.open_async`` method.
-
-        All other arguments than ``json_dumps`` and ``json_loads`` are passed
-        to ``psycopg_pool.AsyncConnectionPool`` (see psycopg documentation__).
+        All other arguments than ``pool_factory``, ``json_dumps`` and ``json_loads`` are passed
+        to ``pool_factory`` callable (see psycopg documentation__).
 
         ``json_dumps`` and ``json_loads`` are used to configure new connections
         created by the pool with ``psycopg.types.json.set_json_dumps`` and
@@ -81,8 +82,17 @@ class PsycopgConnector(connector.BaseAsyncConnector):
             A function to deserialize JSON objects from a string. If not
             provided, JSON objects will be deserialized using psycopg's default
             JSON deserializer.
+        pool_factory :
+            A callable which returns ``psycopg_pool.AsyncConnectionPool`` instance.
+            ``kwargs`` will be passed to this callable as keyword arguments.
+            Default is ``psycopg_pool.AsyncConnectionPool``.
+            You can set this to ``psycopg_pool.AsyncNullConnectionPool`` to disable
+            pooling.
         """
         self._async_pool: psycopg_pool.AsyncConnectionPool | None = None
+        self._pool_factory: Callable[..., psycopg_pool.AsyncConnectionPool] = (
+            pool_factory
+        )
         self._pool_externally_set: bool = False
         self._json_loads = json_loads
         self._json_dumps = json_dumps
@@ -138,12 +148,12 @@ class PsycopgConnector(connector.BaseAsyncConnector):
 
             await self._async_pool.open(wait=True)  # type: ignore
 
-    @staticmethod
     @wrap_exceptions()
     async def _create_pool(
+        self,
         pool_args: dict[str, Any],
     ) -> psycopg_pool.AsyncConnectionPool:
-        return psycopg_pool.AsyncConnectionPool(
+        return self._pool_factory(
             **pool_args,
             # Not specifying open=False raises a warning and will be deprecated.
             # It makes sense, as we can't really make async I/Os in a constructor.
