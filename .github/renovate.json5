@@ -3,6 +3,9 @@
     "config:recommended",
     ":enablePreCommit",
   ],
+  "schedule": [
+    "before 4am on Saturday"
+  ]
   "labels": [
     "PR type: dependencies 🤖",
   ],
