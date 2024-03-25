@@ -65,6 +65,37 @@ async def test_open_async_pool_argument_specified(mocker, connector):
     assert connector._async_pool == pool
 
 
+async def test_open_async_pool_factory(mocker):
+    pool = mocker.AsyncMock()
+
+    def pool_factory(**kwargs):
+        return pool
+
+    connector = psycopg_connector.PsycopgConnector(pool_factory=pool_factory)
+
+    await connector.open_async()
+
+    assert connector._async_pool is pool
+    assert connector._async_pool.open.await_count == 1
+
+
+async def test_open_async_pool_factory_argument_specified(mocker):
+    pool = mocker.AsyncMock()
+
+    def pool_factory(**kwargs):
+        return pool
+
+    connector = psycopg_connector.PsycopgConnector(pool_factory=pool_factory)
+    mocker.patch.object(connector, "_create_pool")
+    another_pool = mocker.AsyncMock()
+
+    await connector.open_async(another_pool)
+
+    assert connector._pool_externally_set is True
+    assert connector._create_pool.call_count == 0
+    assert connector._async_pool is another_pool
+
+
 def test_get_pool(connector):
     with pytest.raises(exceptions.AppNotOpen):
         _ = connector.pool

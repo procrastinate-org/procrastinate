@@ -91,6 +91,29 @@ parameters from the [psycopg_pool.AsyncConnectionPool()](https://www.psycopg.org
 Similarly, the {py:class}`SyncPsycopgConnector` can handle all the parameters from the
 [psycopg_pool.ConnectionPool()](https://www.psycopg.org/psycopg3/docs/api/pool.html#psycopg_pool.ConnectionPool) function.
 
+### Custom connection pool
+
+It's possible to use custom connection pool with {py:class}`PsycopgConnector`. It
+accepts `poll_factory` keyword argument. You can pass any callable that returns
+{py:class}`psycopg_pool.AsyncConnectionPool` instance:
+
+```
+import procrastinate
+import psycopg_pool
+app = procrastinate.App(
+  connector=procrastinate.PsycopgConnector(
+    pool_factory=psycopg_pool.AsyncNullConnectionPool,
+    conninfo="postgres://user:password@host:port/dbname",
+  )
+)
+```
+
+In this case, {py:class}`AsyncNullConnectionPool` receives `conninfo` keyword argument
+and creates null connection pool (which effectively disables pooling). This is useful
+when you use [PgBouncer] or some other external pooler in order to resolve pooling outside
+of your application.
+
 [libpq connection string]: https://www.postgresql.org/docs/current/libpq-connect.html#LIBPQ-CONNSTRING
 [libpq environment variables]: https://www.postgresql.org/docs/current/libpq-envars.html
 [psycopg connection arguments]: https://www.postgresql.org/docs/current/libpq-connect.html#LIBPQ-CONNSTRING-KEYWORD-VALUE
+[PgBouncer]: https://www.pgbouncer.org/
