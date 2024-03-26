@@ -94,7 +94,7 @@ Similarly, the {py:class}`SyncPsycopgConnector` can handle all the parameters fr
 ### Custom connection pool
 
 It's possible to use custom connection pool with {py:class}`PsycopgConnector`. It
-accepts `poll_factory` keyword argument. You can pass any callable that returns
+accepts `pool_factory` keyword argument. You can pass any callable that returns
 {py:class}`psycopg_pool.AsyncConnectionPool` instance:
 
 ```
