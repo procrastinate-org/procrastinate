@@ -35,16 +35,18 @@ repos:
         additional_dependencies:
           - aiopg==1.4.0
           - anyio==4.3.0
-          - asgiref==3.7.2
+          - asgiref==3.8.1
           - attrs==23.2.0
-          - croniter==2.0.2
-          - django==4.2.11
+          - contextlib2==21.6.0
+          - croniter==2.0.3
           - django-stubs==4.2.7
-          - importlib-resources==6.3.0
-          - psycopg[pool]==3.1.18
+          - django==4.2.11
+          - importlib-metadata==7.1.0
+          - importlib-resources==6.4.0
           - psycopg2-binary==2.9.9
+          - psycopg[pool]==3.1.18
           - python-dateutil==2.9.0.post0
-          - sqlalchemy==2.0.28
+          - sqlalchemy==2.0.29
           - typing-extensions==4.10.0
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.3.4
@@ -53,10 +55,14 @@ repos:
         args: [--fix, --unsafe-fixes]
       - id: ruff-format
   - repo: https://github.com/PyCQA/doc8
-    rev: "v1.1.1"
+    rev: v1.1.1
     hooks:
       - id: doc8
-  - repo: https://github.com/floatingpurr/sync_with_poetry
-    rev: 1.1.0
+  - repo: https://github.com/ewjoachim/poetry-to-pre-commit
+    rev: 2.0.0
     hooks:
-      - id: sync_with_poetry
+      - id: sync-repos
+        args: [--map=pyright-python=pyright, --map=ruff-pre-commit=ruff]
+
+      - id: sync-hooks-additional-dependencies
+        args: ['--bind=pyright=main,types']
