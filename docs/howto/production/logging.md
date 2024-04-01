@@ -29,7 +29,7 @@ If you want a minimal example of a logging setup that displays the extra
 attributes without using third party logging libraries, look at the
 [Django demo].
 
-## structlog
+## `structlog`
 
 [`structlog`](https://www.structlog.org/en/stable/index.html) needs to be
 configured in order to have `procrastinate`'s logs be formatted uniformly
