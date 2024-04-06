@@ -29,7 +29,7 @@ repos:
       - id: trailing-whitespace
       - id: mixed-line-ending
   - repo: https://github.com/RobertCraigie/pyright-python
-    rev: v1.1.356
+    rev: v1.1.357
     hooks:
       - id: pyright
         additional_dependencies:
@@ -49,7 +49,7 @@ repos:
           - sqlalchemy==2.0.29
           - typing-extensions==4.10.0
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.3.4
+    rev: v0.3.5
     hooks:
       - id: ruff
         args: [--fix, --unsafe-fixes]
