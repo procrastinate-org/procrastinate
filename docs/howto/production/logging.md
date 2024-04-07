@@ -7,7 +7,7 @@ messages, they are added as [extra] elements to the logs themselves.
 This way, you can adapt the logs to whatever format suits your needs the most, using
 a log filter:
 
-```
+```python
 import logging
 
 class ProcrastinateLogFilter(logging.Filter):
@@ -29,6 +29,13 @@ If you want a minimal example of a logging setup that displays the extra
 attributes without using third party logging libraries, look at the
 [Django demo].
 
+:::{note}
+When using the `procrastinate` CLI, procrastinate sets up the logs for you,
+but the only customization available is `--log-format` and `--log-format-style`.
+If you want to customize the log format further, you will need run your own
+script that calls procrastinate's app methods.
+:::
+
 ## `structlog`
 
 [`structlog`](https://www.structlog.org/en/stable/index.html) needs to be
@@ -39,7 +46,7 @@ The `structlog` docs has a [how to](https://www.structlog.org/en/stable/standard
 
 A minimal configuration would look like:
 
-```py
+```python
 shared_processors = [
     structlog.contextvars.merge_contextvars,
     structlog.stdlib.add_logger_name,
@@ -70,7 +77,6 @@ root = logging.getLogger()
 root.addHandler(handler)
 root.setLevel(log_level)
 ```
-
 
 [extra]: https://timber.io/blog/the-pythonic-guide-to-logging/#adding-context
 [`structlog`]: https://www.structlog.org/en/stable/
