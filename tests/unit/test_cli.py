@@ -4,6 +4,7 @@ import argparse
 import datetime
 import json
 import logging
+import shlex
 
 import pytest
 
@@ -98,6 +99,20 @@ def test_main(mocker):
             {
                 "command": "schema",
                 "action": "migrations_path",
+            },
+        ),
+        (
+            ["shell"],
+            {
+                "command": "shell",
+                "args": [],
+            },
+        ),
+        (
+            ["shell", "list_jobs"],
+            {
+                "command": "shell",
+                "args": ["list_jobs"],
             },
         ),
     ],
@@ -253,3 +268,32 @@ def test_load_app(mocker):
     )
     with pytest.raises(argparse.ArgumentError, match="is not async"):
         cli.load_app("foobar")
+
+
+@pytest.mark.parametrize(
+    "method_name, args",
+    [
+        (
+            "cmdloop",
+            [],
+        ),
+        (
+            "onecmd",
+            ["list_jobs"],
+        ),
+        (
+            "onecmd",
+            ["list_jobs", "--help"],
+        ),
+    ],
+)
+async def test_shell_calls_onecmd_or_cmdloop(mocker, app, method_name, args):
+    mock = mocker.patch(
+        f"procrastinate.shell.ProcrastinateShell.{method_name}", new=mocker.Mock()
+    )
+    await cli.shell_(app, args)
+
+    if args:
+        mock.assert_called_once_with(shlex.join(args))
+    else:
+        mock.assert_called_once_with()
