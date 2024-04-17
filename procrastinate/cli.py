@@ -643,7 +643,7 @@ async def shell_(app: procrastinate.App, args: list[str]):
     )
 
     if args:
-        await utils.sync_to_async(shell_obj.onecmd, shlex.join(args))
+        await utils.sync_to_async(shell_obj.onecmd, line=shlex.join(args))
     else:
         await utils.sync_to_async(shell_obj.cmdloop)
 

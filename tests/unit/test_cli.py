@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import argparse
 import datetime
+import io
 import json
 import logging
-import shlex
 
 import pytest
 
@@ -270,30 +270,35 @@ def test_load_app(mocker):
         cli.load_app("foobar")
 
 
-@pytest.mark.parametrize(
-    "method_name, args",
-    [
-        (
-            "cmdloop",
-            [],
-        ),
-        (
-            "onecmd",
-            ["list_jobs"],
-        ),
-        (
-            "onecmd",
-            ["list_jobs", "--help"],
-        ),
-    ],
-)
-async def test_shell_calls_onecmd_or_cmdloop(mocker, app, method_name, args):
-    mock = mocker.patch(
-        f"procrastinate.shell.ProcrastinateShell.{method_name}", new=mocker.Mock()
-    )
-    await cli.shell_(app, args)
+async def test_shell_single_command(app, capsys):
+    @app.task(name="foobar")
+    def mytask(a):
+        pass
 
-    if args:
-        mock.assert_called_once_with(shlex.join(args))
-    else:
-        mock.assert_called_once_with()
+    await mytask.defer_async(a=1)
+
+    await cli.shell_(app=app, args=["list_jobs"])
+
+    out, _ = capsys.readouterr()
+
+    assert out == "#1 foobar on default - [todo]\n"
+
+
+async def test_shell_interactive_command(app, capsys, mocker):
+    @app.task(name="foobar")
+    def mytask(a):
+        pass
+
+    await mytask.defer_async(a=1)
+
+    mocker.patch("sys.stdin", io.StringIO("list_jobs\nexit\n"))
+
+    await cli.shell_(app=app, args=[])
+
+    out, _ = capsys.readouterr()
+
+    expected = """Welcome to the procrastinate shell.   Type help or ? to list commands.
+
+procrastinate> #1 foobar on default - [todo]
+procrastinate> """
+    assert out == expected
