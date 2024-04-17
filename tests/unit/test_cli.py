@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import datetime
+import io
 import json
 import logging
 
@@ -98,6 +99,20 @@ def test_main(mocker):
             {
                 "command": "schema",
                 "action": "migrations_path",
+            },
+        ),
+        (
+            ["shell"],
+            {
+                "command": "shell",
+                "args": [],
+            },
+        ),
+        (
+            ["shell", "list_jobs"],
+            {
+                "command": "shell",
+                "args": ["list_jobs"],
             },
         ),
     ],
@@ -253,3 +268,37 @@ def test_load_app(mocker):
     )
     with pytest.raises(argparse.ArgumentError, match="is not async"):
         cli.load_app("foobar")
+
+
+async def test_shell_single_command(app, capsys):
+    @app.task(name="foobar")
+    def mytask(a):
+        pass
+
+    await mytask.defer_async(a=1)
+
+    await cli.shell_(app=app, args=["list_jobs"])
+
+    out, _ = capsys.readouterr()
+
+    assert out == "#1 foobar on default - [todo]\n"
+
+
+async def test_shell_interactive_command(app, capsys, mocker):
+    @app.task(name="foobar")
+    def mytask(a):
+        pass
+
+    await mytask.defer_async(a=1)
+
+    mocker.patch("sys.stdin", io.StringIO("list_jobs\nexit\n"))
+
+    await cli.shell_(app=app, args=[])
+
+    out, _ = capsys.readouterr()
+
+    expected = """Welcome to the procrastinate shell.   Type help or ? to list commands.
+
+procrastinate> #1 foobar on default - [todo]
+procrastinate> """
+    assert out == expected

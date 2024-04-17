@@ -6,6 +6,7 @@ import functools
 import json
 import logging
 import os
+import shlex
 import sys
 from typing import Any, Awaitable, Callable, Literal, Union
 
@@ -475,6 +476,12 @@ def configure_shell_parser(subparsers: argparse._SubParsersAction):
         help="Administration shell for procrastinate",
         **parser_options,
     )
+    add_argument(
+        shell_parser,
+        "args",
+        nargs="*",
+        help="Invoke a shell command and exit",
+    )
     shell_parser.set_defaults(func=shell_)
 
 
@@ -627,7 +634,7 @@ async def healthchecks(app: procrastinate.App):
     print("Found procrastinate_jobs table: OK")
 
 
-async def shell_(app: procrastinate.App):
+async def shell_(app: procrastinate.App, args: list[str]):
     """
     Administration shell for procrastinate.
     """
@@ -635,7 +642,10 @@ async def shell_(app: procrastinate.App):
         job_manager=app.job_manager,
     )
 
-    await utils.sync_to_async(shell_obj.cmdloop)
+    if args:
+        await utils.sync_to_async(shell_obj.onecmd, line=shlex.join(args))
+    else:
+        await utils.sync_to_async(shell_obj.cmdloop)
 
 
 def main():
