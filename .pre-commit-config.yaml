@@ -38,7 +38,7 @@ repos:
           - asgiref==3.8.1
           - attrs==23.2.0
           - contextlib2==21.6.0
-          - croniter==2.0.3
+          - croniter==2.0.5
           - django-stubs==4.2.7
           - django==4.2.11
           - importlib-metadata==7.1.0
@@ -49,7 +49,7 @@ repos:
           - sqlalchemy==2.0.29
           - typing-extensions==4.11.0
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.3.7
+    rev: v0.4.1
     hooks:
       - id: ruff
         args: [--fix, --unsafe-fixes]
