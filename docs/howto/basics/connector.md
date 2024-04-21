@@ -73,9 +73,9 @@ import procrastinate
 procrastinate.PsycopgConnector(
     kwargs={
         "dbname": "dbname",
-        "user"="user",
-        "password"="password",
-        "host"="host",
+        "user": "user",
+        "password": "password",
+        "host": "host",
     }
 )
 ```
