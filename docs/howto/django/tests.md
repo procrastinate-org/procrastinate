@@ -49,6 +49,31 @@ def test_my_task(app):
     assert ProcrastinateJob.objects.filter(task_name="my_task").count() == 1
 ```
 
+In addition, you can also run a worker in your integration tests.
+For compatibility with Django's in-house testing framework, this requires some addiitonal configuration.
+
+1. In order to run the worker, use the syntax outlined here: {doc}`scripts`.
+2. In order for Procrastinate to be able to use `SELECT FOR UPDATE`, use [`TransactionTestCase`]. With `TestCase`, you can't test code within a transaction with `select_for_update()`.
+3. Lastly, setup the worker using `wait=False` and `install_signal_handlers=False`. `wait=False` means that when all tasks are executed, the call will return. `install_signal_handlers=False` is optional and just here to keep the worker from changing the signal callbacks set by your test runner.
+
+```python
+from procrastinate.contrib.django import app
+from django.test import TransactionTestCase
+
+class TestingTaskClass(TransactionTestCase):
+    def test_task(self):
+        # Run tasks
+        app.defer("my_task", args=(1, 2))
+
+        # Start worker
+        app = app.with_connector(app.connector.get_worker_connector())
+        app.run_worker(wait=False, install_signal_handlers=False, listen_notify=True)
+
+        # Check task has been executed
+        assert ProcrastinateJob.objects.filter(task_name="my_task").status == "succeeded"
+```
+
+
 ## Making the models writable in tests
 
 If you need to write to the procrastinate models in your tests, a setting is
@@ -65,3 +90,6 @@ def procrastinate_writable_models(settings):
 :::{warning}
 This setting is only intended for tests.
 :::
+
+[`TransactionTestCase`]: https://docs.djangoproject.com/en/5.0/topics/testing/tools/#transactiontestcase
+
