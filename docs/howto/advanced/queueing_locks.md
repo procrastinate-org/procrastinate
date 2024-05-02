@@ -33,3 +33,9 @@ can define the value when you register the task:
 def my_task(**kwargs):
     ...
 ```
+
+`queueing_lock` allows a single job in `todo` status. Meanwhile, it allows multiple jobs to be in `doing` status.
+
+To enforce that only one job runs at a time while limiting the queue size, you can combine `queueing_lock` with [lock](./locks.md).
+
+You might also want to [schedule](./schedule.md) jobs for such task in the near future, which can be effective to throttle the task.
