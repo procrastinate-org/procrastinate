@@ -19,12 +19,22 @@ P = ParamSpec("P")
 "The decorated function parameters"
 
 
+class TimeDeltaParams(TypedDict):
+    weeks: NotRequired[int]
+    days: NotRequired[int]
+    hours: NotRequired[int]
+    minutes: NotRequired[int]
+    seconds: NotRequired[int]
+    milliseconds: NotRequired[int]
+    microseconds: NotRequired[int]
+
+
 class ConfigureTaskOptions(TypedDict):
     lock: NotRequired[str | None]
     queueing_lock: NotRequired[str | None]
     task_kwargs: NotRequired[types.JSONDict | None]
     schedule_at: NotRequired[datetime.datetime | None]
-    schedule_in: NotRequired[dict[str, int] | None]
+    schedule_in: NotRequired[TimeDeltaParams | None]
     queue: NotRequired[str | None]
 
 
