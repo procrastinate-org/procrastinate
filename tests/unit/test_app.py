@@ -17,10 +17,10 @@ def task_func():
 
 def test_app_no_connector():
     with pytest.raises(TypeError):
-        app_module.App()
+        app_module.App()  # type: ignore
 
 
-def test_app_task_dont_read_function_attributes(app):
+def test_app_task_dont_read_function_attributes(app: app_module.App):
     # This is a weird one. It's a regression test. At some point, we noted that,
     # due to the slightly wrong usage of update_wrapper, the attributes on the
     # decorated function were copied on the task. This led to surprising
@@ -33,12 +33,12 @@ def test_app_task_dont_read_function_attributes(app):
     assert task.pass_context is False
 
 
-def test_app_register_builtins(app):
+def test_app_register_builtins(app: app_module.App):
     assert "procrastinate.builtin_tasks.remove_old_jobs" in app.tasks
     assert "builtin:procrastinate.builtin_tasks.remove_old_jobs" in app.tasks
 
 
-def test_app_register(app):
+def test_app_register(app: app_module.App):
     task = tasks.Task(task_func, blueprint=app, queue="queue", name="bla")
 
     app._register_task(task)
@@ -58,7 +58,7 @@ def test_app_worker(app, mocker):
     )
 
 
-def test_app_run_worker(app):
+def test_app_run_worker(app: app_module.App):
     result = []
 
     @app.task
@@ -72,7 +72,7 @@ def test_app_run_worker(app):
     assert result == [1]
 
 
-async def test_app_run_worker_async(app):
+async def test_app_run_worker_async(app: app_module.App):
     result = []
 
     @app.task
@@ -86,7 +86,7 @@ async def test_app_run_worker_async(app):
     assert result == [1]
 
 
-async def test_app_run_worker_async_cancel(app):
+async def test_app_run_worker_async_cancel(app: app_module.App):
     result = []
 
     @app.task
@@ -110,7 +110,7 @@ def test_from_path(mocker):
     load.assert_called_once_with("dotted.path", app_module.App)
 
 
-def test_app_configure_task(app):
+def test_app_configure_task(app: app_module.App):
     scheduled_at = conftest.aware_datetime(2000, 1, 1)
     job = app.configure_task(
         name="my_name",
@@ -127,7 +127,7 @@ def test_app_configure_task(app):
     assert job.task_kwargs == {"a": 1}
 
 
-def test_app_configure_task_unknown_allowed(app):
+def test_app_configure_task_unknown_allowed(app: app_module.App):
     @app.task(name="my_name", queue="bla")
     def my_name(a):
         pass
@@ -144,15 +144,15 @@ def test_app_configure_task_unknown_allowed(app):
     assert job.task_kwargs == {"a": 1}
 
 
-def test_app_configure_task_unkown_not_allowed(app):
+def test_app_configure_task_unkown_not_allowed(app: app_module.App):
     with pytest.raises(exceptions.TaskNotFound):
         app.configure_task(name="my_name", allow_unknown=False)
 
 
-def test_app_periodic(app):
+def test_app_periodic(app: app_module.App):
     @app.periodic(cron="0 * * * 1", periodic_id="foo")
     @app.task
-    def yay(timestamp):
+    def yay(timestamp: int):
         pass
 
     assert len(app.periodic_registry.periodic_tasks) == 1

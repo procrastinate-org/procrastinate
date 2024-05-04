@@ -3,22 +3,23 @@ from __future__ import annotations
 import pytest
 
 from procrastinate import tasks, utils
+from procrastinate.app import App
 
 from .. import conftest
 
 
-def task_func():
+def task_func(c: int | None = None):
     pass
 
 
-def test_task_init_with_no_name(app):
+def test_task_init_with_no_name(app: App):
     task = tasks.Task(task_func, blueprint=app, queue="queue")
 
     assert task.func is task_func
     assert task.name == "tests.unit.test_tasks.task_func"
 
 
-async def test_task_defer_async(app, connector):
+async def test_task_defer_async(app: App, connector):
     task = tasks.Task(task_func, blueprint=app, queue="queue")
 
     await task.defer_async(c=3)
@@ -113,4 +114,5 @@ def test_task_get_retry_exception(app, mocker):
 
     exception = ValueError()
     assert task.get_retry_exception(exception=exception, job=job) is mock.return_value
+    mock.assert_called_with(exception=exception, attempts=0)
     mock.assert_called_with(exception=exception, attempts=0)

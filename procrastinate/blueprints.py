@@ -3,14 +3,22 @@ from __future__ import annotations
 import functools
 import logging
 import sys
-from typing import TYPE_CHECKING, Any, Callable
+from typing import TYPE_CHECKING, Any, Callable, Literal, Union, cast, overload
+
+from typing_extensions import Concatenate, ParamSpec, Unpack
 
 from procrastinate import exceptions, jobs, periodic, retry, utils
+from procrastinate.job_context import JobContext
+from procrastinate.tasks import ConfigureTaskOptions
 
 if TYPE_CHECKING:
     from procrastinate import tasks
+    from procrastinate.tasks import Task
+
 
 logger = logging.getLogger(__name__)
+
+P = ParamSpec("P")
 
 
 class Blueprint:
@@ -189,37 +197,22 @@ class Blueprint:
                 configure_kwargs=periodic_task.configure_kwargs,
             )
 
+    @overload
     def task(
         self,
-        _func: Callable[..., Any] | None = None,
         *,
+        _func: None = None,
         name: str | None = None,
         aliases: list[str] | None = None,
         retry: retry.RetryValue = False,
-        pass_context: bool = False,
+        pass_context: Literal[False] = False,
         queue: str = jobs.DEFAULT_QUEUE,
         lock: str | None = None,
         queueing_lock: str | None = None,
-    ) -> Any:
-        """
-        Declare a function as a task. This method is meant to be used as a decorator::
-
-            @app.task(...)
-            def my_task(args):
-                ...
-
-        or::
-
-            @app.task
-            def my_task(args):
-                ...
-
-        The second form will use the default value for all parameters.
-
+    ) -> Callable[[Callable[P]], Task[P, P]]:
+        """Declare a function as a task. This method is meant to be used as a decorator
         Parameters
         ----------
-        _func :
-            The decorated function
         queue :
             The name of the queue in which jobs from this task will be launched, if
             the queue is not overridden at launch.
@@ -251,11 +244,80 @@ class Blueprint:
         pass_context :
             Passes the task execution context in the task as first
         """
+        ...
 
-        def _wrap(func: Callable[..., tasks.Task]):
-            from procrastinate import tasks
+    @overload
+    def task(
+        self,
+        *,
+        _func: None = None,
+        name: str | None = None,
+        aliases: list[str] | None = None,
+        retry: retry.RetryValue = False,
+        pass_context: Literal[True],
+        queue: str = jobs.DEFAULT_QUEUE,
+        lock: str | None = None,
+        queueing_lock: str | None = None,
+    ) -> Callable[
+        [Callable[Concatenate[JobContext, P]]],
+        Task[Concatenate[JobContext, P], P],
+    ]:
+        """Declare a function as a task. This method is meant to be used as a decorator
+        Parameters
+        ----------
+        _func :
+            The decorated function
+        """
+        ...
 
-            task = tasks.Task(
+    @overload
+    def task(self, _func: Callable[P]) -> Task[P, P]:
+        """Declare a function as a task. This method is meant to be used as a decorator
+        Parameters
+        ----------
+        _func :
+            The decorated function
+        """
+        ...
+
+    def task(
+        self,
+        _func: Callable[P] | None = None,
+        *,
+        name: str | None = None,
+        aliases: list[str] | None = None,
+        retry: retry.RetryValue = False,
+        pass_context: bool = False,
+        queue: str = jobs.DEFAULT_QUEUE,
+        lock: str | None = None,
+        queueing_lock: str | None = None,
+    ) -> (
+        Callable[[Callable[P]], Task[P, P]]
+        | Callable[
+            [Callable[Concatenate[JobContext, P]]],
+            Task[Concatenate[JobContext, P], P],
+        ]
+        | Task[P, P]
+    ):
+        from procrastinate.tasks import Task
+
+        """
+        Declare a function as a task. This method is meant to be used as a decorator::
+
+            @app.task(...)
+            def my_task(args):
+                ...
+
+        or::
+
+            @app.task
+            def my_task(args):
+                ...
+        The second form will use the default value for all parameters.
+        """
+
+        def _wrap(func: Callable[P]):
+            task = Task(
                 func,
                 blueprint=self,
                 queue=queue,
@@ -271,11 +333,26 @@ class Blueprint:
             return functools.update_wrapper(task, func, updated=())
 
         if _func is None:  # Called as @app.task(...)
-            return _wrap
+            return cast(
+                Union[
+                    Callable[[Callable[P, Any]], Task[P, P]],
+                    Callable[
+                        [Callable[Concatenate[JobContext, P], Any]],
+                        Task[Concatenate[JobContext, P], P],
+                    ],
+                ],
+                _wrap,
+            )
 
         return _wrap(_func)  # Called as @app.task
 
-    def periodic(self, *, cron: str, periodic_id: str = "", **kwargs: dict[str, Any]):
+    def periodic(
+        self,
+        *,
+        cron: str,
+        periodic_id: str = "",
+        **configure_kwargs: Unpack[ConfigureTaskOptions],
+    ):
         """
         Task decorator, marks task as being scheduled for periodic deferring (see
         `howto/advanced/cron`).
@@ -290,8 +367,9 @@ class Blueprint:
             Additional parameters are passed to `Task.configure`.
         """
         return self.periodic_registry.periodic_decorator(
-            cron=cron, periodic_id=periodic_id, **kwargs
+            cron=cron, periodic_id=periodic_id, **configure_kwargs
         )
 
     def will_configure_task(self) -> None:
+        raise exceptions.UnboundTaskError
         raise exceptions.UnboundTaskError
