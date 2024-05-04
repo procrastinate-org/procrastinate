@@ -39,7 +39,7 @@ repos:
           - attrs==23.2.0
           - contextlib2==21.6.0
           - croniter==2.0.5
-          - django-stubs==4.2.7
+          - django-stubs==5.0.0
           - django==4.2.11
           - importlib-metadata==7.1.0
           - importlib-resources==6.4.0
