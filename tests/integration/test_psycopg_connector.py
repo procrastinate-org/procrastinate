@@ -8,7 +8,7 @@ import asgiref.sync
 import attr
 import pytest
 
-from procrastinate import exceptions, psycopg_connector
+from procrastinate import exceptions, psycopg_connector, sync_psycopg_connector
 
 
 @pytest.fixture
@@ -217,3 +217,15 @@ async def test_loop_notify_timeout(psycopg_connector):
         pytest.fail("Failed to detect that connection was closed and stop")
 
     assert not event.is_set()
+
+
+async def test_get_sync_connector__open(psycopg_connector):
+    assert psycopg_connector.get_sync_connector() is psycopg_connector
+    await psycopg_connector.close_async()
+
+
+async def test_get_sync_connector__not_open(not_opened_psycopg_connector):
+    sync = not_opened_psycopg_connector.get_sync_connector()
+    assert isinstance(sync, sync_psycopg_connector.SyncPsycopgConnector)
+    assert not_opened_psycopg_connector.get_sync_connector() is sync
+    assert sync._pool_args == not_opened_psycopg_connector._pool_args

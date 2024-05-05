@@ -9,6 +9,7 @@ import attr
 import pytest
 
 from procrastinate.contrib.aiopg import aiopg_connector as aiopg
+from procrastinate.contrib.psycopg2 import psycopg2_connector
 
 
 @pytest.fixture
@@ -267,3 +268,16 @@ async def test_destructor(connection_params, capsys):
     # even by using filterwarnings to turn it into an exception, as
     # Python ignores exceptions that occur in destructors
     del connector
+
+
+async def test_get_sync_connector__open(aiopg_connector):
+    await aiopg_connector.open_async()
+    assert aiopg_connector.get_sync_connector() is aiopg_connector
+    await aiopg_connector.close_async()
+
+
+async def test_get_sync_connector__not_open(connection_params):
+    aiopg_connector = aiopg.AiopgConnector(**connection_params)
+    sync = aiopg_connector.get_sync_connector()
+    assert isinstance(sync, psycopg2_connector.Psycopg2Connector)
+    assert aiopg_connector.get_sync_connector() is sync

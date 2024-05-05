@@ -3,7 +3,7 @@ from __future__ import annotations
 import psycopg
 import pytest
 
-from procrastinate import exceptions, psycopg_connector, sync_psycopg_connector
+from procrastinate import exceptions, psycopg_connector
 
 
 @pytest.fixture
@@ -99,16 +99,3 @@ async def test_open_async_pool_factory_argument_specified(mocker):
 def test_get_pool(connector):
     with pytest.raises(exceptions.AppNotOpen):
         _ = connector.pool
-
-
-async def test_get_sync_connector__open(connector):
-    await connector.open_async()
-    assert connector.get_sync_connector() is connector
-    await connector.close_async()
-
-
-async def test_get_sync_connector__not_open(connector):
-    sync = connector.get_sync_connector()
-    assert isinstance(sync, sync_psycopg_connector.SyncPsycopgConnector)
-    assert connector.get_sync_connector() is sync
-    assert sync._pool_args == connector._pool_args
