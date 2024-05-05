@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import time
 
-from django.db import transaction
+from django.db import connection, transaction
 
 from procrastinate import App, Blueprint
 from procrastinate.contrib.django import app
@@ -28,6 +28,12 @@ blueprint = Blueprint()
 async def set_indexed(book_id: int):
     # Async ORM call
     await Book.objects.filter(id=book_id).aupdate(indexed=True)
+
+
+@app.task
+def create_index():
+    c = connection.cursor()
+    c.execute("CREATE INDEX CONCURRENTLY ON demo_book (indexed)")
 
 
 def on_app_ready(app: App):
