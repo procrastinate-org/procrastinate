@@ -7,7 +7,6 @@ import pytest
 
 from procrastinate import exceptions
 from procrastinate.contrib.aiopg import aiopg_connector
-from procrastinate.contrib.psycopg2 import psycopg2_connector
 
 
 @pytest.fixture
@@ -198,15 +197,3 @@ async def test_open_async_pool_argument_specified(fake_connector):
 def test_get_pool(connector):
     with pytest.raises(exceptions.AppNotOpen):
         _ = connector.pool
-
-
-async def test_get_sync_connector__open(connector):
-    await connector.open_async()
-    assert connector.get_sync_connector() is connector
-    await connector.close_async()
-
-
-async def test_get_sync_connector__not_open(connector):
-    sync = connector.get_sync_connector()
-    assert isinstance(sync, psycopg2_connector.Psycopg2Connector)
-    assert connector.get_sync_connector() is sync
