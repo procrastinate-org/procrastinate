@@ -8,7 +8,7 @@ from procrastinate.app import App
 from .. import conftest
 
 
-def task_func(c: int | None = None):
+def task_func():
     pass
 
 
