@@ -44,12 +44,12 @@ repos:
           - importlib-metadata==7.1.0
           - importlib-resources==6.4.0
           - psycopg2-binary==2.9.9
-          - psycopg[pool]==3.1.18
+          - psycopg[pool]==3.1.19
           - python-dateutil==2.9.0.post0
           - sqlalchemy==2.0.30
           - typing-extensions==4.11.0
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.4.3
+    rev: v0.4.4
     hooks:
       - id: ruff
         args: [--fix, --unsafe-fixes]
