@@ -289,13 +289,6 @@ class Blueprint:
         queue: str = jobs.DEFAULT_QUEUE,
         lock: str | None = None,
         queueing_lock: str | None = None,
-    ) -> (
-        Callable[[Callable[P]], Task[P, P]]
-        | Callable[
-            [Callable[Concatenate[JobContext, P]]],
-            Task[Concatenate[JobContext, P], P],
-        ]
-        | Task[P, P]
     ):
         from procrastinate.tasks import Task
 
@@ -369,5 +362,4 @@ class Blueprint:
         )
 
     def will_configure_task(self) -> None:
-        raise exceptions.UnboundTaskError
         raise exceptions.UnboundTaskError
