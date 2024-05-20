@@ -14,9 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 Args = ParamSpec("Args")
-"The task arguments passed in when deferring a job"
 P = ParamSpec("P")
-"The decorated function parameters"
 
 
 class TimeDeltaParams(TypedDict):
