@@ -4,12 +4,16 @@ import asyncio
 import functools
 import logging
 import time
-from typing import Any, Iterable, Tuple
+from typing import Callable, Generic, Iterable, Tuple, cast
 
 import attr
 import croniter
+from typing_extensions import Concatenate, ParamSpec, Unpack
 
 from procrastinate import exceptions, tasks
+
+P = ParamSpec("P")
+Args = ParamSpec("Args")
 
 # The maximum delay after which tasks will be considered as
 # outdated, and ignored.
@@ -24,11 +28,11 @@ cached_property = functools.cached_property
 
 
 @attr.dataclass(frozen=True)
-class PeriodicTask:
-    task: tasks.Task
+class PeriodicTask(Generic[P, Args]):
+    task: tasks.Task[P, Args]
     cron: str
     periodic_id: str
-    configure_kwargs: dict[str, Any]
+    configure_kwargs: tasks.ConfigureTaskOptions
 
     @cached_property
     def croniter(self) -> croniter.croniter:
@@ -42,28 +46,36 @@ class PeriodicRegistry:
     def __init__(self):
         self.periodic_tasks: dict[tuple[str, str], PeriodicTask] = {}
 
-    def periodic_decorator(self, cron: str, periodic_id: str, **kwargs):
+    def periodic_decorator(
+        self,
+        cron: str,
+        periodic_id: str,
+        **configure_kwargs: Unpack[tasks.ConfigureTaskOptions],
+    ) -> Callable[[tasks.Task[P, Concatenate[int, Args]]], tasks.Task[P, Args]]:
         """
         Decorator over a task definition that registers that task for periodic
         launch. This decorator should not be used directly, ``@app.periodic()`` is meant
         to be used instead.
         """
 
-        def wrapper(task: tasks.Task):
+        def wrapper(task: tasks.Task[P, Concatenate[int, Args]]) -> tasks.Task[P, Args]:
             self.register_task(
-                task=task, cron=cron, periodic_id=periodic_id, configure_kwargs=kwargs
+                task=task,
+                cron=cron,
+                periodic_id=periodic_id,
+                configure_kwargs=configure_kwargs,
             )
-            return task
+            return cast(tasks.Task[P, Args], task)
 
         return wrapper
 
     def register_task(
         self,
-        task: tasks.Task,
+        task: tasks.Task[P, Concatenate[int, Args]],
         cron: str,
         periodic_id: str,
-        configure_kwargs: dict[str, Any],
-    ) -> PeriodicTask:
+        configure_kwargs: tasks.ConfigureTaskOptions,
+    ) -> PeriodicTask[P, Concatenate[int, Args]]:
         key = (task.name, periodic_id)
         if key in self.periodic_tasks:
             raise exceptions.TaskAlreadyRegistered(
@@ -190,7 +202,12 @@ class PeriodicDeferrer:
             task = periodic_task.task
             periodic_id = periodic_task.periodic_id
             configure_kwargs = periodic_task.configure_kwargs
-            configure_kwargs.setdefault("task_kwargs", {})["timestamp"] = timestamp
+            task_kwargs = configure_kwargs.get("task_kwargs")
+            if task_kwargs is None:
+                task_kwargs = {}
+                configure_kwargs["task_kwargs"] = task_kwargs
+            task_kwargs["timestamp"] = timestamp
+
             description = {
                 "task_name": task.name,
                 "periodic_id": periodic_id,

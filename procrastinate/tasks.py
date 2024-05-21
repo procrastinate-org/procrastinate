@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import datetime
 import logging
-from typing import Any, Callable, cast
+from typing import Any, Callable, Generic, TypedDict, cast
+
+from typing_extensions import NotRequired, ParamSpec, Unpack
 
 from procrastinate import app as app_module
 from procrastinate import blueprints, exceptions, jobs, manager, types, utils
@@ -11,31 +13,52 @@ from procrastinate import retry as retry_module
 logger = logging.getLogger(__name__)
 
 
+Args = ParamSpec("Args")
+P = ParamSpec("P")
+
+
+class TimeDeltaParams(TypedDict):
+    weeks: NotRequired[int]
+    days: NotRequired[int]
+    hours: NotRequired[int]
+    minutes: NotRequired[int]
+    seconds: NotRequired[int]
+    milliseconds: NotRequired[int]
+    microseconds: NotRequired[int]
+
+
+class ConfigureTaskOptions(TypedDict):
+    lock: NotRequired[str | None]
+    queueing_lock: NotRequired[str | None]
+    task_kwargs: NotRequired[types.JSONDict | None]
+    schedule_at: NotRequired[datetime.datetime | None]
+    schedule_in: NotRequired[TimeDeltaParams | None]
+    queue: NotRequired[str | None]
+
+
 def configure_task(
     *,
     name: str,
     job_manager: manager.JobManager,
-    lock: str | None = None,
-    queueing_lock: str | None = None,
-    task_kwargs: types.JSONDict | None = None,
-    schedule_at: datetime.datetime | None = None,
-    schedule_in: dict[str, int] | None = None,
-    queue: str = jobs.DEFAULT_QUEUE,
+    **options: Unpack[ConfigureTaskOptions],
 ) -> jobs.JobDeferrer:
+    schedule_at = options.get("schedule_at")
+    schedule_in = options.get("schedule_in")
+
     if schedule_at and schedule_in is not None:
         raise ValueError("Cannot set both schedule_at and schedule_in")
 
     if schedule_in is not None:
         schedule_at = utils.utcnow() + datetime.timedelta(**schedule_in)
 
-    task_kwargs = task_kwargs or {}
+    task_kwargs = options.get("task_kwargs") or {}
     return jobs.JobDeferrer(
         job=jobs.Job(
             id=None,
-            lock=lock,
-            queueing_lock=queueing_lock,
+            lock=options.get("lock"),
+            queueing_lock=options.get("queueing_lock"),
             task_name=name,
-            queue=queue,
+            queue=options.get("queue") or jobs.DEFAULT_QUEUE,
             task_kwargs=task_kwargs,
             scheduled_at=schedule_at,
         ),
@@ -43,7 +66,7 @@ def configure_task(
     )
 
 
-class Task:
+class Task(Generic[P, Args]):
     """
     A task is a function that should be executed later. It is linked to a
     default queue, and expects keyword arguments.
@@ -72,7 +95,7 @@ class Task:
 
     def __init__(
         self,
-        func: Callable,
+        func: Callable[P],
         *,
         blueprint: blueprints.Blueprint,
         # task naming
@@ -88,7 +111,7 @@ class Task:
     ):
         self.queue = queue
         self.blueprint = blueprint
-        self.func: Callable = func
+        self.func: Callable[P] = func
         self.aliases = aliases if aliases else []
         self.retry_strategy = retry_module.get_retry_strategy(retry)
         self.name: str = name if name else self.full_path
@@ -106,14 +129,14 @@ class Task:
             for alias in self.aliases
         ]
 
-    def __call__(self, *args, **kwargs: types.JSONValue) -> Any:
+    def __call__(self, *args: P.args, **kwargs: P.kwargs) -> Any:
         return self.func(*args, **kwargs)
 
     @property
     def full_path(self) -> str:
         return utils.get_full_path(self.func)
 
-    async def defer_async(self, **task_kwargs: types.JSONValue) -> int:
+    async def defer_async(self, *_: Args.args, **task_kwargs: Args.kwargs) -> int:
         """
         Create a job from this task and the given arguments.
         The job will be created with default parameters, if you want to better
@@ -121,7 +144,7 @@ class Task:
         """
         return await self.configure().defer_async(**task_kwargs)
 
-    def defer(self, **task_kwargs: types.JSONValue) -> int:
+    def defer(self, *_: Args.args, **task_kwargs: Args.kwargs) -> int:
         """
         Create a job from this task and the given arguments.
         The job will be created with default parameters, if you want to better
@@ -129,16 +152,7 @@ class Task:
         """
         return self.configure().defer(**task_kwargs)
 
-    def configure(
-        self,
-        *,
-        lock: str | None = None,
-        queueing_lock: str | None = None,
-        task_kwargs: types.JSONDict | None = None,
-        schedule_at: datetime.datetime | None = None,
-        schedule_in: dict[str, int] | None = None,
-        queue: str | None = None,
-    ) -> jobs.JobDeferrer:
+    def configure(self, **options: Unpack[ConfigureTaskOptions]) -> jobs.JobDeferrer:
         """
         Configure the job with all the specific settings, defining how the job
         should be launched.
@@ -181,8 +195,14 @@ class Task:
         """
         self.blueprint.will_configure_task()
 
-        app = cast(app_module.App, self.blueprint)
+        lock = options.get("lock")
+        queueing_lock = options.get("queueing_lock")
+        task_kwargs = options.get("task_kwargs")
+        schedule_at = options.get("schedule_at")
+        schedule_in = options.get("schedule_in")
+        queue = options.get("queue")
 
+        app = cast(app_module.App, self.blueprint)
         return configure_task(
             name=self.name,
             job_manager=app.job_manager,

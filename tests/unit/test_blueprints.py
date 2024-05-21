@@ -3,6 +3,7 @@ from __future__ import annotations
 import pytest
 
 from procrastinate import blueprints, exceptions, periodic, retry
+from procrastinate.job_context import JobContext
 
 
 def test_blueprint_task_aliases(blueprint, mocker):
@@ -79,7 +80,7 @@ def test_register_task_clash(blueprint):
     assert blueprint.tasks == {"foo": my_task}
 
 
-def test_register_task_clash_alias(blueprint):
+def test_register_task_clash_alias(blueprint: blueprints.Blueprint):
     @blueprint.task(name="foo")
     def my_task():
         return "foo"
@@ -93,7 +94,7 @@ def test_register_task_clash_alias(blueprint):
     assert blueprint.tasks == {"foo": my_task}
 
 
-def test_add_task_alias(blueprint):
+def test_add_task_alias(blueprint: blueprints.Blueprint):
     @blueprint.task(name="foo")
     def my_task():
         return "foo"
@@ -103,7 +104,7 @@ def test_add_task_alias(blueprint):
     assert blueprint.tasks == {"foo": my_task, "bar": my_task}
 
 
-def test_add_tasks_from(blueprint):
+def test_add_tasks_from(blueprint: blueprints.Blueprint):
     other = blueprints.Blueprint()
 
     @blueprint.task(name="foo")
@@ -120,17 +121,17 @@ def test_add_tasks_from(blueprint):
     assert my_other_task.name == "ns:bar"
 
 
-def test_add_tasks_from__periodic(blueprint):
+def test_add_tasks_from__periodic(blueprint: blueprints.Blueprint):
     other = blueprints.Blueprint()
 
     @blueprint.periodic(cron="0 * * * 1", periodic_id="foo")
     @blueprint.task(name="foo")
-    def my_task():
+    def my_task(timestamp: int):
         return "foo"
 
     @other.periodic(cron="0 * * * 1", periodic_id="foo")
-    @other.task(name="bar")
-    def my_other_task():
+    @other.task(name="bar", pass_context=True)
+    def my_other_task(context: JobContext, timestamp: int):
         return "bar"
 
     blueprint.add_tasks_from(other, namespace="ns")
@@ -151,7 +152,7 @@ def test_add_tasks_from__periodic(blueprint):
     }
 
 
-def test_add_tasks_from_clash(blueprint):
+def test_add_tasks_from_clash(blueprint: blueprints.Blueprint):
     other = blueprints.Blueprint()
 
     @blueprint.task(name="ns:foo")
@@ -169,7 +170,7 @@ def test_add_tasks_from_clash(blueprint):
     assert my_other_task.name == "foo"
 
 
-def test_add_tasks_from_clash_alias(blueprint):
+def test_add_tasks_from_clash_alias(blueprint: blueprints.Blueprint):
     other = blueprints.Blueprint()
 
     @blueprint.task(name="foo", aliases=["ns:foo"])
@@ -187,7 +188,7 @@ def test_add_tasks_from_clash_alias(blueprint):
     assert my_other_task.name == "foo"
 
 
-def test_add_tasks_from_clash_other_alias(blueprint):
+def test_add_tasks_from_clash_other_alias(blueprint: blueprints.Blueprint):
     other = blueprints.Blueprint()
 
     @blueprint.task(name="ns:foo")
@@ -205,7 +206,7 @@ def test_add_tasks_from_clash_other_alias(blueprint):
     assert my_other_task.name == "bar"
 
 
-def test_blueprint_task_explicit(blueprint, mocker):
+def test_blueprint_task_explicit(blueprint: blueprints.Blueprint, mocker):
     @blueprint.task(
         name="foobar",
         queue="bar",
@@ -215,10 +216,10 @@ def test_blueprint_task_explicit(blueprint, mocker):
         pass_context=True,
         aliases=["a"],
     )
-    def my_task():
+    def my_task(context: JobContext):
         return "foo"
 
-    assert my_task() == "foo"
+    assert my_task(JobContext()) == "foo"
     assert blueprint.tasks["foobar"].name == "foobar"
     assert blueprint.tasks["foobar"].queue == "bar"
     assert blueprint.tasks["foobar"].lock == "sher"
