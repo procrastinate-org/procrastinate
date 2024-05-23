@@ -51,8 +51,8 @@ def test_my_task(app):
 ```
 
 In addition, you can also run a worker in your integration tests. Whether you
-use `pytest-django` or Django's `TestCase` subclasses, his requires some
-addiitonal configuration.
+use `pytest-django` or Django's `TestCase` subclasses, this requires some
+additonal configuration.
 
 1. In order to run the worker, use the syntax outlined here: {doc}`scripts`.
 2. In order for Procrastinate to be able to use `SELECT FOR UPDATE`, use
