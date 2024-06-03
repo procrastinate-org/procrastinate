@@ -74,6 +74,13 @@ def test_main(mocker):
             },
         ),
         (
+            ["defer", "x", "--priority", "5"],
+            {
+                "command": "defer",
+                "priority": 5,
+            },
+        ),
+        (
             ["schema"],
             {
                 "command": "schema",

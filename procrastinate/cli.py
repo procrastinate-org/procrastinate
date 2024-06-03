@@ -410,6 +410,15 @@ def configure_defer_parser(subparsers: argparse._SubParsersAction):
     )
     add_argument(
         defer_parser,
+        "--priority",
+        default=argparse.SUPPRESS,
+        dest="priority",
+        type=int,
+        help="Job priority. Defaults to 0",
+        envvar="DEFER_PRIORITY",
+    )
+    add_argument(
+        defer_parser,
         "--unknown",
         "--no-unknown",
         action=store_true_with_negative(),
