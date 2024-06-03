@@ -117,6 +117,7 @@ def test_app_configure_task(app: app_module.App):
         queue="marsupilami",
         lock="sher",
         schedule_at=scheduled_at,
+        priority=7,
         task_kwargs={"a": 1},
     ).job
 
@@ -124,6 +125,7 @@ def test_app_configure_task(app: app_module.App):
     assert job.queue == "marsupilami"
     assert job.lock == "sher"
     assert job.scheduled_at == scheduled_at
+    assert job.priority == 7
     assert job.task_kwargs == {"a": 1}
 
 
@@ -134,17 +136,22 @@ def test_app_configure_task_unknown_allowed(app: app_module.App):
 
     scheduled_at = conftest.aware_datetime(2000, 1, 1)
     job = app.configure_task(
-        name="my_name", lock="sher", schedule_at=scheduled_at, task_kwargs={"a": 1}
+        name="my_name",
+        lock="sher",
+        schedule_at=scheduled_at,
+        priority=7,
+        task_kwargs={"a": 1},
     ).job
 
     assert job.task_name == "my_name"
     assert job.queue == "bla"
     assert job.lock == "sher"
     assert job.scheduled_at == scheduled_at
+    assert job.priority == 7
     assert job.task_kwargs == {"a": 1}
 
 
-def test_app_configure_task_unkown_not_allowed(app: app_module.App):
+def test_app_configure_task_unknown_not_allowed(app: app_module.App):
     with pytest.raises(exceptions.TaskNotFound):
         app.configure_task(name="my_name", allow_unknown=False)
 

@@ -60,6 +60,7 @@ def test_make_dynamic_query(connector):
 def test_defer_job_one(connector):
     job = connector.defer_job_one(
         task_name="mytask",
+        priority=0,
         lock="sher",
         queueing_lock="houba",
         args={"a": "b"},
@@ -71,6 +72,7 @@ def test_defer_job_one(connector):
         1: {
             "id": 1,
             "queue_name": "marsupilami",
+            "priority": 0,
             "task_name": "mytask",
             "lock": "sher",
             "queueing_lock": "houba",
@@ -86,6 +88,7 @@ def test_defer_job_one(connector):
 def test_defer_job_one_multiple_times(connector):
     connector.defer_job_one(
         task_name="mytask",
+        priority=0,
         lock=None,
         queueing_lock=None,
         args={},
@@ -94,6 +97,7 @@ def test_defer_job_one_multiple_times(connector):
     )
     connector.defer_job_one(
         task_name="mytask",
+        priority=0,
         lock=None,
         queueing_lock=None,
         args={},
@@ -108,6 +112,7 @@ def test_defer_same_job_with_queueing_lock_second_time_after_first_one_succeeded
 ):
     job_data = {
         "task_name": "mytask",
+        "priority": 0,
         "lock": None,
         "queueing_lock": "some-lock",
         "args": {},
@@ -240,6 +245,7 @@ def test_fetch_job_one(connector):
     # This one will be selected, then skipped the second time because it's processing
     connector.defer_job_one(
         task_name="mytask",
+        priority=0,
         args={},
         queue="marsupilami",
         scheduled_at=None,
@@ -250,6 +256,7 @@ def test_fetch_job_one(connector):
     # This one because it's the wrong queue
     connector.defer_job_one(
         task_name="mytask",
+        priority=0,
         args={},
         queue="other_queue",
         scheduled_at=None,
@@ -259,6 +266,7 @@ def test_fetch_job_one(connector):
     # This one because of the scheduled_at
     connector.defer_job_one(
         task_name="mytask",
+        priority=0,
         args={},
         queue="marsupilami",
         scheduled_at=conftest.aware_datetime(2100, 1, 1),
@@ -268,6 +276,7 @@ def test_fetch_job_one(connector):
     # This one because of the lock
     connector.defer_job_one(
         task_name="mytask",
+        priority=0,
         args={},
         queue="marsupilami",
         scheduled_at=None,
@@ -277,6 +286,7 @@ def test_fetch_job_one(connector):
     # We're taking this one.
     connector.defer_job_one(
         task_name="mytask",
+        priority=0,
         args={},
         queue="marsupilami",
         scheduled_at=None,
@@ -292,6 +302,7 @@ def test_fetch_job_one_none_lock(connector):
     """Testing that 2 jobs with locks "None" don't block one another"""
     connector.defer_job_one(
         task_name="mytask",
+        priority=0,
         args={},
         queue="default",
         scheduled_at=None,
@@ -300,6 +311,7 @@ def test_fetch_job_one_none_lock(connector):
     )
     connector.defer_job_one(
         task_name="mytask",
+        priority=0,
         args={},
         queue="default",
         scheduled_at=None,
@@ -314,6 +326,7 @@ def test_fetch_job_one_none_lock(connector):
 def test_finish_job_run(connector):
     connector.defer_job_one(
         task_name="mytask",
+        priority=0,
         args={},
         queue="marsupilami",
         scheduled_at=None,
@@ -332,6 +345,7 @@ def test_finish_job_run(connector):
 def test_retry_job_run(connector):
     connector.defer_job_one(
         task_name="mytask",
+        priority=0,
         args={},
         queue="marsupilami",
         scheduled_at=None,
@@ -367,6 +381,7 @@ async def test_defer_no_notify(connector):
     await connector.listen_notify(event=event, channels="some_other_channel")
     connector.defer_job_one(
         task_name="foo",
+        priority=0,
         lock="bar",
         args={},
         scheduled_at=None,

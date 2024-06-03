@@ -30,6 +30,7 @@ async def test_task_defer_async(app: App, connector):
         1: {
             "id": 1,
             "queue_name": "queue",
+            "priority": 0,
             "task_name": "tests.unit.test_tasks.task_func",
             "lock": lock,
             "queueing_lock": None,

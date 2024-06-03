@@ -34,6 +34,7 @@ class ConfigureTaskOptions(TypedDict):
     schedule_at: NotRequired[datetime.datetime | None]
     schedule_in: NotRequired[TimeDeltaParams | None]
     queue: NotRequired[str | None]
+    priority: NotRequired[int | None]
 
 
 def configure_task(
@@ -44,12 +45,16 @@ def configure_task(
 ) -> jobs.JobDeferrer:
     schedule_at = options.get("schedule_at")
     schedule_in = options.get("schedule_in")
+    priority = options.get("priority")
 
     if schedule_at and schedule_in is not None:
         raise ValueError("Cannot set both schedule_at and schedule_in")
 
     if schedule_in is not None:
         schedule_at = utils.utcnow() + datetime.timedelta(**schedule_in)
+
+    if priority is None:
+        priority = jobs.DEFAULT_PRIORITY
 
     task_kwargs = options.get("task_kwargs") or {}
     return jobs.JobDeferrer(
@@ -61,6 +66,7 @@ def configure_task(
             queue=options.get("queue") or jobs.DEFAULT_QUEUE,
             task_kwargs=task_kwargs,
             scheduled_at=schedule_at,
+            priority=priority,
         ),
         job_manager=job_manager,
     )
@@ -179,9 +185,11 @@ class Task(Generic[P, Args]):
             Converted to schedule_at internally. See `python timedelta documentation
             <https://docs.python.org/3/library/datetime.html#timedelta-objects>`__
             (incompatible with schedule_at)
-
         queue :
             By setting a queue on the job launch, you override the task default queue
+        priority :
+            Set the priority of the job as an integer. Jobs with higher priority
+            are run first. The default priority is 0.
 
         Returns
         -------
@@ -201,6 +209,7 @@ class Task(Generic[P, Args]):
         schedule_at = options.get("schedule_at")
         schedule_in = options.get("schedule_in")
         queue = options.get("queue")
+        priority = options.get("priority")
 
         app = cast(app_module.App, self.blueprint)
         return configure_task(
@@ -214,6 +223,7 @@ class Task(Generic[P, Args]):
             schedule_at=schedule_at,
             schedule_in=schedule_in,
             queue=queue if queue is not None else self.queue,
+            priority=priority,
         )
 
     def get_retry_exception(

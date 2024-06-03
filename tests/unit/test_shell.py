@@ -24,6 +24,7 @@ def test_EOF(shell):
 def test_list_jobs(shell, connector, capsys):
     connector.defer_job_one(
         "task1",
+        0,
         "lock1",
         "queueing_lock1",
         {},
@@ -32,6 +33,7 @@ def test_list_jobs(shell, connector, capsys):
     )
     connector.defer_job_one(
         "task2",
+        0,
         "lock2",
         "queueing_lock2",
         {},
@@ -63,6 +65,7 @@ def test_list_jobs(shell, connector, capsys):
 def test_list_jobs_filters(shell, connector, capsys):
     connector.defer_job_one(
         "task1",
+        0,
         "lock1",
         "queueing_lock1",
         {},
@@ -71,6 +74,7 @@ def test_list_jobs_filters(shell, connector, capsys):
     )
     connector.defer_job_one(
         "task2",
+        0,
         "lock2",
         "queueing_lock2",
         {},
@@ -101,6 +105,7 @@ def test_list_jobs_filters(shell, connector, capsys):
 def test_list_jobs_details(shell, connector, capsys):
     connector.defer_job_one(
         "task1",
+        0,
         "lock1",
         "queueing_lock1",
         {"x": 11},
@@ -109,6 +114,7 @@ def test_list_jobs_details(shell, connector, capsys):
     )
     connector.defer_job_one(
         "task2",
+        0,
         "lock2",
         "queueing_lock2",
         {"y": 22},
@@ -133,8 +139,8 @@ def test_list_jobs_empty(shell, connector, capsys):
 
 
 def test_list_queues(shell, connector, capsys):
-    connector.defer_job_one("task1", "lock1", "queueing_lock1", {}, 0, "queue1")
-    connector.defer_job_one("task2", "lock2", "queueing_lock2", {}, 0, "queue2")
+    connector.defer_job_one("task1", 0, "lock1", "queueing_lock1", {}, 0, "queue1")
+    connector.defer_job_one("task2", 0, "lock2", "queueing_lock2", {}, 0, "queue2")
 
     shell.do_list_queues("")
     captured = capsys.readouterr()
@@ -151,8 +157,8 @@ def test_list_queues(shell, connector, capsys):
 
 
 def test_list_queues_filters(shell, connector, capsys):
-    connector.defer_job_one("task1", "lock1", "queueing_lock1", {}, 0, "queue1")
-    connector.defer_job_one("task2", "lock2", "queueing_lock2", {}, 0, "queue2")
+    connector.defer_job_one("task1", 0, "lock1", "queueing_lock1", {}, 0, "queue1")
+    connector.defer_job_one("task2", 0, "lock2", "queueing_lock2", {}, 0, "queue2")
 
     shell.do_list_queues("queue=queue2 task=task2 lock=lock2 status=todo")
     captured = capsys.readouterr()
@@ -179,8 +185,8 @@ def test_list_queues_empty(shell, connector, capsys):
 
 
 def test_list_tasks(shell, connector, capsys):
-    connector.defer_job_one("task1", "lock1", "queueing_lock1", {}, 0, "queue1")
-    connector.defer_job_one("task2", "lock2", "queueing_lock2", {}, 0, "queue2")
+    connector.defer_job_one("task1", 0, "lock1", "queueing_lock1", {}, 0, "queue1")
+    connector.defer_job_one("task2", 0, "lock2", "queueing_lock2", {}, 0, "queue2")
 
     shell.do_list_tasks("")
     captured = capsys.readouterr()
@@ -197,8 +203,8 @@ def test_list_tasks(shell, connector, capsys):
 
 
 def test_list_tasks_filters(shell, connector, capsys):
-    connector.defer_job_one("task1", "lock1", "queueing_lock1", {}, 0, "queue1")
-    connector.defer_job_one("task2", "lock2", "queueing_lock2", {}, 0, "queue2")
+    connector.defer_job_one("task1", 0, "lock1", "queueing_lock1", {}, 0, "queue1")
+    connector.defer_job_one("task2", 0, "lock2", "queueing_lock2", {}, 0, "queue2")
 
     shell.do_list_tasks("queue=queue2 task=task2 lock=lock2 status=todo")
     captured = capsys.readouterr()
@@ -225,8 +231,8 @@ def test_list_tasks_empty(shell, connector, capsys):
 
 
 def test_list_locks(shell, connector, capsys):
-    connector.defer_job_one("task1", "lock1", "queueing_lock1", {}, 0, "queue1")
-    connector.defer_job_one("task2", "lock2", "queueing_lock2", {}, 0, "queue2")
+    connector.defer_job_one("task1", 0, "lock1", "queueing_lock1", {}, 0, "queue1")
+    connector.defer_job_one("task2", 0, "lock2", "queueing_lock2", {}, 0, "queue2")
 
     shell.do_list_locks("")
     captured = capsys.readouterr()
@@ -243,8 +249,8 @@ def test_list_locks(shell, connector, capsys):
 
 
 def test_list_locks_filters(shell, connector, capsys):
-    connector.defer_job_one("task1", "lock1", "queueing_lock1", {}, 0, "queue1")
-    connector.defer_job_one("task2", "lock2", "queueing_lock2", {}, 0, "queue2")
+    connector.defer_job_one("task1", 0, "lock1", "queueing_lock1", {}, 0, "queue1")
+    connector.defer_job_one("task2", 0, "lock2", "queueing_lock2", {}, 0, "queue2")
 
     shell.do_list_locks("queue=queue2 task=task2 lock=lock2 status=todo")
     captured = capsys.readouterr()
@@ -273,6 +279,7 @@ def test_list_locks_empty(shell, connector, capsys):
 def test_retry(shell, connector, capsys):
     connector.defer_job_one(
         "task",
+        0,
         "lock",
         "queueing_lock",
         {},
@@ -293,6 +300,7 @@ def test_retry(shell, connector, capsys):
 def test_cancel(shell, connector, capsys):
     connector.defer_job_one(
         "task",
+        0,
         "lock",
         "queueing_lock",
         {},

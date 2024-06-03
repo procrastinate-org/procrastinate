@@ -68,6 +68,7 @@ class ProcrastinateJob(ProcrastinateReadOnlyModelMixin, models.Model):
     id = models.BigAutoField(primary_key=True)
     queue_name = models.CharField(max_length=128)
     task_name = models.CharField(max_length=128)
+    priority = models.IntegerField()
     lock = models.TextField(unique=True, blank=True, null=True)
     args = models.JSONField()
     status = models.CharField(max_length=32, choices=[(e, e) for e in STATUSES])

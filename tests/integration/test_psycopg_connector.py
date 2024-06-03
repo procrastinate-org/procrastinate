@@ -100,13 +100,13 @@ async def test_execute_query(psycopg_connector):
 async def test_wrap_exceptions(psycopg_connector):
     await psycopg_connector.execute_query_async(
         """SELECT procrastinate_defer_job(
-            'queue', 'foo', NULL, 'lock', '{}', NULL
+            'queue', 'foo', 0, NULL, 'lock', '{}', NULL
         ) AS id;"""
     )
     with pytest.raises(exceptions.UniqueViolation):
         await psycopg_connector.execute_query_async(
             """SELECT procrastinate_defer_job(
-                'queue', 'foo', NULL, 'lock', '{}', NULL
+                'queue', 'foo', 0, NULL, 'lock', '{}', NULL
             ) AS id;"""
         )
 

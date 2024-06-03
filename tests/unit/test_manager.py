@@ -27,6 +27,7 @@ async def test_manager_defer_job(job_manager, job_factory, connector):
             "lock": "sher",
             "queueing_lock": None,
             "queue_name": "marsupilami",
+            "priority": 0,
             "scheduled_at": None,
             "status": "todo",
             "task_name": "bla",

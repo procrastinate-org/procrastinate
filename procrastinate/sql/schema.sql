@@ -27,6 +27,7 @@ CREATE TABLE procrastinate_jobs (
     id bigserial PRIMARY KEY,
     queue_name character varying(128) NOT NULL,
     task_name character varying(128) NOT NULL,
+    priority integer DEFAULT 0 NOT NULL,
     lock text,
     queueing_lock text,
     args jsonb DEFAULT '{}' NOT NULL,
@@ -51,7 +52,7 @@ CREATE TABLE procrastinate_events (
     at timestamp with time zone DEFAULT NOW() NULL
 );
 
--- Contraints & Indices
+-- Constraints & Indices
 
 -- this prevents from having several jobs with the same queueing lock in the "todo" state
 CREATE UNIQUE INDEX procrastinate_jobs_queueing_lock_idx ON procrastinate_jobs (queueing_lock) WHERE status = 'todo';
@@ -71,6 +72,7 @@ CREATE INDEX procrastinate_periodic_defers_job_id_fkey ON procrastinate_periodic
 CREATE FUNCTION procrastinate_defer_job(
     queue_name character varying,
     task_name character varying,
+    priority integer,
     lock text,
     queueing_lock text,
     args jsonb,
@@ -82,8 +84,8 @@ AS $$
 DECLARE
 	job_id bigint;
 BEGIN
-    INSERT INTO procrastinate_jobs (queue_name, task_name, lock, queueing_lock, args, scheduled_at)
-    VALUES (queue_name, task_name, lock, queueing_lock, args, scheduled_at)
+    INSERT INTO procrastinate_jobs (queue_name, task_name, priority, lock, queueing_lock, args, scheduled_at)
+    VALUES (queue_name, task_name, priority, lock, queueing_lock, args, scheduled_at)
     RETURNING id INTO job_id;
 
     RETURN job_id;
@@ -121,6 +123,7 @@ BEGIN
         SET job_id = procrastinate_defer_job(
                 _queue_name,
                 _task_name,
+                0,
                 _lock,
                 _queueing_lock,
                 _args,
@@ -171,7 +174,7 @@ BEGIN
                 AND jobs.status = 'todo'
                 AND (target_queue_names IS NULL OR jobs.queue_name = ANY( target_queue_names ))
                 AND (jobs.scheduled_at IS NULL OR jobs.scheduled_at <= now())
-            ORDER BY jobs.id ASC LIMIT 1
+            ORDER BY jobs.priority DESC, jobs.id ASC LIMIT 1
             FOR UPDATE OF jobs SKIP LOCKED
     )
     UPDATE procrastinate_jobs
