@@ -87,7 +87,7 @@ async def test_shell(read, write, defer):
 
     await write("list_jobs queue=other details")
     assert await read() == [
-        "#3 ns:tests.acceptance.app.sum_task on other - [failed] (attempts=0, scheduled_at=None, args={'a': 1, 'b': 2}, lock=lock)",
+        "#3 ns:tests.acceptance.app.sum_task on other - [failed] (attempts=0, priority=0, scheduled_at=None, args={'a': 1, 'b': 2}, lock=lock)",
     ]
 
     await write("list_queues")

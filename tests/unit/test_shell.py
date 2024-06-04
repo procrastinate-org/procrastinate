@@ -105,7 +105,7 @@ def test_list_jobs_filters(shell, connector, capsys):
 def test_list_jobs_details(shell, connector, capsys):
     connector.defer_job_one(
         "task1",
-        0,
+        5,
         "lock1",
         "queueing_lock1",
         {"x": 11},
@@ -114,7 +114,7 @@ def test_list_jobs_details(shell, connector, capsys):
     )
     connector.defer_job_one(
         "task2",
-        0,
+        7,
         "lock2",
         "queueing_lock2",
         {"y": 22},
@@ -125,9 +125,9 @@ def test_list_jobs_details(shell, connector, capsys):
     shell.do_list_jobs("details")
     captured = capsys.readouterr()
     assert captured.out.splitlines() == [
-        "#1 task1 on queue1 - [todo] (attempts=0, scheduled_at=1000-01-01 "
+        "#1 task1 on queue1 - [todo] (attempts=0, priority=5, scheduled_at=1000-01-01 "
         "00:00:00+00:00, args={'x': 11}, lock=lock1)",
-        "#2 task2 on queue2 - [todo] (attempts=0, scheduled_at=2000-01-01 "
+        "#2 task2 on queue2 - [todo] (attempts=0, priority=7, scheduled_at=2000-01-01 "
         "00:00:00+00:00, args={'y': 22}, lock=lock2)",
     ]
 
