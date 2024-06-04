@@ -58,6 +58,8 @@ CREATE TABLE procrastinate_events (
 CREATE UNIQUE INDEX procrastinate_jobs_queueing_lock_idx ON procrastinate_jobs (queueing_lock) WHERE status = 'todo';
 -- this prevents from having several jobs with the same lock in the "doing" state
 CREATE UNIQUE INDEX procrastinate_jobs_lock_idx ON procrastinate_jobs (lock) WHERE status = 'doing';
+-- improve ordering by priority and id when fetching a job to process
+CREATE UNIQUE INDEX idx_procrastinate_jobs_priority_id ON procrastinate_jobs (priority, id) WHERE status = 'todo';
 
 CREATE INDEX procrastinate_jobs_queue_name_idx ON procrastinate_jobs(queue_name);
 CREATE INDEX procrastinate_jobs_id_lock_idx ON procrastinate_jobs (id, lock) WHERE status = ANY (ARRAY['todo'::procrastinate_job_status, 'doing'::procrastinate_job_status]);
