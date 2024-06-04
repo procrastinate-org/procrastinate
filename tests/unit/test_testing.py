@@ -60,7 +60,7 @@ def test_make_dynamic_query(connector):
 def test_defer_job_one(connector):
     job = connector.defer_job_one(
         task_name="mytask",
-        priority=0,
+        priority=5,
         lock="sher",
         queueing_lock="houba",
         args={"a": "b"},
@@ -72,7 +72,7 @@ def test_defer_job_one(connector):
         1: {
             "id": 1,
             "queue_name": "marsupilami",
-            "priority": 0,
+            "priority": 5,
             "task_name": "mytask",
             "lock": "sher",
             "queueing_lock": "houba",
@@ -296,6 +296,33 @@ def test_fetch_job_one(connector):
 
     assert connector.fetch_job_one(queues=["marsupilami"])["id"] == 1
     assert connector.fetch_job_one(queues=["marsupilami"])["id"] == 5
+
+
+def test_fetch_job_one_prioritized(connector):
+    # This one will be selected second as it has a lower priority
+    connector.defer_job_one(
+        task_name="mytask",
+        priority=5,
+        args={},
+        queue="marsupilami",
+        scheduled_at=None,
+        lock=None,
+        queueing_lock=None,
+    )
+
+    # This one will be selected first as it has a higher priority
+    connector.defer_job_one(
+        task_name="mytask",
+        priority=7,
+        args={},
+        queue="marsupilami",
+        scheduled_at=None,
+        lock=None,
+        queueing_lock=None,
+    )
+
+    assert connector.fetch_job_one(queues=None)["id"] == 2
+    assert connector.fetch_job_one(queues=None)["id"] == 1
 
 
 def test_fetch_job_one_none_lock(connector):

@@ -176,6 +176,10 @@ def test_add_arguments__custom_healthchecks():
             ["defer", "--at", "2023-01-01", "--in", "12"],
             "argument --in: not allowed with argument --at",
         ),
+        (
+            ["defer", "--priority", "foo"],
+            "argument --priority: invalid int value: 'foo'",
+        ),
     ],
 )
 def test_parser__error(input, error, capsys):

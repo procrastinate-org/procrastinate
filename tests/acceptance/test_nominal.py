@@ -88,6 +88,19 @@ Try 2
     assert stderr.count(expected_log) == 2
 
 
+@pytest.mark.parametrize("app", ["app", "app_aiopg"])
+def test_priority(defer, worker, app):
+    defer("sum_task", ["--priority", "5"], a=5, b=7)
+    defer("sum_task", ["--priority", "7"], a=1, b=3)
+    defer("sum_task", ["--priority", "6"], a=2, b=6)
+
+    stdout, stderr = worker(app=app)
+    print(stdout, stderr)
+
+    assert stdout.splitlines() == ["4", "8", "12"]
+    assert stderr.startswith("DEBUG:procrastinate.")
+
+
 def test_lock(defer, running_worker):
     """
     In this test, we launch 2 workers in two parallel threads, and ask them

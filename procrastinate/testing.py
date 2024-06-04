@@ -192,17 +192,24 @@ class InMemoryConnector(connector.BaseAsyncConnector):
     def fetch_job_one(self, queues: Iterable[str] | None) -> dict:
         # Creating a copy of the iterable so that we can modify it while we iterate
 
-        for job in self.jobs.values():
+        filtered_jobs = [
+            job
+            for job in self.jobs.values()
             if (
                 job["status"] == "todo"
                 and (queues is None or job["queue_name"] in queues)
                 and (not job["scheduled_at"] or job["scheduled_at"] <= utils.utcnow())
                 and job["lock"] not in self.current_locks
-            ):
-                job["status"] = "doing"
-                self.events[job["id"]].append({"type": "started", "at": utils.utcnow()})
+            )
+        ]
 
-                return job
+        filtered_jobs.sort(key=lambda job: job["priority"], reverse=True)
+
+        if filtered_jobs:
+            job = filtered_jobs[0]
+            job["status"] = "doing"
+            self.events[job["id"]].append({"type": "started", "at": utils.utcnow()})
+            return job
 
         return {"id": None}
 

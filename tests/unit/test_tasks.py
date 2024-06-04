@@ -51,6 +51,12 @@ def test_configure_task(job_manager):
     assert job.task_kwargs == {"yay": "ho"}
 
 
+def test_configure_task_priority(job_manager):
+    job = tasks.configure_task(name="my_name", job_manager=job_manager, priority=7).job
+
+    assert job.priority == 7
+
+
 def test_configure_task_schedule_at(job_manager):
     job = tasks.configure_task(
         name="my_name",

@@ -171,6 +171,31 @@ async def test_defer(entrypoint, cli_app, connector):
     }
 
 
+async def test_defer_priority(entrypoint, cli_app, connector):
+    @cli_app.task(name="hello")
+    def mytask(a):
+        pass
+
+    result = await entrypoint("""defer --lock=sherlock --priority=5 hello {"a":1}""")
+
+    assert "Launching a job: hello(a=1)\n" in result.stderr
+    assert result.exit_code == 0
+    assert connector.jobs == {
+        1: {
+            "args": {"a": 1},
+            "attempts": 0,
+            "id": 1,
+            "lock": "sherlock",
+            "queueing_lock": None,
+            "queue_name": "default",
+            "scheduled_at": None,
+            "status": "todo",
+            "task_name": "hello",
+            "priority": 5,
+        }
+    }
+
+
 async def test_defer_at(entrypoint, cli_app, connector):
     @cli_app.task(name="hello")
     def mytask(a):
