@@ -7,6 +7,7 @@ This section introduces most of Procrastinate's advanced features.
 advanced/context
 advanced/locks
 advanced/schedule
+advanced/priorities
 advanced/queueing_locks
 advanced/cron
 advanced/retry
