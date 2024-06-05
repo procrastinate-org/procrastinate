@@ -1,9 +1,9 @@
 # Provide a job priority
 
 We can assign an optional priority to a job. Jobs with higher priority will be
-preferred by a worker. Priority is represented as an integer, where a higher
-number indicates a higher priority. If no priority is specified, it defaults
-to 0.
+preferred by a worker. Priority is represented as an (positive or negative)
+integer, where a larger number indicates a higher priority. If no priority is
+specified, it defaults to 0.
 
 ## From the code
 
