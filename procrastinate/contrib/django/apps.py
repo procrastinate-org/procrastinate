@@ -7,7 +7,7 @@ from django.utils import module_loading
 
 import procrastinate
 
-from . import django_connector, migrations_magic, procrastinate_app, settings
+from . import django_connector, procrastinate_app, settings
 
 
 class ProcrastinateConfig(apps.AppConfig):
@@ -15,7 +15,6 @@ class ProcrastinateConfig(apps.AppConfig):
     label = "procrastinate"
 
     def ready(self) -> None:
-        migrations_magic.load()
         procrastinate_app.current_app = create_app(
             blueprint=procrastinate_app.current_app
         )

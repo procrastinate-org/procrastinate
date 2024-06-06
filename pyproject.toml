@@ -137,7 +137,7 @@ exclude_lines = [
 exclude = ["tests", ".venv"]
 
 [tool.ruff]
-extend-exclude = [".venv", "migrations"]
+extend-exclude = [".venv"]
 
 [tool.ruff.lint]
 extend-select = [
