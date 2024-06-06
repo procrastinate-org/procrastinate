@@ -15,18 +15,18 @@
 | procrastinate/contrib/aiopg/\_\_init\_\_.py                       |        3 |        0 |        0 |        0 |    100% |           |
 | procrastinate/contrib/aiopg/aiopg\_connector.py                   |      148 |        2 |       88 |        2 |     98% |200-201, 299->298 |
 | procrastinate/contrib/django/\_\_init\_\_.py                      |        5 |        0 |        0 |        0 |    100% |           |
-| procrastinate/contrib/django/apps.py                              |       30 |        1 |        8 |        0 |     97% |        25 |
+| procrastinate/contrib/django/apps.py                              |       29 |        1 |        8 |        0 |     97% |        24 |
 | procrastinate/contrib/django/django\_connector.py                 |       78 |        4 |       30 |        1 |     95% | 28-31, 39 |
 | procrastinate/contrib/django/exceptions.py                        |        6 |        0 |        0 |        0 |    100% |           |
 | procrastinate/contrib/django/healthchecks.py                      |       32 |        0 |        4 |        0 |    100% |           |
 | procrastinate/contrib/django/management/\_\_init\_\_.py           |        0 |        0 |        0 |        0 |    100% |           |
 | procrastinate/contrib/django/management/commands/\_\_init\_\_.py  |        0 |        0 |        0 |        0 |    100% |           |
 | procrastinate/contrib/django/management/commands/procrastinate.py |       15 |        0 |        2 |        1 |     94% |    25->27 |
-| procrastinate/contrib/django/migrations\_magic.py                 |       77 |        0 |       23 |        0 |    100% |           |
+| procrastinate/contrib/django/migrations\_utils.py                 |       12 |        0 |        2 |        0 |    100% |           |
 | procrastinate/contrib/django/models.py                            |       58 |        1 |        6 |        1 |     97% |        31 |
 | procrastinate/contrib/django/procrastinate\_app.py                |       21 |        1 |        2 |        0 |     96% |        57 |
 | procrastinate/contrib/django/settings.py                          |       17 |        0 |        2 |        0 |    100% |           |
-| procrastinate/contrib/django/static\_migrations.py                |        9 |        0 |        0 |        0 |    100% |           |
+| procrastinate/contrib/django/static\_migrations.py                |        9 |        9 |        0 |        0 |      0% |      1-97 |
 | procrastinate/contrib/django/utils.py                             |       16 |        0 |        0 |        0 |    100% |           |
 | procrastinate/contrib/psycopg2/\_\_init\_\_.py                    |        3 |        0 |        0 |        0 |    100% |           |
 | procrastinate/contrib/psycopg2/psycopg2\_connector.py             |      102 |        1 |       62 |        1 |     99% |        26 |
@@ -51,7 +51,7 @@
 | procrastinate/types.py                                            |        4 |        0 |        0 |        0 |    100% |           |
 | procrastinate/utils.py                                            |      187 |        0 |       48 |        0 |    100% |           |
 | procrastinate/worker.py                                           |      171 |        0 |       42 |        0 |    100% |           |
-|                                                         **TOTAL** | **2461** |   **25** |  **712** |   **15** | **99%** |           |
+|                                                         **TOTAL** | **2395** |   **34** |  **691** |   **15** | **98%** |           |
 
 
 ## Setup coverage badge
