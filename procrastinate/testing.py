@@ -203,15 +203,15 @@ class InMemoryConnector(connector.BaseAsyncConnector):
             )
         ]
 
-        filtered_jobs.sort(key=lambda job: job["priority"], reverse=True)
+        filtered_jobs.sort(key=lambda job: (-job["priority"], job["id"]))
 
-        if filtered_jobs:
-            job = filtered_jobs[0]
-            job["status"] = "doing"
-            self.events[job["id"]].append({"type": "started", "at": utils.utcnow()})
-            return job
+        if not filtered_jobs:
+            return {"id": None}
 
-        return {"id": None}
+        job = filtered_jobs[0]
+        job["status"] = "doing"
+        self.events[job["id"]].append({"type": "started", "at": utils.utcnow()})
+        return job
 
     def finish_job_run(self, job_id: int, status: str, delete_job: bool) -> None:
         if delete_job:
