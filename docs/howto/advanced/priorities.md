@@ -5,6 +5,12 @@ preferred by a worker. Priority is represented as an (positive or negative)
 integer, where a larger number indicates a higher priority. If no priority is
 specified, it defaults to 0.
 
+Priority is used as a way to order available jobs. If a procrastinate worker
+requests a job, and there is a high-priority job scheduled that is blocked by a
+lock, and a low-priority job that is available, the worker will take
+the low-priority job. Procrastinate will never wait for a high-priority job to
+become available if there are lower-priority jobs already available.
+
 ## From the code
 
 Launch a task with a priority of 5:

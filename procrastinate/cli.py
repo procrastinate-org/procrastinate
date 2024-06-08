@@ -414,7 +414,8 @@ def configure_defer_parser(subparsers: argparse._SubParsersAction):
         default=argparse.SUPPRESS,
         dest="priority",
         type=int,
-        help="Job priority. Defaults to 0",
+        help="Job priority. May be positive or negative (higher values indicate jobs "
+        "that should execute first). Defaults to 0",
         envvar="DEFER_PRIORITY",
     )
     add_argument(

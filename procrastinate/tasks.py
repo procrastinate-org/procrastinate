@@ -189,7 +189,8 @@ class Task(Generic[P, Args]):
             By setting a queue on the job launch, you override the task default queue
         priority :
             Set the priority of the job as an integer. Jobs with higher priority
-            are run first. The default priority is 0.
+            are run first. Priority can be positive or negative. The default priority
+            is 0.
 
         Returns
         -------
