@@ -11,7 +11,7 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ("procrastinate", "0025_add_job_priority"),
+        ("procrastinate", "0024_job_id_bigint"),
     ]
 
     operations = [
@@ -51,7 +51,6 @@ class Migration(migrations.Migration):
                 ("id", models.BigAutoField(primary_key=True, serialize=False)),
                 ("queue_name", models.CharField(max_length=128)),
                 ("task_name", models.CharField(max_length=128)),
-                ("priority", models.IntegerField()),
                 ("lock", models.TextField(blank=True, null=True, unique=True)),
                 ("args", models.JSONField()),
                 (
@@ -95,4 +94,4 @@ class Migration(migrations.Migration):
     ]
 
 
-static_migrations["0026_add_models"] = Migration
+static_migrations["0025_add_models"] = Migration
