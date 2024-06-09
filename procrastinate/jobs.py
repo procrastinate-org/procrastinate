@@ -73,7 +73,7 @@ class Job:
     id: int | None = None
     status: str | None = None
     queue: str
-    priority: int = 0
+    priority: int = DEFAULT_PRIORITY
     lock: str | None
     queueing_lock: str | None
     task_name: str
