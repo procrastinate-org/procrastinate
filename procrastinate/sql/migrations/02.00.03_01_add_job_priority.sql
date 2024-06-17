@@ -1,6 +1,5 @@
 ALTER TABLE procrastinate_jobs ADD COLUMN priority integer DEFAULT 0 NOT NULL;
 
-DROP FUNCTION IF EXISTS procrastinate_defer_job(character varying, character varying, text, text, jsonb, timestamp with time zone);
 CREATE OR REPLACE FUNCTION procrastinate_defer_job(
     queue_name character varying,
     task_name character varying,

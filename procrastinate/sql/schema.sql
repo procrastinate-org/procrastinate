@@ -351,6 +351,31 @@ CREATE TRIGGER procrastinate_trigger_delete_jobs
 
 -- Old versions of functions, for backwards compatibility (to be removed
 -- after 2.0.0)
+
+-- procrastinate_defer_job
+-- the function without the priority argument is kept for compatibility reasons
+CREATE FUNCTION procrastinate_defer_job(
+    queue_name character varying,
+    task_name character varying,
+    lock text,
+    queueing_lock text,
+    args jsonb,
+    scheduled_at timestamp with time zone
+)
+    RETURNS bigint
+    LANGUAGE plpgsql
+AS $$
+DECLARE
+	job_id bigint;
+BEGIN
+    INSERT INTO procrastinate_jobs (queue_name, task_name, lock, queueing_lock, args, scheduled_at)
+    VALUES (queue_name, task_name, lock, queueing_lock, args, scheduled_at)
+    RETURNING id INTO job_id;
+
+    RETURN job_id;
+END;
+$$;
+
 -- procrastinate_finish_job
 CREATE OR REPLACE FUNCTION procrastinate_finish_job(job_id integer, end_status procrastinate_job_status, next_scheduled_at timestamp with time zone, delete_job boolean)
     RETURNS void
