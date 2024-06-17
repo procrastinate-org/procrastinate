@@ -41,7 +41,7 @@ WHERE id IN (
               ON job.id = event.job_id
             ORDER BY job.id, event.at DESC
     ) AS job
-    WHERE job.status = ANY(%(statuses)s)
+    WHERE job.status = ANY(%(statuses)s::procrastinate_job_status[])
       AND (%(queue)s::varchar IS NULL OR job.queue_name = %(queue)s)
       AND latest_at < NOW() - (%(nb_hours)s || 'HOUR')::INTERVAL
 )
