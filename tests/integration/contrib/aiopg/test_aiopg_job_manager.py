@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import functools
+
 import pytest
 
 from procrastinate import manager
@@ -18,6 +20,11 @@ def get_all(aiopg_connector):
         )
 
     return f
+
+
+@pytest.fixture
+def deferred_job_factory(deferred_job_factory, pg_job_manager):
+    return functools.partial(deferred_job_factory, job_manager=pg_job_manager)
 
 
 async def test_delete_old_jobs_job_todo(
