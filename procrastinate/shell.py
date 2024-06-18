@@ -18,7 +18,7 @@ def print_job(job: jobs.Job, details: bool = False) -> None:
     msg += f"- [{job_dict['status']}]"
     if details:
         msg += (
-            f" (attempts={job_dict['attempts']}, "
+            f" (attempts={job_dict['attempts']}, priority={job_dict['priority']}, "
             f"scheduled_at={job_dict['scheduled_at']}, args={job_dict['task_kwargs']}, "
             f"lock={job_dict['lock']})"
         )

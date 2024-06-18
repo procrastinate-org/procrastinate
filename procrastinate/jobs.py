@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 DEFAULT_QUEUE = "default"
+DEFAULT_PRIORITY = 0
 
 cached_property = getattr(functools, "cached_property", property)
 
@@ -51,6 +52,8 @@ class Job:
         Internal id uniquely identifying the job.
     status :
         Status of the job.
+    priority :
+        Priority of the job.
     queue :
         Queue name the job will be run in.
     lock :
@@ -70,6 +73,7 @@ class Job:
     id: int | None = None
     status: str | None = None
     queue: str
+    priority: int = DEFAULT_PRIORITY
     lock: str | None
     queueing_lock: str | None
     task_name: str
@@ -84,6 +88,7 @@ class Job:
         return cls(
             id=row["id"],
             status=row["status"],
+            priority=row["priority"],
             lock=row["lock"],
             queueing_lock=row["queueing_lock"],
             task_name=row["task_name"],

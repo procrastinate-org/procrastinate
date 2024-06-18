@@ -5,7 +5,7 @@
 
 -- defer_job --
 -- Create and enqueue a job
-SELECT procrastinate_defer_job(%(queue)s, %(task_name)s, %(lock)s, %(queueing_lock)s, %(args)s, %(scheduled_at)s) AS id;
+SELECT procrastinate_defer_job(%(queue)s, %(task_name)s, %(priority)s, %(lock)s, %(queueing_lock)s, %(args)s, %(scheduled_at)s) AS id;
 
 -- defer_periodic_job --
 -- Create a periodic job if it doesn't already exist, and delete periodic metadata
@@ -14,12 +14,12 @@ SELECT procrastinate_defer_periodic_job(%(queue)s, %(lock)s, %(queueing_lock)s, 
 
 -- fetch_job --
 -- Get the first awaiting job
-SELECT id, status, task_name, lock, queueing_lock, args, scheduled_at, queue_name, attempts
+SELECT id, status, task_name, priority, lock, queueing_lock, args, scheduled_at, queue_name, attempts
     FROM procrastinate_fetch_job(%(queues)s);
 
 -- select_stalled_jobs --
 -- Get running jobs that started more than a given time ago
-SELECT job.id, status, task_name, lock, queueing_lock, args, scheduled_at, queue_name, attempts, max(event.at) started_at
+SELECT job.id, status, task_name, priority, lock, queueing_lock, args, scheduled_at, queue_name, attempts, max(event.at) started_at
     FROM procrastinate_jobs job
     JOIN procrastinate_events event
       ON event.job_id = job.id
@@ -71,6 +71,7 @@ SELECT count(*) AS count, status FROM procrastinate_jobs GROUP BY status;
 SELECT id,
        queue_name,
        task_name,
+       priority,
        lock,
        queueing_lock,
        args,

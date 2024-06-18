@@ -30,6 +30,7 @@ async def test_task_defer_async(app: App, connector):
         1: {
             "id": 1,
             "queue_name": "queue",
+            "priority": 0,
             "task_name": "tests.unit.test_tasks.task_func",
             "lock": lock,
             "queueing_lock": None,
@@ -48,6 +49,12 @@ def test_configure_task(job_manager):
 
     assert job.lock == "sher"
     assert job.task_kwargs == {"yay": "ho"}
+
+
+def test_configure_task_priority(job_manager):
+    job = tasks.configure_task(name="my_name", job_manager=job_manager, priority=7).job
+
+    assert job.priority == 7
 
 
 def test_configure_task_schedule_at(job_manager):

@@ -74,6 +74,13 @@ def test_main(mocker):
             },
         ),
         (
+            ["defer", "x", "--priority", "5"],
+            {
+                "command": "defer",
+                "priority": 5,
+            },
+        ),
+        (
             ["schema"],
             {
                 "command": "schema",
@@ -168,6 +175,10 @@ def test_add_arguments__custom_healthchecks():
         (
             ["defer", "--at", "2023-01-01", "--in", "12"],
             "argument --in: not allowed with argument --at",
+        ),
+        (
+            ["defer", "--priority", "foo"],
+            "argument --priority: invalid int value: 'foo'",
         ),
     ],
 )

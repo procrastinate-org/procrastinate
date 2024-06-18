@@ -20,6 +20,7 @@ def test_procrastinate_job(db):
         "id": job_id,
         "queue_name": "default",
         "task_name": "test_task",
+        "priority": 0,
         "lock": None,
         "args": {"a": 1, "b": 2},
         "status": "todo",
@@ -39,6 +40,7 @@ def test_procrastinate_job__create__with_setting(db, settings):
     assert models.ProcrastinateJob.objects.create(
         task_name="test_task",
         queue_name="foo",
+        priority=0,
         lock="bar",
         args={"a": 1, "b": 2},
         status="todo",

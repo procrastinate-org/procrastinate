@@ -13,7 +13,11 @@ from .. import conftest
 async def test_manager_defer_job(job_manager, job_factory, connector):
     job = await job_manager.defer_job_async(
         job=job_factory(
-            task_kwargs={"a": "b"}, queue="marsupilami", task_name="bla", lock="sher"
+            task_kwargs={"a": "b"},
+            queue="marsupilami",
+            task_name="bla",
+            priority=5,
+            lock="sher",
         )
     )
 
@@ -27,6 +31,7 @@ async def test_manager_defer_job(job_manager, job_factory, connector):
             "lock": "sher",
             "queueing_lock": None,
             "queue_name": "marsupilami",
+            "priority": 5,
             "scheduled_at": None,
             "status": "todo",
             "task_name": "bla",

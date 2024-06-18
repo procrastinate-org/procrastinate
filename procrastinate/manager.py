@@ -64,6 +64,7 @@ class JobManager:
             "query": sql.queries["defer_job"],
             "task_name": job.task_name,
             "queue": job.queue,
+            "priority": job.priority,
             "lock": job.lock,
             "queueing_lock": job.queueing_lock,
             "args": job.task_kwargs,
