@@ -3,7 +3,7 @@
 We can assign an optional priority to a job. Jobs with higher priority will be
 preferred by a worker. Priority is represented as an (positive or negative)
 integer, where a larger number indicates a higher priority. If no priority is
-specified, it defaults to 0.
+specified and no default priority was set on the task itself, it defaults to 0.
 
 Priority is used as a way to order available jobs. If a procrastinate worker
 requests a job, and there is a high-priority job scheduled that is blocked by a
@@ -23,6 +23,16 @@ my_task.configure(priority=5).defer()
 
 ```console
 $ procrastinate defer --priority=5 path.to.my_task
+```
+
+## Set a default priority
+
+Set the default priority for all jobs of this task to 3 (otherwise it would be 0).
+
+```python
+@app.task(priority=3)
+def my_task():
+    ...
 ```
 
 :::{warning}

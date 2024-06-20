@@ -42,6 +42,18 @@ async def test_task_defer_async(app: App, connector):
     }
 
 
+async def test_task_default_priority(app: App, connector):
+    task = tasks.Task(task_func, blueprint=app, queue="queue", priority=7)
+
+    await task.defer_async()
+    await task.configure(priority=3).defer_async()
+    await task.defer_async()
+
+    assert connector.jobs[1]["priority"] == 7
+    assert connector.jobs[2]["priority"] == 3
+    assert connector.jobs[3]["priority"] == 7
+
+
 def test_configure_task(job_manager):
     job = tasks.configure_task(
         name="my_name", job_manager=job_manager, lock="sher", task_kwargs={"yay": "ho"}
