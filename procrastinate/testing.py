@@ -154,6 +154,7 @@ class InMemoryConnector(connector.BaseAsyncConnector):
         self,
         queue: str,
         task_name: str,
+        priority: int,
         args: types.JSONDict,
         defer_timestamp: int,
         lock: str | None,
@@ -168,7 +169,7 @@ class InMemoryConnector(connector.BaseAsyncConnector):
         return self.defer_job_one(
             task_name=task_name,
             queue=queue,
-            priority=0,
+            priority=priority,
             lock=lock,
             queueing_lock=queueing_lock,
             args=args,

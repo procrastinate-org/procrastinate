@@ -50,6 +50,11 @@ app.add_tasks_from(bp, namespace="ns")
 app.add_task_alias(sum_task, "tests.acceptance.app.sum_task")
 
 
+@app.task(priority=5)
+def sum_task_with_default_priority(a, b):
+    print(a + b)
+
+
 @app.task(queue="default")
 def sum_task_param(p1: Param, p2: Param):
     if not isinstance(p1, Param):

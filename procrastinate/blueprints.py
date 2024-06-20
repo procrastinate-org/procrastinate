@@ -205,6 +205,7 @@ class Blueprint:
         retry: retry.RetryValue = False,
         pass_context: Literal[False] = False,
         queue: str = jobs.DEFAULT_QUEUE,
+        priority: int = jobs.DEFAULT_PRIORITY,
         lock: str | None = None,
         queueing_lock: str | None = None,
     ) -> Callable[[Callable[P]], Task[P, P]]:
@@ -226,6 +227,10 @@ class Blueprint:
             if the function is nested or dynamically defined, it is important to give
             it a unique name, and to make sure the module that defines this function
             is listed in the ``import_paths`` of the `procrastinate.App`.
+        priority :
+            Default priority (an integer) of jobs that are deferred from this task.
+            Jobs with higher priority are run first. Priority can be positive or negative.
+            If no default priority is set then the default priority is 0.
         aliases:
             Additional names for the task.
             The main use case is to gracefully rename tasks by moving the old
@@ -254,6 +259,7 @@ class Blueprint:
         retry: retry.RetryValue = False,
         pass_context: Literal[True],
         queue: str = jobs.DEFAULT_QUEUE,
+        priority: int = jobs.DEFAULT_PRIORITY,
         lock: str | None = None,
         queueing_lock: str | None = None,
     ) -> Callable[
@@ -287,6 +293,7 @@ class Blueprint:
         retry: retry.RetryValue = False,
         pass_context: bool = False,
         queue: str = jobs.DEFAULT_QUEUE,
+        priority: int = jobs.DEFAULT_PRIORITY,
         lock: str | None = None,
         queueing_lock: str | None = None,
     ):
@@ -312,6 +319,7 @@ class Blueprint:
                 func,
                 blueprint=self,
                 queue=queue,
+                priority=priority,
                 lock=lock,
                 queueing_lock=queueing_lock,
                 name=name,

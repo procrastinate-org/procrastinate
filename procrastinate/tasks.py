@@ -92,6 +92,10 @@ class Task(Generic[P, Args]):
     queue : ``str``
         Default queue to send deferred jobs to. The queue can be overridden when a
         job is deferred.
+    priority :
+        Default priority (an integer) of jobs that are deferred from this task.
+        Jobs with higher priority are run first. Priority can be positive or negative.
+        If no default priority is set then the default priority is 0.
     lock : ``Optional[str]``
         Default lock. The lock can be overridden when a job is deferred.
     queueing_lock : ``Optional[str]``
@@ -112,10 +116,12 @@ class Task(Generic[P, Args]):
         pass_context: bool = False,
         # default defer arguments
         queue: str,
+        priority: int = jobs.DEFAULT_PRIORITY,
         lock: str | None = None,
         queueing_lock: str | None = None,
     ):
         self.queue = queue
+        self.priority = priority
         self.blueprint = blueprint
         self.func: Callable[P] = func
         self.aliases = aliases if aliases else []
@@ -224,7 +230,7 @@ class Task(Generic[P, Args]):
             schedule_at=schedule_at,
             schedule_in=schedule_in,
             queue=queue if queue is not None else self.queue,
-            priority=priority,
+            priority=priority if priority is not None else self.priority,
         )
 
     def get_retry_exception(

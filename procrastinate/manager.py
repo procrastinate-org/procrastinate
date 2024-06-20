@@ -107,6 +107,7 @@ class JobManager:
                 defer_timestamp=defer_timestamp,
                 periodic_id=periodic_id,
                 queue=job.queue,
+                priority=job.priority,
                 lock=job.lock,
                 queueing_lock=job.queueing_lock,
                 args=job.task_kwargs,

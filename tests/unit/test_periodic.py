@@ -238,6 +238,7 @@ async def test_defer_jobs(periodic_deferrer, task, connector, caplog):
                 "lock": "bar",
                 "queueing_lock": None,
                 "task_name": task.name,
+                "priority": 0,
                 "periodic_id": "foo",
             },
         )
@@ -267,6 +268,7 @@ async def test_defer_jobs_different_periodic_id(
                 "lock": None,
                 "queueing_lock": None,
                 "task_name": task.name,
+                "priority": 0,
                 "periodic_id": "bar",
             },
         )
@@ -294,6 +296,7 @@ async def test_defer_jobs_already(periodic_deferrer, task, connector, caplog):
                 "lock": None,
                 "queueing_lock": None,
                 "task_name": task.name,
+                "priority": 0,
                 "periodic_id": "foo",
             },
         )
