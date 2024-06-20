@@ -181,6 +181,16 @@ async def test_listen_notify(psycopg_connector):
         task.cancel()
 
 
+async def test_get_standalone_connection_applies_configure(psycopg_connector_factory):
+    async def configure(connection):
+        connection.attr = "value"
+
+    connector = await psycopg_connector_factory(configure=configure)
+
+    async with connector._get_standalone_connection() as connection:
+        assert connection.attr == "value"
+
+
 async def test_loop_notify_stop_when_connection_closed(psycopg_connector):
     # We want to make sure that the when the connection is closed, the loop end.
     event = asyncio.Event()
