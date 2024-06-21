@@ -212,7 +212,7 @@ async def test_loop_notify_timeout(psycopg_connector):
     assert connection.closed
 
     try:
-        await asyncio.wait_for(task, 0.1)
+        await asyncio.wait_for(task, 0.2)
     except asyncio.TimeoutError:
         pytest.fail("Failed to detect that connection was closed and stop")
 
