@@ -34,22 +34,22 @@ repos:
       - id: pyright
         additional_dependencies:
           - aiopg==1.4.0
-          - anyio==4.3.0
+          - anyio==4.4.0
           - asgiref==3.8.1
           - attrs==23.2.0
           - contextlib2==21.6.0
           - croniter==2.0.5
-          - django-stubs==5.0.0
+          - django-stubs==5.0.2
           - django==4.2.13
-          - importlib-metadata==7.1.0
+          - importlib-metadata==7.2.0
           - importlib-resources==6.4.0
           - psycopg2-binary==2.9.9
           - psycopg[pool]==3.1.19
           - python-dateutil==2.9.0.post0
-          - sqlalchemy==2.0.30
-          - typing-extensions==4.11.0
+          - sqlalchemy==2.0.31
+          - typing-extensions==4.12.2
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.4.4
+    rev: v0.4.10
     hooks:
       - id: ruff
         args: [--fix, --unsafe-fixes]
