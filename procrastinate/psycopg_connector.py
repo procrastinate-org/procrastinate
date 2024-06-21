@@ -10,7 +10,6 @@ from typing import (
     AsyncIterator,
     Callable,
     Iterable,
-    cast,
 )
 
 from typing_extensions import LiteralString
@@ -232,15 +231,26 @@ class PsycopgConnector(connector.BaseAsyncConnector):
             **{key: psycopg.sql.Identifier(value) for key, value in identifiers.items()}
         )
 
+    @contextlib.asynccontextmanager
+    async def _get_standalone_connection(
+        self,
+    ) -> AsyncIterator[psycopg.AsyncConnection]:
+        configure = self._pool_args.get("configure")
+
+        async with await self.pool.connection_class.connect(
+            self.pool.conninfo, **self.pool.kwargs, autocommit=True
+        ) as connection:
+            if configure:
+                await configure(connection)
+
+            yield connection
+
     @wrap_exceptions()
     async def listen_notify(
         self, event: asyncio.Event, channels: Iterable[str]
     ) -> None:
         while True:
-            async with await self.pool.connection_class.connect(
-                self.pool.conninfo, **self.pool.kwargs, autocommit=True
-            ) as connection:
-                connection = cast(psycopg.AsyncConnection, connection)
+            async with self._get_standalone_connection() as connection:
                 for channel_name in channels:
                     await connection.execute(
                         query=self._make_dynamic_query(
