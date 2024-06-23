@@ -67,44 +67,48 @@ async def test_shell(read, write, defer):
     defer("increment_task", ["--lock=b"], a=5)
 
     await write("cancel 2")
-    assert await read() == ["#2 ns:tests.acceptance.app.sum_task on default - [failed]"]
+    assert await read() == [
+        "#2 ns:tests.acceptance.app.sum_task on default - [cancelled]"
+    ]
 
     await write("cancel 3")
-    assert await read() == ["#3 ns:tests.acceptance.app.sum_task on other - [failed]"]
+    assert await read() == [
+        "#3 ns:tests.acceptance.app.sum_task on other - [cancelled]"
+    ]
 
     await write("cancel 4")
     assert await read() == [
-        "#4 tests.acceptance.app.increment_task on default - [failed]"
+        "#4 tests.acceptance.app.increment_task on default - [cancelled]"
     ]
 
     await write("list_jobs")
     assert await read() == [
         "#1 ns:tests.acceptance.app.sum_task on default - [todo]",
-        "#2 ns:tests.acceptance.app.sum_task on default - [failed]",
-        "#3 ns:tests.acceptance.app.sum_task on other - [failed]",
-        "#4 tests.acceptance.app.increment_task on default - [failed]",
+        "#2 ns:tests.acceptance.app.sum_task on default - [cancelled]",
+        "#3 ns:tests.acceptance.app.sum_task on other - [cancelled]",
+        "#4 tests.acceptance.app.increment_task on default - [cancelled]",
     ]
 
     await write("list_jobs queue=other details")
     assert await read() == [
-        "#3 ns:tests.acceptance.app.sum_task on other - [failed] (attempts=0, priority=0, scheduled_at=None, args={'a': 1, 'b': 2}, lock=lock)",
+        "#3 ns:tests.acceptance.app.sum_task on other - [cancelled] (attempts=0, priority=0, scheduled_at=None, args={'a': 1, 'b': 2}, lock=lock)",
     ]
 
     await write("list_queues")
     assert await read() == [
-        "default: 3 jobs (todo: 1, doing: 0, succeeded: 0, failed: 2)",
-        "other: 1 jobs (todo: 0, doing: 0, succeeded: 0, failed: 1)",
+        "default: 3 jobs (todo: 1, doing: 0, succeeded: 0, failed: 0, cancelled: 2, aborting: 0, aborted: 0)",
+        "other: 1 jobs (todo: 0, doing: 0, succeeded: 0, failed: 0, cancelled: 1, aborting: 0, aborted: 0)",
     ]
 
     await write("list_tasks")
     assert await read() == [
-        "ns:tests.acceptance.app.sum_task: 3 jobs (todo: 1, doing: 0, succeeded: 0, failed: 2)",
-        "tests.acceptance.app.increment_task: 1 jobs (todo: 0, doing: 0, succeeded: 0, failed: 1)",
+        "ns:tests.acceptance.app.sum_task: 3 jobs (todo: 1, doing: 0, succeeded: 0, failed: 0, cancelled: 2, aborting: 0, aborted: 0)",
+        "tests.acceptance.app.increment_task: 1 jobs (todo: 0, doing: 0, succeeded: 0, failed: 0, cancelled: 1, aborting: 0, aborted: 0)",
     ]
 
     await write("list_locks")
     assert await read() == [
-        "a: 1 jobs (todo: 1, doing: 0, succeeded: 0, failed: 0)",
-        "b: 1 jobs (todo: 0, doing: 0, succeeded: 0, failed: 1)",
-        "lock: 2 jobs (todo: 0, doing: 0, succeeded: 0, failed: 2)",
+        "a: 1 jobs (todo: 1, doing: 0, succeeded: 0, failed: 0, cancelled: 0, aborting: 0, aborted: 0)",
+        "b: 1 jobs (todo: 0, doing: 0, succeeded: 0, failed: 0, cancelled: 1, aborting: 0, aborted: 0)",
+        "lock: 2 jobs (todo: 0, doing: 0, succeeded: 0, failed: 0, cancelled: 2, aborting: 0, aborted: 0)",
     ]

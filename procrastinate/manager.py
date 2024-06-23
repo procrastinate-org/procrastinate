@@ -215,13 +215,13 @@ class JobManager:
         delete_job: bool,
     ) -> None:
         """
-        Set a job to its final state (``succeeded`` or ``failed``).
+        Set a job to its final state (``succeeded``, ``failed`` or ``aborted``).
 
         Parameters
         ----------
         job : `jobs.Job`
         status : `jobs.Status`
-            ``succeeded`` or ``failed``
+            ``succeeded``, ``failed`` or ``aborted``
         """
         assert job.id  # TODO remove this
         await self.finish_job_by_id_async(
@@ -240,6 +240,104 @@ class JobManager:
             status=status.value,
             delete_job=delete_job,
         )
+
+    def cancel_job_by_id(
+        self, job_id: int, abort: bool = False, delete_job: bool = False
+    ) -> bool:
+        """
+        Cancel a job by id.
+
+        Parameters
+        ----------
+        job_id : ``int``
+            The id of the job to cancel
+        abort : ``bool``
+            If True, a job in ``doing`` state will be marked as ``aborting``, but the task
+            itself has to respect the abortion request. If False, only jobs in ``todo`` state
+            will be set to ``cancelled`` and won't be processed by a worker anymore.
+        delete_job : ``bool``
+            If True, the job will be deleted from the database after being cancelled. Does
+            not affect the jobs that should be aborted.
+
+        Returns
+        -------
+        ``bool``
+            True if the job to be cancelled was found, False otherwise.
+        """
+        result = self.connector.get_sync_connector().execute_query_one(
+            query=sql.queries["cancel_job"],
+            job_id=job_id,
+            abort=abort,
+            delete_job=delete_job,
+        )
+        return result["id"] is not None
+
+    async def cancel_job_by_id_async(
+        self, job_id: int, abort: bool = False, delete_job=False
+    ) -> bool:
+        """
+        Cancel a job by id.
+
+        Parameters
+        ----------
+        job_id : ``int``
+            The id of the job to cancel
+        abort : ``bool``
+            If True, a job in ``doing`` state will be marked as ``aborting``, but the task
+            itself has to respect the abortion request. If False, only jobs in ``todo`` state
+            will be set to ``cancelled`` and won't be processed by a worker anymore.
+        delete_job : ``bool``
+            If True, the job will be deleted from the database after being cancelled. Does
+            not affect the jobs that should be aborted.
+
+        Returns
+        -------
+        ``bool``
+            True if the job to be cancelled was found, False otherwise.
+        """
+        result = await self.connector.execute_query_one_async(
+            query=sql.queries["cancel_job"],
+            job_id=job_id,
+            abort=abort,
+            delete_job=delete_job,
+        )
+        return result["id"] is not None
+
+    def get_job_status(self, job_id: int) -> jobs.Status:
+        """
+        Get the status of a job by id.
+
+        Parameters
+        ----------
+        job_id : ``int``
+            The id of the job to get the status of
+
+        Returns
+        -------
+        `jobs.Status`
+        """
+        result = self.connector.get_sync_connector().execute_query_one(
+            query=sql.queries["get_job_status"], job_id=job_id
+        )
+        return jobs.Status(result["status"])
+
+    async def get_job_status_async(self, job_id: int) -> jobs.Status:
+        """
+        Get the status of a job by id.
+
+        Parameters
+        ----------
+        job_id : ``int``
+            The id of the job to get the status of
+
+        Returns
+        -------
+        `jobs.Status`
+        """
+        result = await self.connector.execute_query_one_async(
+            query=sql.queries["get_job_status"], job_id=job_id
+        )
+        return jobs.Status(result["status"])
 
     async def retry_job(
         self,
@@ -435,7 +533,8 @@ class JobManager:
         -------
         ``List[Dict[str, Any]]``
             A list of dictionaries representing queues stats (``name``, ``jobs_count``,
-            ``todo``, ``doing``, ``succeeded``, ``failed``).
+            ``todo``, ``doing``, ``succeeded``, ``failed``, ``cancelled``, ``aborting``,
+            ``aborted``).
         """
         return [
             {
@@ -445,6 +544,9 @@ class JobManager:
                 "doing": row["stats"].get("doing", 0),
                 "succeeded": row["stats"].get("succeeded", 0),
                 "failed": row["stats"].get("failed", 0),
+                "cancelled": row["stats"].get("cancelled", 0),
+                "aborting": row["stats"].get("aborting", 0),
+                "aborted": row["stats"].get("aborted", 0),
             }
             for row in await self.connector.execute_query_all_async(
                 query=sql.queries["list_queues"],
@@ -473,6 +575,9 @@ class JobManager:
                 "doing": row["stats"].get("doing", 0),
                 "succeeded": row["stats"].get("succeeded", 0),
                 "failed": row["stats"].get("failed", 0),
+                "cancelled": row["stats"].get("cancelled", 0),
+                "aborting": row["stats"].get("aborting", 0),
+                "aborted": row["stats"].get("aborted", 0),
             }
             for row in self.connector.get_sync_connector().execute_query_all(
                 query=sql.queries["list_queues"],
@@ -508,7 +613,8 @@ class JobManager:
         -------
         ``List[Dict[str, Any]]``
             A list of dictionaries representing tasks stats (``name``, ``jobs_count``,
-            ``todo``, ``doing``, ``succeeded``, ``failed``).
+            ``todo``, ``doing``, ``succeeded``, ``failed``, ``cancelled``, ``aborting``,
+            ``aborted``).
         """
         return [
             {
@@ -518,6 +624,9 @@ class JobManager:
                 "doing": row["stats"].get("doing", 0),
                 "succeeded": row["stats"].get("succeeded", 0),
                 "failed": row["stats"].get("failed", 0),
+                "cancelled": row["stats"].get("cancelled", 0),
+                "aborting": row["stats"].get("aborting", 0),
+                "aborted": row["stats"].get("aborted", 0),
             }
             for row in await self.connector.execute_query_all_async(
                 query=sql.queries["list_tasks"],
@@ -546,6 +655,9 @@ class JobManager:
                 "doing": row["stats"].get("doing", 0),
                 "succeeded": row["stats"].get("succeeded", 0),
                 "failed": row["stats"].get("failed", 0),
+                "cancelled": row["stats"].get("cancelled", 0),
+                "aborting": row["stats"].get("aborting", 0),
+                "aborted": row["stats"].get("aborted", 0),
             }
             for row in self.connector.get_sync_connector().execute_query_all(
                 query=sql.queries["list_tasks"],
@@ -581,7 +693,8 @@ class JobManager:
         -------
         ``List[Dict[str, Any]]``
             A list of dictionaries representing locks stats (``name``, ``jobs_count``,
-            ``todo``, ``doing``, ``succeeded``, ``failed``).
+            ``todo``, ``doing``, ``succeeded``, ``failed``, ``cancelled``, ``aborting``,
+            ``aborted``).
         """
         result = []
         for row in await self.connector.execute_query_all_async(
@@ -599,6 +712,9 @@ class JobManager:
                     "doing": row["stats"].get("doing", 0),
                     "succeeded": row["stats"].get("succeeded", 0),
                     "failed": row["stats"].get("failed", 0),
+                    "cancelled": row["stats"].get("cancelled", 0),
+                    "aborting": row["stats"].get("aborting", 0),
+                    "aborted": row["stats"].get("aborted", 0),
                 }
             )
         return result
@@ -629,6 +745,9 @@ class JobManager:
                     "doing": row["stats"].get("doing", 0),
                     "succeeded": row["stats"].get("succeeded", 0),
                     "failed": row["stats"].get("failed", 0),
+                    "cancelled": row["stats"].get("cancelled", 0),
+                    "aborting": row["stats"].get("aborting", 0),
+                    "aborted": row["stats"].get("aborted", 0),
                 }
             )
         return result

@@ -224,6 +224,26 @@ class InMemoryConnector(connector.BaseAsyncConnector):
         job_row["attempts"] += 1
         self.events[job_id].append({"type": status, "at": utils.utcnow()})
 
+    def cancel_job_one(self, job_id: int, abort: bool, delete_job: bool) -> dict:
+        job_row = self.jobs[job_id]
+
+        if job_row["status"] == "todo":
+            if delete_job:
+                self.jobs.pop(job_id)
+                return {"id": job_id}
+
+            job_row["status"] = "cancelled"
+            return {"id": job_id}
+
+        if abort and job_row["status"] == "doing":
+            job_row["status"] = "aborting"
+            return {"id": job_id}
+
+        return {"id": None}
+
+    def get_job_status_one(self, job_id: int) -> dict:
+        return {"status": self.jobs[job_id]["status"]}
+
     def retry_job_run(self, job_id: int, retry_at: datetime.datetime) -> None:
         job_row = self.jobs[job_id]
         job_row["status"] = "todo"

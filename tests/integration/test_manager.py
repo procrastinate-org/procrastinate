@@ -261,7 +261,7 @@ async def test_finish_job_wrong_initial_status(
         await pg_job_manager.finish_job(
             job=job, status=jobs.Status.FAILED, delete_job=delete_job
         )
-    assert 'Job was not found or not in "doing" or "todo" status' in str(
+    assert 'Job was not found or not in "doing", "todo" or "aborting" status' in str(
         excinfo.value.__cause__
     )
 
@@ -276,7 +276,7 @@ async def test_finish_job_wrong_end_status(
         await pg_job_manager.finish_job(
             job=job, status=jobs.Status.TODO, delete_job=delete_job
         )
-    assert 'End status should be either "succeeded" or "failed"' in str(
+    assert 'End status should be either "succeeded", "failed" or "aborted"' in str(
         excinfo.value.__cause__
     )
 
@@ -452,6 +452,9 @@ async def test_list_queues_dict(fixture_jobs, pg_job_manager):
         "doing": 0,
         "succeeded": 0,
         "failed": 1,
+        "cancelled": 0,
+        "aborting": 0,
+        "aborted": 0,
     }
 
 
@@ -479,6 +482,9 @@ async def test_list_tasks_dict(fixture_jobs, pg_job_manager):
         "doing": 1,
         "succeeded": 0,
         "failed": 1,
+        "cancelled": 0,
+        "aborting": 0,
+        "aborted": 0,
     }
 
 

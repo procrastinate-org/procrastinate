@@ -63,6 +63,12 @@ class JobError(ProcrastinateException):
         self.critical = critical
 
 
+class JobAborted(ProcrastinateException):
+    """
+    Job was aborted (usually as reaction to an abortion request).
+    """
+
+
 class AppNotOpen(ProcrastinateException):
     """
     App was not open. Procrastinate App needs to be opened using:

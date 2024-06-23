@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from procrastinate import job_context
+from procrastinate import job_context, jobs
 
 
 @pytest.mark.parametrize(
@@ -104,3 +104,43 @@ def test_job_description_job_time(job_factory):
         job_result=job_context.JobResult(start_timestamp=20.0),
     ).job_description(current_timestamp=30.0)
     assert descr == "worker 2: some_task[12](a='b') (started 10.000 s ago)"
+
+
+def test_should_abort(app, job_factory):
+    job = job_factory(id=12)
+    app.job_manager.get_job_status = lambda job_id: jobs.Status.ABORTING
+    context = job_context.JobContext(app=app, job=job)
+
+    assert context.should_abort() is True
+
+
+def test_should_not_abort(app, job_factory):
+    job = job_factory(id=12)
+    app.job_manager.get_job_status = lambda job_id: jobs.Status.DOING
+    context = job_context.JobContext(app=app, job=job)
+
+    assert context.should_abort() is False
+
+
+async def test_should_abort_async(app, job_factory):
+    job = job_factory(id=12)
+
+    async def get_job_status_async(job_id):
+        return jobs.Status.ABORTING
+
+    app.job_manager.get_job_status_async = get_job_status_async
+    context = job_context.JobContext(app=app, job=job)
+
+    assert await context.should_abort_async() is True
+
+
+async def test_should_not_abort_async(app, job_factory):
+    job = job_factory(id=12)
+
+    async def get_job_status_async(job_id):
+        return jobs.Status.DOING
+
+    app.job_manager.get_job_status_async = get_job_status_async
+    context = job_context.JobContext(app=app, job=job)
+
+    assert await context.should_abort_async() is False
