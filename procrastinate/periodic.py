@@ -4,16 +4,24 @@ import asyncio
 import functools
 import logging
 import time
-from typing import Callable, Generic, Iterable, Tuple, cast
+from typing import (
+    TYPE_CHECKING,
+    Callable,
+    Generic,
+    Iterable,
+    Protocol,
+    Tuple,
+    TypeVar,
+)
 
 import attr
 import croniter
-from typing_extensions import Concatenate, ParamSpec, Unpack
+from typing_extensions import Unpack
 
 from procrastinate import exceptions, tasks
 
-P = ParamSpec("P")
-Args = ParamSpec("Args")
+if TYPE_CHECKING:
+    from procrastinate import job_context
 
 # The maximum delay after which tasks will be considered as
 # outdated, and ignored.
@@ -27,9 +35,29 @@ logger = logging.getLogger(__name__)
 cached_property = functools.cached_property
 
 
+class PeriodicTaskCallable(Protocol):
+    def __call__(self, *, timestamp: int, **kwargs) -> None: ...
+
+
+class PeriodicTaskCallableWithContext(Protocol):
+    def __call__(
+        self,
+        job_context: job_context.JobContext,
+        timestamp: int,
+        **kwargs,
+    ) -> None: ...
+
+
+PeriodicTaskCallableOtpionalContext = TypeVar(
+    "PeriodicTaskCallableOtpionalContext",
+    PeriodicTaskCallable,
+    PeriodicTaskCallableWithContext,
+)
+
+
 @attr.dataclass(frozen=True)
-class PeriodicTask(Generic[P, Args]):
-    task: tasks.Task[P, Args]
+class PeriodicTask(Generic[PeriodicTaskCallableOtpionalContext]):
+    task: tasks.Task[PeriodicTaskCallableOtpionalContext]
     cron: str
     periodic_id: str
     configure_kwargs: tasks.ConfigureTaskOptions
@@ -51,31 +79,36 @@ class PeriodicRegistry:
         cron: str,
         periodic_id: str,
         **configure_kwargs: Unpack[tasks.ConfigureTaskOptions],
-    ) -> Callable[[tasks.Task[P, Concatenate[int, Args]]], tasks.Task[P, Args]]:
+    ) -> Callable[
+        [tasks.Task[PeriodicTaskCallableOtpionalContext]],
+        tasks.Task[PeriodicTaskCallableOtpionalContext],
+    ]:
         """
         Decorator over a task definition that registers that task for periodic
         launch. This decorator should not be used directly, ``@app.periodic()`` is meant
         to be used instead.
         """
 
-        def wrapper(task: tasks.Task[P, Concatenate[int, Args]]) -> tasks.Task[P, Args]:
+        def wrapper(
+            task: tasks.Task[PeriodicTaskCallableOtpionalContext],
+        ) -> tasks.Task[PeriodicTaskCallableOtpionalContext]:
             self.register_task(
                 task=task,
                 cron=cron,
                 periodic_id=periodic_id,
                 configure_kwargs=configure_kwargs,
             )
-            return cast(tasks.Task[P, Args], task)
+            return task
 
         return wrapper
 
     def register_task(
         self,
-        task: tasks.Task[P, Concatenate[int, Args]],
+        task: tasks.Task[PeriodicTaskCallableOtpionalContext],
         cron: str,
         periodic_id: str,
         configure_kwargs: tasks.ConfigureTaskOptions,
-    ) -> PeriodicTask[P, Concatenate[int, Args]]:
+    ) -> PeriodicTask[PeriodicTaskCallableOtpionalContext]:
         key = (task.name, periodic_id)
         if key in self.periodic_tasks:
             raise exceptions.TaskAlreadyRegistered(
@@ -101,6 +134,13 @@ class PeriodicRegistry:
             cron=cron,
             periodic_id=periodic_id,
             configure_kwargs=configure_kwargs,
+        )
+        functools.update_wrapper(
+            # Pyright rightfully complains: a periodic task is not a callable.
+            wrapper=periodic_task,  # type: ignore
+            wrapped=task,
+            assigned=("__module__", "__name__", "__qualname__", "__doc__"),
+            updated=(),
         )
         return periodic_task
 

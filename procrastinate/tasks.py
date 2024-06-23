@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import datetime
 import logging
-from typing import Any, Callable, Generic, TypedDict, cast
+from typing import Any, Generic, Literal, TypedDict, cast, overload
 
 from typing_extensions import NotRequired, ParamSpec, Unpack
 
@@ -12,8 +12,6 @@ from procrastinate import retry as retry_module
 
 logger = logging.getLogger(__name__)
 
-
-Args = ParamSpec("Args")
 P = ParamSpec("P")
 
 
@@ -72,7 +70,7 @@ def configure_task(
     )
 
 
-class Task(Generic[P, Args]):
+class Task(Generic[blueprints.TaskCallableOptContext[P]]):
     """
     A task is a function that should be executed later. It is linked to a
     default queue, and expects keyword arguments.
@@ -103,27 +101,59 @@ class Task(Generic[P, Args]):
         deferred.
     """
 
+    @overload
     def __init__(
         self,
-        func: Callable[P],
+        func: blueprints.TaskCallable,
         *,
         blueprint: blueprints.Blueprint,
-        # task naming
-        name: str | None = None,
-        aliases: list[str] | None = None,
-        # task specific settings
-        retry: retry_module.RetryValue = False,
-        pass_context: bool = False,
-        # default defer arguments
+        name: str | None = ...,
+        aliases: list[str] | None = ...,
+        retry: retry_module.RetryValue = ...,
+        pass_context: Literal[False] = ...,
         queue: str,
-        priority: int = jobs.DEFAULT_PRIORITY,
-        lock: str | None = None,
-        queueing_lock: str | None = None,
+        priority: int = ...,
+        lock: str | None = ...,
+        queueing_lock: str | None = ...,
+    ): ...
+
+    @overload
+    def __init__(
+        self,
+        func: blueprints.TaskCallableWithContext,
+        *,
+        blueprint: blueprints.Blueprint,
+        name: str | None = ...,
+        aliases: list[str] | None = ...,
+        retry: retry_module.RetryValue = ...,
+        pass_context: bool = ...,
+        queue: str,
+        priority: int = ...,
+        lock: str | None = ...,
+        queueing_lock: str | None = ...,
+    ): ...
+
+    def __init__(
+        self,
+        func: blueprints.TaskCallableOptContext,
+        *,
+        blueprint,
+        # task naming
+        name=None,
+        aliases=None,
+        # task specific settings
+        retry=False,
+        pass_context=False,
+        # default defer arguments
+        queue,
+        priority=jobs.DEFAULT_PRIORITY,
+        lock=None,
+        queueing_lock=None,
     ):
         self.queue = queue
         self.priority = priority
         self.blueprint = blueprint
-        self.func: Callable[P] = func
+        self.func: blueprints.TaskCallableOptContext = func
         self.aliases = aliases if aliases else []
         self.retry_strategy = retry_module.get_retry_strategy(retry)
         self.name: str = name if name else self.full_path
@@ -142,13 +172,16 @@ class Task(Generic[P, Args]):
         ]
 
     def __call__(self, *args: P.args, **kwargs: P.kwargs) -> Any:
+        args = tuple()  # type: ignore
         return self.func(*args, **kwargs)
 
     @property
     def full_path(self) -> str:
         return utils.get_full_path(self.func)
 
-    async def defer_async(self, *_: Args.args, **task_kwargs: Args.kwargs) -> int:
+    async def defer_async(
+        self, *_: blueprints.P.args, **task_kwargs: blueprints.P.kwargs
+    ) -> int:
         """
         Create a job from this task and the given arguments.
         The job will be created with default parameters, if you want to better
@@ -156,7 +189,7 @@ class Task(Generic[P, Args]):
         """
         return await self.configure().defer_async(**task_kwargs)
 
-    def defer(self, *_: Args.args, **task_kwargs: Args.kwargs) -> int:
+    def defer(self, *_: P.args, **task_kwargs: P.kwargs) -> int:
         """
         Create a job from this task and the given arguments.
         The job will be created with default parameters, if you want to better

@@ -3,12 +3,20 @@ from __future__ import annotations
 import functools
 import logging
 import sys
-from typing import TYPE_CHECKING, Any, Callable, Literal, Union, cast, overload
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Generic,
+    Literal,
+    Protocol,
+    TypeVar,
+    overload,
+)
 
-from typing_extensions import Concatenate, ParamSpec, Unpack
+from typing_extensions import ParamSpec, Unpack
 
-from procrastinate import exceptions, jobs, periodic, retry, utils
-from procrastinate.job_context import JobContext
+from procrastinate import exceptions, job_context, jobs, periodic, retry, utils
 
 if TYPE_CHECKING:
     from procrastinate.tasks import ConfigureTaskOptions, Task
@@ -17,6 +25,21 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 P = ParamSpec("P")
+
+
+class TaskCallable(Protocol, Generic[P]):
+    def __call__(self, /, *_: P.args, **kwargs: P.kwargs) -> Any: ...
+
+
+class TaskCallableWithContext(Protocol, Generic[P]):
+    def __call__(
+        self, job_context: job_context.JobContext, /, *_: P.args, **kwargs: P.kwargs
+    ) -> Any: ...
+
+
+TaskCallableOptContext = TypeVar(
+    "TaskCallableOptContext", TaskCallable, TaskCallableWithContext
+)
 
 
 class Blueprint:
@@ -198,18 +221,52 @@ class Blueprint:
     @overload
     def task(
         self,
+        /,
         *,
-        _func: None = None,
+        name: str | None = ...,
+        aliases: list[str] | None = ...,
+        retry: retry.RetryValue = ...,
+        pass_context: Literal[False] = ...,
+        queue: str = ...,
+        priority: int = ...,
+        lock: str | None = ...,
+        queueing_lock: str | None = ...,
+    ) -> Callable[[TaskCallable], Task[TaskCallable]]: ...
+
+    @overload
+    def task(
+        self,
+        /,
+        *,
+        name: str | None = ...,
+        aliases: list[str] | None = ...,
+        retry: retry.RetryValue = ...,
+        pass_context: Literal[True] = ...,
+        queue: str = ...,
+        priority: int = ...,
+        lock: str | None = ...,
+        queueing_lock: str | None = ...,
+    ) -> Callable[[TaskCallableWithContext], Task[TaskCallableWithContext]]: ...
+
+    @overload
+    def task(self, _func: TaskCallable, /) -> Task[TaskCallable]: ...
+
+    def task(
+        self,
+        _func=None,
+        /,
+        *,
         name: str | None = None,
-        aliases: list[str] | None = None,
+        aliases=None,
         retry: retry.RetryValue = False,
-        pass_context: Literal[False] = False,
-        queue: str = jobs.DEFAULT_QUEUE,
-        priority: int = jobs.DEFAULT_PRIORITY,
-        lock: str | None = None,
-        queueing_lock: str | None = None,
-    ) -> Callable[[Callable[P]], Task[P, P]]:
-        """Declare a function as a task. This method is meant to be used as a decorator
+        pass_context=False,
+        queue=jobs.DEFAULT_QUEUE,
+        priority=jobs.DEFAULT_PRIORITY,
+        lock=None,
+        queueing_lock=None,
+    ):
+        """
+        Declare a function as a task. This method is meant to be used as a decorator
         Parameters
         ----------
         queue :
@@ -247,74 +304,10 @@ class Blueprint:
         pass_context :
             Passes the task execution context in the task as first
         """
-        ...
 
-    @overload
-    def task(
-        self,
-        *,
-        _func: None = None,
-        name: str | None = None,
-        aliases: list[str] | None = None,
-        retry: retry.RetryValue = False,
-        pass_context: Literal[True],
-        queue: str = jobs.DEFAULT_QUEUE,
-        priority: int = jobs.DEFAULT_PRIORITY,
-        lock: str | None = None,
-        queueing_lock: str | None = None,
-    ) -> Callable[
-        [Callable[Concatenate[JobContext, P]]],
-        Task[Concatenate[JobContext, P], P],
-    ]:
-        """Declare a function as a task. This method is meant to be used as a decorator
-        Parameters
-        ----------
-        _func :
-            The decorated function
-        """
-        ...
-
-    @overload
-    def task(self, _func: Callable[P]) -> Task[P, P]:
-        """Declare a function as a task. This method is meant to be used as a decorator
-        Parameters
-        ----------
-        _func :
-            The decorated function
-        """
-        ...
-
-    def task(
-        self,
-        _func: Callable[P] | None = None,
-        *,
-        name: str | None = None,
-        aliases: list[str] | None = None,
-        retry: retry.RetryValue = False,
-        pass_context: bool = False,
-        queue: str = jobs.DEFAULT_QUEUE,
-        priority: int = jobs.DEFAULT_PRIORITY,
-        lock: str | None = None,
-        queueing_lock: str | None = None,
-    ):
         from procrastinate.tasks import Task
 
-        """
-        Declare a function as a task. This method is meant to be used as a decorator::
-
-            @app.task(...)
-            def my_task(args):
-                ...
-
-        or::
-
-            @app.task
-            def my_task(args):
-                ...
-        The second form will use the default value for all parameters.
-        """
-
-        def _wrap(func: Callable[P]):
+        def _wrap(func: TaskCallableOptContext, /) -> Task[TaskCallableOptContext]:
             task = Task(
                 func,
                 blueprint=self,
@@ -329,19 +322,11 @@ class Blueprint:
             )
             self._register_task(task)
 
-            return functools.update_wrapper(task, func, updated=())
+            functools.update_wrapper(task, func, updated=())
+            return task
 
         if _func is None:  # Called as @app.task(...)
-            return cast(
-                Union[
-                    Callable[[Callable[P, Any]], Task[P, P]],
-                    Callable[
-                        [Callable[Concatenate[JobContext, P], Any]],
-                        Task[Concatenate[JobContext, P], P],
-                    ],
-                ],
-                _wrap,
-            )
+            return _wrap
 
         return _wrap(_func)  # Called as @app.task
 

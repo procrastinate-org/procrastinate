@@ -99,12 +99,9 @@ def async_to_sync(awaitable: Callable[..., Awaitable[T]], *args, **kwargs) -> T:
     return sync.async_to_sync(awaitable)(*args, **kwargs)
 
 
-async def sync_to_async(
-    func: Callable[..., T], *args, **kwargs
-) -> Callable[..., Awaitable[T]]:
+async def sync_to_async(func: Callable[..., T], *args, **kwargs) -> T:
     """
-    Given a callable, return a callable that will call the original one in an
-    async context.
+    Given a sync callable, call it in a thread, await & return the result.
     """
     return await sync.sync_to_async(func)(*args, **kwargs)
 

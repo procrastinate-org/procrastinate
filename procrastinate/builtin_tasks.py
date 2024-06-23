@@ -8,6 +8,7 @@ builtin = blueprints.Blueprint()
 @builtin.task(pass_context=True, queue="builtin")
 async def remove_old_jobs(
     context: job_context.JobContext,
+    /,
     *,
     max_hours: int,
     queue: str | None = None,
