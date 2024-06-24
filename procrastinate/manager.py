@@ -253,8 +253,8 @@ class JobManager:
             The id of the job to cancel
         abort : ``bool``
             If True, a job in ``doing`` state will be marked as ``aborting``, but the task
-            itself has to respect the abortion request. If False, only jobs in ``todo`` state
-            will be set to ``cancelled`` and won't be processed by a worker anymore.
+            itself has to respect the abortion request. If False, only jobs in ``todo``
+            state will be set to ``cancelled`` and won't be processed by a worker anymore.
         delete_job : ``bool``
             If True, the job will be deleted from the database after being cancelled. Does
             not affect the jobs that should be aborted.
@@ -262,7 +262,8 @@ class JobManager:
         Returns
         -------
         ``bool``
-            True if the job to be cancelled was found, False otherwise.
+            True if the job to be cancelled (or to mark for abortion) was found. False if
+            no job with that ID or in a state to be cancelled was found.
         """
         result = self.connector.get_sync_connector().execute_query_one(
             query=sql.queries["cancel_job"],
@@ -270,7 +271,12 @@ class JobManager:
             abort=abort,
             delete_job=delete_job,
         )
-        return result["id"] is not None
+
+        if result["id"] is None:
+            return False
+
+        assert result["id"] == job_id
+        return True
 
     async def cancel_job_by_id_async(
         self, job_id: int, abort: bool = False, delete_job=False
@@ -284,8 +290,8 @@ class JobManager:
             The id of the job to cancel
         abort : ``bool``
             If True, a job in ``doing`` state will be marked as ``aborting``, but the task
-            itself has to respect the abortion request. If False, only jobs in ``todo`` state
-            will be set to ``cancelled`` and won't be processed by a worker anymore.
+            itself has to respect the abortion request. If False, only jobs in ``todo``
+            state will be set to ``cancelled`` and won't be processed by a worker anymore.
         delete_job : ``bool``
             If True, the job will be deleted from the database after being cancelled. Does
             not affect the jobs that should be aborted.
@@ -293,7 +299,8 @@ class JobManager:
         Returns
         -------
         ``bool``
-            True if the job to be cancelled was found, False otherwise.
+            True if the job to be cancelled (or to mark for abortion) was found. False if
+            no job with that ID or in a state to be cancelled was found.
         """
         result = await self.connector.execute_query_one_async(
             query=sql.queries["cancel_job"],
@@ -301,7 +308,12 @@ class JobManager:
             abort=abort,
             delete_job=delete_job,
         )
-        return result["id"] is not None
+
+        if result["id"] is None:
+            return False
+
+        assert result["id"] == job_id
+        return True
 
     def get_job_status(self, job_id: int) -> jobs.Status:
         """
