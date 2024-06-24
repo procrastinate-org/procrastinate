@@ -42,7 +42,8 @@ await app.job_manager.cancel_job_by_id_async(33, abort=True)
 
 In our task, we can check (for example, periodically) if the task should be
 aborted. If we want to respect that request (we don't have to), we raise a
-`JobAborted` error.
+`JobAborted` error. Any message passed to `JobAborted` (e.g.
+`raise JobAborted("custom message")`) will end up in the logs.
 
 ```python
 @app.task(pass_context=True)
