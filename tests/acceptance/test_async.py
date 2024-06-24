@@ -93,14 +93,14 @@ async def test_abort(async_app):
     @async_app.task(queue="default", name="task1", pass_context=True)
     async def task1(context):
         while True:
-            await asyncio.sleep(1)
+            await asyncio.sleep(0.1)
             if await context.should_abort_async():
                 raise JobAborted
 
     @async_app.task(queue="default", name="task2", pass_context=True)
     def task2(context):
         while True:
-            time.sleep(1)
+            time.sleep(0.1)
             if context.should_abort():
                 raise JobAborted
 
@@ -111,10 +111,10 @@ async def test_abort(async_app):
         async_app.run_worker_async(queues=["default"], wait=False)
     )
 
-    await asyncio.sleep(1)
+    await asyncio.sleep(0.1)
     await async_app.job_manager.cancel_job_by_id_async(job1_id, abort=True)
 
-    await asyncio.sleep(1)
+    await asyncio.sleep(0.1)
     await async_app.job_manager.cancel_job_by_id_async(job2_id, abort=True)
 
     await worker_task
