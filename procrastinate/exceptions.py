@@ -65,7 +65,7 @@ class JobError(ProcrastinateException):
 
 class JobAborted(ProcrastinateException):
     """
-    Job was aborted (usually as reaction to an abortion request).
+    Job was aborted.
     """
 
 
