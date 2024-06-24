@@ -242,9 +242,9 @@ BEGIN
     IF _job_id IS NULL THEN
         IF abort THEN
             UPDATE procrastinate_jobs
-            SET status = CASE
-                WHEN status = 'todo' THEN 'cancelled'::procrastinate_job_status
-                WHEN status = 'doing' THEN 'aborting'::procrastinate_job_status
+            SET status = CASE status
+                WHEN 'todo' THEN 'cancelled'::procrastinate_job_status
+                WHEN 'doing' THEN 'aborting'::procrastinate_job_status
             END
             WHERE id = job_id AND status IN ('todo', 'doing')
             RETURNING id INTO _job_id;
