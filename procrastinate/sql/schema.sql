@@ -21,7 +21,7 @@ CREATE TYPE procrastinate_job_event_type AS ENUM (
     'failed',  -- doing or aborting -> failed
     'succeeded',  -- doing or aborting -> succeeded
     'cancelled', -- todo -> cancelled
-    'request_to_abort', -- doing -> aborting
+    'abort_requested', -- doing -> aborting
     'aborted', -- doing or aborting -> aborted
     'scheduled' -- not an event transition, but recording when a task is scheduled for
 );
@@ -328,7 +328,7 @@ BEGIN
                 THEN 'cancelled'::procrastinate_job_event_type
             WHEN OLD.status = 'doing'::procrastinate_job_status
                 AND NEW.status = 'aborting'::procrastinate_job_status
-                THEN 'request_to_abort'::procrastinate_job_event_type
+                THEN 'abort_requested'::procrastinate_job_event_type
             WHEN (
                     OLD.status = 'doing'::procrastinate_job_status
                     OR OLD.status = 'aborting'::procrastinate_job_status

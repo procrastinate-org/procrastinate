@@ -35,7 +35,7 @@ class Migration(migrations.Migration):
                     ("failed", "failed"),
                     ("succeeded", "succeeded"),
                     ("cancelled", "cancelled"),
-                    ("request_to_abort", "request_to_abort"),
+                    ("abort_requested", "abort_requested"),
                     ("aborted", "aborted"),
                     ("scheduled", "scheduled"),
                 ],

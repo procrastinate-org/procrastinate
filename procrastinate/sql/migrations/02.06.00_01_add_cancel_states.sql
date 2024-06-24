@@ -2,7 +2,7 @@ ALTER TYPE procrastinate_job_status ADD VALUE 'cancelled';
 ALTER TYPE procrastinate_job_status ADD VALUE 'aborting';
 ALTER TYPE procrastinate_job_status ADD VALUE 'aborted';
 
-ALTER TYPE procrastinate_job_event_type ADD VALUE 'request_to_abort' BEFORE 'scheduled';
+ALTER TYPE procrastinate_job_event_type ADD VALUE 'abort_requested' BEFORE 'scheduled';
 ALTER TYPE procrastinate_job_event_type ADD VALUE 'aborted' BEFORE 'scheduled';
 
 CREATE FUNCTION procrastinate_cancel_job(job_id bigint, abort boolean, delete_job boolean)
@@ -96,7 +96,7 @@ BEGIN
                 THEN 'cancelled'::procrastinate_job_event_type
             WHEN OLD.status = 'doing'::procrastinate_job_status
                 AND NEW.status = 'aborting'::procrastinate_job_status
-                THEN 'request_to_abort'::procrastinate_job_event_type
+                THEN 'abort_requested'::procrastinate_job_event_type
             WHEN (
                     OLD.status = 'doing'::procrastinate_job_status
                     OR OLD.status = 'aborting'::procrastinate_job_status

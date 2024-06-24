@@ -94,7 +94,7 @@ class ProcrastinateEvent(ProcrastinateReadOnlyModelMixin, models.Model):
         "failed",
         "succeeded",
         "cancelled",
-        "request_to_abort",
+        "abort_requested",
         "aborted",
         "scheduled",
     )
