@@ -79,6 +79,16 @@ async def test_fetch_job_not_fetching_locked_job(
     assert await pg_job_manager.fetch_job(queues=None) is None
 
 
+async def test_fetch_job_respect_lock_aborting_job(
+    pg_job_manager, deferred_job_factory, fetched_job_factory
+):
+    job = await fetched_job_factory(lock="lock_1")
+    await deferred_job_factory(lock="lock_1")
+
+    await pg_job_manager.cancel_job_by_id_async(job.id, abort=True)
+    assert await pg_job_manager.fetch_job(queues=None) is None
+
+
 async def test_fetch_job_spacial_case_none_lock(
     pg_job_manager, deferred_job_factory, fetched_job_factory
 ):

@@ -175,7 +175,7 @@ BEGIN
                         WHERE
                             jobs.lock IS NOT NULL
                             AND earlier_jobs.lock = jobs.lock
-                            AND earlier_jobs.status IN ('todo', 'doing')
+                            AND earlier_jobs.status IN ('todo', 'doing', 'aborting')
                             AND earlier_jobs.id < jobs.id)
                 AND jobs.status = 'todo'
                 AND (target_queue_names IS NULL OR jobs.queue_name = ANY( target_queue_names ))
