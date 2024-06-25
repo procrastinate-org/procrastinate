@@ -32,10 +32,10 @@
 | procrastinate/contrib/psycopg2/psycopg2\_connector.py             |      102 |        1 |       62 |        1 |     99% |        26 |
 | procrastinate/contrib/sqlalchemy/\_\_init\_\_.py                  |        3 |        0 |        0 |        0 |    100% |           |
 | procrastinate/contrib/sqlalchemy/psycopg2\_connector.py           |       78 |        1 |       46 |        0 |     99% |       109 |
-| procrastinate/exceptions.py                                       |       35 |        0 |        2 |        0 |    100% |           |
-| procrastinate/job\_context.py                                     |       53 |        0 |       20 |        0 |    100% |           |
-| procrastinate/jobs.py                                             |       75 |        0 |       12 |        0 |    100% |           |
-| procrastinate/manager.py                                          |       98 |        0 |       14 |        0 |    100% |           |
+| procrastinate/exceptions.py                                       |       36 |        0 |        2 |        0 |    100% |           |
+| procrastinate/job\_context.py                                     |       67 |        0 |       20 |        0 |    100% |           |
+| procrastinate/jobs.py                                             |       78 |        0 |       12 |        0 |    100% |           |
+| procrastinate/manager.py                                          |      116 |        0 |       18 |        0 |    100% |           |
 | procrastinate/metadata.py                                         |        6 |        0 |        0 |        0 |    100% |           |
 | procrastinate/periodic.py                                         |      103 |        0 |       26 |        0 |    100% |           |
 | procrastinate/psycopg\_connector.py                               |      110 |        5 |       64 |        4 |     95% |138-140, 213, 253->252, 283 |
@@ -47,11 +47,11 @@
 | procrastinate/sql/migrations/\_\_init\_\_.py                      |        0 |        0 |        0 |        0 |    100% |           |
 | procrastinate/sync\_psycopg\_connector.py                         |       81 |        2 |       46 |        2 |     97% |  143, 168 |
 | procrastinate/tasks.py                                            |       78 |        0 |       10 |        0 |    100% |           |
-| procrastinate/testing.py                                          |      144 |        1 |       45 |        1 |     99% |       150 |
+| procrastinate/testing.py                                          |      158 |        1 |       51 |        1 |     99% |       150 |
 | procrastinate/types.py                                            |        4 |        0 |        0 |        0 |    100% |           |
 | procrastinate/utils.py                                            |      187 |        0 |       48 |        0 |    100% |           |
-| procrastinate/worker.py                                           |      171 |        0 |       42 |        0 |    100% |           |
-|                                                         **TOTAL** | **2413** |   **34** |  **699** |   **15** | **98%** |           |
+| procrastinate/worker.py                                           |      180 |        0 |       46 |        0 |    100% |           |
+|                                                         **TOTAL** | **2472** |   **34** |  **713** |   **15** | **98%** |           |
 
 
 ## Setup coverage badge
