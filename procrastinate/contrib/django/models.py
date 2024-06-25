@@ -64,6 +64,9 @@ class ProcrastinateJob(ProcrastinateReadOnlyModelMixin, models.Model):
         "doing",
         "succeeded",
         "failed",
+        "cancelled",
+        "aborting",
+        "aborted",
     )
     id = models.BigAutoField(primary_key=True)
     queue_name = models.CharField(max_length=128)
@@ -91,6 +94,8 @@ class ProcrastinateEvent(ProcrastinateReadOnlyModelMixin, models.Model):
         "failed",
         "succeeded",
         "cancelled",
+        "abort_requested",
+        "aborted",
         "scheduled",
     )
     id = models.BigAutoField(primary_key=True)

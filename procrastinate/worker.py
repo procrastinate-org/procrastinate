@@ -195,6 +195,9 @@ class Worker:
         try:
             await self.run_job(job=job, worker_id=worker_id)
             status = jobs.Status.SUCCEEDED
+        except exceptions.JobAborted:
+            status = jobs.Status.ABORTED
+
         except exceptions.JobError as e:
             status = jobs.Status.FAILED
             if e.retry_exception:
@@ -280,6 +283,14 @@ class Worker:
             # It's not even sure it's worth emitting a warning
             if inspect.isawaitable(task_result):
                 task_result = await task_result
+
+        except exceptions.JobAborted as e:
+            task_result = None
+            log_title = "Aborted"
+            log_action = "job_aborted"
+            log_level = logging.INFO
+            exc_info = e
+            raise
 
         except BaseException as e:
             task_result = None

@@ -52,6 +52,7 @@ async def test_run(test_worker, mocker, caplog):
     "side_effect, status",
     [
         (None, "succeeded"),
+        (exceptions.JobAborted(), "aborted"),
         (exceptions.JobError(), "failed"),
         (exceptions.TaskNotFound(), "failed"),
     ],
@@ -322,6 +323,41 @@ async def test_run_job_log_name(
 
     worker_names = [getattr(record, "worker", {}).get("name") for record in records]
     assert all([name == record_worker_name for name in worker_names])
+
+
+async def test_run_job_aborted(app, caplog):
+    caplog.set_level("INFO")
+
+    def job_func(a, b):  # pylint: disable=unused-argument
+        raise exceptions.JobAborted()
+
+    task = tasks.Task(job_func, blueprint=app, queue="yay", name="job")
+    task.func = job_func
+
+    app.tasks = {"job": task}
+
+    job = jobs.Job(
+        id=16,
+        task_kwargs={"a": 9, "b": 3},
+        lock="sherlock",
+        queueing_lock="houba",
+        task_name="job",
+        queue="yay",
+    )
+    test_worker = worker.Worker(app, queues=["yay"])
+    with pytest.raises(exceptions.JobAborted):
+        await test_worker.run_job(job=job, worker_id=3)
+
+    assert (
+        len(
+            [
+                r
+                for r in caplog.records
+                if r.levelname == "INFO" and "Aborted" in r.message
+            ]
+        )
+        == 1
+    )
 
 
 async def test_run_job_error(app, caplog):

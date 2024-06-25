@@ -50,6 +50,14 @@ WHERE id IN (
 -- Finish a job, changing it from "doing" to "succeeded" or "failed"
 SELECT procrastinate_finish_job(%(job_id)s, %(status)s, %(delete_job)s);
 
+-- cancel_job --
+-- Cancel a job, changing it from "todo" to "cancelled" or from "doing" to "aborting"
+SELECT procrastinate_cancel_job(%(job_id)s, %(abort)s, %(delete_job)s) AS id;
+
+-- get_job_status --
+-- Get the status of a job
+SELECT status FROM procrastinate_jobs WHERE id = %(job_id)s;
+
 -- retry_job --
 -- Retry a job, changing it from "doing" to "todo"
 SELECT procrastinate_retry_job(%(job_id)s, %(retry_at)s);

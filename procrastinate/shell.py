@@ -87,7 +87,10 @@ class ProcrastinateShell(cmd.Cmd):
                 f"todo: {queue['todo']}, "
                 f"doing: {queue['doing']}, "
                 f"succeeded: {queue['succeeded']}, "
-                f"failed: {queue['failed']})"
+                f"failed: {queue['failed']}, "
+                f"cancelled: {queue['cancelled']}, "
+                f"aborting: {queue['aborting']}, "
+                f"aborted: {queue['aborted']})"
             )
 
     def do_list_tasks(self, arg: str) -> None:
@@ -107,7 +110,10 @@ class ProcrastinateShell(cmd.Cmd):
                 f"todo: {task['todo']}, "
                 f"doing: {task['doing']}, "
                 f"succeeded: {task['succeeded']}, "
-                f"failed: {task['failed']})"
+                f"failed: {task['failed']}, "
+                f"cancelled: {task['cancelled']}, "
+                f"aborting: {task['aborting']}, "
+                f"aborted: {task['aborted']})"
             )
 
     def do_list_locks(self, arg: str) -> None:
@@ -127,7 +133,10 @@ class ProcrastinateShell(cmd.Cmd):
                 f"todo: {lock['todo']}, "
                 f"doing: {lock['doing']}, "
                 f"succeeded: {lock['succeeded']}, "
-                f"failed: {lock['failed']})"
+                f"failed: {lock['failed']}, "
+                f"cancelled: {lock['cancelled']}, "
+                f"aborting: {lock['aborting']}, "
+                f"aborted: {lock['aborted']})"
             )
 
     def do_retry(self, arg: str) -> None:
@@ -159,12 +168,7 @@ class ProcrastinateShell(cmd.Cmd):
         Example: cancel 3
         """
         job_id = int(arg)
-        self.async_to_sync(
-            self.job_manager.finish_job_by_id_async,
-            job_id=job_id,
-            status=jobs.Status.FAILED,
-            delete_job=False,
-        )
+        self.job_manager.cancel_job_by_id(job_id=job_id)
 
         (job,) = self.async_to_sync(self.job_manager.list_jobs_async, id=job_id)
         print_job(job)

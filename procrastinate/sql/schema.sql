@@ -8,16 +8,21 @@ CREATE TYPE procrastinate_job_status AS ENUM (
     'todo',  -- The job is queued
     'doing',  -- The job has been fetched by a worker
     'succeeded',  -- The job ended successfully
-    'failed'  -- The job ended with an error
+    'failed',  -- The job ended with an error
+    'cancelled', -- The job was cancelled
+    'aborting',  -- The job was requested to abort
+    'aborted'  -- The job was aborted
 );
 
 CREATE TYPE procrastinate_job_event_type AS ENUM (
     'deferred',  -- Job created, in todo
     'started',  -- todo -> doing
     'deferred_for_retry',  -- doing -> todo
-    'failed',  -- doing -> failed
-    'succeeded',  -- doing -> succeeded
-    'cancelled', -- todo -> failed or succeeded
+    'failed',  -- doing or aborting -> failed
+    'succeeded',  -- doing or aborting -> succeeded
+    'cancelled', -- todo -> cancelled
+    'abort_requested', -- doing -> aborting
+    'aborted', -- doing or aborting -> aborted
     'scheduled' -- not an event transition, but recording when a task is scheduled for
 );
 
@@ -170,7 +175,7 @@ BEGIN
                         WHERE
                             jobs.lock IS NOT NULL
                             AND earlier_jobs.lock = jobs.lock
-                            AND earlier_jobs.status IN ('todo', 'doing')
+                            AND earlier_jobs.status IN ('todo', 'doing', 'aborting')
                             AND earlier_jobs.id < jobs.id)
                 AND jobs.status = 'todo'
                 AND (target_queue_names IS NULL OR jobs.queue_name = ANY( target_queue_names ))
@@ -198,12 +203,12 @@ AS $$
 DECLARE
     _job_id bigint;
 BEGIN
-    IF end_status NOT IN ('succeeded', 'failed') THEN
-        RAISE 'End status should be either "succeeded" or "failed" (job id: %)', job_id;
+    IF end_status NOT IN ('succeeded', 'failed', 'aborted') THEN
+        RAISE 'End status should be either "succeeded", "failed" or "aborted" (job id: %)', job_id;
     END IF;
     IF delete_job THEN
         DELETE FROM procrastinate_jobs
-        WHERE id = job_id AND status IN ('todo', 'doing')
+        WHERE id = job_id AND status IN ('todo', 'doing', 'aborting')
         RETURNING id INTO _job_id;
     ELSE
         UPDATE procrastinate_jobs
@@ -213,12 +218,44 @@ BEGIN
                     WHEN status = 'doing' THEN attempts + 1
                     ELSE attempts
                 END
-        WHERE id = job_id AND status IN ('todo', 'doing')
+        WHERE id = job_id AND status IN ('todo', 'doing', 'aborting')
         RETURNING id INTO _job_id;
     END IF;
     IF _job_id IS NULL THEN
-        RAISE 'Job was not found or not in "doing" or "todo" status (job id: %)', job_id;
+        RAISE 'Job was not found or not in "doing", "todo" or "aborting" status (job id: %)', job_id;
     END IF;
+END;
+$$;
+
+CREATE FUNCTION procrastinate_cancel_job(job_id bigint, abort boolean, delete_job boolean)
+    RETURNS bigint
+    LANGUAGE plpgsql
+AS $$
+DECLARE
+    _job_id bigint;
+BEGIN
+    IF delete_job THEN
+        DELETE FROM procrastinate_jobs
+        WHERE id = job_id AND status = 'todo'
+        RETURNING id INTO _job_id;
+    END IF;
+    IF _job_id IS NULL THEN
+        IF abort THEN
+            UPDATE procrastinate_jobs
+            SET status = CASE status
+                WHEN 'todo' THEN 'cancelled'::procrastinate_job_status
+                WHEN 'doing' THEN 'aborting'::procrastinate_job_status
+            END
+            WHERE id = job_id AND status IN ('todo', 'doing')
+            RETURNING id INTO _job_id;
+        ELSE
+            UPDATE procrastinate_jobs
+            SET status = 'cancelled'::procrastinate_job_status
+            WHERE id = job_id AND status = 'todo'
+            RETURNING id INTO _job_id;
+        END IF;
+    END IF;
+    RETURN _job_id;
 END;
 $$;
 
@@ -284,10 +321,20 @@ BEGIN
                 THEN 'succeeded'::procrastinate_job_event_type
             WHEN OLD.status = 'todo'::procrastinate_job_status
                 AND (
-                    NEW.status = 'failed'::procrastinate_job_status
+                    NEW.status = 'cancelled'::procrastinate_job_status
+                    OR NEW.status = 'failed'::procrastinate_job_status
                     OR NEW.status = 'succeeded'::procrastinate_job_status
                 )
                 THEN 'cancelled'::procrastinate_job_event_type
+            WHEN OLD.status = 'doing'::procrastinate_job_status
+                AND NEW.status = 'aborting'::procrastinate_job_status
+                THEN 'abort_requested'::procrastinate_job_event_type
+            WHEN (
+                    OLD.status = 'doing'::procrastinate_job_status
+                    OR OLD.status = 'aborting'::procrastinate_job_status
+                )
+                AND NEW.status = 'aborted'::procrastinate_job_status
+                THEN 'aborted'::procrastinate_job_event_type
             ELSE NULL
         END as event_type
     )
