@@ -64,7 +64,8 @@ async def test_cancel(sync_app, async_app):
     job_id = sum_task.defer(a=1, b=2)
     sum_task.defer(a=3, b=4)
 
-    sync_app.job_manager.cancel_job_by_id(job_id)
+    result = sync_app.job_manager.cancel_job_by_id(job_id)
+    assert result is True
 
     status = sync_app.job_manager.get_job_status(job_id)
     assert status == Status.CANCELLED
@@ -77,3 +78,20 @@ async def test_cancel(sync_app, async_app):
     await async_app.run_worker_async(queues=["default"], wait=False)
 
     assert sum_results == [7]
+
+
+def test_no_job_to_cancel_found(sync_app):
+    @sync_app.task(queue="default", name="example_task")
+    def example_task():
+        pass
+
+    job_id = example_task.defer()
+
+    result = sync_app.job_manager.cancel_job_by_id(job_id + 1)
+    assert result is False
+
+    status = sync_app.job_manager.get_job_status(job_id)
+    assert status == Status.TODO
+
+    jobs = sync_app.job_manager.list_jobs()
+    assert len(jobs) == 1

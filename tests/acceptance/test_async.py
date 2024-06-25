@@ -56,7 +56,8 @@ async def test_cancel(async_app):
     job_id = await sum_task.defer_async(a=1, b=2)
     await sum_task.defer_async(a=3, b=4)
 
-    await async_app.job_manager.cancel_job_by_id_async(job_id)
+    result = await async_app.job_manager.cancel_job_by_id_async(job_id)
+    assert result is True
 
     status = await async_app.job_manager.get_job_status_async(job_id)
     assert status == Status.CANCELLED
@@ -79,7 +80,8 @@ async def test_cancel_with_delete(async_app):
     job_id = await sum_task.defer_async(a=1, b=2)
     await sum_task.defer_async(a=3, b=4)
 
-    await async_app.job_manager.cancel_job_by_id_async(job_id, delete_job=True)
+    result = await async_app.job_manager.cancel_job_by_id_async(job_id, delete_job=True)
+    assert result is True
 
     jobs = await async_app.job_manager.list_jobs_async()
     assert len(jobs) == 1
@@ -87,6 +89,23 @@ async def test_cancel_with_delete(async_app):
     await async_app.run_worker_async(queues=["default"], wait=False)
 
     assert sum_results == [7]
+
+
+async def test_no_job_to_cancel_found(async_app):
+    @async_app.task(queue="default", name="example_task")
+    def example_task():
+        pass
+
+    job_id = await example_task.defer_async()
+
+    result = await async_app.job_manager.cancel_job_by_id_async(job_id + 1)
+    assert result is False
+
+    status = await async_app.job_manager.get_job_status_async(job_id)
+    assert status == Status.TODO
+
+    jobs = await async_app.job_manager.list_jobs_async()
+    assert len(jobs) == 1
 
 
 async def test_abort(async_app):
@@ -112,10 +131,12 @@ async def test_abort(async_app):
     )
 
     await asyncio.sleep(0.1)
-    await async_app.job_manager.cancel_job_by_id_async(job1_id, abort=True)
+    result = await async_app.job_manager.cancel_job_by_id_async(job1_id, abort=True)
+    assert result is True
 
     await asyncio.sleep(0.1)
-    await async_app.job_manager.cancel_job_by_id_async(job2_id, abort=True)
+    result = await async_app.job_manager.cancel_job_by_id_async(job2_id, abort=True)
+    assert result is True
 
     await worker_task
 
