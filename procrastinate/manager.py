@@ -262,8 +262,9 @@ class JobManager:
         Returns
         -------
         ``bool``
-            True if the job to be cancelled (or to mark for abortion) was found. False if
-            no job with that ID or in a state to be cancelled was found.
+            If True, the job was cancelled (or its abortion was requested). If False,
+            nothing was done: either there is no job with this id or it's not in a state
+            where it may be cancelled (i.e. `todo` or `doing`)
         """
         result = self.connector.get_sync_connector().execute_query_one(
             query=sql.queries["cancel_job"],
@@ -299,8 +300,9 @@ class JobManager:
         Returns
         -------
         ``bool``
-            True if the job to be cancelled (or to mark for abortion) was found. False if
-            no job with that ID or in a state to be cancelled was found.
+            If True, the job was cancelled (or its abortion was requested). If False,
+            nothing was done: either there is no job with this id or it's not in a state
+            where it may be cancelled (i.e. `todo` or `doing`)
         """
         result = await self.connector.execute_query_one_async(
             query=sql.queries["cancel_job"],
@@ -416,7 +418,7 @@ class JobManager:
         defer operation is seen.
 
         This coroutine either returns ``None`` upon calling if it cannot start
-        listening or does not return and needs to be canceled to end.
+        listening or does not return and needs to be cancelled to end.
 
         Parameters
         ----------

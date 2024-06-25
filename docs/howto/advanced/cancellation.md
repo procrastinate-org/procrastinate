@@ -13,7 +13,7 @@ app.job_manager.cancel_job_by_id(33)
 await app.job_manager.cancel_job_by_id_async(33)
 ```
 
-## Delete the canceled job
+## Delete the cancelled job
 
 A cancelled job can also be deleted from the database.
 
