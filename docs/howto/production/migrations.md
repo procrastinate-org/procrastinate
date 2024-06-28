@@ -25,7 +25,7 @@ this app provides. See {doc}`../django/migrations` for more information.
 
 The migration scripts are located in the `procrastinate/sql/migrations` directory of
 the Procrastinate Git repository. They're also shipped in the Python packages published
-on PyPI. A sinmple way to list all the migrations is to use the command:
+on PyPI. A simple way to list all the migrations is to use the command:
 
 ```console
 $ procrastinate schema --migrations-path
