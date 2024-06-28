@@ -32,7 +32,7 @@ $ procrastinate schema --migrations-path
 /home/me/my_venv/lib/python3.x/lib/site-packages/procrastinate/sql/migrations
 ```
 It's your responsibility to keep track of what migrations have been applied yet or not.
-Thankfully, the names of procrastinate migrations should help you: they follow to a
+Thankfully, the names of procrastinate migrations should help you: they follow a
 certain pattern:
 
 ```
