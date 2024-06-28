@@ -31,9 +31,9 @@ on PyPI. A simple way to list all the migrations is to use the command:
 $ procrastinate schema --migrations-path
 /home/me/my_venv/lib/python3.x/lib/site-packages/procrastinate/sql/migrations
 ```
-It's your responsibility to keep track of what migrations have been applied yet or not.
-Thankfully, the names of procrastinate migrations should help you: they follow a
-certain pattern:
+It's your responsibility to keep track of which migrations have been applied yet
+or not. Thankfully, the names of procrastinate migrations should help you: they
+follow a specific pattern:
 
 ```
 xx.yy.zz_ab_very_short_description_of_the_migration.sql
