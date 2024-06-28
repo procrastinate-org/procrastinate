@@ -6,7 +6,7 @@ migrations are released alongside. Look at the
 for a listing of new migrations for each release.
 
 Migrations are SQL scripts that can be executed on the DB before the release and
-apply the changes to get to the new schema.
+apply the changes needed to get to the new schema.
 
 Here's an example of a migration script:
 
