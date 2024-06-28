@@ -44,7 +44,7 @@ xx.yy.zz_ab_very_short_description_of_the_migration.sql
 :::{note}
 There is a [debate](https://github.com/procrastinate-org/procrastinate/issues/1040)
 on whether Procrastinate should have its own migration management system or provide
-directions for how to use classic ones (apart from Django), please feel free to chime in 
+directions for how to use classic ones (apart from Django), please feel free to chime in
 and/or contribute code or documentation if you have an opinion on this.
 :::
 
