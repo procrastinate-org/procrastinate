@@ -1,7 +1,12 @@
 # Migrate the Procrastinate schema
 
-When Procrastinate developers make changes to the Procrastinate database schema – the
-`schema.sql` file in the code base – they need to write migration scripts.
+When the Procrastinate database schema evolves in new Procrastinate releases, new
+migrations are released alongside. Look at the
+[Release notes](https://github.com/procrastinate-org/procrastinate/releases)
+for a listing of new migrations for each release.
+
+Migrations are SQL scripts that can be executed on the DB before the release and
+apply the changes needed to get to the new schema.
 
 Here's an example of a migration script:
 
@@ -20,9 +25,15 @@ this app provides. See {doc}`../django/migrations` for more information.
 
 The migration scripts are located in the `procrastinate/sql/migrations` directory of
 the Procrastinate Git repository. They're also shipped in the Python packages published
-on PyPI.
+on PyPI. A simple way to list all the migrations is to use the command:
 
-The names of migration script files adhere to a certain pattern:
+```console
+$ procrastinate schema --migrations-path
+/home/me/my_venv/lib/python3.x/lib/site-packages/procrastinate/sql/migrations
+```
+It's your responsibility to keep track of which migrations have been applied yet
+or not. Thankfully, the names of procrastinate migrations should help you: they
+follow a specific pattern:
 
 ```
 xx.yy.zz_ab_very_short_description_of_the_migration.sql
@@ -31,6 +42,13 @@ xx.yy.zz_ab_very_short_description_of_the_migration.sql
 - `xx.yy.zz` is the version of Procrastinate the migration script can be applied to.
 - `ab` is the migration script's serial number, `01` being the first number in the
   series.
+
+:::{note}
+There is a [debate](https://github.com/procrastinate-org/procrastinate/issues/1040)
+on whether Procrastinate should have its own migration management system or provide
+directions for how to use classic ones (apart from Django), please feel free to chime in
+and/or contribute code or documentation if you have an opinion on this.
+:::
 
 Let's say you are currently using Procrastinate 1.9.0, and you want to update to
 Procrastinate 1.15.0. In that case, before upgrading the Procrastinate Python package
