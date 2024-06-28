@@ -1,7 +1,9 @@
 # Migrate the Procrastinate schema
 
 When the Procrastinate database schema evolves in new Procrastinate releases, new
-migrations are released alongside.
+migrations are released alongside. Look at the
+[Release notes](https://github.com/procrastinate-org/procrastinate/releases)
+for a listing of new migrations for each section.
 
 Migrations are SQL scripts that can be executed on the DB before the release and
 apply the changes to get to the new schema.
