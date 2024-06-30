@@ -26,7 +26,6 @@
 | procrastinate/contrib/django/models.py                            |       59 |        1 |        6 |        1 |     97% |        31 |
 | procrastinate/contrib/django/procrastinate\_app.py                |       21 |        1 |        2 |        0 |     96% |        57 |
 | procrastinate/contrib/django/settings.py                          |       17 |        0 |        2 |        0 |    100% |           |
-| procrastinate/contrib/django/static\_migrations.py                |        9 |        9 |        0 |        0 |      0% |      1-97 |
 | procrastinate/contrib/django/utils.py                             |       16 |        0 |        0 |        0 |    100% |           |
 | procrastinate/contrib/psycopg2/\_\_init\_\_.py                    |        3 |        0 |        0 |        0 |    100% |           |
 | procrastinate/contrib/psycopg2/psycopg2\_connector.py             |      102 |        1 |       62 |        1 |     99% |        26 |
@@ -51,7 +50,7 @@
 | procrastinate/types.py                                            |        4 |        0 |        0 |        0 |    100% |           |
 | procrastinate/utils.py                                            |      187 |        0 |       48 |        0 |    100% |           |
 | procrastinate/worker.py                                           |      180 |        0 |       46 |        0 |    100% |           |
-|                                                         **TOTAL** | **2472** |   **34** |  **713** |   **15** | **98%** |           |
+|                                                         **TOTAL** | **2463** |   **25** |  **713** |   **15** | **99%** |           |
 
 
 ## Setup coverage badge
