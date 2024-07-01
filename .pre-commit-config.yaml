@@ -5,7 +5,7 @@ ci:
 # See https://pre-commit.com/hooks.html for more hooks
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.5.0
+    rev: v4.6.0
     hooks:
       # File names
       - id: check-case-conflict
@@ -29,7 +29,7 @@ repos:
       - id: trailing-whitespace
       - id: mixed-line-ending
   - repo: https://github.com/RobertCraigie/pyright-python
-    rev: v1.1.357
+    rev: v1.1.369
     hooks:
       - id: pyright
         additional_dependencies:
@@ -59,7 +59,7 @@ repos:
     hooks:
       - id: doc8
   - repo: https://github.com/ewjoachim/poetry-to-pre-commit
-    rev: 2.0.0
+    rev: 2.1.0
     hooks:
       - id: sync-repos
         args: [--map=pyright-python=pyright, --map=ruff-pre-commit=ruff]
