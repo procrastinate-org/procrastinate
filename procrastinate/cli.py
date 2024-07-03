@@ -644,7 +644,7 @@ async def healthchecks(app: procrastinate.App):
     print("Found procrastinate_jobs table: OK")
 
 
-async def shell_(app: procrastinate.App, args: list[str]):
+async def shell_(app: procrastinate.App, args: list[str] = []):
     """
     Administration shell for procrastinate.
     """
