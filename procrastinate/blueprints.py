@@ -343,7 +343,7 @@ class Blueprint:
                 _wrap,
             )
 
-        return _wrap(_func)  # Called as @app.task
+        return cast(Task[P, P], _wrap(_func))  # Called as @app.task
 
     def periodic(
         self,
