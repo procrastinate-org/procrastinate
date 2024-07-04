@@ -314,7 +314,7 @@ class Blueprint:
         The second form will use the default value for all parameters.
         """
 
-        def _wrap(func: Callable[P]):
+        def _wrap(func: Callable[P]) -> Callable[..., Task[P, P]]:
             task = Task(
                 func,
                 blueprint=self,
@@ -343,7 +343,7 @@ class Blueprint:
                 _wrap,
             )
 
-        return cast(Task[P, P], _wrap(_func))  # Called as @app.task
+        return _wrap(_func)  # Called as @app.task
 
     def periodic(
         self,
