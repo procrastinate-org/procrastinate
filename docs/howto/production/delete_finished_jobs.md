@@ -85,7 +85,7 @@ tasks" functionality. This is how you can make `remove_old_jobs` periodic:
 @app.task(queueing_lock="remove_old_jobs", pass_context=True)
 async def remove_old_jobs(context, timestamp):
     return await builtin_tasks.remove_old_jobs(
-        context=context,
+        context,
         max_hours=72,
         remove_error=True,
     )
