@@ -7,17 +7,21 @@ controlled way.
 To use it, you can do:
 
 ```python
+from procrastinate import testing
 from mypackage.procrastinate import my_app, my_task
 
 @pytest.fixture
 def app():
-    in_memory = procrastinate.testing.InMemoryConnector()
+    in_memory = testing.InMemoryConnector()
 
+    # Replace the connector in the current app
+    # Note that this fixture gives you the app back for covenience,
+    # but it's the same instance as `my_app`.
     with my_app.replace_connector(in_memory) as app_with_connector:
         yield app_with_connector
 
 
-def test_my_code(app):
+def test_my_task(app):
     my_task.defer(...)
 
     # Access all the existing jobs
