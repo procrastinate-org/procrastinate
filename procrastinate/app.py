@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import functools
 import logging
-from typing import TYPE_CHECKING, Any, Iterable
+from typing import TYPE_CHECKING, Any, Iterable, Iterator
 
 from procrastinate import blueprints, exceptions, jobs, manager, schema, utils
 from procrastinate import connector as connector_module
@@ -105,6 +106,11 @@ class App(blueprints.Blueprint):
         (and its original connector) will be used, even when the new app's
         methods are used.
 
+        Parameters
+        ----------
+        connector :
+            The new connector to use.
+
         Returns
         -------
         `App`
@@ -118,6 +124,32 @@ class App(blueprints.Blueprint):
         app.tasks = self.tasks
         app.periodic_registry = self.periodic_registry
         return app
+
+    @contextlib.contextmanager
+    def replace_connector(
+        self, connector: connector_module.BaseConnector
+    ) -> Iterator[App]:
+        """
+        Replace the connector of the app while in the context block, then restore it.
+
+        Parameters
+        ----------
+        connector :
+            The new connector to use.
+
+        Returns
+        -------
+        `App`
+            A new compatible app.
+        """
+        old_connector = self.connector
+        self.connector = connector
+        self.job_manager.connector = connector
+        try:
+            yield self
+        finally:
+            self.connector = old_connector
+            self.job_manager.connector = old_connector
 
     def _register_builtin_tasks(self) -> None:
         from procrastinate import builtin_tasks
