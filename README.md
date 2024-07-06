@@ -6,7 +6,7 @@
 |------------------------------------------------------------------ | -------: | -------: | -------: | -------: | ------: | --------: |
 | procrastinate/\_\_init\_\_.py                                     |       19 |        0 |        0 |        0 |    100% |           |
 | procrastinate/\_\_main\_\_.py                                     |        6 |        0 |        2 |        0 |    100% |           |
-| procrastinate/app.py                                              |       84 |        0 |       10 |        0 |    100% |           |
+| procrastinate/app.py                                              |       94 |        0 |       12 |        0 |    100% |           |
 | procrastinate/blueprints.py                                       |       67 |        0 |       20 |        0 |    100% |           |
 | procrastinate/builtin\_tasks.py                                   |        7 |        0 |        2 |        0 |    100% |           |
 | procrastinate/cli.py                                              |      218 |        3 |       42 |        2 |     98% |49, 136, 140 |
@@ -24,7 +24,7 @@
 | procrastinate/contrib/django/management/commands/procrastinate.py |       15 |        0 |        2 |        1 |     94% |    25->27 |
 | procrastinate/contrib/django/migrations\_utils.py                 |       12 |        0 |        2 |        0 |    100% |           |
 | procrastinate/contrib/django/models.py                            |       59 |        1 |        6 |        1 |     97% |        31 |
-| procrastinate/contrib/django/procrastinate\_app.py                |       21 |        1 |        2 |        0 |     96% |        57 |
+| procrastinate/contrib/django/procrastinate\_app.py                |       21 |        1 |        2 |        0 |     96% |        58 |
 | procrastinate/contrib/django/settings.py                          |       17 |        0 |        2 |        0 |    100% |           |
 | procrastinate/contrib/django/utils.py                             |       16 |        0 |        0 |        0 |    100% |           |
 | procrastinate/contrib/psycopg2/\_\_init\_\_.py                    |        3 |        0 |        0 |        0 |    100% |           |
@@ -50,7 +50,7 @@
 | procrastinate/types.py                                            |        4 |        0 |        0 |        0 |    100% |           |
 | procrastinate/utils.py                                            |      187 |        0 |       48 |        0 |    100% |           |
 | procrastinate/worker.py                                           |      180 |        0 |       46 |        0 |    100% |           |
-|                                                         **TOTAL** | **2463** |   **25** |  **713** |   **15** | **99%** |           |
+|                                                         **TOTAL** | **2473** |   **25** |  **715** |   **15** | **99%** |           |
 
 
 ## Setup coverage badge
