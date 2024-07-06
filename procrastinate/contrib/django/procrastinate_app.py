@@ -45,6 +45,7 @@ class FutureApp(blueprints.Blueprint):
             "run_worker",
             "schema_manager",
             "with_connector",
+            "replace_connector",
             "will_configure_task",
         ]
     )
