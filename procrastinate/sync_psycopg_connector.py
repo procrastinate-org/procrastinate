@@ -136,7 +136,7 @@ class SyncPsycopgConnector(connector.BaseConnector):
         }
 
     @contextlib.contextmanager
-    def _get_cursor(self) -> Iterator[psycopg.Cursor]:
+    def _get_cursor(self) -> Iterator[psycopg.Cursor[psycopg.rows.DictRow]]:
         with self.pool.connection() as connection:
             with connection.cursor(row_factory=psycopg.rows.dict_row) as cursor:
                 if self._json_loads:
