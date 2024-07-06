@@ -284,3 +284,18 @@ def test_with_connector(app, connector):
     assert app.worker_defaults == new_app.worker_defaults
     assert app.import_paths == new_app.import_paths
     assert app.periodic_registry is new_app.periodic_registry
+
+
+def test_replace_connector(app):
+    @app.task(name="foo")
+    def foo():
+        pass
+
+    foo.defer()
+    assert len(app.connector.jobs) == 1
+
+    new_connector = testing.InMemoryConnector()
+    with app.replace_connector(new_connector):
+        assert len(app.connector.jobs) == 0
+
+    assert len(app.connector.jobs) == 1

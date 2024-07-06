@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import logging
 import signal
 import threading
-from contextlib import contextmanager
 from typing import Any, Callable
 
 logger = logging.getLogger(__name__)
@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 # one. And hope that there was no previously set async handler.
 
 
-@contextmanager
+@contextlib.contextmanager
 def on_stop(callback: Callable[[], None]):
     if threading.current_thread() is not threading.main_thread():
         logger.warning(
