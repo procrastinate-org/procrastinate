@@ -181,7 +181,9 @@ class PsycopgConnector(connector.BaseAsyncConnector):
         }
 
     @contextlib.asynccontextmanager
-    async def _get_cursor(self) -> AsyncIterator[psycopg.AsyncCursor]:
+    async def _get_cursor(
+        self,
+    ) -> AsyncIterator[psycopg.AsyncCursor[psycopg.rows.DictRow]]:
         async with self.pool.connection() as connection:
             async with connection.cursor(row_factory=psycopg.rows.dict_row) as cursor:
                 if self._json_loads:
