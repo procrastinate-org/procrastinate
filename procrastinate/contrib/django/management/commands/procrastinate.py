@@ -20,6 +20,8 @@ class Command(BaseCommand):
             custom_healthchecks=healthchecks.healthchecks,
         )
 
+    suppressed_base_arguments = {"-v", "--version"}
+
     def handle(self, *args, **kwargs):
         kwargs = {k: v for k, v in kwargs.items() if k not in self._django_options}
         if isinstance(app.connector, django_connector.DjangoConnector):
