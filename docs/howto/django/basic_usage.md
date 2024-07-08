@@ -26,6 +26,7 @@ See {doc}`../basics/tasks` for more details on how to define tasks.
 ## Running the worker & other CLI commands
 
 Run the worker with the following command.
+
 ```console
 (venv) $ ./manage.py procrastinate worker
 ```
@@ -40,6 +41,13 @@ As a fully async connector is needed to run the worker, Procrastinate generates
 one for you using `Psycopg` (by default) or `Aiopg` depending on
 whether `psycopg` version 3 or `aiopg` is installed, and connects using the
 `DATABASES` settings. If neither library is installed, an error will be raised.
+:::
+
+:::{note}
+Contrary to the standalone `procrastinate` CLI, `./manage.py procrastinate`
+does not support changing the verbosity with `-v`. `-v` is a django-controlled
+argument and will not be used by Procrastinate. Define your logging configuration
+in Django's settings (see {doc}`logs`).
 :::
 
 See {doc}`../basics/command_line` for more details on the CLI.
@@ -63,10 +71,10 @@ async def myasyncview(request):
 
 See {doc}`../basics/defer` for more details on how to defer jobs.
 
-
 ## Checking proper configuration
 
 You can check that Procrastinate is properly configured by running the following command:
+
 ```console
 (venv) $ ./manage.py procrastinate healthchecks
 Database connection: OK

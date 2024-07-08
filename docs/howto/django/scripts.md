@@ -8,11 +8,17 @@ The `DjangoConnector` configured on the default Procrastinate app cannot be
 used to run the worker directly but the `DjangoConnector` provides a method to get a
 suitable connector: `get_worker_connector()`.
 
+The script below calls `django.setup()` manually. Alternatively, you can use
+a [custom management command](https://docs.djangoproject.com/en/5.0/howto/custom-management-commands/)
+in which case you don't need to call `django.setup()`.
+
 ```python
 # myapp/worker.py
+import django
 from procrastinate.contrib.django import app
 
 def main():
+    django.setup()
     # By default, the app uses the Django database connection, which is unsuitable
     # for the worker.
     app = app.with_connector(app.connector.get_worker_connector())
@@ -21,6 +27,7 @@ def main():
 if __name__ == "__main__":
     main()
 ```
+
 :::{note}
 The `.get_worker_connector()` method is only available on `DjangoConnector`
 and the API isn't guaranteed to be completely stable yet.
