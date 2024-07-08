@@ -21,7 +21,7 @@
 | procrastinate/contrib/django/healthchecks.py                      |       32 |        0 |        4 |        0 |    100% |           |
 | procrastinate/contrib/django/management/\_\_init\_\_.py           |        0 |        0 |        0 |        0 |    100% |           |
 | procrastinate/contrib/django/management/commands/\_\_init\_\_.py  |        0 |        0 |        0 |        0 |    100% |           |
-| procrastinate/contrib/django/management/commands/procrastinate.py |       15 |        0 |        2 |        1 |     94% |    25->27 |
+| procrastinate/contrib/django/management/commands/procrastinate.py |       16 |        0 |        2 |        1 |     94% |    27->29 |
 | procrastinate/contrib/django/migrations\_utils.py                 |       12 |        0 |        2 |        0 |    100% |           |
 | procrastinate/contrib/django/models.py                            |       59 |        1 |        6 |        1 |     97% |        31 |
 | procrastinate/contrib/django/procrastinate\_app.py                |       21 |        1 |        2 |        0 |     96% |        58 |
@@ -50,7 +50,7 @@
 | procrastinate/types.py                                            |        4 |        0 |        0 |        0 |    100% |           |
 | procrastinate/utils.py                                            |      187 |        0 |       48 |        0 |    100% |           |
 | procrastinate/worker.py                                           |      180 |        0 |       46 |        0 |    100% |           |
-|                                                         **TOTAL** | **2473** |   **25** |  **715** |   **15** | **99%** |           |
+|                                                         **TOTAL** | **2474** |   **25** |  **715** |   **15** | **99%** |           |
 
 
 ## Setup coverage badge
