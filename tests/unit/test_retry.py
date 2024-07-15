@@ -4,8 +4,9 @@ import datetime
 
 import pytest
 
-from procrastinate import RetryDecision, exceptions, utils
+from procrastinate import BaseRetryStrategy, RetryDecision, exceptions, utils
 from procrastinate import retry as retry_module
+from procrastinate.jobs import Job
 
 
 @pytest.mark.parametrize(
@@ -137,5 +138,44 @@ def test_get_retry_exception_returns(mocker):
 
     job_mock = mocker.Mock(attempts=1)
     exc = strategy.get_retry_exception(exception=Exception(), job=job_mock)
+    assert isinstance(exc, exceptions.JobRetry)
+    assert exc.scheduled_at == expected.replace(microsecond=0)
+
+
+def test_custom_retry_strategy(mocker):
+    class CustomRetryStrategy(BaseRetryStrategy):
+        def get_retry_decision(
+            self, *, exception: BaseException, job: Job
+        ) -> RetryDecision:
+            return RetryDecision(should_retry=True, schedule_in=5, new_priority=7)
+
+    strategy = CustomRetryStrategy()
+
+    now = utils.utcnow()
+    expected = now + datetime.timedelta(seconds=5, microseconds=0)
+
+    job_mock = mocker.Mock(attempts=1)
+    exc = strategy.get_retry_exception(exception=Exception(), job=job_mock)
+    assert isinstance(exc, exceptions.JobRetry)
+    assert exc.scheduled_at == expected.replace(microsecond=0)
+    assert exc.new_priority == 7
+
+
+def test_custom_retry_strategy_depreciated(mocker):
+    class CustomRetryStrategy(BaseRetryStrategy):
+        def get_schedule_in(self, *, exception: BaseException, attempts: int) -> int:
+            return 5
+
+    strategy = CustomRetryStrategy()
+
+    now = utils.utcnow()
+    expected = now + datetime.timedelta(seconds=5, microseconds=0)
+
+    job_mock = mocker.Mock(attempts=1)
+    with pytest.warns(
+        DeprecationWarning,
+        match="`get_schedule_in` is deprecated, use `get_retry_decision` instead.",
+    ):
+        exc = strategy.get_retry_exception(exception=Exception(), job=job_mock)
     assert isinstance(exc, exceptions.JobRetry)
     assert exc.scheduled_at == expected.replace(microsecond=0)
