@@ -64,9 +64,34 @@ between retries:
 ## Implementing your own strategy
 
 - If you want to go for a fully fledged custom retry strategy, you can implement your
-  own retry strategy (though we recommend always keeping a max_retry):
+  own retry strategy. This also allows to (optionally) change the priority of the job.
 
+  ```python
+  import random
+  from procrastinate import Job, RetryDecision
+
+  class RandomRetryStrategy(procrastinate.BaseRetryStrategy):
+      max_attempts = 3
+      min = 1
+      max = 10
+
+      def get_retry_decision(self, *, exception:Exception, job:Job) -> RetryDecision:
+          if job.attempts >= max_attempts:
+              return RetryDecision(should_retry=False)
+
+          wait = random.uniform(self.min, self.max)
+
+          return RetryDecision(
+              should_retry=True,
+              schedule_in=wait,
+              new_priority=job.priority + 1,
+          )
   ```
+
+- There is is also a legacy `get_schedule_in` method that is depreciated an will be
+  removed in a future version in favor of the above `get_retry_decision` method.
+
+  ```python
   import random
 
   class RandomRetryStrategy(procrastinate.BaseRetryStrategy):
@@ -74,12 +99,9 @@ between retries:
       min = 1
       max = 10
 
-      def get_schedule_in(self, *, exception:Exception, attempts: int, **kwargs) -> int:
+      def get_schedule_in(self, *, exception:Exception, attempts: int) -> int:
           if attempts >= max_attempts:
               return None
 
           return random.uniform(self.min, self.max)
   ```
-
-It's interesting to add a catch-all parameter `**kwargs` to make your strategy more
-resilient to possible changes of Procrastinate in the future.

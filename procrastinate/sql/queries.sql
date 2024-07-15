@@ -60,7 +60,7 @@ SELECT status FROM procrastinate_jobs WHERE id = %(job_id)s;
 
 -- retry_job --
 -- Retry a job, changing it from "doing" to "todo"
-SELECT procrastinate_retry_job(%(job_id)s, %(retry_at)s);
+SELECT procrastinate_retry_job(%(job_id)s, %(retry_at)s, %(new_priority)s);
 
 -- listen_queue --
 -- In this one, the argument is an identifier, shoud not be escaped the same way

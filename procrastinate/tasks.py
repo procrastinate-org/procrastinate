@@ -239,6 +239,4 @@ class Task(Generic[P, Args]):
         if not self.retry_strategy:
             return None
 
-        return self.retry_strategy.get_retry_exception(
-            exception=exception, attempts=job.attempts
-        )
+        return self.retry_strategy.get_retry_exception(exception=exception, job=job)

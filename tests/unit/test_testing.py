@@ -383,11 +383,12 @@ def test_retry_job_run(connector):
     id = job_row["id"]
 
     retry_at = conftest.aware_datetime(2000, 1, 1)
-    connector.retry_job_run(job_id=id, retry_at=retry_at)
+    connector.retry_job_run(job_id=id, retry_at=retry_at, new_priority=3)
 
     assert connector.jobs[id]["attempts"] == 1
     assert connector.jobs[id]["status"] == "todo"
     assert connector.jobs[id]["scheduled_at"] == retry_at
+    assert connector.jobs[id]["priority"] == 3
     assert len(connector.events[id]) == 4
 
 

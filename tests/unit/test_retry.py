@@ -4,7 +4,7 @@ import datetime
 
 import pytest
 
-from procrastinate import exceptions, utils
+from procrastinate import RetryDecision, exceptions, utils
 from procrastinate import retry as retry_module
 
 
@@ -54,7 +54,46 @@ def test_get_schedule_in_time(
         linear_wait=linear_wait,
         exponential_wait=exponential_wait,
     )
-    assert strategy.get_schedule_in(exception=None, attempts=attempts) == schedule_in
+    assert (
+        strategy.get_schedule_in(exception=Exception(), attempts=attempts)
+        == schedule_in
+    )
+
+
+@pytest.mark.parametrize(
+    "attempts, wait, linear_wait, exponential_wait, schedule_in",
+    [
+        # No wait
+        (0, 0.0, 0.0, 0.0, 0.0),
+        # Constant, first try
+        (1, 5.0, 0.0, 0.0, 5.0),
+        # Constant, last try
+        (9, 5.0, 0.0, 0.0, 5.0),
+        # Constant, first non-retry
+        (10, 5.0, 0.0, 0.0, None),
+        # Constant, other non-retry
+        (100, 5.0, 0.0, 0.0, None),
+        # Linear (3 * 7)
+        (3, 0.0, 7.0, 0.0, 21.0),
+        # Exponential (2 ** (5+1))
+        (5, 0.0, 0.0, 2.0, 64.0),
+        # Mix & match 8 + 3*4 + 2**(4+1) = 52
+        (4, 8.0, 3.0, 2.0, 52.0),
+    ],
+)
+def test_get_retry_decision(
+    attempts, schedule_in, wait, linear_wait, exponential_wait, mocker
+):
+    strategy = retry_module.RetryStrategy(
+        max_attempts=10,
+        wait=wait,
+        linear_wait=linear_wait,
+        exponential_wait=exponential_wait,
+    )
+    job_mock = mocker.Mock(attempts=attempts)
+    assert strategy.get_retry_decision(
+        exception=Exception(), job=job_mock
+    ) == RetryDecision(should_retry=schedule_in is not None, schedule_in=schedule_in)
 
 
 @pytest.mark.parametrize(
@@ -69,17 +108,34 @@ def test_get_schedule_in_exception(exception, expected):
     assert strategy.get_schedule_in(exception=exception, attempts=0) == expected
 
 
-def test_get_retry_exception_returns_none():
-    strategy = retry_module.RetryStrategy(max_attempts=10, wait=5.0)
-    assert strategy.get_retry_exception(exception=None, attempts=100) is None
+@pytest.mark.parametrize(
+    "exception, expected",
+    [
+        (ValueError(), 0),
+        (KeyError(), None),
+    ],
+)
+def test_get_retry_decision_exception(exception, expected, mocker):
+    strategy = retry_module.RetryStrategy(retry_exceptions=[ValueError])
+    job_mock = mocker.Mock(attempts=0)
+    retry_decision = strategy.get_retry_decision(exception=exception, job=job_mock)
+    assert retry_decision.should_retry == (expected is not None)
+    assert retry_decision.schedule_in == expected
 
 
-def test_get_retry_exception_returns():
-    strategy = retry_module.RetryStrategy(max_attempts=10, wait=5.0)
+def test_get_retry_exception_returns_none(mocker):
+    strategy = retry_module.RetryStrategy(max_attempts=10, wait=5)
+    job_mock = mocker.Mock(attempts=100)
+    assert strategy.get_retry_exception(exception=Exception(), job=job_mock) is None
+
+
+def test_get_retry_exception_returns(mocker):
+    strategy = retry_module.RetryStrategy(max_attempts=10, wait=5)
 
     now = utils.utcnow()
     expected = now + datetime.timedelta(seconds=5, microseconds=0)
 
-    exc = strategy.get_retry_exception(exception=None, attempts=1)
+    job_mock = mocker.Mock(attempts=1)
+    exc = strategy.get_retry_exception(exception=Exception(), job=job_mock)
     assert isinstance(exc, exceptions.JobRetry)
     assert exc.scheduled_at == expected.replace(microsecond=0)

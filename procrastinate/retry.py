@@ -6,11 +6,20 @@ try again? And when?
 from __future__ import annotations
 
 import datetime
+import warnings
 from typing import Iterable, Union
 
 import attr
 
 from procrastinate import exceptions, utils
+from procrastinate.jobs import Job
+
+
+@attr.dataclass
+class RetryDecision:
+    should_retry: bool
+    schedule_in: float | None = None
+    new_priority: int | None = None
 
 
 class BaseRetryStrategy:
@@ -20,14 +29,35 @@ class BaseRetryStrategy:
     """
 
     def get_retry_exception(
-        self, exception: BaseException, attempts: int
+        self, exception: BaseException, job: Job
     ) -> exceptions.JobRetry | None:
-        schedule_in = self.get_schedule_in(exception=exception, attempts=attempts)
-        if schedule_in is None:
-            return None
+        try:
+            retry_decision = self.get_retry_decision(exception=exception, job=job)
+            if not retry_decision.should_retry:
+                return None
 
-        schedule_at = utils.utcnow() + datetime.timedelta(seconds=schedule_in)
-        return exceptions.JobRetry(schedule_at.replace(microsecond=0))
+            schedule_at = utils.utcnow() + datetime.timedelta(
+                seconds=retry_decision.schedule_in
+                if retry_decision.schedule_in is not None
+                else 0
+            )
+            return exceptions.JobRetry(
+                schedule_at.replace(microsecond=0), retry_decision.new_priority
+            )
+        except NotImplementedError:
+            warnings.warn(
+                "`get_schedule_in` is deprecated, use `get_retry_decision` instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            schedule_in = self.get_schedule_in(
+                exception=exception, attempts=job.attempts
+            )
+            if schedule_in is None:
+                return None
+
+            schedule_at = utils.utcnow() + datetime.timedelta(seconds=schedule_in)
+            return exceptions.JobRetry(schedule_at.replace(microsecond=0))
 
     def get_schedule_in(self, *, exception: BaseException, attempts: int) -> int | None:
         """
@@ -43,6 +73,32 @@ class BaseRetryStrategy:
             If a job should not be retried, this function should return None.
             Otherwise, it should return the duration after which to schedule the
             new job run, *in seconds*.
+
+        Notes
+        -----
+        This function is deprecated and will be removed in a future version. Use
+        `get_retry_decision` instead.
+        """
+        raise NotImplementedError()
+
+    def get_retry_decision(
+        self, *, exception: BaseException, job: Job
+    ) -> RetryDecision:
+        """
+        Parameters
+        ----------
+        exception:
+            The exception raised by the job
+        job:
+            The current job
+
+        Returns
+        -------
+        ``RetryDecision``
+            A RetryDecision object with the following attributes:
+            - should_retry: a boolean indicating whether the job should be retried
+            - schedule_in: an optional float indicating the number of seconds to wait
+            - priority: an optional integer indicating the new priority of the job
         """
         raise NotImplementedError()
 
@@ -85,6 +141,7 @@ class RetryStrategy(BaseRetryStrategy):
     retry_exceptions: Iterable[type[Exception]] | None = None
 
     def get_schedule_in(self, *, exception: BaseException, attempts: int) -> int | None:
+        # TODO: remove this method in a future version and move logic to `get_retry_decision`
         if self.max_attempts and attempts >= self.max_attempts:
             return None
         # isinstance's 2nd param must be a tuple, not an arbitrary iterable
@@ -96,6 +153,16 @@ class RetryStrategy(BaseRetryStrategy):
         wait += self.linear_wait * attempts
         wait += self.exponential_wait ** (attempts + 1)
         return wait
+
+    def get_retry_decision(
+        self, *, exception: BaseException, job: Job
+    ) -> RetryDecision:
+        schedule_in = self.get_schedule_in(exception=exception, attempts=job.attempts)
+
+        if schedule_in is None:
+            return RetryDecision(should_retry=False)
+
+        return RetryDecision(should_retry=True, schedule_in=schedule_in)
 
 
 RetryValue = Union[bool, int, RetryStrategy]

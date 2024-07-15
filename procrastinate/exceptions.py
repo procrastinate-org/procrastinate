@@ -45,8 +45,11 @@ class JobRetry(ProcrastinateException):
     Job should be retried.
     """
 
-    def __init__(self, scheduled_at: datetime.datetime):
+    def __init__(
+        self, scheduled_at: datetime.datetime, new_priority: int | None = None
+    ):
         self.scheduled_at = scheduled_at
+        self.new_priority = new_priority
         super().__init__()
 
 

@@ -244,11 +244,15 @@ class InMemoryConnector(connector.BaseAsyncConnector):
     def get_job_status_one(self, job_id: int) -> dict:
         return {"status": self.jobs[job_id]["status"]}
 
-    def retry_job_run(self, job_id: int, retry_at: datetime.datetime) -> None:
+    def retry_job_run(
+        self, job_id: int, retry_at: datetime.datetime, new_priority: int | None = None
+    ) -> None:
         job_row = self.jobs[job_id]
         job_row["status"] = "todo"
         job_row["attempts"] += 1
         job_row["scheduled_at"] = retry_at
+        if new_priority is not None:
+            job_row["priority"] = new_priority
         self.events[job_id].append({"type": "scheduled", "at": retry_at})
         self.events[job_id].append({"type": "deferred_for_retry", "at": utils.utcnow()})
 

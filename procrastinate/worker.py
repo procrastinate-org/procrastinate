@@ -191,7 +191,7 @@ class Worker:
             extra=context.log_extra(action="loaded_job_info"),
         )
 
-        status, retry_at = None, None
+        status, retry_at, new_priority = None, None, None
         try:
             await self.run_job(job=job, worker_id=worker_id)
             status = jobs.Status.SUCCEEDED
@@ -202,6 +202,7 @@ class Worker:
             status = jobs.Status.FAILED
             if e.retry_exception:
                 retry_at = e.retry_exception.scheduled_at
+                new_priority = e.retry_exception.new_priority
             if e.critical and e.__cause__:
                 raise e.__cause__
 
@@ -213,7 +214,9 @@ class Worker:
             )
         finally:
             if retry_at:
-                await self.job_manager.retry_job(job=job, retry_at=retry_at)
+                await self.job_manager.retry_job(
+                    job=job, retry_at=retry_at, new_priority=new_priority
+                )
             else:
                 assert status is not None
 
