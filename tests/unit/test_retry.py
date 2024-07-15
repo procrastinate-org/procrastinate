@@ -142,7 +142,7 @@ def test_get_retry_exception_returns(mocker):
     assert exc.scheduled_at == expected.replace(microsecond=0)
 
 
-def test_custom_retry_strategy(mocker):
+def test_custom_retry_strategy_returns(mocker):
     class CustomRetryStrategy(BaseRetryStrategy):
         def get_retry_decision(
             self, *, exception: BaseException, job: Job
@@ -161,9 +161,28 @@ def test_custom_retry_strategy(mocker):
     assert exc.new_priority == 7
 
 
-def test_custom_retry_strategy_depreciated(mocker):
+def test_custom_retry_strategy_depreciated_returns_none(mocker):
     class CustomRetryStrategy(BaseRetryStrategy):
-        def get_schedule_in(self, *, exception: BaseException, attempts: int) -> int:
+        def get_schedule_in(
+            self, *, exception: BaseException, attempts: int
+        ) -> int | None:
+            return None
+
+    strategy = CustomRetryStrategy()
+
+    job_mock = mocker.Mock(attempts=1)
+    with pytest.warns(
+        DeprecationWarning,
+        match="`get_schedule_in` is deprecated, use `get_retry_decision` instead.",
+    ):
+        assert strategy.get_retry_exception(exception=Exception(), job=job_mock) is None
+
+
+def test_custom_retry_strategy_depreciated_returns(mocker):
+    class CustomRetryStrategy(BaseRetryStrategy):
+        def get_schedule_in(
+            self, *, exception: BaseException, attempts: int
+        ) -> int | None:
             return 5
 
     strategy = CustomRetryStrategy()
