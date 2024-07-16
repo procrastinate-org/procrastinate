@@ -43,6 +43,16 @@ class Status(Enum):
     ABORTED = "aborted"  #: The job was aborted
 
 
+class DeleteJobCondition(Enum):
+    """
+    An enumeration with all the possible conditions to delete a job
+    """
+
+    NEVER = "never"  #: Keep jobs in database after completion
+    SUCCESSFUL = "successful"  #: Delete only successful jobs
+    ALWAYS = "always"  #: Always delete jobs at completion
+
+
 @attr.dataclass(frozen=True, kw_only=True)
 class Job:
     """

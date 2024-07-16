@@ -15,13 +15,11 @@ from typing import (
     AsyncIterator,
     Awaitable,
     Callable,
-    Coroutine,
     Generic,
     Iterable,
     TypeVar,
 )
 
-import attr
 import dateutil.parser
 from asgiref import sync
 
@@ -205,162 +203,36 @@ class AwaitableContext(Generic[U]):
         return _inner_coro().__await__()
 
 
-class EndMain(Exception):
-    pass
-
-
-@attr.dataclass()
-class ExceptionRecord:
-    task: asyncio.Task
-    exc: Exception
-
-
-async def run_tasks(
-    main_coros: Iterable[Coroutine],
-    side_coros: Iterable[Coroutine] | None = None,
-    graceful_stop_callback: Callable[[], Any] | None = None,
-):
+async def cancel_and_capture_errors(tasks: list[asyncio.Task]):
     """
-    Run multiple coroutines in parallel: the main coroutines and the side
-    coroutines. Side coroutines are expected to run until they get cancelled.
-    Main corountines are expected to return at some point. By default, this
-    function will return None, but on certain circumstances, (see below) it can
-    raise a `RunTaskError`. A callback `graceful_stop_callback` will be called
-    if provided to ask the main coroutines to gracefully stop in case either
-    one of them or one of the side coroutines raise.
-
-    - If all coroutines from main_coros return and there is no exception in the
-      coroutines from either `main_coros` or `side_coros`:
-      - coroutines from `side_coros` are cancelled and awaited
-      - the function return None
-
-    - If any corountine from `main_coros` or `side_coros` raises an exception:
-      - `graceful_stop_callback` is called (the idea is that it should ask
-        coroutines from `main_coros` to exit gracefully)
-      - the function then wait for main_coros to finish, registering any
-        additional exception
-      - coroutines from `side_coros` are cancelled and awaited, registering any
-        additional exception
-      - all exceptions from coroutines in both `main_coros` and `side_coros`
-        are logged
-      - the function raises `RunTaskError`
-
-    It's not expected that coroutines from `side_coros` return. If this
-    happens, the function will not react in a specific way.
-
-    When a `RunTaskError` is raised because of one or more underlying
-    exceptions, one exception is the `__cause__` (the first main or side
-    coroutine that fails in the input iterables order, which will probably not
-    the chronologically the first one to be raised). All exceptions are logged.
+    Cancel all tasks and capture any error returned by any of those tasks (except the CancellationError itself)
     """
-    # Ensure all passed coros are futures (in our case, Tasks). This means that
-    # all the coroutines start executing now.
-    # `name` argument to create_task only exist on python 3.8+
-    main_tasks = [asyncio.create_task(coro, name=coro.__name__) for coro in main_coros]
-    side_tasks = [
-        asyncio.create_task(coro, name=coro.__name__) for coro in side_coros or []
-    ]
-    for task in main_tasks + side_tasks:
-        name = task.get_name()
-        logger.debug(
-            f"Started {name}",
-            extra={
-                "action": f"{name}_start",
-            },
-        )
 
-    # Note that asyncio.gather() has 2 modes of execution:
-    # - asyncio.gather(*aws)
-    #     Interrupts the gather at the first exception, and raises this
-    #     exception. Otherwise, return a list containing return values for all
-    #     coroutines
-    # - asyncio.gather(*aws, return_exceptions=True)
-    #     Run every corouting until the end, return a list of either return
-    #     values or raised exceptions (mixed).
-
-    # The _main function will always raise: either an exception if one happens
-    # in the main tasks, or EndMain if every coroutine returned
-    async def _main():
-        await asyncio.gather(*main_tasks)
-        raise EndMain
-
-    exception_records: list[ExceptionRecord] = []
-    try:
-        # side_tasks supposedly never finish, and _main always raises.
-        # Consequently, it's theoretically impossible to leave this try block
-        # without going through one of the except branches.
-        await asyncio.gather(_main(), *side_tasks)
-    except EndMain:
-        pass
-    except Exception as exc:
-        logger.error(
-            "Main coroutine error, initiating remaining coroutines stop. "
-            f"Cause: {exc!r}",
-            extra={
-                "action": "run_tasks_stop_requested",
-            },
-        )
-        if graceful_stop_callback:
-            graceful_stop_callback()
-
-        # Even if we asked the main tasks to stop, we still need to wait for
-        # them to actually stop. This may take some time. At this point, any
-        # additional exception will be registered but will not impact execution
-        # flow.
-        results = await asyncio.gather(*main_tasks, return_exceptions=True)
-        for task, result in zip(main_tasks, results):
-            if isinstance(result, Exception):
-                exception_records.append(
-                    ExceptionRecord(
-                        task=task,
-                        exc=result,
-                    )
-                )
-            else:
-                name = task.get_name()
-                logger.debug(
-                    f"{name} finished execution",
-                    extra={
-                        "action": f"{name}_stop",
-                    },
-                )
-
-    for task in side_tasks:
-        task.cancel()
-        try:
-            # task.cancel() says that the next time a task is executed, it will
-            # raise, but we need to give control back to the task for it to
-            # actually recieve the exception.
-            await task
-        except asyncio.CancelledError:
-            name = task.get_name()
-            logger.debug(
-                f"Stopped {name}",
-                extra={
-                    "action": f"{name}_stop",
-                },
-            )
-        except Exception as exc:
-            exception_records.append(
-                ExceptionRecord(
-                    task=task,
-                    exc=exc,
-                )
-            )
-
-    for exception_record in exception_records:
-        name = exception_record.task.get_name()
-        message = f"{name} error: {exception_record.exc!r}"
-        action = f"{name}_error"
+    def log_task_exception(task: asyncio.Task, error: BaseException):
         logger.exception(
-            message,
+            f"{task.get_name()} error: {error!r}",
+            exc_info=error,
             extra={
-                "action": action,
+                "action": f"{task.get_name()}_error",
             },
         )
 
-    if exception_records:
-        raise exceptions.RunTaskError from exception_records[0].exc
+    tasks_aggregate = asyncio.gather(*tasks, return_exceptions=True)
+    tasks_aggregate.cancel()
+    try:
+        results = await tasks_aggregate
+        for task, result in zip(tasks, results):
+            if not isinstance(result, BaseException):
+                continue
+            log_task_exception(task, error=result)
+    except asyncio.CancelledError:
+        # tasks have been cancelled. Log any exception from already completed tasks
+        for task in tasks:
+            if not task.done() or task.cancelled():
+                continue
+            error = task.exception()
+            if error:
+                log_task_exception(task, error=error)
 
 
 def add_namespace(name: str, namespace: str) -> str:

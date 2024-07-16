@@ -8,7 +8,7 @@ import os
 
 import pytest
 
-from procrastinate import __version__, cli, exceptions, worker
+from procrastinate import __version__, cli, exceptions, jobs
 
 
 @dataclasses.dataclass
@@ -82,7 +82,7 @@ async def test_worker(entrypoint, cli_app, mocker):
         timeout=8.3,
         wait=False,
         listen_notify=False,
-        delete_jobs=worker.DeleteJobCondition.ALWAYS,
+        delete_jobs=jobs.DeleteJobCondition.ALWAYS,
     )
 
 

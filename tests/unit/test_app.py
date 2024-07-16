@@ -28,7 +28,7 @@ def test_app_task_dont_read_function_attributes(app: app_module.App):
     def wrapped():
         return "foo"
 
-    wrapped.pass_context = True
+    wrapped.pass_context = True  # type: ignore
     task = app.task(wrapped)
     assert task.pass_context is False
 
@@ -47,7 +47,7 @@ def test_app_register(app: app_module.App):
     assert app.tasks["bla"] == task
 
 
-def test_app_worker(app, mocker):
+def test_app_worker(app: app_module.App, mocker):
     Worker = mocker.patch("procrastinate.worker.Worker")
 
     app.worker_defaults["timeout"] = 12
@@ -253,7 +253,7 @@ def test_check_stack_is_called(mocker, connector):
     called = []
 
     class MyApp(app_module.App):
-        def _check_stack(self):
+        def _check_stack(self):  # pyright: ignore reportIncompatibleMethodOverride
             called.append(True)
             return "foo"
 

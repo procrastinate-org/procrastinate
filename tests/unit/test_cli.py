@@ -8,7 +8,7 @@ import logging
 
 import pytest
 
-from procrastinate import app, cli, connector, exceptions, worker
+from procrastinate import app, cli, connector, exceptions, jobs
 from procrastinate.connector import BaseConnector
 
 
@@ -53,7 +53,7 @@ def test_main(mocker):
         ),
         (
             ["worker", "--delete-jobs", "never"],
-            {"command": "worker", "delete_jobs": worker.DeleteJobCondition.NEVER},
+            {"command": "worker", "delete_jobs": jobs.DeleteJobCondition.NEVER},
         ),
         (["defer", "x"], {"command": "defer", "task": "x"}),
         (["defer", "x", "{}"], {"command": "defer", "task": "x", "json_args": "{}"}),
@@ -281,7 +281,7 @@ def test_load_app(mocker):
         cli.load_app("foobar")
 
 
-async def test_shell_single_command(app, capsys):
+async def test_shell_single_command(app: app.App, capsys):
     @app.task(name="foobar")
     def mytask(a):
         pass
@@ -295,7 +295,7 @@ async def test_shell_single_command(app, capsys):
     assert out == "#1 foobar on default - [todo]\n"
 
 
-async def test_shell_interactive_command(app, capsys, mocker):
+async def test_shell_interactive_command(app: app.App, capsys, mocker):
     @app.task(name="foobar")
     def mytask(a):
         pass

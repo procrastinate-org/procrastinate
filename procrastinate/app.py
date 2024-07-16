@@ -4,7 +4,15 @@ import asyncio
 import contextlib
 import functools
 import logging
-from typing import TYPE_CHECKING, Any, Iterable, Iterator
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Iterable,
+    Iterator,
+    NotRequired,
+    TypedDict,
+    Unpack,
+)
 
 from procrastinate import blueprints, exceptions, jobs, manager, schema, utils
 from procrastinate import connector as connector_module
@@ -13,6 +21,18 @@ if TYPE_CHECKING:
     from procrastinate import worker
 
 logger = logging.getLogger(__name__)
+
+
+class WorkerOptions(TypedDict):
+    queues: NotRequired[Iterable[str]]
+    name: NotRequired[str]
+    concurrency: NotRequired[int]
+    wait: NotRequired[bool]
+    timeout: NotRequired[float]
+    listen_notify: NotRequired[bool]
+    delete_jobs: NotRequired[str | jobs.DeleteJobCondition]
+    additional_context: NotRequired[dict[str, Any]]
+    install_signal_handlers: NotRequired[bool]
 
 
 class App(blueprints.Blueprint):
@@ -52,7 +72,7 @@ class App(blueprints.Blueprint):
         *,
         connector: connector_module.BaseConnector,
         import_paths: Iterable[str] | None = None,
-        worker_defaults: dict | None = None,
+        worker_defaults: WorkerOptions | None = None,
         periodic_defaults: dict | None = None,
     ):
         """
@@ -198,10 +218,10 @@ class App(blueprints.Blueprint):
                 )
             raise exceptions.TaskNotFound from exc
 
-    def _worker(self, **kwargs) -> worker.Worker:
+    def _worker(self, **kwargs: Unpack[WorkerOptions]) -> worker.Worker:
         from procrastinate import worker
 
-        final_kwargs = {**self.worker_defaults, **kwargs}
+        final_kwargs: WorkerOptions = {**self.worker_defaults, **kwargs}
 
         return worker.Worker(app=self, **final_kwargs)
 
@@ -217,7 +237,7 @@ class App(blueprints.Blueprint):
             extra={"action": "imported_tasks", "tasks": list(self.tasks)},
         )
 
-    async def run_worker_async(self, **kwargs) -> None:
+    async def run_worker_async(self, **kwargs: Unpack[WorkerOptions]) -> None:
         """
         Run a worker. This worker will run in the foreground and execute the jobs in the
         provided queues. If wait is True, the function will not
@@ -268,13 +288,7 @@ class App(blueprints.Blueprint):
         """
         self.perform_import_paths()
         worker = self._worker(**kwargs)
-        task = asyncio.create_task(worker.run())
-        try:
-            await asyncio.shield(task)
-        except asyncio.CancelledError:
-            worker.stop()
-            await task
-            raise
+        await worker.run()
 
     def run_worker(self, **kwargs) -> None:
         """

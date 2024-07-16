@@ -23,7 +23,7 @@ async def async_app(request, psycopg_connector, connection_params):
         yield app
 
 
-async def test_defer(async_app):
+async def test_defer(async_app: app_module.App):
     sum_results = []
     product_results = []
 
@@ -46,7 +46,7 @@ async def test_defer(async_app):
     assert product_results == [12]
 
 
-async def test_cancel(async_app):
+async def test_cancel(async_app: app_module.App):
     sum_results = []
 
     @async_app.task(queue="default", name="sum_task")
@@ -62,7 +62,7 @@ async def test_cancel(async_app):
     status = await async_app.job_manager.get_job_status_async(job_id)
     assert status == Status.CANCELLED
 
-    jobs = await async_app.job_manager.list_jobs_async()
+    jobs = list(await async_app.job_manager.list_jobs_async())
     assert len(jobs) == 2
 
     await async_app.run_worker_async(queues=["default"], wait=False)
@@ -70,7 +70,7 @@ async def test_cancel(async_app):
     assert sum_results == [7]
 
 
-async def test_cancel_with_delete(async_app):
+async def test_cancel_with_delete(async_app: app_module.App):
     sum_results = []
 
     @async_app.task(queue="default", name="sum_task")
@@ -83,7 +83,7 @@ async def test_cancel_with_delete(async_app):
     result = await async_app.job_manager.cancel_job_by_id_async(job_id, delete_job=True)
     assert result is True
 
-    jobs = await async_app.job_manager.list_jobs_async()
+    jobs = list(await async_app.job_manager.list_jobs_async())
     assert len(jobs) == 1
 
     await async_app.run_worker_async(queues=["default"], wait=False)
@@ -91,7 +91,7 @@ async def test_cancel_with_delete(async_app):
     assert sum_results == [7]
 
 
-async def test_no_job_to_cancel_found(async_app):
+async def test_no_job_to_cancel_found(async_app: app_module.App):
     @async_app.task(queue="default", name="example_task")
     def example_task():
         pass
@@ -104,22 +104,22 @@ async def test_no_job_to_cancel_found(async_app):
     status = await async_app.job_manager.get_job_status_async(job_id)
     assert status == Status.TODO
 
-    jobs = await async_app.job_manager.list_jobs_async()
+    jobs = list(await async_app.job_manager.list_jobs_async())
     assert len(jobs) == 1
 
 
-async def test_abort(async_app):
+async def test_abort(async_app: app_module.App):
     @async_app.task(queue="default", name="task1", pass_context=True)
     async def task1(context):
         while True:
-            await asyncio.sleep(0.1)
+            await asyncio.sleep(0.02)
             if await context.should_abort_async():
                 raise JobAborted
 
     @async_app.task(queue="default", name="task2", pass_context=True)
     def task2(context):
         while True:
-            time.sleep(0.1)
+            time.sleep(0.02)
             if context.should_abort():
                 raise JobAborted
 
@@ -145,3 +145,77 @@ async def test_abort(async_app):
 
     status = await async_app.job_manager.get_job_status_async(job2_id)
     assert status == Status.ABORTED
+
+
+async def test_concurrency(async_app: app_module.App):
+    results = []
+
+    @async_app.task(queue="default", name="appender")
+    async def appender(a: int):
+        await asyncio.sleep(0.1)
+        results.append(a)
+
+    deferred_tasks = [appender.defer_async(a=i) for i in range(1, 101)]
+    for task in deferred_tasks:
+        await task
+
+    # with 20 concurrent workers, 100 tasks should take about 100/20 x 0.1  = 0.5s
+    # if there is no concurrency, it will take well over 2 seconds and fail
+
+    start_time = time.time()
+    try:
+        await asyncio.wait_for(
+            async_app.run_worker_async(concurrency=20, wait=False), timeout=2
+        )
+    except asyncio.TimeoutError:
+        pytest.fail(
+            "Failed to process all jobs within 2 seconds. Is the concurrency respected?"
+        )
+    duration = time.time() - start_time
+
+    assert (
+        duration >= 0.5
+    ), "processing jobs faster than expected. Is the concurrency respected?"
+
+    assert len(results) == 100, "Unexpected number of job executions"
+
+
+async def test_polling(async_app: app_module.App):
+    @async_app.task(queue="default", name="sum")
+    async def sum(a: int, b: int):
+        return a + b
+
+    # rely on polling to fetch new jobs
+    worker_task = asyncio.create_task(
+        async_app.run_worker_async(
+            concurrency=1, wait=True, listen_notify=False, timeout=0.3
+        )
+    )
+
+    # long enough for worker to wait until next polling
+    await asyncio.sleep(0.1)
+
+    job_id = await sum.defer_async(a=5, b=4)
+
+    await asyncio.sleep(0.1)
+
+    job_status = await async_app.job_manager.get_job_status_async(job_id=job_id)
+
+    assert job_status == Status.TODO, "Job fetched faster than expected."
+
+    await asyncio.sleep(0.2)
+
+    job_status = await async_app.job_manager.get_job_status_async(job_id=job_id)
+
+    assert job_status == Status.SUCCEEDED, "Job should have been fetched and processed."
+
+    try:
+        worker_task.cancel()
+        await asyncio.wait_for(
+            worker_task,
+            timeout=0.5,
+        )
+    except asyncio.CancelledError:
+        pass
+    except asyncio.TimeoutError:
+        pytest.fail("Failed to stop worker")

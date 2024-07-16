@@ -3,23 +3,40 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import signal
+from typing import TYPE_CHECKING, cast
 
 import pytest
 
 from procrastinate import worker
+from procrastinate.testing import InMemoryConnector
+
+if TYPE_CHECKING:
+    from procrastinate import App
+
+
+# how long to wait before considering the test a fail
+timeout = 0.05
+
+
+async def _wait_on_cancelled(task: asyncio.Task, timeout: float):
+    try:
+        await asyncio.wait_for(task, timeout=timeout)
+    except asyncio.CancelledError:
+        pass
+    except asyncio.TimeoutError:
+        pytest.fail("Failed to launch task within f{timeout}s")
 
 
 @contextlib.asynccontextmanager
-async def running_worker(app):
+async def running_worker(app: App):
     running_worker = worker.Worker(app=app, queues=["some_queue"])
     task = asyncio.ensure_future(running_worker.run())
-    running_worker.task = task
-    yield running_worker
+    yield running_worker, task
     running_worker.stop()
-    await asyncio.wait_for(task, timeout=0.5)
+    await _wait_on_cancelled(task, timeout=timeout)
 
 
-async def test_run(app, caplog):
+async def test_run(app: App, caplog):
     caplog.set_level("DEBUG")
 
     done = asyncio.Event()
@@ -32,11 +49,12 @@ async def test_run(app, caplog):
         await t.defer_async()
 
         try:
-            await asyncio.wait_for(done.wait(), timeout=0.5)
+            await asyncio.wait_for(done.wait(), timeout=timeout)
         except asyncio.TimeoutError:
-            pytest.fail("Failed to launch task withing .5s")
+            pytest.fail(f"Failed to launch task withing {timeout}s")
 
-    assert [q[0] for q in app.connector.queries] == [
+    connector = cast(InMemoryConnector, app.connector)
+    assert [q[0] for q in connector.queries] == [
         "defer_job",
         "fetch_job",
         "finish_job",
@@ -54,10 +72,10 @@ async def test_run(app, caplog):
     } <= logs
 
 
-async def test_run_log_current_job_when_stopping(app, caplog):
+async def test_run_log_current_job_when_stopping(app: App, caplog):
     caplog.set_level("DEBUG")
 
-    async with running_worker(app) as worker:
+    async with running_worker(app) as (worker, worker_task):
 
         @app.task(queue="some_queue")
         async def t():
@@ -65,10 +83,11 @@ async def test_run_log_current_job_when_stopping(app, caplog):
 
         await t.defer_async()
 
-        try:
-            await asyncio.wait_for(worker.task, timeout=0.5)
-        except asyncio.TimeoutError:
-            pytest.fail("Failed to launch task within .5s")
+        with pytest.raises(asyncio.CancelledError):
+            try:
+                await asyncio.wait_for(worker_task, timeout=timeout)
+            except asyncio.TimeoutError:
+                pytest.fail("Failed to launch task within f{timeout}s")
 
     # We want to make sure that the log that names the current running task fired.
     logs = " ".join(r.message for r in caplog.records)
@@ -79,18 +98,19 @@ async def test_run_log_current_job_when_stopping(app, caplog):
     )
 
 
-async def test_run_no_listen_notify(app):
+async def test_run_no_listen_notify(app: App):
     running_worker = worker.Worker(app=app, queues=["some_queue"], listen_notify=False)
     task = asyncio.ensure_future(running_worker.run())
     try:
         await asyncio.sleep(0.01)
-        assert app.connector.notify_event is None
+        connector = cast(InMemoryConnector, app.connector)
+        assert connector.notify_event is None
     finally:
         running_worker.stop()
-        await asyncio.wait_for(task, timeout=0.5)
+        await _wait_on_cancelled(task, timeout=timeout)
 
 
-async def test_run_no_signal_handlers(app, kill_own_pid):
+async def test_run_no_signal_handlers(app: App, kill_own_pid):
     running_worker = worker.Worker(
         app=app, queues=["some_queue"], install_signal_handlers=False
     )
@@ -103,4 +123,4 @@ async def test_run_no_signal_handlers(app, kill_own_pid):
             kill_own_pid(signal=signal.SIGINT)
     finally:
         running_worker.stop()
-        await asyncio.wait_for(task, timeout=0.5)
+        await _wait_on_cancelled(task, timeout)

@@ -3,12 +3,25 @@ from __future__ import annotations
 import signal
 import subprocess
 import time
+from typing import Protocol, cast
 
 import pytest
 
 
+class RunningWorker(Protocol):
+    def __call__(
+        self, *args: str, name: str = "worker", app: str = "app"
+    ) -> subprocess.Popen[str]: ...
+
+
+class Worker(Protocol):
+    def __call__(
+        self, *args: str, sleep: int = 1, app: str = "app"
+    ) -> tuple[str, str]: ...
+
+
 @pytest.fixture
-def worker(running_worker):
+def worker(running_worker) -> Worker:
     def func(*queues, sleep=1, app="app"):
         process = running_worker(*queues, app=app)
         time.sleep(sleep)
@@ -19,7 +32,7 @@ def worker(running_worker):
 
 
 @pytest.fixture
-def running_worker(process_env):
+def running_worker(process_env) -> RunningWorker:
     def func(*queues, name="worker", app="app"):
         return subprocess.Popen(
             [
@@ -154,10 +167,10 @@ def test_lock(defer, running_worker):
     lines = dict(
         line.split()[1:] for line in stdout.splitlines() if line.startswith("->")
     )
-    lines = sorted(lines, key=lines.get)
+    sorted_lines = sorted(lines, key=lambda x: lines[x])
 
     # Check that it all happened in order
-    assert lines == ["before-1", "after-1", "before-2", "after-2"]
+    assert sorted_lines == ["before-1", "after-1", "before-2", "after-2"]
     # If locks didnt work, we would have
     # ["before-1", "before-2", "after-2", "after-1"]
 
@@ -198,7 +211,7 @@ def test_periodic_deferrer(worker):
 
     # We're making a dict from the output
     results = dict(
-        (int(a) for a in e[5:].split())
+        cast(tuple[int, int], (int(a) for a in e[5:].split()))
         for e in stdout.splitlines()
         if e.startswith("tick ")
     )
