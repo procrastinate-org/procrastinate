@@ -88,7 +88,7 @@ between retries:
           )
   ```
 
-- There is is also a legacy `get_schedule_in` method that is depreciated an will be
+- There is also a legacy `get_schedule_in` method that is deprecated an will be
   removed in a future version in favor of the above `get_retry_decision` method.
 
   ```python
