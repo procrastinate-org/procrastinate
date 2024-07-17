@@ -62,7 +62,8 @@ async def job_processor(request, app, base_context, job_queue, job_semaphore):
 async def running_job_processor_task(job_processor):
     task = asyncio.create_task(job_processor.run())
     yield task
-    task.cancel()
+    if not task.cancelled():
+        task.cancel()
     try:
         await asyncio.wait_for(task, 0.1)
     except asyncio.CancelledError:
