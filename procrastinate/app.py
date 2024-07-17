@@ -10,10 +10,9 @@ from typing import (
     Iterable,
     Iterator,
     TypedDict,
-    Unpack,
 )
 
-from typing_extensions import NotRequired
+from typing_extensions import NotRequired, Unpack
 
 from procrastinate import blueprints, exceptions, jobs, manager, schema, utils
 from procrastinate import connector as connector_module
