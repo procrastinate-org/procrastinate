@@ -130,7 +130,10 @@ class Worker:
                 while True:
                     out_of_job = None
                     while not out_of_job:
-                        # only fetch job when the queue is not full and not all processors are busy
+                        # we don't want to fetch any new job if all processors are busy
+                        # or when the queue is already full
+                        # it is preferable to let any other procrastinate worker process handle those
+                        # jobs until we are ready to process more
                         async with fetch_job_condition:
                             await fetch_job_condition.wait_for(
                                 lambda: not job_queue.full()
@@ -138,7 +141,14 @@ class Worker:
                             )
                         job = await self.app.job_manager.fetch_job(queues=self.queues)
                         if job:
-                            await job_queue.put(job)
+                            # once a job has been fetched, we don't want to be cancelled until we put the job
+                            # in the queue. For this reason, we prefer job_queue.put_nowait to job_queue.put
+                            #
+                            # The cleanup process ensures any job in the queue is awaited.
+                            #
+                            # We also made sure the queue is not full before fetching the job.
+                            # Given only this worker adds to the queue, we don't need to worry about QueueFull being raised
+                            job_queue.put_nowait(job)
                         else:
                             out_of_job = True
                     if out_of_job:
@@ -181,6 +191,7 @@ class Worker:
                     extra=context.log_extra(action="ending_job"),
                 )
 
+            # make sure any job in progress or still in the queue is given time to be processed
             await job_queue.join()
             job_processors_task.cancel()
             job_processors_task.add_done_callback(
