@@ -63,6 +63,16 @@ def test_get_schedule_in_time(
     )
 
 
+def test_retry_decision_constructor():
+    now = conftest.aware_datetime(2000, 1, 1, tz_offset=1)
+    with pytest.raises(ValueError) as exc_info:
+        RetryDecision(
+            retry_in={"seconds": 42},
+            retry_at=now + datetime.timedelta(seconds=42, microseconds=0),
+        )
+    assert str(exc_info.value) == "Cannot set both retry_at and retry_in"
+
+
 @pytest.mark.parametrize(
     "attempts, wait, linear_wait, exponential_wait, retry_in",
     [
