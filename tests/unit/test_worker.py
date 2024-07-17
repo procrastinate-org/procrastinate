@@ -83,6 +83,10 @@ async def test_worker_run_wait_listen(app: App):
     assert connector.notify_channels == ["procrastinate_queue#qq"]
 
     run_task.cancel()
+    try:
+        await asyncio.wait_for(run_task, timeout=0.2)
+    except asyncio.CancelledError:
+        pass
 
 
 @pytest.mark.parametrize(
@@ -167,7 +171,6 @@ async def test_worker_run_respects_polling(app: App):
     await asyncio.sleep(0.05)
 
     assert len([query for query in connector.queries if query[0] == "fetch_job"]) == 2
-
     run_task.cancel()
     try:
         await asyncio.wait_for(run_task, timeout=0.2)
