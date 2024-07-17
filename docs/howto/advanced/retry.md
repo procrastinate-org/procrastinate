@@ -11,7 +11,7 @@ app / machine reboots.
 
 - Retry 5 times (so 6 attempts total):
 
-  ```
+  ```python
   @app.task(retry=5)
   def flaky_task():
       if random.random() > 0.9:
@@ -21,7 +21,7 @@ app / machine reboots.
 
 - Retry indefinitely:
 
-  ```
+  ```python
   @app.task(retry=True)
   def flaky_task():
       if random.random() > 0.9:
@@ -42,7 +42,7 @@ Advanced strategies let you:
 
 Define your precise strategy using a {py:class}`RetryStrategy` instance:
 
-```
+```python
 from procrastinate import RetryStrategy
 
 @app.task(retry=procrastinate.RetryStrategy(
@@ -64,7 +64,11 @@ between retries:
 ## Implementing your own strategy
 
 - If you want to go for a fully fledged custom retry strategy, you can implement your
-  own retry strategy. This also allows to (optionally) change the priority of the job.
+  own retry strategy by returning a `RetryDecision` object from the
+  `get_retry_decision` method. This also allows to (optionally) change the priority,
+  the queue or the lock of the job. The time to wait between retries can be specified
+  with `retry_in` or alternatively with `retry_at`. If `None` is returned
+  from `get_retry_decision` then the job will not be retried.
 
   ```python
   import random
@@ -82,9 +86,10 @@ between retries:
           wait = random.uniform(self.min, self.max)
 
           return RetryDecision(
-              should_retry=True,
-              schedule_in=wait,
-              new_priority=job.priority + 1,
+              retry_in={"seconds": 10}, # or retry_at (a datetime object)
+              priority=job.priority + 1, # optional
+              queue="another_queue", # optional
+              lock="another_lock", # optional
           )
   ```
 

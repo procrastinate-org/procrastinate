@@ -357,7 +357,9 @@ class JobManager:
         self,
         job: jobs.Job,
         retry_at: datetime.datetime | None = None,
-        new_priority: int | None = None,
+        priority: int | None = None,
+        queue: str | None = None,
+        lock: str | None = None,
     ) -> None:
         """
         Indicates that a job should be retried later.
@@ -369,22 +371,32 @@ class JobManager:
             If set at present time or in the past, the job may be retried immediately.
             Otherwise, the job will be retried no sooner than this date & time.
             Should be timezone-aware (even if UTC). Defaults to present time.
-        new_priority : ``Optional[int]``
-            If set, the job will be retried with this priority. If not set, the job will
-            use its original priority.
+        priority : ``Optional[int]``
+            If set, the job will be retried with this priority. If not set, the priority
+            remains unchanged.
+        queue : ``Optional[int]``
+            If set, the job will be retried on this queue. If not set, the queue remains
+            unchanged.
+        lock : ``Optional[int]``
+            If set, the job will be retried with this lock. If not set, the lock remains
+            unchanged.
         """
         assert job.id  # TODO remove this
         await self.retry_job_by_id_async(
             job_id=job.id,
             retry_at=retry_at or utils.utcnow(),
-            new_priority=new_priority,
+            priority=priority,
+            queue=queue,
+            lock=lock,
         )
 
     async def retry_job_by_id_async(
         self,
         job_id: int,
         retry_at: datetime.datetime,
-        new_priority: int | None = None,
+        priority: int | None = None,
+        queue: str | None = None,
+        lock: str | None = None,
     ) -> None:
         """
         Indicates that a job should be retried later.
@@ -396,22 +408,32 @@ class JobManager:
             If set at present time or in the past, the job may be retried immediately.
             Otherwise, the job will be retried no sooner than this date & time.
             Should be timezone-aware (even if UTC).
-        new_priority : ``Optional[int]``
-            If set, the job will be retried with this priority. If not set, the job will
-            use its original priority.
+        priority : ``Optional[int]``
+            If set, the job will be retried with this priority. If not set, the priority
+            remains unchanged.
+        queue : ``Optional[int]``
+            If set, the job will be retried on this queue. If not set, the queue remains
+            unchanged.
+        lock : ``Optional[int]``
+            If set, the job will be retried with this lock. If not set, the lock remains
+            unchanged.
         """
         await self.connector.execute_query_async(
             query=sql.queries["retry_job"],
             job_id=job_id,
             retry_at=retry_at,
-            new_priority=new_priority,
+            new_priority=priority,
+            new_queue_name=queue,
+            new_lock=lock,
         )
 
     def retry_job_by_id(
         self,
         job_id: int,
         retry_at: datetime.datetime,
-        new_priority: int | None = None,
+        priority: int | None = None,
+        queue: str | None = None,
+        lock: str | None = None,
     ) -> None:
         """
         Sync version of `retry_job_by_id_async`.
@@ -420,7 +442,9 @@ class JobManager:
             query=sql.queries["retry_job"],
             job_id=job_id,
             retry_at=retry_at,
-            new_priority=new_priority,
+            new_priority=priority,
+            new_queue_name=queue,
+            new_lock=lock,
         )
 
     async def listen_for_jobs(

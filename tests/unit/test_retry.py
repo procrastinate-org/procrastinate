@@ -8,6 +8,8 @@ from procrastinate import BaseRetryStrategy, RetryDecision, exceptions, utils
 from procrastinate import retry as retry_module
 from procrastinate.jobs import Job
 
+from .. import conftest
+
 
 @pytest.mark.parametrize(
     "retry, expected_strategy",
@@ -62,7 +64,7 @@ def test_get_schedule_in_time(
 
 
 @pytest.mark.parametrize(
-    "attempts, wait, linear_wait, exponential_wait, schedule_in",
+    "attempts, wait, linear_wait, exponential_wait, retry_in",
     [
         # No wait
         (0, 0.0, 0.0, 0.0, 0.0),
@@ -70,10 +72,6 @@ def test_get_schedule_in_time(
         (1, 5.0, 0.0, 0.0, 5.0),
         # Constant, last try
         (9, 5.0, 0.0, 0.0, 5.0),
-        # Constant, first non-retry
-        (10, 5.0, 0.0, 0.0, None),
-        # Constant, other non-retry
-        (100, 5.0, 0.0, 0.0, None),
         # Linear (3 * 7)
         (3, 0.0, 7.0, 0.0, 21.0),
         # Exponential (2 ** (5+1))
@@ -83,8 +81,35 @@ def test_get_schedule_in_time(
     ],
 )
 def test_get_retry_decision(
-    attempts, schedule_in, wait, linear_wait, exponential_wait, mocker
+    attempts, wait, linear_wait, exponential_wait, retry_in, mocker
 ):
+    now = conftest.aware_datetime(2000, 1, 1, tz_offset=1)
+    mocker.patch.object(utils, "utcnow", return_value=now)
+    expected = now + datetime.timedelta(seconds=retry_in, microseconds=0)
+
+    strategy = retry_module.RetryStrategy(
+        max_attempts=10,
+        wait=wait,
+        linear_wait=linear_wait,
+        exponential_wait=exponential_wait,
+    )
+
+    job_mock = mocker.Mock(attempts=attempts)
+    retry_decision = strategy.get_retry_decision(exception=Exception(), job=job_mock)
+    assert isinstance(retry_decision, RetryDecision)
+    assert retry_decision.retry_at == expected.replace(microsecond=0)
+
+
+@pytest.mark.parametrize(
+    "attempts, wait, linear_wait, exponential_wait",
+    [
+        # Constant, first non-retry
+        (10, 5.0, 0.0, 0.0),
+        # Constant, other non-retry
+        (100, 5.0, 0.0, 0.0),
+    ],
+)
+def test_get_none_retry_decision(attempts, wait, linear_wait, exponential_wait, mocker):
     strategy = retry_module.RetryStrategy(
         max_attempts=10,
         wait=wait,
@@ -92,9 +117,7 @@ def test_get_retry_decision(
         exponential_wait=exponential_wait,
     )
     job_mock = mocker.Mock(attempts=attempts)
-    assert strategy.get_retry_decision(
-        exception=Exception(), job=job_mock
-    ) == RetryDecision(should_retry=schedule_in is not None, schedule_in=schedule_in)
+    assert strategy.get_retry_decision(exception=Exception(), job=job_mock) is None
 
 
 @pytest.mark.parametrize(
@@ -109,19 +132,18 @@ def test_get_schedule_in_exception(exception, expected):
     assert strategy.get_schedule_in(exception=exception, attempts=0) == expected
 
 
-@pytest.mark.parametrize(
-    "exception, expected",
-    [
-        (ValueError(), 0),
-        (KeyError(), None),
-    ],
-)
-def test_get_retry_decision_exception(exception, expected, mocker):
+def test_retry_exception(mocker):
     strategy = retry_module.RetryStrategy(retry_exceptions=[ValueError])
     job_mock = mocker.Mock(attempts=0)
-    retry_decision = strategy.get_retry_decision(exception=exception, job=job_mock)
-    assert retry_decision.should_retry == (expected is not None)
-    assert retry_decision.schedule_in == expected
+    retry_decision = strategy.get_retry_decision(exception=ValueError(), job=job_mock)
+    assert isinstance(retry_decision, RetryDecision)
+
+
+def test_non_retry_exception(mocker):
+    strategy = retry_module.RetryStrategy(retry_exceptions=[ValueError])
+    job_mock = mocker.Mock(attempts=0)
+    retry_decision = strategy.get_retry_decision(exception=KeyError(), job=job_mock)
+    assert retry_decision is None
 
 
 def test_get_retry_exception_returns_none(mocker):
@@ -131,34 +153,43 @@ def test_get_retry_exception_returns_none(mocker):
 
 
 def test_get_retry_exception_returns(mocker):
-    strategy = retry_module.RetryStrategy(max_attempts=10, wait=5)
-
-    now = utils.utcnow()
+    now = conftest.aware_datetime(2000, 1, 1, tz_offset=1)
+    mocker.patch.object(utils, "utcnow", return_value=now)
     expected = now + datetime.timedelta(seconds=5, microseconds=0)
+
+    strategy = retry_module.RetryStrategy(max_attempts=10, wait=5)
 
     job_mock = mocker.Mock(attempts=1)
     exc = strategy.get_retry_exception(exception=Exception(), job=job_mock)
     assert isinstance(exc, exceptions.JobRetry)
-    assert exc.scheduled_at == expected.replace(microsecond=0)
+    assert exc.retry_decision.retry_at == expected.replace(microsecond=0)
 
 
 def test_custom_retry_strategy_returns(mocker):
+    now = conftest.aware_datetime(2000, 1, 1, tz_offset=1)
+    mocker.patch.object(utils, "utcnow", return_value=now)
+    expected = now + datetime.timedelta(seconds=5, microseconds=0)
+
     class CustomRetryStrategy(BaseRetryStrategy):
         def get_retry_decision(
             self, *, exception: BaseException, job: Job
         ) -> RetryDecision:
-            return RetryDecision(should_retry=True, schedule_in=5, new_priority=7)
+            return RetryDecision(
+                retry_in={"seconds": 5},
+                priority=7,
+                queue="some_queue",
+                lock="some_lock",
+            )
 
     strategy = CustomRetryStrategy()
-
-    now = utils.utcnow()
-    expected = now + datetime.timedelta(seconds=5, microseconds=0)
 
     job_mock = mocker.Mock(attempts=1)
     exc = strategy.get_retry_exception(exception=Exception(), job=job_mock)
     assert isinstance(exc, exceptions.JobRetry)
-    assert exc.scheduled_at == expected.replace(microsecond=0)
-    assert exc.new_priority == 7
+    assert exc.retry_decision.retry_at == expected.replace(microsecond=0)
+    assert exc.retry_decision.priority == 7
+    assert exc.retry_decision.queue == "some_queue"
+    assert exc.retry_decision.lock == "some_lock"
 
 
 def test_custom_retry_strategy_depreciated_returns_none(mocker):
@@ -179,6 +210,10 @@ def test_custom_retry_strategy_depreciated_returns_none(mocker):
 
 
 def test_custom_retry_strategy_depreciated_returns(mocker):
+    now = conftest.aware_datetime(2000, 1, 1, tz_offset=1)
+    mocker.patch.object(utils, "utcnow", return_value=now)
+    expected = now + datetime.timedelta(seconds=5, microseconds=0)
+
     class CustomRetryStrategy(BaseRetryStrategy):
         def get_schedule_in(
             self, *, exception: BaseException, attempts: int
@@ -187,9 +222,6 @@ def test_custom_retry_strategy_depreciated_returns(mocker):
 
     strategy = CustomRetryStrategy()
 
-    now = utils.utcnow()
-    expected = now + datetime.timedelta(seconds=5, microseconds=0)
-
     job_mock = mocker.Mock(attempts=1)
     with pytest.warns(
         DeprecationWarning,
@@ -197,4 +229,4 @@ def test_custom_retry_strategy_depreciated_returns(mocker):
     ):
         exc = strategy.get_retry_exception(exception=Exception(), job=job_mock)
     assert isinstance(exc, exceptions.JobRetry)
-    assert exc.scheduled_at == expected.replace(microsecond=0)
+    assert exc.retry_decision.retry_at == expected.replace(microsecond=0)

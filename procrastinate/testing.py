@@ -245,7 +245,12 @@ class InMemoryConnector(connector.BaseAsyncConnector):
         return {"status": self.jobs[job_id]["status"]}
 
     def retry_job_run(
-        self, job_id: int, retry_at: datetime.datetime, new_priority: int | None = None
+        self,
+        job_id: int,
+        retry_at: datetime.datetime,
+        new_priority: int | None = None,
+        new_queue_name: str | None = None,
+        new_lock: str | None = None,
     ) -> None:
         job_row = self.jobs[job_id]
         job_row["status"] = "todo"
@@ -253,6 +258,10 @@ class InMemoryConnector(connector.BaseAsyncConnector):
         job_row["scheduled_at"] = retry_at
         if new_priority is not None:
             job_row["priority"] = new_priority
+        if new_queue_name is not None:
+            job_row["queue_name"] = new_queue_name
+        if new_lock is not None:
+            job_row["lock"] = new_lock
         self.events[job_id].append({"type": "scheduled", "at": retry_at})
         self.events[job_id].append({"type": "deferred_for_retry", "at": utils.utcnow()})
 

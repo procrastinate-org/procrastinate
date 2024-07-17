@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import datetime
 import warnings
-from typing import Iterable, Union
+from typing import Iterable, Union, overload
 
 import attr
 
@@ -15,17 +15,54 @@ from procrastinate import exceptions, utils
 from procrastinate.jobs import Job
 
 
-@attr.dataclass
 class RetryDecision:
-    should_retry: bool
-    schedule_in: float | None = None
-    new_priority: int | None = None
+    retry_at: datetime.datetime | None = None
+    priority: int | None = None
+    queue: str | None = None
+    lock: str | None = None
+
+    @overload
+    def __init__(
+        self,
+        retry_at: None = None,
+        retry_in: utils.TimeDeltaParams | None = None,
+        priority: int | None = None,
+        queue: str | None = None,
+        lock: str | None = None,
+    ) -> None: ...
+    @overload
+    def __init__(
+        self,
+        retry_at: datetime.datetime | None = None,
+        retry_in: None = None,
+        priority: int | None = None,
+        queue: str | None = None,
+        lock: str | None = None,
+    ) -> None: ...
+    def __init__(
+        self,
+        retry_at: datetime.datetime | None = None,
+        retry_in: utils.TimeDeltaParams | None = None,
+        priority: int | None = None,
+        queue: str | None = None,
+        lock: str | None = None,
+    ) -> None:
+        if retry_at and retry_in is not None:
+            raise ValueError("Cannot set both retry_at and retry_in")
+
+        if retry_in is not None:
+            retry_at = utils.datetime_from_timedelta_params(retry_in)
+
+        self.retry_at = retry_at
+        self.priority = priority
+        self.queue = queue
+        self.lock = lock
 
 
 class BaseRetryStrategy:
     """
     If you want to implement your own retry strategy, you can inherit from this class.
-    Child classes only need to implement `get_schedule_in`.
+    Child classes only need to implement `get_retry_decision`.
     """
 
     def get_retry_exception(
@@ -33,17 +70,10 @@ class BaseRetryStrategy:
     ) -> exceptions.JobRetry | None:
         try:
             retry_decision = self.get_retry_decision(exception=exception, job=job)
-            if not retry_decision.should_retry:
+            if retry_decision is None:
                 return None
 
-            schedule_at = utils.utcnow() + datetime.timedelta(
-                seconds=retry_decision.schedule_in
-                if retry_decision.schedule_in is not None
-                else 0
-            )
-            return exceptions.JobRetry(
-                schedule_at.replace(microsecond=0), retry_decision.new_priority
-            )
+            return exceptions.JobRetry(retry_decision=retry_decision)
         except NotImplementedError:
             warnings.warn(
                 "`get_schedule_in` is deprecated, use `get_retry_decision` instead.",
@@ -56,8 +86,8 @@ class BaseRetryStrategy:
             if schedule_in is None:
                 return None
 
-            schedule_at = utils.utcnow() + datetime.timedelta(seconds=schedule_in)
-            return exceptions.JobRetry(schedule_at.replace(microsecond=0))
+            retry_decision = RetryDecision(retry_in={"seconds": schedule_in})
+            return exceptions.JobRetry(retry_decision)
 
     def get_schedule_in(self, *, exception: BaseException, attempts: int) -> int | None:
         """
@@ -83,7 +113,7 @@ class BaseRetryStrategy:
 
     def get_retry_decision(
         self, *, exception: BaseException, job: Job
-    ) -> RetryDecision:
+    ) -> RetryDecision | None:
         """
         Parameters
         ----------
@@ -156,13 +186,13 @@ class RetryStrategy(BaseRetryStrategy):
 
     def get_retry_decision(
         self, *, exception: BaseException, job: Job
-    ) -> RetryDecision:
+    ) -> RetryDecision | None:
         schedule_in = self.get_schedule_in(exception=exception, attempts=job.attempts)
 
         if schedule_in is None:
-            return RetryDecision(should_retry=False)
+            return None
 
-        return RetryDecision(should_retry=True, schedule_in=schedule_in)
+        return RetryDecision(retry_in={"seconds": schedule_in})
 
 
 RetryValue = Union[bool, int, RetryStrategy]

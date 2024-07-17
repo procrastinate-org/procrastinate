@@ -305,11 +305,15 @@ async def test_retry_job(pg_job_manager, fetched_job_factory):
     assert job2.priority == job1.priority == 0
 
 
-async def test_retry_job_with_new_priority(pg_job_manager, fetched_job_factory):
+async def test_retry_job_with_additional_params(pg_job_manager, fetched_job_factory):
     job1 = await fetched_job_factory(queue="queue_a")
 
     await pg_job_manager.retry_job(
-        job=job1, retry_at=datetime.datetime.now(datetime.timezone.utc), new_priority=5
+        job=job1,
+        retry_at=datetime.datetime.now(datetime.timezone.utc),
+        priority=5,
+        queue="queue_b",
+        lock="some_lock",
     )
 
     job2 = await pg_job_manager.fetch_job(queues=None)
@@ -317,6 +321,8 @@ async def test_retry_job_with_new_priority(pg_job_manager, fetched_job_factory):
     assert job2.id == job1.id
     assert job2.attempts == job1.attempts + 1
     assert job2.priority == 5
+    assert job2.queue == "queue_b"
+    assert job2.lock == "some_lock"
 
 
 async def test_enum_synced(psycopg_connector):

@@ -5,6 +5,7 @@ import asyncio
 import pytest
 
 from procrastinate import exceptions, job_context, jobs, tasks, worker
+from procrastinate.retry import RetryDecision
 
 from .. import conftest
 
@@ -127,10 +128,12 @@ async def test_process_job_retry_failed_job(
     async def coro(*args, **kwargs):
         pass
 
-    scheduled_at = conftest.aware_datetime(2000, 1, 1)
+    retry_at = conftest.aware_datetime(2000, 1, 1)
     test_worker.run_job = mocker.Mock(
         side_effect=exceptions.JobError(
-            retry_exception=exceptions.JobRetry(scheduled_at=scheduled_at)
+            retry_exception=exceptions.JobRetry(
+                retry_decision=RetryDecision(retry_at=retry_at)
+            )
         )
     )
     job = job_factory(id=1)
@@ -140,7 +143,7 @@ async def test_process_job_retry_failed_job(
 
     test_worker.run_job.assert_called_with(job=job, worker_id=0)
     assert connector.jobs[1]["status"] == "todo"
-    assert connector.jobs[1]["scheduled_at"] == scheduled_at
+    assert connector.jobs[1]["scheduled_at"] == retry_at
     assert connector.jobs[1]["attempts"] == 1
 
 
@@ -174,9 +177,12 @@ async def test_process_job_retry_failed_job_retry_critical(
     class TestException(BaseException):
         pass
 
-    scheduled_at = conftest.aware_datetime(2000, 1, 1)
+    retry_at = conftest.aware_datetime(2000, 1, 1)
     job_exception = exceptions.JobError(
-        critical=True, retry_exception=exceptions.JobRetry(scheduled_at=scheduled_at)
+        critical=True,
+        retry_exception=exceptions.JobRetry(
+            retry_decision=RetryDecision(retry_at=retry_at)
+        ),
     )
     job_exception.__cause__ = TestException()
 
@@ -191,7 +197,7 @@ async def test_process_job_retry_failed_job_retry_critical(
 
     test_worker.run_job.assert_called_with(job=job, worker_id=0)
     assert connector.jobs[1]["status"] == "todo"
-    assert connector.jobs[1]["scheduled_at"] == scheduled_at
+    assert connector.jobs[1]["scheduled_at"] == retry_at
     assert connector.jobs[1]["attempts"] == 1
 
 
