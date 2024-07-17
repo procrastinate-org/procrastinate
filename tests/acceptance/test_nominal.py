@@ -3,7 +3,7 @@ from __future__ import annotations
 import signal
 import subprocess
 import time
-from typing import Protocol, cast
+from typing import Protocol, Tuple, cast
 
 import pytest
 
@@ -198,7 +198,7 @@ def test_queueing_lock(defer, running_worker):
     )
 
 
-def test_periodic_deferrer(worker):
+def test_periodic_deferrer(worker: Worker):
     # We're launching a worker that executes a periodic task every second, and
     # letting it run for 2.5 s. It should execute the task 3 times, and print to stdout:
     # 0 <timestamp>
@@ -211,7 +211,7 @@ def test_periodic_deferrer(worker):
 
     # We're making a dict from the output
     results = dict(
-        cast(tuple[int, int], (int(a) for a in e[5:].split()))
+        cast(Tuple[int, int], (int(a) for a in e[5:].split()))
         for e in stdout.splitlines()
         if e.startswith("tick ")
     )

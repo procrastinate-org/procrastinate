@@ -94,7 +94,7 @@ class Worker:
             ),
         )
 
-        job_queue = asyncio.Queue[Job](self.concurrency)
+        job_queue: asyncio.Queue[Job] = asyncio.Queue(self.concurrency)
         job_semaphore = asyncio.Semaphore(self.concurrency)
         fetch_job_condition = asyncio.Condition()
         job_processors = [

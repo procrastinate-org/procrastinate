@@ -22,9 +22,11 @@ def worker_name() -> str:
     return "worker"
 
 
+# it is important to make the fixture async because
+# otherwise, the queue is created outside the main event loop on python 3.8
 @pytest.fixture
-def job_queue():
-    return asyncio.Queue[Job](2)
+async def job_queue() -> asyncio.Queue[Job]:
+    return asyncio.Queue(2)
 
 
 @pytest.fixture
@@ -40,7 +42,7 @@ def job_semaphore():
 
 
 @pytest.fixture
-def job_processor(request, app, base_context, job_queue, job_semaphore):
+async def job_processor(request, app, base_context, job_queue, job_semaphore):
     param = getattr(request, "param", None)
 
     delete_jobs = cast(str, param["delete_jobs"]) if param else None
