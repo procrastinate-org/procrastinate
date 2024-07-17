@@ -64,12 +64,12 @@ async def running_job_processor_task(job_processor):
     yield task
     if not task.cancelled():
         task.cancel()
-    try:
-        await asyncio.wait_for(task, 0.1)
-    except asyncio.CancelledError:
-        pass
-    except CustomCriticalError:
-        pass
+        try:
+            await asyncio.wait_for(task, 0.1)
+        except asyncio.CancelledError:
+            pass
+        except CustomCriticalError:
+            pass
 
 
 async def test_run_wait_until_cancelled(job_processor):

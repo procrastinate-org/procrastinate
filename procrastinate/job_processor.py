@@ -84,6 +84,7 @@ class JobProcessor:
     async def run(self):
         while True:
             job = await self._job_queue.get()
+            cancelled_error: asyncio.CancelledError | None = None
             async with self._job_semaphore:
                 status = Status.FAILED
                 try:
@@ -97,7 +98,8 @@ class JobProcessor:
                     try:
                         # the job is shielded from cancellation to enable graceful stop
                         await asyncio.shield(process_job_task)
-                    except asyncio.CancelledError:
+                    except asyncio.CancelledError as e:
+                        cancelled_error = e
                         await process_job_task
                         status = Status.SUCCEEDED
                         raise
@@ -114,7 +116,9 @@ class JobProcessor:
                     status = Status.ABORTED
                 except Exception:
                     # exception is already logged by _process_job, carry on
-                    pass
+                    # if there is a pending cancellation, this needs to be reraised here
+                    if cancelled_error:
+                        raise cancelled_error
                 finally:
                     persist_job_status_task = asyncio.create_task(
                         self._persist_job_status(job=job, status=status)
