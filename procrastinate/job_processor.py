@@ -90,7 +90,7 @@ class JobProcessor:
                 try:
                     self.job_context = self._create_job_context(job)
                     self.logger.debug(
-                        f"L poaded job info, about to start job {job.call_string}",
+                        f"Loaded job info, about to start job {job.call_string}",
                         extra=self.job_context.log_extra(action="loaded_job_info"),
                     )
                     process_job_task = asyncio.create_task(self._process_job())
