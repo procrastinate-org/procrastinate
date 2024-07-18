@@ -319,7 +319,7 @@ async def test_retry_job_with_additional_params(pg_job_manager, fetched_job_fact
     job2 = await pg_job_manager.fetch_job(queues=None)
 
     assert job2.id == job1.id
-    assert job2.attempts == job1.attempts + 1
+    assert job2.attempts == 1
     assert job2.priority == 5
     assert job2.queue == "queue_b"
     assert job2.lock == "some_lock"
