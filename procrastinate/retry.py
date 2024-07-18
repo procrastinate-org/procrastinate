@@ -80,7 +80,7 @@ class BaseRetryStrategy:
                     exception=exception, attempts=job.attempts
                 )
             except NotImplementedError:
-                raise err
+                raise err from None
 
             warnings.warn(
                 "`get_schedule_in` is deprecated, use `get_retry_decision` instead.",
