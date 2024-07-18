@@ -24,8 +24,8 @@ class RetryDecision:
     @overload
     def __init__(
         self,
-        retry_at: None = None,
-        retry_in: types.TimeDeltaParams | None = None,
+        *,
+        retry_at: datetime.datetime | None = None,
         priority: int | None = None,
         queue: str | None = None,
         lock: str | None = None,
@@ -33,14 +33,15 @@ class RetryDecision:
     @overload
     def __init__(
         self,
-        retry_at: datetime.datetime | None = None,
-        retry_in: None = None,
+        *,
+        retry_in: types.TimeDeltaParams | None = None,
         priority: int | None = None,
         queue: str | None = None,
         lock: str | None = None,
     ) -> None: ...
     def __init__(
         self,
+        *,
         retry_at: datetime.datetime | None = None,
         retry_in: types.TimeDeltaParams | None = None,
         priority: int | None = None,
