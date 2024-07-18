@@ -74,15 +74,20 @@ class BaseRetryStrategy:
                 return None
 
             return exceptions.JobRetry(retry_decision=retry_decision)
-        except NotImplementedError:
+        except NotImplementedError as err:
+            try:
+                schedule_in = self.get_schedule_in(
+                    exception=exception, attempts=job.attempts
+                )
+            except NotImplementedError:
+                raise err
+
             warnings.warn(
                 "`get_schedule_in` is deprecated, use `get_retry_decision` instead.",
                 DeprecationWarning,
                 stacklevel=2,
             )
-            schedule_in = self.get_schedule_in(
-                exception=exception, attempts=job.attempts
-            )
+
             if schedule_in is None:
                 return None
 
@@ -109,7 +114,7 @@ class BaseRetryStrategy:
         This function is deprecated and will be removed in a future version. Use
         `get_retry_decision` instead.
         """
-        raise NotImplementedError()
+        raise NotImplementedError
 
     def get_retry_decision(
         self, *, exception: BaseException, job: Job
@@ -130,7 +135,7 @@ class BaseRetryStrategy:
             - schedule_in: an optional float indicating the number of seconds to wait
             - priority: an optional integer indicating the new priority of the job
         """
-        raise NotImplementedError()
+        raise NotImplementedError("Missing implementation of 'get_retry_decision'.")
 
 
 @attr.dataclass(kw_only=True)
