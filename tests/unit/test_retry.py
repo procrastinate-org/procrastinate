@@ -27,42 +27,6 @@ def test_get_retry_strategy(retry, expected_strategy):
     assert expected_strategy == retry_module.get_retry_strategy(retry)
 
 
-@pytest.mark.parametrize(
-    "attempts, wait, linear_wait, exponential_wait, schedule_in",
-    [
-        # No wait
-        (0, 0.0, 0.0, 0.0, 0.0),
-        # Constant, first try
-        (1, 5.0, 0.0, 0.0, 5.0),
-        # Constant, last try
-        (9, 5.0, 0.0, 0.0, 5.0),
-        # Constant, first non-retry
-        (10, 5.0, 0.0, 0.0, None),
-        # Constant, other non-retry
-        (100, 5.0, 0.0, 0.0, None),
-        # Linear (3 * 7)
-        (3, 0.0, 7.0, 0.0, 21.0),
-        # Exponential (2 ** (5+1))
-        (5, 0.0, 0.0, 2.0, 64.0),
-        # Mix & match 8 + 3*4 + 2**(4+1) = 52
-        (4, 8.0, 3.0, 2.0, 52.0),
-    ],
-)
-def test_get_schedule_in_time(
-    attempts, schedule_in, wait, linear_wait, exponential_wait
-):
-    strategy = retry_module.RetryStrategy(
-        max_attempts=10,
-        wait=wait,
-        linear_wait=linear_wait,
-        exponential_wait=exponential_wait,
-    )
-    assert (
-        strategy.get_schedule_in(exception=Exception(), attempts=attempts)
-        == schedule_in
-    )
-
-
 def test_retry_decision_constructor():
     now = conftest.aware_datetime(2000, 1, 1, tz_offset=1)
     with pytest.raises(ValueError) as exc_info:
@@ -128,18 +92,6 @@ def test_get_none_retry_decision(attempts, wait, linear_wait, exponential_wait, 
     )
     job_mock = mocker.Mock(attempts=attempts)
     assert strategy.get_retry_decision(exception=Exception(), job=job_mock) is None
-
-
-@pytest.mark.parametrize(
-    "exception, expected",
-    [
-        (ValueError(), 0),
-        (KeyError(), None),
-    ],
-)
-def test_get_schedule_in_exception(exception, expected):
-    strategy = retry_module.RetryStrategy(retry_exceptions=[ValueError])
-    assert strategy.get_schedule_in(exception=exception, attempts=0) == expected
 
 
 def test_retry_exception(mocker):

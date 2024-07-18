@@ -175,9 +175,10 @@ class RetryStrategy(BaseRetryStrategy):
     exponential_wait: int = 0
     retry_exceptions: Iterable[type[Exception]] | None = None
 
-    def get_schedule_in(self, *, exception: BaseException, attempts: int) -> int | None:
-        # TODO: remove this method in a future version and move logic to `get_retry_decision`
-        if self.max_attempts and attempts >= self.max_attempts:
+    def get_retry_decision(
+        self, *, exception: BaseException, job: Job
+    ) -> RetryDecision | None:
+        if self.max_attempts and job.attempts >= self.max_attempts:
             return None
         # isinstance's 2nd param must be a tuple, not an arbitrary iterable
         if self.retry_exceptions and not isinstance(
@@ -185,19 +186,10 @@ class RetryStrategy(BaseRetryStrategy):
         ):
             return None
         wait: int = self.wait
-        wait += self.linear_wait * attempts
-        wait += self.exponential_wait ** (attempts + 1)
-        return wait
+        wait += self.linear_wait * job.attempts
+        wait += self.exponential_wait ** (job.attempts + 1)
 
-    def get_retry_decision(
-        self, *, exception: BaseException, job: Job
-    ) -> RetryDecision | None:
-        schedule_in = self.get_schedule_in(exception=exception, attempts=job.attempts)
-
-        if schedule_in is None:
-            return None
-
-        return RetryDecision(retry_in={"seconds": schedule_in})
+        return RetryDecision(retry_in={"seconds": wait})
 
 
 RetryValue = Union[bool, int, RetryStrategy]
