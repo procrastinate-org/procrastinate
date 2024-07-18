@@ -18,16 +18,15 @@ from typing import (
     Coroutine,
     Generic,
     Iterable,
-    TypedDict,
     TypeVar,
 )
 
 import attr
 import dateutil.parser
 from asgiref import sync
-from typing_extensions import NotRequired
 
 from procrastinate import exceptions
+from procrastinate.types import TimeDeltaParams
 
 T = TypeVar("T")
 U = TypeVar("U")
@@ -434,16 +433,6 @@ def async_context_decorator(func: Callable) -> Callable:
         return contextlib2.asynccontextmanager(func)
     else:
         return contextlib.asynccontextmanager(func)
-
-
-class TimeDeltaParams(TypedDict):
-    weeks: NotRequired[int]
-    days: NotRequired[int]
-    hours: NotRequired[int]
-    minutes: NotRequired[int]
-    seconds: NotRequired[int]
-    milliseconds: NotRequired[int]
-    microseconds: NotRequired[int]
 
 
 def datetime_from_timedelta_params(params: TimeDeltaParams) -> datetime.datetime:

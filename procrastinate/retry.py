@@ -11,7 +11,7 @@ from typing import Iterable, Union, overload
 
 import attr
 
-from procrastinate import exceptions, utils
+from procrastinate import exceptions, types, utils
 from procrastinate.jobs import Job
 
 
@@ -25,7 +25,7 @@ class RetryDecision:
     def __init__(
         self,
         retry_at: None = None,
-        retry_in: utils.TimeDeltaParams | None = None,
+        retry_in: types.TimeDeltaParams | None = None,
         priority: int | None = None,
         queue: str | None = None,
         lock: str | None = None,
@@ -42,7 +42,7 @@ class RetryDecision:
     def __init__(
         self,
         retry_at: datetime.datetime | None = None,
-        retry_in: utils.TimeDeltaParams | None = None,
+        retry_in: types.TimeDeltaParams | None = None,
         priority: int | None = None,
         queue: str | None = None,
         lock: str | None = None,

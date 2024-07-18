@@ -22,7 +22,7 @@ class ConfigureTaskOptions(TypedDict):
     queueing_lock: NotRequired[str | None]
     task_kwargs: NotRequired[types.JSONDict | None]
     schedule_at: NotRequired[datetime.datetime | None]
-    schedule_in: NotRequired[utils.TimeDeltaParams | None]
+    schedule_in: NotRequired[types.TimeDeltaParams | None]
     queue: NotRequired[str | None]
     priority: NotRequired[int | None]
 
