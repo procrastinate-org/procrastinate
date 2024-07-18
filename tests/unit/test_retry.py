@@ -194,12 +194,12 @@ def test_custom_retry_strategy_depreciated_returns(mocker):
     assert exc.retry_decision.retry_at == expected.replace(microsecond=0)
 
 
-def test_missing_implementation_in_custom_retry_strategy(mocker):
+def test_missing_implementation_of_custom_retry_strategy(mocker):
     class CustomRetryStrategy(BaseRetryStrategy):
         pass
 
     strategy = CustomRetryStrategy()
     job_mock = mocker.Mock(attempts=1)
     with pytest.raises(NotImplementedError) as exc_info:
-        strategy.get_retry_decision(exception=Exception(), job=job_mock)
+        strategy.get_retry_exception(exception=Exception(), job=job_mock)
     assert str(exc_info.value) == "Missing implementation of 'get_retry_decision'."
