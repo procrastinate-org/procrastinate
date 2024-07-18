@@ -63,12 +63,15 @@ between retries:
 
 ## Implementing your own strategy
 
-- If you want to go for a fully fledged custom retry strategy, you can implement your
-  own retry strategy by returning a `RetryDecision` object from the
-  `get_retry_decision` method. This also allows to (optionally) change the priority,
-  the queue or the lock of the job. The time to wait between retries can be specified
-  with `retry_in` or alternatively with `retry_at`. If `None` is returned
-  from `get_retry_decision` then the job will not be retried.
+If you want to go for a fully fledged custom retry strategy, you can implement your
+own retry strategy by returning a `RetryDecision` object from the
+`get_retry_decision` method. This also allows to (optionally) change the priority,
+the queue or the lock of the job. If `None` is returned from `get_retry_decision`
+then the job will not be retried.
+
+The time to wait between retries can be specified with `retry_in` or alternatively
+with `retry_at`. This is similar to how `schedule_in` and `schedule_at` are used
+when {doc}`scheduling a job in the future <schedule>`.
 
   ```python
   import random
@@ -86,27 +89,12 @@ between retries:
           wait = random.uniform(self.min, self.max)
 
           return RetryDecision(
-              retry_in={"seconds": 10}, # or retry_at (a datetime object)
+              retry_in={"seconds": wait}, # or retry_at (a datetime object)
               priority=job.priority + 1, # optional
               queue="another_queue", # optional
               lock="another_lock", # optional
           )
   ```
 
-- There is also a legacy `get_schedule_in` method that is deprecated an will be
-  removed in a future version in favor of the above `get_retry_decision` method.
-
-  ```python
-  import random
-
-  class RandomRetryStrategy(procrastinate.BaseRetryStrategy):
-      max_attempts = 3
-      min = 1
-      max = 10
-
-      def get_schedule_in(self, *, exception:Exception, attempts: int) -> int:
-          if attempts >= max_attempts:
-              return None
-
-          return random.uniform(self.min, self.max)
-  ```
+There is also a legacy `get_schedule_in` method that is deprecated an will be
+removed in a future version in favor of the above `get_retry_decision` method.
