@@ -6,7 +6,7 @@ from procrastinate.blueprints import Blueprint
 from procrastinate.connector import BaseConnector
 from procrastinate.job_context import JobContext
 from procrastinate.psycopg_connector import PsycopgConnector
-from procrastinate.retry import BaseRetryStrategy, RetryStrategy
+from procrastinate.retry import BaseRetryStrategy, RetryDecision, RetryStrategy
 from procrastinate.sync_psycopg_connector import SyncPsycopgConnector
 from procrastinate.utils import MovedElsewhere as _MovedElsewhere
 
@@ -27,6 +27,7 @@ __all__ = [
     "BaseRetryStrategy",
     "PsycopgConnector",
     "SyncPsycopgConnector",
+    "RetryDecision",
     "RetryStrategy",
 ]
 

@@ -11,7 +11,7 @@ app / machine reboots.
 
 - Retry 5 times (so 6 attempts total):
 
-  ```
+  ```python
   @app.task(retry=5)
   def flaky_task():
       if random.random() > 0.9:
@@ -21,7 +21,7 @@ app / machine reboots.
 
 - Retry indefinitely:
 
-  ```
+  ```python
   @app.task(retry=True)
   def flaky_task():
       if random.random() > 0.9:
@@ -42,7 +42,7 @@ Advanced strategies let you:
 
 Define your precise strategy using a {py:class}`RetryStrategy` instance:
 
-```
+```python
 from procrastinate import RetryStrategy
 
 @app.task(retry=procrastinate.RetryStrategy(
@@ -63,23 +63,38 @@ between retries:
 
 ## Implementing your own strategy
 
-- If you want to go for a fully fledged custom retry strategy, you can implement your
-  own retry strategy (though we recommend always keeping a max_retry):
+If you want to go for a fully fledged custom retry strategy, you can implement your
+own retry strategy by returning a `RetryDecision` object from the
+`get_retry_decision` method. This also allows to (optionally) change the priority,
+the queue or the lock of the job. If `None` is returned from `get_retry_decision`
+then the job will not be retried.
 
-  ```
+The time to wait between retries can be specified with `retry_in` or alternatively
+with `retry_at`. This is similar to how `schedule_in` and `schedule_at` are used
+when {doc}`scheduling a job in the future <schedule>`.
+
+  ```python
   import random
+  from procrastinate import Job, RetryDecision
 
   class RandomRetryStrategy(procrastinate.BaseRetryStrategy):
       max_attempts = 3
       min = 1
       max = 10
 
-      def get_schedule_in(self, *, exception:Exception, attempts: int, **kwargs) -> int:
-          if attempts >= max_attempts:
-              return None
+      def get_retry_decision(self, *, exception:Exception, job:Job) -> RetryDecision:
+          if job.attempts >= max_attempts:
+              return RetryDecision(should_retry=False)
 
-          return random.uniform(self.min, self.max)
+          wait = random.uniform(self.min, self.max)
+
+          return RetryDecision(
+              retry_in={"seconds": wait}, # or retry_at (a datetime object)
+              priority=job.priority + 1, # optional
+              queue="another_queue", # optional
+              lock="another_lock", # optional
+          )
   ```
 
-It's interesting to add a catch-all parameter `**kwargs` to make your strategy more
-resilient to possible changes of Procrastinate in the future.
+There is also a legacy `get_schedule_in` method that is deprecated an will be
+removed in a future version in favor of the above `get_retry_decision` method.

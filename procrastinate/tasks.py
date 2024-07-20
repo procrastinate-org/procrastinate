@@ -17,22 +17,12 @@ Args = ParamSpec("Args")
 P = ParamSpec("P")
 
 
-class TimeDeltaParams(TypedDict):
-    weeks: NotRequired[int]
-    days: NotRequired[int]
-    hours: NotRequired[int]
-    minutes: NotRequired[int]
-    seconds: NotRequired[int]
-    milliseconds: NotRequired[int]
-    microseconds: NotRequired[int]
-
-
 class ConfigureTaskOptions(TypedDict):
     lock: NotRequired[str | None]
     queueing_lock: NotRequired[str | None]
     task_kwargs: NotRequired[types.JSONDict | None]
     schedule_at: NotRequired[datetime.datetime | None]
-    schedule_in: NotRequired[TimeDeltaParams | None]
+    schedule_in: NotRequired[types.TimeDeltaParams | None]
     queue: NotRequired[str | None]
     priority: NotRequired[int | None]
 
@@ -51,7 +41,7 @@ def configure_task(
         raise ValueError("Cannot set both schedule_at and schedule_in")
 
     if schedule_in is not None:
-        schedule_at = utils.utcnow() + datetime.timedelta(**schedule_in)
+        schedule_at = utils.datetime_from_timedelta_params(schedule_in)
 
     if priority is None:
         priority = jobs.DEFAULT_PRIORITY
@@ -239,6 +229,4 @@ class Task(Generic[P, Args]):
         if not self.retry_strategy:
             return None
 
-        return self.retry_strategy.get_retry_exception(
-            exception=exception, attempts=job.attempts
-        )
+        return self.retry_strategy.get_retry_exception(exception=exception, job=job)

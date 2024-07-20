@@ -133,5 +133,5 @@ def test_task_get_retry_exception(app, mocker):
 
     exception = ValueError()
     assert task.get_retry_exception(exception=exception, job=job) is mock.return_value
-    mock.assert_called_with(exception=exception, attempts=0)
-    mock.assert_called_with(exception=exception, attempts=0)
+    mock.assert_called_with(exception=exception, job=job)
+    mock.assert_called_with(exception=exception, job=job)

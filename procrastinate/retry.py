@@ -6,28 +6,116 @@ try again? And when?
 from __future__ import annotations
 
 import datetime
-from typing import Iterable, Union
+import warnings
+from typing import Iterable, Union, overload
 
 import attr
 
-from procrastinate import exceptions, utils
+from procrastinate import exceptions, types, utils
+from procrastinate.jobs import Job
+
+
+class RetryDecision:
+    retry_at: datetime.datetime | None = None
+    priority: int | None = None
+    queue: str | None = None
+    lock: str | None = None
+
+    @overload
+    def __init__(
+        self,
+        *,
+        retry_at: datetime.datetime | None = None,
+        priority: int | None = None,
+        queue: str | None = None,
+        lock: str | None = None,
+    ) -> None: ...
+    @overload
+    def __init__(
+        self,
+        *,
+        retry_in: types.TimeDeltaParams | None = None,
+        priority: int | None = None,
+        queue: str | None = None,
+        lock: str | None = None,
+    ) -> None: ...
+    def __init__(
+        self,
+        *,
+        retry_at: datetime.datetime | None = None,
+        retry_in: types.TimeDeltaParams | None = None,
+        priority: int | None = None,
+        queue: str | None = None,
+        lock: str | None = None,
+    ) -> None:
+        """
+        Specifies when and how a job should be retried.
+
+        Parameters
+        ----------
+        retry_at : ``Optional[datetime.datetime]``
+            If set at present time or in the past, the job may be retried immediately.
+            Otherwise, the job will be retried no sooner than this date & time.
+            Should be timezone-aware (even if UTC). Defaults to present time.
+        retry_in : ``Optional[types.TimeDeltaParams]``
+            If set, the job will be retried after this duration. If not set, the job will
+            be retried immediately.
+        priority : ``Optional[int]``
+            If set, the job will be retried with this priority. If not set, the priority
+            remains unchanged.
+        queue : ``Optional[int]``
+            If set, the job will be retried on this queue. If not set, the queue remains
+            unchanged.
+        lock : ``Optional[int]``
+            If set, the job will be retried with this lock. If not set, the lock remains
+            unchanged.
+        """
+        if retry_at and retry_in is not None:
+            raise ValueError("Cannot set both retry_at and retry_in")
+
+        if retry_in is not None:
+            retry_at = utils.datetime_from_timedelta_params(retry_in)
+
+        self.retry_at = retry_at
+        self.priority = priority
+        self.queue = queue
+        self.lock = lock
 
 
 class BaseRetryStrategy:
     """
     If you want to implement your own retry strategy, you can inherit from this class.
-    Child classes only need to implement `get_schedule_in`.
+    Child classes only need to implement `get_retry_decision`.
     """
 
     def get_retry_exception(
-        self, exception: BaseException, attempts: int
+        self, exception: BaseException, job: Job
     ) -> exceptions.JobRetry | None:
-        schedule_in = self.get_schedule_in(exception=exception, attempts=attempts)
-        if schedule_in is None:
-            return None
+        try:
+            retry_decision = self.get_retry_decision(exception=exception, job=job)
+            if retry_decision is None:
+                return None
 
-        schedule_at = utils.utcnow() + datetime.timedelta(seconds=schedule_in)
-        return exceptions.JobRetry(schedule_at.replace(microsecond=0))
+            return exceptions.JobRetry(retry_decision=retry_decision)
+        except NotImplementedError as err:
+            try:
+                schedule_in = self.get_schedule_in(
+                    exception=exception, attempts=job.attempts
+                )
+            except NotImplementedError:
+                raise err from None
+
+            warnings.warn(
+                "`get_schedule_in` is deprecated, use `get_retry_decision` instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
+            if schedule_in is None:
+                return None
+
+            retry_decision = RetryDecision(retry_in={"seconds": schedule_in})
+            return exceptions.JobRetry(retry_decision)
 
     def get_schedule_in(self, *, exception: BaseException, attempts: int) -> int | None:
         """
@@ -43,8 +131,26 @@ class BaseRetryStrategy:
             If a job should not be retried, this function should return None.
             Otherwise, it should return the duration after which to schedule the
             new job run, *in seconds*.
+
+        Notes
+        -----
+        This function is deprecated and will be removed in a future version. Use
+        `get_retry_decision` instead.
         """
-        raise NotImplementedError()
+        raise NotImplementedError
+
+    def get_retry_decision(
+        self, *, exception: BaseException, job: Job
+    ) -> RetryDecision | None:
+        """
+        Parameters
+        ----------
+        exception:
+            The exception raised by the job
+        job:
+            The current job
+        """
+        raise NotImplementedError("Missing implementation of 'get_retry_decision'.")
 
 
 @attr.dataclass(kw_only=True)
@@ -84,8 +190,10 @@ class RetryStrategy(BaseRetryStrategy):
     exponential_wait: int = 0
     retry_exceptions: Iterable[type[Exception]] | None = None
 
-    def get_schedule_in(self, *, exception: BaseException, attempts: int) -> int | None:
-        if self.max_attempts and attempts >= self.max_attempts:
+    def get_retry_decision(
+        self, *, exception: BaseException, job: Job
+    ) -> RetryDecision | None:
+        if self.max_attempts and job.attempts >= self.max_attempts:
             return None
         # isinstance's 2nd param must be a tuple, not an arbitrary iterable
         if self.retry_exceptions and not isinstance(
@@ -93,9 +201,10 @@ class RetryStrategy(BaseRetryStrategy):
         ):
             return None
         wait: int = self.wait
-        wait += self.linear_wait * attempts
-        wait += self.exponential_wait ** (attempts + 1)
-        return wait
+        wait += self.linear_wait * job.attempts
+        wait += self.exponential_wait ** (job.attempts + 1)
+
+        return RetryDecision(retry_in={"seconds": wait})
 
 
 RetryValue = Union[bool, int, RetryStrategy]
