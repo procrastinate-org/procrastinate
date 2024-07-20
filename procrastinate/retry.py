@@ -48,6 +48,28 @@ class RetryDecision:
         queue: str | None = None,
         lock: str | None = None,
     ) -> None:
+        """
+        Specifies when and how a job should be retried.
+
+        Parameters
+        ----------
+        retry_at : ``Optional[datetime.datetime]``
+            If set at present time or in the past, the job may be retried immediately.
+            Otherwise, the job will be retried no sooner than this date & time.
+            Should be timezone-aware (even if UTC). Defaults to present time.
+        retry_in : ``Optional[types.TimeDeltaParams]``
+            If set, the job will be retried after this duration. If not set, the job will
+            be retried immediately.
+        priority : ``Optional[int]``
+            If set, the job will be retried with this priority. If not set, the priority
+            remains unchanged.
+        queue : ``Optional[int]``
+            If set, the job will be retried on this queue. If not set, the queue remains
+            unchanged.
+        lock : ``Optional[int]``
+            If set, the job will be retried with this lock. If not set, the lock remains
+            unchanged.
+        """
         if retry_at and retry_in is not None:
             raise ValueError("Cannot set both retry_at and retry_in")
 
@@ -127,14 +149,6 @@ class BaseRetryStrategy:
             The exception raised by the job
         job:
             The current job
-
-        Returns
-        -------
-        ``RetryDecision``
-            A RetryDecision object with the following attributes:
-            - should_retry: a boolean indicating whether the job should be retried
-            - schedule_in: an optional float indicating the number of seconds to wait
-            - priority: an optional integer indicating the new priority of the job
         """
         raise NotImplementedError("Missing implementation of 'get_retry_decision'.")
 
