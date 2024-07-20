@@ -38,19 +38,19 @@
 | procrastinate/metadata.py                                         |        6 |        0 |        0 |        0 |    100% |           |
 | procrastinate/periodic.py                                         |      103 |        0 |       26 |        0 |    100% |           |
 | procrastinate/psycopg\_connector.py                               |      110 |        5 |       64 |        4 |     95% |138-140, 215, 255->254, 285 |
-| procrastinate/retry.py                                            |       38 |        0 |       14 |        0 |    100% |           |
+| procrastinate/retry.py                                            |       65 |        0 |       20 |        0 |    100% |           |
 | procrastinate/schema.py                                           |       25 |        0 |        4 |        0 |    100% |           |
 | procrastinate/shell.py                                            |       61 |        3 |       14 |        0 |     96% |     45-47 |
 | procrastinate/signals.py                                          |       44 |        0 |       10 |        0 |    100% |           |
 | procrastinate/sql/\_\_init\_\_.py                                 |       21 |        0 |        0 |        0 |    100% |           |
 | procrastinate/sql/migrations/\_\_init\_\_.py                      |        0 |        0 |        0 |        0 |    100% |           |
 | procrastinate/sync\_psycopg\_connector.py                         |       81 |        2 |       46 |        2 |     97% |  143, 168 |
-| procrastinate/tasks.py                                            |       78 |        0 |       10 |        0 |    100% |           |
-| procrastinate/testing.py                                          |      158 |        1 |       51 |        1 |     99% |       150 |
-| procrastinate/types.py                                            |        4 |        0 |        0 |        0 |    100% |           |
-| procrastinate/utils.py                                            |      187 |        0 |       48 |        0 |    100% |           |
+| procrastinate/tasks.py                                            |       70 |        0 |       10 |        0 |    100% |           |
+| procrastinate/testing.py                                          |      164 |        1 |       57 |        1 |     99% |       150 |
+| procrastinate/types.py                                            |       13 |        0 |        0 |        0 |    100% |           |
+| procrastinate/utils.py                                            |      190 |        0 |       48 |        0 |    100% |           |
 | procrastinate/worker.py                                           |      180 |        0 |       46 |        0 |    100% |           |
-|                                                         **TOTAL** | **2474** |   **25** |  **715** |   **15** | **99%** |           |
+|                                                         **TOTAL** | **2511** |   **25** |  **727** |   **15** | **99%** |           |
 
 
 ## Setup coverage badge
