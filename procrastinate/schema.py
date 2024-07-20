@@ -41,7 +41,7 @@ class SchemaManager:
     def apply_schema(self) -> None:
         queries = self.get_schema()
         queries = queries.replace("%", "%%")
-        self.connector.execute_query(query=queries)
+        self.connector.get_sync_connector().execute_query(query=queries)
 
     async def apply_schema_async(self) -> None:
         queries = self.get_schema()
