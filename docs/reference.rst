@@ -72,7 +72,12 @@ Retry strategies
 .. autoclass:: procrastinate.RetryStrategy
 
 .. autoclass:: procrastinate.BaseRetryStrategy
-    :members: get_schedule_in
+    :members: get_retry_decision, get_schedule_in
+
+.. deprecated:: 2.9
+    The `get_schedule_in` method is deprecated.
+
+.. autoclass:: procrastinate.RetryDecision
 
 
 Exceptions

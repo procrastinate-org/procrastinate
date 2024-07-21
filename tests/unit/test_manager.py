@@ -275,10 +275,18 @@ async def test_retry_job(job_manager, job_factory, connector):
     await job_manager.defer_job_async(job=job)
     retry_at = conftest.aware_datetime(2000, 1, 1)
 
-    await job_manager.retry_job(job=job, retry_at=retry_at)
+    await job_manager.retry_job(
+        job=job, retry_at=retry_at, priority=7, queue="some_queue", lock="some_lock"
+    )
     assert connector.queries[-1] == (
         "retry_job",
-        {"job_id": 1, "retry_at": retry_at},
+        {
+            "job_id": 1,
+            "retry_at": retry_at,
+            "new_priority": 7,
+            "new_queue_name": "some_queue",
+            "new_lock": "some_lock",
+        },
     )
 
 
@@ -399,22 +407,38 @@ def dt():
 async def test_retry_job_by_id_async(job_manager, connector, job_factory, dt):
     job = await job_manager.defer_job_async(job=job_factory())
 
-    await job_manager.retry_job_by_id_async(job_id=job.id, retry_at=dt)
+    await job_manager.retry_job_by_id_async(
+        job_id=job.id, retry_at=dt, priority=7, queue="some_queue", lock="some_lock"
+    )
 
     assert connector.queries[-1] == (
         "retry_job",
-        {"job_id": 1, "retry_at": dt},
+        {
+            "job_id": 1,
+            "retry_at": dt,
+            "new_priority": 7,
+            "new_queue_name": "some_queue",
+            "new_lock": "some_lock",
+        },
     )
 
 
 def test_retry_job_by_id(job_manager, connector, job_factory, dt):
     job = job_manager.defer_job(job=job_factory())
 
-    job_manager.retry_job_by_id(job_id=job.id, retry_at=dt)
+    job_manager.retry_job_by_id(
+        job_id=job.id, retry_at=dt, priority=7, queue="some_queue", lock="some_lock"
+    )
 
     assert connector.queries[-1] == (
         "retry_job",
-        {"job_id": 1, "retry_at": dt},
+        {
+            "job_id": 1,
+            "retry_at": dt,
+            "new_priority": 7,
+            "new_queue_name": "some_queue",
+            "new_lock": "some_lock",
+        },
     )
 
 

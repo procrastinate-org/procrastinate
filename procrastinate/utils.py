@@ -24,6 +24,7 @@ import dateutil.parser
 from asgiref import sync
 
 from procrastinate import exceptions
+from procrastinate.types import TimeDeltaParams
 
 T = TypeVar("T")
 U = TypeVar("U")
@@ -304,3 +305,7 @@ def async_context_decorator(func: Callable) -> Callable:
         return contextlib2.asynccontextmanager(func)
     else:
         return contextlib.asynccontextmanager(func)
+
+
+def datetime_from_timedelta_params(params: TimeDeltaParams) -> datetime.datetime:
+    return utcnow() + datetime.timedelta(**params)

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import datetime
+from procrastinate.retry import RetryDecision
 
 
 class ProcrastinateException(Exception):
@@ -45,8 +45,8 @@ class JobRetry(ProcrastinateException):
     Job should be retried.
     """
 
-    def __init__(self, scheduled_at: datetime.datetime):
-        self.scheduled_at = scheduled_at
+    def __init__(self, retry_decision: RetryDecision):
+        self.retry_decision = retry_decision
         super().__init__()
 
 

@@ -6,7 +6,6 @@ import functools
 import inspect
 import logging
 import time
-from datetime import datetime
 from typing import Any, Awaitable, Callable, Iterable
 
 from procrastinate import signals, utils
@@ -15,6 +14,7 @@ from procrastinate.exceptions import JobAborted, JobRetry, TaskNotFound
 from procrastinate.job_context import JobContext
 from procrastinate.jobs import DeleteJobCondition, Job, Status
 from procrastinate.periodic import PeriodicDeferrer
+from procrastinate.retry import RetryDecision
 from procrastinate.tasks import Task
 
 logger = logging.getLogger(__name__)
@@ -90,10 +90,16 @@ class Worker:
             raise TaskNotFound from exc
 
     async def _persist_job_status(
-        self, job: Job, status: Status, retry_at: datetime | None
+        self, job: Job, status: Status, retry_decision: RetryDecision | None
     ):
-        if retry_at:
-            await self.app.job_manager.retry_job(job=job, retry_at=retry_at)
+        if retry_decision:
+            await self.app.job_manager.retry_job(
+                job=job,
+                retry_at=retry_decision.retry_at,
+                lock=retry_decision.lock,
+                priority=retry_decision.priority,
+                queue=retry_decision.queue,
+            )
         else:
             delete_job = {
                 DeleteJobCondition.ALWAYS: True,
@@ -147,7 +153,7 @@ class Worker:
         task = job_context.task
         job_retry = None
         exc_info = False
-        retry_at = None
+        retry_decision = None
         job = job_context.job
         assert job
 
@@ -196,7 +202,7 @@ class Worker:
                 job_retry = (
                     task.get_retry_exception(exception=e, job=job) if task else None
                 )
-                retry_at = job_retry.scheduled_at if job_retry else None
+                retry_decision = job_retry.retry_decision if job_retry else None
                 if isinstance(e, TaskNotFound):
                     self.logger.exception(
                         f"Task was not found: {e}",
@@ -223,7 +229,9 @@ class Worker:
                 job_retry=job_retry,
                 exc_info=exc_info,
             )
-            await self._persist_job_status(job=job, status=status, retry_at=retry_at)
+            await self._persist_job_status(
+                job=job, status=status, retry_decision=retry_decision
+            )
 
             self.logger.debug(
                 f"Acknowledged job completion {job.call_string}",
