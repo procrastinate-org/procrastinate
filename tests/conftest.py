@@ -164,12 +164,12 @@ def reset_builtin_task_names():
 
 
 @pytest.fixture
-def not_opened_app(connector, reset_builtin_task_names):
+def not_opened_app(connector, reset_builtin_task_names) -> app_module.App:
     return app_module.App(connector=connector)
 
 
 @pytest.fixture
-def app(not_opened_app):
+def app(not_opened_app: app_module.App):
     with not_opened_app.open() as app:
         yield app
 

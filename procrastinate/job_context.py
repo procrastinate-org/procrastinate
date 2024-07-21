@@ -34,7 +34,7 @@ class JobResult:
         return result
 
 
-@attr.dataclass(frozen=True, kw_only=True)
+@attr.dataclass(frozen=True, kw_only=True, eq=False)
 class JobContext:
     """
     Execution context of a running job.
@@ -49,8 +49,6 @@ class JobContext:
         Name of the worker (may be useful for logging)
     worker_queues : ``Optional[Iterable[str]]``
         Queues listened by this worker
-    worker_id : ``int```
-        In case there are multiple async sub-workers, this is the id of the sub-worker.
     job : `Job`
         Current `Job` instance
     task : `Task`
@@ -60,18 +58,18 @@ class JobContext:
     app: app_module.App | None = None
     worker_name: str | None = None
     worker_queues: Iterable[str] | None = None
-    worker_id: int | None = None
     job: jobs.Job | None = None
     task: tasks.Task | None = None
     job_result: JobResult = attr.ib(factory=JobResult)
     additional_context: dict = attr.ib(factory=dict)
+    task_result: Any = None
 
     def log_extra(self, action: str, **kwargs: Any) -> types.JSONDict:
         extra: types.JSONDict = {
             "action": action,
             "worker": {
                 "name": self.worker_name,
-                "id": self.worker_id,
+                "job_id": self.job.id if self.job else None,
                 "queues": self.worker_queues,
             },
         }
@@ -91,7 +89,7 @@ class JobContext:
             return "all queues"
 
     def job_description(self, current_timestamp: float) -> str:
-        message = f"worker {self.worker_id}: "
+        message = "worker: "
         if self.job:
             message += self.job.call_string
             duration = self.job_result.duration(current_timestamp)

@@ -1,14 +1,36 @@
 from __future__ import annotations
 
 import asyncio
+import signal
 from typing import cast
 
 import pytest
 
 from procrastinate.app import App
-from procrastinate.jobs import Status
+from procrastinate.exceptions import JobAborted
+from procrastinate.job_context import JobContext
+from procrastinate.jobs import DEFAULT_QUEUE, Job, Status
 from procrastinate.testing import InMemoryConnector
 from procrastinate.worker import Worker
+
+
+async def start_worker(worker: Worker):
+    task = asyncio.create_task(worker.run())
+    await asyncio.sleep(0.01)
+    return task
+
+
+@pytest.fixture
+async def worker(app: App, request: pytest.FixtureRequest):
+    kwargs = request.param if hasattr(request, "param") else {}
+    worker = Worker(app, **kwargs)
+    yield worker
+    if worker._run_task and not worker._run_task.done():
+        try:
+            worker._run_task.cancel()
+            await asyncio.wait_for(worker._run_task, timeout=0.2)
+        except asyncio.CancelledError:
+            pass
 
 
 @pytest.mark.parametrize(
@@ -71,40 +93,32 @@ async def test_worker_run_once_log_messages(app: App, caplog):
     ]
 
 
-async def test_worker_run_wait_listen(app: App):
-    worker = Worker(app, wait=True, listen_notify=True, queues=["qq"])
-    run_task = asyncio.create_task(worker.run())
-    # wait just enough to make sure the task is running
-    await asyncio.sleep(0.01)
-
-    connector = cast(InMemoryConnector, app.connector)
+async def test_worker_run_wait_listen(worker):
+    await start_worker(worker)
+    connector = cast(InMemoryConnector, worker.app.connector)
 
     assert connector.notify_event
-    assert connector.notify_channels == ["procrastinate_queue#qq"]
-
-    run_task.cancel()
-    try:
-        await asyncio.wait_for(run_task, timeout=0.2)
-    except asyncio.CancelledError:
-        pass
+    assert connector.notify_channels == ["procrastinate_any_queue"]
 
 
 @pytest.mark.parametrize(
-    "available_jobs, concurrency",
+    "available_jobs, worker",
     [
-        (2, 1),
-        (3, 2),
+        (2, {"concurrency": 1}),
+        (3, {"concurrency": 2}),
     ],
+    indirect=["worker"],
 )
-async def test_worker_run_respects_concurrency(app: App, available_jobs, concurrency):
-    worker = Worker(app, wait=False, concurrency=concurrency)
-    run_task = asyncio.create_task(worker.run())
-
+async def test_worker_run_respects_concurrency(
+    worker: Worker, app: App, available_jobs
+):
     complete_tasks = asyncio.Event()
 
     @app.task
     async def perform_job():
         await complete_tasks.wait()
+
+    await start_worker(worker)
 
     for _ in range(available_jobs):
         await perform_job.defer_async()
@@ -117,25 +131,20 @@ async def test_worker_run_respects_concurrency(app: App, available_jobs, concurr
     doings_jobs = list(connector.list_jobs_all(status=Status.DOING.value))
     todo_jobs = list(connector.list_jobs_all(status=Status.TODO.value))
 
-    assert len(doings_jobs) == concurrency
-    assert len(todo_jobs) == available_jobs - concurrency
+    assert len(doings_jobs) == worker.concurrency
+    assert len(todo_jobs) == available_jobs - worker.concurrency
 
     complete_tasks.set()
-    await asyncio.wait_for(run_task, 0.1)
 
 
-async def test_worker_run_fetches_job_on_notification(app: App):
-    worker = Worker(app, wait=True, concurrency=1)
-
-    run_task = asyncio.create_task(worker.run())
-
+async def test_worker_run_fetches_job_on_notification(worker, app: App):
     complete_tasks = asyncio.Event()
 
     @app.task
     async def perform_job():
         await complete_tasks.wait()
 
-    await asyncio.sleep(0.01)
+    await start_worker(worker)
 
     connector = cast(InMemoryConnector, app.connector)
 
@@ -151,19 +160,15 @@ async def test_worker_run_fetches_job_on_notification(app: App):
     assert len([query for query in connector.queries if query[0] == "fetch_job"]) == 2
 
     complete_tasks.set()
-    run_task.cancel()
-    try:
-        await asyncio.wait_for(run_task, timeout=0.2)
-    except asyncio.CancelledError:
-        pass
 
 
-async def test_worker_run_respects_polling(app: App):
-    worker = Worker(app, wait=True, concurrency=1, timeout=0.05)
-
-    run_task = asyncio.create_task(worker.run())
-
-    await asyncio.sleep(0.01)
+@pytest.mark.parametrize(
+    "worker",
+    [({"timeout": 0.05})],
+    indirect=["worker"],
+)
+async def test_worker_run_respects_polling(worker, app):
+    await start_worker(worker)
 
     connector = cast(InMemoryConnector, app.connector)
     assert len([query for query in connector.queries if query[0] == "fetch_job"]) == 1
@@ -171,8 +176,356 @@ async def test_worker_run_respects_polling(app: App):
     await asyncio.sleep(0.05)
 
     assert len([query for query in connector.queries if query[0] == "fetch_job"]) == 2
-    run_task.cancel()
-    try:
-        await asyncio.wait_for(run_task, timeout=0.2)
-    except asyncio.CancelledError:
-        pass
+
+
+@pytest.mark.parametrize(
+    "worker, fail_task",
+    [
+        ({"delete_jobs": "never"}, False),
+        ({"delete_jobs": "never"}, True),
+        ({"delete_jobs": "successful"}, True),
+    ],
+    indirect=["worker"],
+)
+async def test_process_job_without_deletion(app: App, worker, fail_task):
+    @app.task()
+    async def task_func():
+        if fail_task:
+            raise ValueError("Nope")
+
+    job_id = await task_func.defer_async()
+
+    await start_worker(worker)
+
+    connector = cast(InMemoryConnector, app.connector)
+    assert job_id in connector.jobs
+
+
+@pytest.mark.parametrize(
+    "worker, fail_task",
+    [
+        ({"delete_jobs": "successful"}, False),
+        ({"delete_jobs": "always"}, False),
+        ({"delete_jobs": "always"}, True),
+    ],
+    indirect=["worker"],
+)
+async def test_process_job_with_deletion(app: App, worker, fail_task):
+    @app.task()
+    async def task_func():
+        if fail_task:
+            raise ValueError("Nope")
+
+    job_id = await task_func.defer_async()
+
+    await start_worker(worker)
+
+    connector = cast(InMemoryConnector, app.connector)
+    assert job_id not in connector.jobs
+
+
+async def test_stopping_worker_waits_for_task(app: App, worker):
+    complete_task_event = asyncio.Event()
+
+    @app.task()
+    async def task_func():
+        await complete_task_event.wait()
+
+    run_task = await start_worker(worker)
+
+    job_id = await task_func.defer_async()
+
+    await asyncio.sleep(0.05)
+
+    # this should still be running waiting for the task to complete
+    assert run_task.done() is False
+
+    # tell the task to complete
+    complete_task_event.set()
+
+    # this should successfully complete the job and re-raise the CancelledError
+    with pytest.raises(asyncio.CancelledError):
+        run_task.cancel()
+        await asyncio.wait_for(run_task, 0.1)
+
+    status = await app.job_manager.get_job_status_async(job_id)
+    assert status == Status.SUCCEEDED
+
+
+@pytest.mark.parametrize(
+    "worker",
+    [({"additional_context": {"foo": "bar"}})],
+    indirect=["worker"],
+)
+async def test_worker_passes_additional_context(app: App, worker):
+    @app.task(pass_context=True)
+    async def task_func(jobContext: JobContext):
+        assert jobContext.additional_context["foo"] == "bar"
+
+    job_id = await task_func.defer_async()
+
+    await start_worker(worker)
+
+    status = await app.job_manager.get_job_status_async(job_id)
+    assert status == Status.SUCCEEDED
+
+
+async def test_run_job_async(app: App, worker):
+    result = []
+
+    @app.task(queue="yay", name="task_func")
+    async def task_func(a, b):
+        result.append(a + b)
+
+    job_id = task_func.defer(a=9, b=3)
+
+    await start_worker(worker)
+    assert result == [12]
+
+    status = await app.job_manager.get_job_status_async(job_id)
+    assert status == Status.SUCCEEDED
+
+
+async def test_run_job_sync(app: App, worker):
+    result = []
+
+    @app.task(queue="yay", name="task_func")
+    def task_func(a, b):
+        result.append(a + b)
+
+    job_id = task_func.defer(a=9, b=3)
+
+    await start_worker(worker)
+    assert result == [12]
+
+    status = await app.job_manager.get_job_status_async(job_id)
+    assert status == Status.SUCCEEDED
+
+
+async def test_run_job_semi_async(app: App, worker):
+    result = []
+
+    @app.task(queue="yay", name="task_func")
+    def task_func(a, b):
+        async def inner():
+            result.append(a + b)
+
+        return inner()
+
+    job_id = task_func.defer(a=9, b=3)
+
+    await start_worker(worker)
+
+    assert result == [12]
+
+    status = await app.job_manager.get_job_status_async(job_id)
+    assert status == Status.SUCCEEDED
+
+
+async def test_run_job_log_result(caplog, app: App, worker):
+    caplog.set_level("INFO")
+
+    @app.task(queue="yay", name="task_func")
+    async def task_func(a, b):
+        return a + b
+
+    task_func.defer(a=9, b=3)
+
+    await start_worker(worker)
+
+    records = [record for record in caplog.records if record.action == "job_success"]
+    assert len(records) == 1
+    record = records[0]
+    assert record.result == 12
+    assert "Result: 12" in record.message
+
+
+async def test_run_task_not_found_status(app: App, worker, caplog):
+    job = await app.job_manager.defer_job_async(
+        Job(
+            task_name="random_task_name",
+            queue=DEFAULT_QUEUE,
+            lock=None,
+            queueing_lock=None,
+        )
+    )
+    assert job.id
+
+    await start_worker(worker)
+    await asyncio.sleep(0.01)
+    status = await app.job_manager.get_job_status_async(job.id)
+    assert status == Status.FAILED
+
+    records = [record for record in caplog.records if record.action == "task_not_found"]
+    assert len(records) == 1
+    record = records[0]
+    assert record.levelname == "ERROR"
+
+
+class CustomCriticalError(BaseException):
+    pass
+
+
+@pytest.mark.parametrize(
+    "critical_error",
+    [
+        (False),
+        (True),
+    ],
+)
+async def test_run_job_error(app: App, worker, critical_error, caplog):
+    @app.task(queue="yay", name="task_func")
+    def task_func(a, b):
+        raise CustomCriticalError("Nope") if critical_error else ValueError("Nope")
+
+    job_id = task_func.defer(a=9, b=3)
+
+    await start_worker(worker)
+
+    await asyncio.sleep(0.01)
+    status = await app.job_manager.get_job_status_async(job_id)
+    assert status == Status.FAILED
+
+    records = [record for record in caplog.records if record.action == "job_error"]
+    assert len(records) == 1
+    record = records[0]
+    assert record.levelname == "ERROR"
+    assert "to retry" not in record.message
+
+
+async def test_run_job_aborted(app: App, worker, caplog):
+    caplog.set_level("INFO")
+
+    @app.task(queue="yay", name="task_func")
+    async def task_func():
+        raise JobAborted()
+
+    job_id = task_func.defer()
+
+    await start_worker(worker)
+
+    status = await app.job_manager.get_job_status_async(job_id)
+    assert status == Status.ABORTED
+
+    records = [record for record in caplog.records if record.action == "job_aborted"]
+    assert len(records) == 1
+    record = records[0]
+    assert record.levelname == "INFO"
+    assert "Aborted" in record.message
+
+
+@pytest.mark.parametrize(
+    "critical_error, recover_on_attempt_number, expected_status, expected_attempts",
+    [
+        (False, 2, "succeeded", 2),
+        (True, 2, "succeeded", 2),
+        (False, 3, "failed", 2),
+        (True, 3, "failed", 2),
+    ],
+)
+async def test_run_job_retry_failed_job(
+    app: App,
+    worker,
+    critical_error,
+    recover_on_attempt_number,
+    expected_status,
+    expected_attempts,
+):
+    worker.wait = False
+
+    attempt = 0
+
+    @app.task(retry=1)
+    def task_func():
+        nonlocal attempt
+        attempt += 1
+        if attempt < recover_on_attempt_number:
+            raise CustomCriticalError("Nope") if critical_error else ValueError("Nope")
+
+    job_id = task_func.defer()
+
+    await start_worker(worker)
+
+    await asyncio.sleep(0.01)
+
+    connector = cast(InMemoryConnector, app.connector)
+    job_row = connector.jobs[job_id]
+    assert job_row["status"] == expected_status
+    assert job_row["attempts"] == expected_attempts
+
+
+async def test_run_log_actions(app: App, caplog, worker):
+    caplog.set_level("DEBUG")
+
+    done = asyncio.Event()
+
+    @app.task(queue="some_queue")
+    def t():
+        done.set()
+
+    await t.defer_async()
+
+    await start_worker(worker)
+
+    await asyncio.wait_for(done.wait(), timeout=0.05)
+
+    connector = cast(InMemoryConnector, app.connector)
+    assert [q[0] for q in connector.queries] == [
+        "defer_job",
+        "fetch_job",
+        "finish_job",
+        "fetch_job",
+    ]
+
+    logs = {(r.action, r.levelname) for r in caplog.records}
+    # remove the periodic_deferrer_no_task log record because that makes the test flaky
+    assert {
+        ("about_to_defer_job", "DEBUG"),
+        ("job_defer", "INFO"),
+        ("start_worker", "INFO"),
+        ("loaded_job_info", "DEBUG"),
+        ("start_job", "INFO"),
+        ("job_success", "INFO"),
+        ("finish_task", "DEBUG"),
+    } <= logs
+
+
+async def test_run_log_current_job_when_stopping(app: App, worker, caplog):
+    caplog.set_level("DEBUG")
+    complete_job_event = asyncio.Event()
+
+    @app.task(queue="some_queue")
+    async def t():
+        await complete_job_event.wait()
+
+    job_id = await t.defer_async()
+    run_task = await start_worker(worker)
+    worker.stop()
+    await asyncio.sleep(0.01)
+    complete_job_event.set()
+
+    with pytest.raises(asyncio.CancelledError):
+        await asyncio.wait_for(run_task, timeout=0.05)
+    # We want to make sure that the log that names the current running task fired.
+    logs = " ".join(r.message for r in caplog.records)
+    assert "Stop requested" in logs
+    assert (
+        f"Waiting for job to finish: worker: tests.unit.test_worker.t[{job_id}]()"
+        in logs
+    )
+
+
+async def test_run_no_listen_notify(app: App, worker):
+    worker.listen_notify = False
+    await start_worker(worker)
+    connector = cast(InMemoryConnector, app.connector)
+    assert connector.notify_event is None
+
+
+async def test_run_no_signal_handlers(worker, kill_own_pid):
+    worker.install_signal_handlers = False
+    await start_worker(worker)
+    with pytest.raises(KeyboardInterrupt):
+        await asyncio.sleep(0.01)
+        # Test that handlers are NOT installed
+        kill_own_pid(signal=signal.SIGINT)
