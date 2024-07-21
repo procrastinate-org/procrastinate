@@ -8,10 +8,10 @@ import logging
 import time
 from typing import Any, Awaitable, Callable, Iterable
 
-from procrastinate import signals, utils
+from procrastinate import signals, types, utils
 from procrastinate.app import App
 from procrastinate.exceptions import JobAborted, JobRetry, TaskNotFound
-from procrastinate.job_context import JobContext
+from procrastinate.job_context import JobContext, JobResult
 from procrastinate.jobs import DeleteJobCondition, Job, Status
 from procrastinate.periodic import PeriodicDeferrer
 from procrastinate.retry import RetryDecision
@@ -58,19 +58,12 @@ class Worker:
         else:
             self.logger = logger
 
-        self.base_context = JobContext(
-            app=app,
-            worker_name=self.worker_name,
-            worker_queues=self.queues,
-            additional_context=additional_context.copy() if additional_context else {},
-        )
-
         self._run_task: asyncio.Task | None = None
 
     def stop(self):
         self.logger.info(
             "Stop requested",
-            extra=self.base_context.log_extra(action="stopping_worker"),
+            extra=self._log_extra(job_context=None, action="stopping_worker"),
         )
 
         if self._run_task:
@@ -88,6 +81,26 @@ class Worker:
             return self.app.tasks[task_name]
         except KeyError as exc:
             raise TaskNotFound from exc
+
+    def _log_extra(
+        self, action: str, job_context: JobContext | None, **kwargs: Any
+    ) -> types.JSONDict:
+        extra: types.JSONDict = {
+            "action": action,
+            "worker": {
+                "name": self.worker_name,
+                "job_id": job_context.job.id if job_context else None,
+                "queues": self.queues,
+            },
+        }
+        if job_context:
+            extra["job"] = job_context.job.log_context()
+
+        return {
+            **extra,
+            **(job_context.job_result if job_context else JobResult()).as_dict(),
+            **kwargs,
+        }
 
     async def _persist_job_status(
         self, job: Job, status: Status, retry_decision: RetryDecision | None
@@ -110,18 +123,13 @@ class Worker:
                 job=job, status=status, delete_job=delete_job
             )
 
-    @staticmethod
     def _log_job_outcome(
+        self,
         status: Status,
         job_context: JobContext,
         job_retry: JobRetry | None,
         exc_info: bool | BaseException = False,
     ):
-        assert job_context.job
-        assert job_context.job_result
-        assert job_context.job_result.start_timestamp
-        assert job_context.job_result.end_timestamp
-
         if status == Status.SUCCEEDED:
             log_action, log_title = "job_success", "Success"
         elif status == Status.ABORTED:
@@ -131,18 +139,20 @@ class Worker:
         else:
             log_action, log_title = "job_error", "Error"
 
-        duration = (
-            job_context.job_result.end_timestamp
-            - job_context.job_result.start_timestamp
-        )
-        text = (
-            f"Job {job_context.job.call_string} ended with status: {log_title}, "
-            f"lasted {duration:.3f} s"
-        )
+        text = f"Job {job_context.job.call_string} ended with status: {log_title}, "
+        if (
+            job_context.job_result.start_timestamp
+            and job_context.job_result.end_timestamp
+        ):
+            duration = (
+                job_context.job_result.end_timestamp
+                - job_context.job_result.start_timestamp
+            )
+            text += f"lasted {duration:.3f} s"
         if job_context.job_result.result:
             text += f" - Result: {job_context.job_result.result}"[:250]
 
-        extra = job_context.log_extra(action=log_action)
+        extra = self._log_extra(job_context=job_context, action=log_action)
         log_level = logging.ERROR if status == Status.FAILED else logging.INFO
         logger.log(log_level, text, extra=extra, exc_info=exc_info)
 
@@ -166,12 +176,14 @@ class Worker:
 
             self.logger.debug(
                 f"Loaded job info, about to start job {job.call_string}",
-                extra=job_context.log_extra(action="loaded_job_info"),
+                extra=self._log_extra(
+                    job_context=job_context, action="loaded_job_info"
+                ),
             )
 
             self.logger.info(
                 f"Starting job {job.call_string}",
-                extra=job_context.log_extra(action="start_job"),
+                extra=self._log_extra(job_context=job_context, action="start_job"),
             )
 
             exc_info: bool | BaseException = False
@@ -206,8 +218,10 @@ class Worker:
                 if isinstance(e, TaskNotFound):
                     self.logger.exception(
                         f"Task was not found: {e}",
-                        extra=self.base_context.log_extra(
-                            action="task_not_found", exception=str(e)
+                        extra=self._log_extra(
+                            job_context=job_context,
+                            action="task_not_found",
+                            exception=str(e),
                         ),
                     )
             if not isinstance(e, Exception):
@@ -223,7 +237,7 @@ class Worker:
             else:
                 status = Status.SUCCEEDED
 
-            Worker._log_job_outcome(
+            self._log_job_outcome(
                 status=status,
                 job_context=job_context,
                 job_retry=job_retry,
@@ -235,7 +249,9 @@ class Worker:
 
             self.logger.debug(
                 f"Acknowledged job completion {job.call_string}",
-                extra=self.base_context.log_extra(action="finish_task", status=status),
+                extra=self._log_extra(
+                    action="finish_task", job_context=job_context, status=status
+                ),
             )
 
     async def run(self):
@@ -243,9 +259,9 @@ class Worker:
         notify_event = asyncio.Event()
 
         self.logger.info(
-            f"Starting worker on {self.base_context.queues_display}",
-            extra=self.base_context.log_extra(
-                action="start_worker", queues=self.queues
+            f"Starting worker on {utils.queues_display(self.queues)}",
+            extra=self._log_extra(
+                action="start_worker", job_context=None, queues=self.queues
             ),
         )
 
@@ -281,8 +297,13 @@ class Worker:
                             # is cancelled at that precise time to not abandon the job
                             await asyncio.shield(job_semaphore.acquire())
 
-                            job_context = self.base_context.evolve(
-                                additional_context=self.base_context.additional_context.copy(),
+                            job_context = JobContext(
+                                app=self.app,
+                                worker_name=self.worker_name,
+                                worker_queues=self.queues,
+                                additional_context=self.additional_context.copy()
+                                if self.additional_context
+                                else {},
                                 job=job,
                                 task=self.app.tasks.get(job.task_name),
                             )
@@ -306,8 +327,10 @@ class Worker:
                         if not self.wait:
                             self.logger.info(
                                 "No job found. Stopping worker because wait=False",
-                                extra=self.base_context.log_extra(
-                                    action="stop_worker", queues=self.queues
+                                extra=self._log_extra(
+                                    job_context=None,
+                                    action="stop_worker",
+                                    queues=self.queues,
                                 ),
                             )
                             break
@@ -331,7 +354,7 @@ class Worker:
                 self.logger.info(
                     "Waiting for job to finish: "
                     + job_context.job_description(current_timestamp=now),
-                    extra=job_context.log_extra(action="ending_job"),
+                    extra=self._log_extra(job_context=None, action="ending_job"),
                 )
 
             # wait for any in progress job to complete processing
@@ -340,8 +363,8 @@ class Worker:
                 *(task for task in running_jobs.values()), return_exceptions=True
             )
             self.logger.info(
-                f"Stopped worker on {self.base_context.queues_display}",
-                extra=self.base_context.log_extra(
-                    action="stop_worker", queues=self.queues
+                f"Stopped worker on {utils.queues_display(self.queues)}",
+                extra=self._log_extra(
+                    action="stop_worker", queues=self.queues, job_context=None
                 ),
             )

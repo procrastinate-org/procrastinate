@@ -309,3 +309,10 @@ def async_context_decorator(func: Callable) -> Callable:
 
 def datetime_from_timedelta_params(params: TimeDeltaParams) -> datetime.datetime:
     return utcnow() + datetime.timedelta(**params)
+
+
+def queues_display(queues: Iterable[str] | None) -> str:
+    if queues:
+        return f"queues {', '.join(queues)}"
+    else:
+        return "all queues"

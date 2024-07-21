@@ -6,7 +6,7 @@ from typing import Any, Iterable
 import attr
 
 from procrastinate import app as app_module
-from procrastinate import jobs, tasks, types
+from procrastinate import jobs, tasks, utils
 
 
 @attr.dataclass(kw_only=True)
@@ -38,8 +38,7 @@ class JobResult:
 class JobContext:
     """
     Execution context of a running job.
-    In theory, all attributes are optional. In practice, in a task, they will
-    always be set to their proper value.
+
 
     Attributes
     ----------
@@ -52,51 +51,31 @@ class JobContext:
     job : `Job`
         Current `Job` instance
     task : `Task`
-        Current `Task` instance
+        Current `Task` instance. This can be None when the a task cannot be found for a given job.
+        Any task function being called with a job context can be guaranteed to have its own task instance set.
     """
 
-    app: app_module.App | None = None
+    app: app_module.App
     worker_name: str | None = None
     worker_queues: Iterable[str] | None = None
-    job: jobs.Job | None = None
+    job: jobs.Job
     task: tasks.Task | None = None
     job_result: JobResult = attr.ib(factory=JobResult)
     additional_context: dict = attr.ib(factory=dict)
     task_result: Any = None
-
-    def log_extra(self, action: str, **kwargs: Any) -> types.JSONDict:
-        extra: types.JSONDict = {
-            "action": action,
-            "worker": {
-                "name": self.worker_name,
-                "job_id": self.job.id if self.job else None,
-                "queues": self.worker_queues,
-            },
-        }
-        if self.job:
-            extra["job"] = self.job.log_context()
-
-        return {**extra, **self.job_result.as_dict(), **kwargs}
 
     def evolve(self, **update: Any) -> JobContext:
         return attr.evolve(self, **update)
 
     @property
     def queues_display(self) -> str:
-        if self.worker_queues:
-            return f"queues {', '.join(self.worker_queues)}"
-        else:
-            return "all queues"
+        return utils.queues_display(self.worker_queues)
 
     def job_description(self, current_timestamp: float) -> str:
-        message = "worker: "
-        if self.job:
-            message += self.job.call_string
-            duration = self.job_result.duration(current_timestamp)
-            if duration is not None:
-                message += f" (started {duration:.3f} s ago)"
-        else:
-            message += "no current job"
+        message = f"worker: {self.job.call_string}"
+        duration = self.job_result.duration(current_timestamp)
+        if duration is not None:
+            message += f" (started {duration:.3f} s ago)"
 
         return message
 

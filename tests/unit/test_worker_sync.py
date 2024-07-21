@@ -12,8 +12,8 @@ def test_worker(app: App) -> worker.Worker:
 
 
 @pytest.fixture
-def context():
-    return job_context.JobContext()
+def context(app: App, job_factory):
+    return job_context.JobContext(app=app, job=job_factory())
 
 
 def test_worker_find_task_missing(test_worker):

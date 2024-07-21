@@ -383,3 +383,10 @@ async def test_cancel_and_capture_errors(task_1_error, task_2_error, caplog):
     expected_error_count = sum(1 for error in (task_1_error, task_2_error) if error)
 
     assert len(caplog.records) == expected_error_count
+
+
+@pytest.mark.parametrize(
+    "queues, result", [(None, "all queues"), (["foo", "bar"], "queues foo, bar")]
+)
+def test_queues_display(queues, result):
+    assert utils.queues_display(queues) == result
