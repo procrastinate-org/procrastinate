@@ -9,6 +9,7 @@ import time
 from typing import Any, Awaitable, Callable, Iterable
 
 from procrastinate import (
+    app,
     exceptions,
     job_context,
     jobs,
@@ -19,7 +20,6 @@ from procrastinate import (
     types,
     utils,
 )
-from procrastinate.app import App
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +31,7 @@ POLLING_INTERVAL = 5.0  # seconds
 class Worker:
     def __init__(
         self,
-        app: App,
+        app: app.App,
         queues: Iterable[str] | None = None,
         name: str | None = WORKER_NAME,
         concurrency: int = WORKER_CONCURRENCY,
