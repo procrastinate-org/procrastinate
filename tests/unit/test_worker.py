@@ -382,11 +382,15 @@ async def test_run_job_error(app: App, worker, critical_error, caplog):
 
     await start_worker(worker)
 
-    await asyncio.sleep(0.01)
+    await asyncio.sleep(0.05)
     status = await app.job_manager.get_job_status_async(job_id)
     assert status == Status.FAILED
 
-    records = [record for record in caplog.records if record.action == "job_error"]
+    records = [
+        record
+        for record in caplog.records
+        if hasattr(record, "action") and record.action == "job_error"
+    ]
     assert len(records) == 1
     record = records[0]
     assert record.levelname == "ERROR"

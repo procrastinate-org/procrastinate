@@ -34,7 +34,7 @@ class JobResult:
         return result
 
 
-@attr.dataclass(frozen=True, kw_only=True, eq=False)
+@attr.dataclass(frozen=True, kw_only=True)
 class JobContext:
     """
     Execution context of a running job.
