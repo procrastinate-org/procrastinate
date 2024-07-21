@@ -66,6 +66,7 @@ class Worker:
         self._run_task: asyncio.Task | None = None
         self.notify_event = asyncio.Event()
         self.running_jobs: dict[asyncio.Task, job_context.JobContext] = {}
+        self.job_semaphore = asyncio.Semaphore(self.concurrency)
 
     def stop(self):
         self.logger.info(
@@ -259,17 +260,17 @@ class Worker:
             )
 
     async def _fetch_and_process_jobs(self):
-        job_semaphore = asyncio.Semaphore(self.concurrency)
         """Keeps in fetching and processing jobs until there are no job left to process"""
         while True:
-            await job_semaphore.acquire()
+            await self.job_semaphore.acquire()
             try:
                 job = await self.app.job_manager.fetch_job(queues=self.queues)
             except BaseException:
-                job_semaphore.release()
+                self.job_semaphore.release()
                 raise
 
             if not job:
+                self.job_semaphore.release()
                 break
 
             context = job_context.JobContext(
@@ -287,7 +288,7 @@ class Worker:
 
             def on_job_complete(task: asyncio.Task):
                 del self.running_jobs[task]
-                job_semaphore.release()
+                self.job_semaphore.release()
 
             job_task.add_done_callback(on_job_complete)
 
@@ -315,6 +316,7 @@ class Worker:
         )
 
         self.running_jobs = {}
+        self.job_semaphore = asyncio.Semaphore(self.concurrency)
         side_tasks = [asyncio.create_task(self.periodic_deferrer())]
         if self.wait and self.listen_notify:
             listener_coro = self.app.job_manager.listen_for_jobs(

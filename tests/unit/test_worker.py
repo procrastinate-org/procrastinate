@@ -118,13 +118,10 @@ async def test_worker_run_respects_concurrency(
     async def perform_job():
         await complete_tasks.wait()
 
-    await start_worker(worker)
-
     for _ in range(available_jobs):
         await perform_job.defer_async()
 
-    # wait just enough to make sure the task is running
-    await asyncio.sleep(0.01)
+    await start_worker(worker)
 
     connector = cast(InMemoryConnector, app.connector)
 
@@ -135,6 +132,45 @@ async def test_worker_run_respects_concurrency(
     assert len(todo_jobs) == available_jobs - worker.concurrency
 
     complete_tasks.set()
+
+
+async def test_worker_run_respects_concurrency_variant(worker: Worker, app: App):
+    worker.concurrency = 2
+
+    max_parallelism = 0
+    parallel_jobs = 0
+
+    @app.task
+    async def perform_job(sleep: float):
+        nonlocal max_parallelism
+        nonlocal parallel_jobs
+        parallel_jobs += 1
+
+        max_parallelism = max(max_parallelism, parallel_jobs)
+        await asyncio.sleep(sleep)
+        parallel_jobs -= 1
+
+    await perform_job.defer_async(sleep=0.05)
+    await perform_job.defer_async(sleep=0.1)
+
+    await start_worker(worker)
+
+    # wait enough to run out of job and to have one pending job
+    await asyncio.sleep(0.05)
+
+    assert max_parallelism == 2
+    assert parallel_jobs == 1
+
+    # defer more jobs than the worker can process in parallel
+    await perform_job.defer_async(sleep=0.05)
+    await perform_job.defer_async(sleep=0.05)
+    await perform_job.defer_async(sleep=0.05)
+
+    worker.notify_event.set()
+
+    await asyncio.sleep(0.2)
+    assert max_parallelism == 2
+    assert parallel_jobs == 0
 
 
 async def test_worker_run_fetches_job_on_notification(worker, app: App):
