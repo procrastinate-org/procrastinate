@@ -259,7 +259,7 @@ class Worker:
             )
 
     async def _fetch_and_process_jobs(self):
-        """Fetch and process jobs until there are no job left ready to be processed"""
+        """Fetch and process jobs until there is no job left or asked to stop"""
         while not self._stop_event.is_set():
             acquire_sem_task = asyncio.create_task(self._job_semaphore.acquire())
             await utils.wait_any(acquire_sem_task, self._stop_event.wait())
