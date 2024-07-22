@@ -25,10 +25,10 @@ async def worker(app: App, request: pytest.FixtureRequest):
     kwargs = request.param if hasattr(request, "param") else {}
     worker = Worker(app, **kwargs)
     yield worker
-    if worker._run_task and not worker._run_task.done():
+    if worker.run_task and not worker.run_task.done():
+        worker.stop()
         try:
-            worker._run_task.cancel()
-            await asyncio.wait_for(worker._run_task, timeout=0.2)
+            await asyncio.wait_for(worker.run_task, timeout=0.2)
         except asyncio.CancelledError:
             pass
 
@@ -70,8 +70,7 @@ async def test_worker_run_wait_stop(app: App, caplog):
     # wait just enough to make sure the task is running
     await asyncio.sleep(0.01)
     worker.stop()
-    with pytest.raises(asyncio.CancelledError):
-        await asyncio.wait_for(run_task, 0.1)
+    await asyncio.wait_for(run_task, 0.1)
 
     assert set(caplog.messages) == {
         "Starting worker on all queues",
@@ -86,11 +85,12 @@ async def test_worker_run_once_log_messages(app: App, caplog):
     worker = Worker(app, wait=False)
     await asyncio.wait_for(worker.run(), 0.1)
 
-    assert caplog.messages == [
+    assert set(caplog.messages) == {
         "Starting worker on all queues",
         "No job found. Stopping worker because wait=False",
         "Stopped worker on all queues",
-    ]
+        "No periodic task found, periodic deferrer will not run.",
+    }
 
 
 async def test_worker_run_wait_listen(worker):
@@ -166,7 +166,7 @@ async def test_worker_run_respects_concurrency_variant(worker: Worker, app: App)
     await perform_job.defer_async(sleep=0.05)
     await perform_job.defer_async(sleep=0.05)
 
-    worker.notify_event.set()
+    worker._notify_event.set()
 
     await asyncio.sleep(0.2)
     assert max_parallelism == 2
@@ -544,8 +544,7 @@ async def test_run_log_current_job_when_stopping(app: App, worker, caplog):
     await asyncio.sleep(0.01)
     complete_job_event.set()
 
-    with pytest.raises(asyncio.CancelledError):
-        await asyncio.wait_for(run_task, timeout=0.05)
+    await asyncio.wait_for(run_task, timeout=0.05)
     # We want to make sure that the log that names the current running task fired.
     logs = " ".join(r.message for r in caplog.records)
     assert "Stop requested" in logs

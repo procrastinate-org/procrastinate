@@ -8,7 +8,7 @@ from procrastinate import app
 from procrastinate import worker as worker_module
 
 
-async def test_wait_for_activity(psycopg_connector):
+async def test_wait_for_activity_cancelled(psycopg_connector):
     """
     Testing that the work can be cancelled
     """
@@ -50,8 +50,7 @@ async def test_wait_for_activity_stop_from_signal(psycopg_connector, kill_own_pi
     kill_own_pid()
 
     try:
-        with pytest.raises(asyncio.CancelledError):
-            await asyncio.wait_for(task, timeout=0.2)
+        await asyncio.wait_for(task, timeout=0.2)
     except asyncio.TimeoutError:
         pytest.fail("Failed to stop worker within .2s")
 
@@ -68,7 +67,6 @@ async def test_wait_for_activity_stop(psycopg_connector):
     worker.stop()
 
     try:
-        with pytest.raises(asyncio.CancelledError):
-            await asyncio.wait_for(task, timeout=0.2)
+        await asyncio.wait_for(task, timeout=0.2)
     except asyncio.TimeoutError:
         pytest.fail("Failed to stop worker within .2s")

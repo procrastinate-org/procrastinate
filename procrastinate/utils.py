@@ -15,6 +15,7 @@ from typing import (
     AsyncIterator,
     Awaitable,
     Callable,
+    Coroutine,
     Generic,
     Iterable,
     TypeVar,
@@ -218,22 +219,32 @@ async def cancel_and_capture_errors(tasks: list[asyncio.Task]):
             },
         )
 
-    tasks_aggregate = asyncio.gather(*tasks, return_exceptions=True)
-    tasks_aggregate.cancel()
-    try:
-        results = await tasks_aggregate
-        for task, result in zip(tasks, results):
-            if not isinstance(result, BaseException):
-                continue
-            log_task_exception(task, error=result)
-    except asyncio.CancelledError:
-        # tasks have been cancelled. Log any exception from already completed tasks
-        for task in tasks:
-            if not task.done() or task.cancelled():
-                continue
-            error = task.exception()
-            if error:
-                log_task_exception(task, error=error)
+    pendng_tasks = (task for task in tasks if not task.done())
+
+    for task in pendng_tasks:
+        task.cancel()
+
+    await asyncio.gather(*tasks, return_exceptions=True)
+
+    for task in (task for task in tasks if task.done() and not task.cancelled()):
+        error = task.exception()
+        if error:
+            log_task_exception(task, error=error)
+
+
+async def wait_any(*coros_or_futures: Coroutine | asyncio.Future):
+    """Starts and wait on the first coroutine to complete and return it
+    Other pending coroutines are cancelled"""
+    futures = set(asyncio.ensure_future(fut) for fut in coros_or_futures)
+
+    done, pending = await asyncio.wait(
+        fs=futures,
+        return_when=asyncio.FIRST_COMPLETED,
+    )
+    for task in pending:
+        task.cancel()
+    await asyncio.gather(*pending, return_exceptions=True)
+    return done
 
 
 def add_namespace(name: str, namespace: str) -> str:

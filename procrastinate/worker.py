@@ -63,19 +63,21 @@ class Worker:
         else:
             self.logger = logger
 
-        self._run_task: asyncio.Task | None = None
-        self.notify_event = asyncio.Event()
-        self.running_jobs: dict[asyncio.Task, job_context.JobContext] = {}
-        self.job_semaphore = asyncio.Semaphore(self.concurrency)
+        self._loop_task: asyncio.Future | None = None
+        self._notify_event = asyncio.Event()
+        self._running_jobs: dict[asyncio.Task, job_context.JobContext] = {}
+        self._job_semaphore = asyncio.Semaphore(self.concurrency)
+        self._stop_event = asyncio.Event()
 
     def stop(self):
+        if self._stop_event.is_set():
+            return
         self.logger.info(
             "Stop requested",
             extra=self._log_extra(context=None, action="stopping_worker"),
         )
 
-        if self._run_task:
-            self._run_task.cancel()
+        self._stop_event.set()
 
     async def periodic_deferrer(self):
         deferrer = periodic.PeriodicDeferrer(
@@ -229,9 +231,6 @@ class Worker:
                             exception=str(e),
                         ),
                     )
-            if not isinstance(e, Exception):
-                raise
-
         finally:
             job_result.end_timestamp = time.time()
 
@@ -260,17 +259,23 @@ class Worker:
             )
 
     async def _fetch_and_process_jobs(self):
-        """Keeps in fetching and processing jobs until there are no job left to process"""
-        while True:
-            await self.job_semaphore.acquire()
+        """Fetch and process jobs until there are no job left ready to be processed"""
+        while not self._stop_event.is_set():
+            acquire_sem_task = asyncio.create_task(self._job_semaphore.acquire())
+            await utils.wait_any(acquire_sem_task, self._stop_event.wait())
+            if self._stop_event.is_set():
+                if acquire_sem_task.done():
+                    self._job_semaphore.release()
+                break
             try:
                 job = await self.app.job_manager.fetch_job(queues=self.queues)
             except BaseException:
-                self.job_semaphore.release()
+                self._job_semaphore.release()
                 raise
 
             if not job:
-                self.job_semaphore.release()
+                self._notify_event.clear()
+                self._job_semaphore.release()
                 break
 
             context = job_context.JobContext(
@@ -284,50 +289,90 @@ class Worker:
                 task=self.app.tasks.get(job.task_name),
             )
             job_task = asyncio.create_task(self._process_job(context))
-            self.running_jobs[job_task] = context
+            self._running_jobs[job_task] = context
 
             def on_job_complete(task: asyncio.Task):
-                del self.running_jobs[task]
-                self.job_semaphore.release()
+                del self._running_jobs[task]
+                self._job_semaphore.release()
 
             job_task.add_done_callback(on_job_complete)
 
-    async def _wait_for_job(self):
-        self.notify_event.clear()
+    async def run(self):
+        """
+        Run the worker
+        This will run forever until asked to stop/cancelled, or until no more job is available is configured not to wait
+        """
+        self.run_task = asyncio.current_task()
+        loop_task = asyncio.create_task(self._run_loop())
+
         try:
-            # awaken when a notification that a new job is available
-            # or after specified polling interval elapses
-            await asyncio.wait_for(
-                self.notify_event.wait(), timeout=self.polling_interval
+            # shield the loop task from cancellation
+            # instead, a stop signal is set to enable graceful shutdown
+            await asyncio.shield(loop_task)
+        except asyncio.CancelledError:
+            self.stop()
+            await loop_task
+            raise
+
+    async def _shutdown(self, side_tasks: list[asyncio.Task]):
+        """
+        Gracefully shutdown the worker by cancelling side tasks
+        and waiting for all pending jobs.
+        """
+        await utils.cancel_and_capture_errors(side_tasks)
+
+        now = time.time()
+        for context in self._running_jobs.values():
+            self.logger.info(
+                "Waiting for job to finish: "
+                + context.job_description(current_timestamp=now),
+                extra=self._log_extra(context=None, action="ending_job"),
             )
 
-        except asyncio.TimeoutError:
-            # polling interval has passed, resume loop and attempt to fetch a job
-            pass
+        # wait for any in progress job to complete processing
+        # use return_exceptions to not cancel other job tasks if one was to fail
+        await asyncio.gather(
+            *(task for task in self._running_jobs.keys()), return_exceptions=True
+        )
+        self.logger.info(
+            f"Stopped worker on {utils.queues_display(self.queues)}",
+            extra=self._log_extra(
+                action="stop_worker", queues=self.queues, context=None
+            ),
+        )
 
-    async def run(self):
-        self._run_task = asyncio.current_task()
+    async def _start_side_tasks(self) -> list[asyncio.Task]:
+        """Start side tasks such as periodic deferrer and notification listener"""
+        side_tasks = [asyncio.create_task(self.periodic_deferrer())]
+        if self.wait and self.listen_notify:
+            listener_coro = self.app.job_manager.listen_for_jobs(
+                event=self._notify_event,
+                queues=self.queues,
+            )
+            side_tasks.append(asyncio.create_task(listener_coro, name="listener"))
+        return side_tasks
 
+    async def _run_loop(self):
+        """
+        Run all side coroutines, then start fetching/processing jobs in a loop
+        """
         self.logger.info(
             f"Starting worker on {utils.queues_display(self.queues)}",
             extra=self._log_extra(
                 action="start_worker", context=None, queues=self.queues
             ),
         )
+        self._notify_event.clear()
+        self._stop_event.clear()
+        self._running_jobs = {}
+        self._job_semaphore = asyncio.Semaphore(self.concurrency)
+        side_tasks = await self._start_side_tasks()
 
-        self.running_jobs = {}
-        self.job_semaphore = asyncio.Semaphore(self.concurrency)
-        side_tasks = [asyncio.create_task(self.periodic_deferrer())]
-        if self.wait and self.listen_notify:
-            listener_coro = self.app.job_manager.listen_for_jobs(
-                event=self.notify_event,
-                queues=self.queues,
-            )
-            side_tasks.append(asyncio.create_task(listener_coro, name="listener"))
-
-        context = contextlib.nullcontext()
-        if self.install_signal_handlers:
-            context = signals.on_stop(self.stop)
+        context = (
+            signals.on_stop(self.stop)
+            if self.install_signal_handlers
+            else contextlib.nullcontext()
+        )
 
         try:
             with context:
@@ -341,30 +386,15 @@ class Worker:
                             queues=self.queues,
                         ),
                     )
-                    return
+                    self._stop_event.set()
 
-                while True:
-                    await self._wait_for_job()
+                while not self._stop_event.is_set():
+                    # wait for a new job notification, a stop even or the next polling interval
+                    await utils.wait_any(
+                        self._notify_event.wait(),
+                        asyncio.sleep(self.polling_interval),
+                        self._stop_event.wait(),
+                    )
                     await self._fetch_and_process_jobs()
         finally:
-            await utils.cancel_and_capture_errors(side_tasks)
-
-            now = time.time()
-            for context in self.running_jobs.values():
-                self.logger.info(
-                    "Waiting for job to finish: "
-                    + context.job_description(current_timestamp=now),
-                    extra=self._log_extra(context=None, action="ending_job"),
-                )
-
-            # wait for any in progress job to complete processing
-            # use return_exceptions to not cancel other job tasks if one was to fail
-            await asyncio.gather(
-                *(task for task in self.running_jobs.keys()), return_exceptions=True
-            )
-            self.logger.info(
-                f"Stopped worker on {utils.queues_display(self.queues)}",
-                extra=self._log_extra(
-                    action="stop_worker", queues=self.queues, context=None
-                ),
-            )
+            await self._shutdown(side_tasks=side_tasks)

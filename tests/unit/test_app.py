@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import collections
+from typing import cast
 
 import pytest
 
@@ -286,16 +287,16 @@ def test_with_connector(app, connector):
     assert app.periodic_registry is new_app.periodic_registry
 
 
-def test_replace_connector(app):
+def test_replace_connector(app: app_module.App):
     @app.task(name="foo")
     def foo():
         pass
 
     foo.defer()
-    assert len(app.connector.jobs) == 1
+    assert len(cast(testing.InMemoryConnector, app.connector).jobs) == 1
 
     new_connector = testing.InMemoryConnector()
     with app.replace_connector(new_connector):
-        assert len(app.connector.jobs) == 0
+        assert len(cast(testing.InMemoryConnector, app.connector).jobs) == 0
 
-    assert len(app.connector.jobs) == 1
+    assert len(cast(testing.InMemoryConnector, app.connector).jobs) == 1
