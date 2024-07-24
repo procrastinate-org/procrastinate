@@ -67,7 +67,7 @@
             <a id="nextFileLink" class="nav" href="z_d981541d4828dbe0_connector_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.6.0">coverage.py v7.6.0</a>,
-            created at 2024-07-22 02:28 +0000
+            created at 2024-07-24 21:18 +0000
         </p>
         <aside class="hidden">
             <button type="button" class="button_next_chunk" data-shortcut="j"></button>
@@ -572,7 +572,7 @@
     <p class="pln"><span class="n"><a id="t488" href="#t488">488</a></span><span class="t">    <span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t489" href="#t489">489</a></span><span class="t">    <span class="nam">add_argument</span><span class="op">(</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t490" href="#t490">490</a></span><span class="t">        <span class="nam">shell_parser</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t491" href="#t491">491</a></span><span class="t">        <span class="str">"args"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t491" href="#t491">491</a></span><span class="t">        <span class="str">"shell_command"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t492" href="#t492">492</a></span><span class="t">        <span class="nam">nargs</span><span class="op">=</span><span class="str">"*"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t493" href="#t493">493</a></span><span class="t">        <span class="nam">help</span><span class="op">=</span><span class="str">"Invoke a shell command and exit"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t494" href="#t494">494</a></span><span class="t">    <span class="op">)</span>&nbsp;</span><span class="r"></span></p>
@@ -728,7 +728,7 @@
     <p class="run"><span class="n"><a id="t644" href="#t644">644</a></span><span class="t">    <span class="nam">print</span><span class="op">(</span><span class="str">"Found procrastinate_jobs table: OK"</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t645" href="#t645">645</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t646" href="#t646">646</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t647" href="#t647">647</a></span><span class="t"><span class="key">async</span> <span class="key">def</span> <span class="nam">shell_</span><span class="op">(</span><span class="nam">app</span><span class="op">:</span> <span class="nam">procrastinate</span><span class="op">.</span><span class="nam">App</span><span class="op">,</span> <span class="nam">args</span><span class="op">:</span> <span class="nam">list</span><span class="op">[</span><span class="nam">str</span><span class="op">]</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t647" href="#t647">647</a></span><span class="t"><span class="key">async</span> <span class="key">def</span> <span class="nam">shell_</span><span class="op">(</span><span class="nam">app</span><span class="op">:</span> <span class="nam">procrastinate</span><span class="op">.</span><span class="nam">App</span><span class="op">,</span> <span class="nam">shell_command</span><span class="op">:</span> <span class="nam">list</span><span class="op">[</span><span class="nam">str</span><span class="op">]</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t648" href="#t648">648</a></span><span class="t">    <span class="str">"""</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t649" href="#t649">649</a></span><span class="t"><span class="str">    Administration shell for procrastinate.</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t650" href="#t650">650</a></span><span class="t"><span class="str">    """</span>&nbsp;</span><span class="r"></span></p>
@@ -736,8 +736,8 @@
     <p class="pln"><span class="n"><a id="t652" href="#t652">652</a></span><span class="t">        <span class="nam">job_manager</span><span class="op">=</span><span class="nam">app</span><span class="op">.</span><span class="nam">job_manager</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t653" href="#t653">653</a></span><span class="t">    <span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t654" href="#t654">654</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t655" href="#t655">655</a></span><span class="t">    <span class="key">if</span> <span class="nam">args</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t656" href="#t656">656</a></span><span class="t">        <span class="key">await</span> <span class="nam">utils</span><span class="op">.</span><span class="nam">sync_to_async</span><span class="op">(</span><span class="nam">shell_obj</span><span class="op">.</span><span class="nam">onecmd</span><span class="op">,</span> <span class="nam">line</span><span class="op">=</span><span class="nam">shlex</span><span class="op">.</span><span class="nam">join</span><span class="op">(</span><span class="nam">args</span><span class="op">)</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t655" href="#t655">655</a></span><span class="t">    <span class="key">if</span> <span class="nam">shell_command</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t656" href="#t656">656</a></span><span class="t">        <span class="key">await</span> <span class="nam">utils</span><span class="op">.</span><span class="nam">sync_to_async</span><span class="op">(</span><span class="nam">shell_obj</span><span class="op">.</span><span class="nam">onecmd</span><span class="op">,</span> <span class="nam">line</span><span class="op">=</span><span class="nam">shlex</span><span class="op">.</span><span class="nam">join</span><span class="op">(</span><span class="nam">shell_command</span><span class="op">)</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t657" href="#t657">657</a></span><span class="t">    <span class="key">else</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t658" href="#t658">658</a></span><span class="t">        <span class="key">await</span> <span class="nam">utils</span><span class="op">.</span><span class="nam">sync_to_async</span><span class="op">(</span><span class="nam">shell_obj</span><span class="op">.</span><span class="nam">cmdloop</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t659" href="#t659">659</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
@@ -753,7 +753,7 @@
             <a class="nav" href="z_d981541d4828dbe0_connector_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.6.0">coverage.py v7.6.0</a>,
-            created at 2024-07-22 02:28 +0000
+            created at 2024-07-24 21:18 +0000
         </p>
     </div>
 </footer>
