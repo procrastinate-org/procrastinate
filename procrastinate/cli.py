@@ -539,11 +539,7 @@ async def worker_(
     print_stderr(
         f"Launching a worker on {'all queues' if not queues else ', '.join(queues)}"
     )
-    try:
-        await app.run_worker_async(**kwargs)
-    except asyncio.CancelledError:
-        # prevent the CLI from failing and raising an error when the worker is cancelled
-        pass
+    await app.run_worker_async(**kwargs)
 
 
 async def defer(
