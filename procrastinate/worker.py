@@ -152,6 +152,8 @@ class Worker:
             log_action, log_title = "job_error", "Error"
 
         text = f"Job {context.job.call_string} ended with status: {log_title}, "
+        # in practice we should always have a start and end timestamp here
+        # but in theory the JobResult class allows it to be None
         if context.job_result.start_timestamp and context.job_result.end_timestamp:
             duration = (
                 context.job_result.end_timestamp - context.job_result.start_timestamp
@@ -173,7 +175,6 @@ class Worker:
         exc_info = False
         retry_decision = None
         job = context.job
-        assert job
 
         job_result = context.job_result
         job_result.start_timestamp = time.time()

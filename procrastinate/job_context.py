@@ -80,19 +80,12 @@ class JobContext:
         return message
 
     def should_abort(self) -> bool:
-        assert self.app
-        assert self.job
         assert self.job.id
-
-        job_id = self.job.id
-        status = self.app.job_manager.get_job_status(job_id)
+        status = self.app.job_manager.get_job_status(self.job.id)
         return status == jobs.Status.ABORTING
 
     async def should_abort_async(self) -> bool:
-        assert self.app
-        assert self.job
         assert self.job.id
 
-        job_id = self.job.id
-        status = await self.app.job_manager.get_job_status_async(job_id)
+        status = await self.app.job_manager.get_job_status_async(self.job.id)
         return status == jobs.Status.ABORTING
