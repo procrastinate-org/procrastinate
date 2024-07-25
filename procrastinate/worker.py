@@ -38,8 +38,7 @@ class Worker:
         wait: bool = True,
         timeout: float = POLLING_INTERVAL,
         listen_notify: bool = True,
-        delete_jobs: str
-        | jobs.DeleteJobCondition = jobs.DeleteJobCondition.NEVER.value,
+        delete_jobs: str | jobs.DeleteJobCondition | None = None,
         additional_context: dict[str, Any] | None = None,
         install_signal_handlers: bool = True,
     ):
@@ -131,7 +130,7 @@ class Worker:
                 jobs.DeleteJobCondition.ALWAYS: True,
                 jobs.DeleteJobCondition.NEVER: False,
                 jobs.DeleteJobCondition.SUCCESSFUL: status == jobs.Status.SUCCEEDED,
-            }[self.delete_jobs]
+            }[self.delete_jobs or jobs.DeleteJobCondition.NEVER]
             await self.app.job_manager.finish_job(
                 job=job, status=status, delete_job=delete_job
             )
@@ -262,20 +261,18 @@ class Worker:
         """Fetch and process jobs until there is no job left or asked to stop"""
         while not self._stop_event.is_set():
             acquire_sem_task = asyncio.create_task(self._job_semaphore.acquire())
-            await utils.wait_any(acquire_sem_task, self._stop_event.wait())
-            if self._stop_event.is_set():
-                if acquire_sem_task.done():
-                    self._job_semaphore.release()
-                break
+            job = None
             try:
+                await utils.wait_any(acquire_sem_task, self._stop_event.wait())
+                if self._stop_event.is_set():
+                    break
                 job = await self.app.job_manager.fetch_job(queues=self.queues)
-            except BaseException:
-                self._job_semaphore.release()
-                raise
+            finally:
+                if (not job or self._stop_event.is_set()) and acquire_sem_task.done():
+                    self._job_semaphore.release()
+                self._notify_event.clear()
 
             if not job:
-                self._notify_event.clear()
-                self._job_semaphore.release()
                 break
 
             context = job_context.JobContext(
@@ -307,7 +304,7 @@ class Worker:
 
         try:
             # shield the loop task from cancellation
-            # instead, a stop signal is set to enable graceful shutdown
+            # instead, a stop event is set to enable graceful shutdown
             await asyncio.shield(loop_task)
         except asyncio.CancelledError:
             self.stop()
@@ -331,9 +328,7 @@ class Worker:
 
         # wait for any in progress job to complete processing
         # use return_exceptions to not cancel other job tasks if one was to fail
-        await asyncio.gather(
-            *(task for task in self._running_jobs.keys()), return_exceptions=True
-        )
+        await asyncio.gather(*self._running_jobs, return_exceptions=True)
         self.logger.info(
             f"Stopped worker on {utils.queues_display(self.queues)}",
             extra=self._log_extra(
@@ -341,7 +336,7 @@ class Worker:
             ),
         )
 
-    async def _start_side_tasks(self) -> list[asyncio.Task]:
+    def _start_side_tasks(self) -> list[asyncio.Task]:
         """Start side tasks such as periodic deferrer and notification listener"""
         side_tasks = [asyncio.create_task(self.periodic_deferrer())]
         if self.wait and self.listen_notify:
@@ -366,7 +361,7 @@ class Worker:
         self._stop_event.clear()
         self._running_jobs = {}
         self._job_semaphore = asyncio.Semaphore(self.concurrency)
-        side_tasks = await self._start_side_tasks()
+        side_tasks = self._start_side_tasks()
 
         context = (
             signals.on_stop(self.stop)
