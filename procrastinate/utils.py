@@ -219,9 +219,7 @@ async def cancel_and_capture_errors(tasks: list[asyncio.Task]):
             },
         )
 
-    pendng_tasks = (task for task in tasks if not task.done())
-
-    for task in pendng_tasks:
+    for task in tasks:
         task.cancel()
 
     await asyncio.gather(*tasks, return_exceptions=True)
@@ -237,14 +235,13 @@ async def wait_any(*coros_or_futures: Coroutine | asyncio.Future):
     Other pending coroutines are cancelled"""
     futures = set(asyncio.ensure_future(fut) for fut in coros_or_futures)
 
-    done, pending = await asyncio.wait(
-        fs=futures,
+    _, pending = await asyncio.wait(
+        futures,
         return_when=asyncio.FIRST_COMPLETED,
     )
     for task in pending:
         task.cancel()
     await asyncio.gather(*pending, return_exceptions=True)
-    return done
 
 
 def add_namespace(name: str, namespace: str) -> str:
