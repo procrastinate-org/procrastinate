@@ -286,7 +286,10 @@ class Worker:
                 job=job,
                 task=self.app.tasks.get(job.task_name),
             )
-            job_task = asyncio.create_task(self._process_job(context))
+            job_task = asyncio.create_task(
+                self._process_job(context),
+                name=f"process job {job.task_name}[{job.id}]",
+            )
             self._running_jobs[job_task] = context
 
             def on_job_complete(task: asyncio.Task):
