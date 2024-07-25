@@ -53,7 +53,7 @@ class Worker:
             jobs.DeleteJobCondition(delete_jobs)
             if isinstance(delete_jobs, str)
             else delete_jobs
-        )
+        ) or jobs.DeleteJobCondition.NEVER
         self.additional_context = additional_context
         self.install_signal_handlers = install_signal_handlers
 
@@ -130,7 +130,7 @@ class Worker:
                 jobs.DeleteJobCondition.ALWAYS: True,
                 jobs.DeleteJobCondition.NEVER: False,
                 jobs.DeleteJobCondition.SUCCESSFUL: status == jobs.Status.SUCCEEDED,
-            }[self.delete_jobs or jobs.DeleteJobCondition.NEVER]
+            }[self.delete_jobs]
             await self.app.job_manager.finish_job(
                 job=job, status=status, delete_job=delete_job
             )
