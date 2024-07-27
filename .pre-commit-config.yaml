@@ -41,7 +41,7 @@ repos:
           - croniter==2.0.7
           - django-stubs==5.0.2
           - django==4.2.14
-          - importlib-metadata==8.0.0
+          - importlib-metadata==8.2.0
           - importlib-resources==6.4.0
           - psycopg2-binary==2.9.9
           - psycopg[pool]==3.2.1
