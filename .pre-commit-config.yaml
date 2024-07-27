@@ -38,7 +38,7 @@ repos:
           - asgiref==3.8.1
           - attrs==23.2.0
           - contextlib2==21.6.0
-          - croniter==2.0.7
+          - croniter==3.0.3
           - django-stubs==5.0.2
           - django==4.2.14
           - importlib-metadata==8.2.0
