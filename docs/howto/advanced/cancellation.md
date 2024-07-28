@@ -69,4 +69,9 @@ async def my_task(context):
 `context.should_abort()` and `context.should_abort_async()` does poll the
 database and might flood the database. Ensure you do it only sometimes and
 not from too many parallel tasks.
+
+You can use an optional `cache` parameter for limiting the frequency of
+database requests. For example, calling `context.should_abort(cache=10)` resp.
+`await context.should_abort_async(cache=10)` will reuse the cached status for
+the specified number of seconds without polling the database.
 :::

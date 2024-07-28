@@ -49,7 +49,7 @@ class JobContext:
         Name of the worker (may be useful for logging)
     worker_queues : ``Optional[Iterable[str]]``
         Queues listened by this worker
-    worker_id : ``int```
+    worker_id : ``int``
         In case there are multiple async sub-workers, this is the id of the sub-worker.
     job : `Job`
         Current `Job` instance
@@ -65,6 +65,7 @@ class JobContext:
     task: tasks.Task | None = None
     job_result: JobResult = attr.ib(factory=JobResult)
     additional_context: dict = attr.ib(factory=dict)
+    cache: dict = attr.ib(factory=dict)
 
     def log_extra(self, action: str, **kwargs: Any) -> types.JSONDict:
         extra: types.JSONDict = {
@@ -102,20 +103,70 @@ class JobContext:
 
         return message
 
-    def should_abort(self) -> bool:
+    def should_abort(self, cache: int | None = None) -> bool:
+        """
+        Check if the job should be aborted.
+
+        Parameters
+        ----------
+        cache : ``int``, optional
+            Cache the job status (in seconds) to reduce the number of database requests
+
+        Returns
+        -------
+        ``bool``
+            ``True`` if the job should be aborted, ``False`` otherwise
+        """
         assert self.app
         assert self.job
         assert self.job.id
 
         job_id = self.job.id
-        status = self.app.job_manager.get_job_status(job_id)
+
+        if cache is not None:
+            current_time = time.time()
+            last_checked_time = self.cache.get("job_status_last_checked")
+            if last_checked_time is None or current_time - last_checked_time >= cache:
+                self.cache["job_status_last_checked"] = current_time
+                self.cache["cached_job_status"] = self.app.job_manager.get_job_status(
+                    self.job.id
+                )
+            status = self.cache["cached_job_status"]
+        else:
+            status = self.app.job_manager.get_job_status(job_id)
+
         return status == jobs.Status.ABORTING
 
-    async def should_abort_async(self) -> bool:
+    async def should_abort_async(self, cache: int | None = None) -> bool:
+        """
+        Check if the job should be aborted.
+
+        Parameters
+        ----------
+        cache : ``int``, optional
+            Cache the job status (in seconds) to reduce the number of database requests
+
+        Returns
+        -------
+        ``bool``
+            ``True`` if the job should be aborted, ``False`` otherwise
+        """
         assert self.app
         assert self.job
         assert self.job.id
 
         job_id = self.job.id
-        status = await self.app.job_manager.get_job_status_async(job_id)
+
+        if cache is not None:
+            current_time = time.time()
+            last_checked_time = self.cache.get("job_status_last_checked")
+            if last_checked_time is None or current_time - last_checked_time >= cache:
+                self.cache["job_status_last_checked"] = current_time
+                self.cache[
+                    "cached_job_status"
+                ] = await self.app.job_manager.get_job_status_async(job_id)
+            status = self.cache["cached_job_status"]
+        else:
+            status = await self.app.job_manager.get_job_status_async(job_id)
+
         return status == jobs.Status.ABORTING

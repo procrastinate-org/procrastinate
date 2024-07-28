@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from procrastinate import job_context
+from procrastinate import job_context, jobs
 
 
 @pytest.mark.parametrize(
@@ -122,3 +122,59 @@ async def test_should_not_abort(app, job_factory):
     context = job_context.JobContext(app=app, job=job)
     assert context.should_abort() is False
     assert await context.should_abort_async() is False
+
+
+async def test_should_abort_with_cache(app, job_factory, mocker):
+    app.job_manager.get_job_status = mocker.Mock(return_value=jobs.Status.DOING)
+    await app.job_manager.defer_job_async(job=job_factory())
+    job = await app.job_manager.fetch_job(queues=None)
+    context = job_context.JobContext(app=app, job=job)
+    assert "job_status_last_checked" not in context.cache
+    assert "cached_job_status" not in context.cache
+
+    mocker.patch("procrastinate.job_context.time.time", return_value=1000000000)
+    assert context.should_abort(cache=10) is False
+    assert context.cache["job_status_last_checked"] == 1000000000
+    assert context.cache["cached_job_status"] == jobs.Status.DOING
+
+    mocker.patch("procrastinate.job_context.time.time", return_value=1000000005)
+    assert context.should_abort(cache=10) is False
+    assert context.cache["job_status_last_checked"] == 1000000000
+    assert context.cache["cached_job_status"] == jobs.Status.DOING
+    app.job_manager.get_job_status.assert_called_once_with(job.id)
+    app.job_manager.get_job_status.reset_mock()
+
+    mocker.patch("procrastinate.job_context.time.time", return_value=1000000010)
+    assert context.should_abort(cache=10) is False
+    assert context.cache["job_status_last_checked"] == 1000000010
+    assert context.cache["cached_job_status"] == jobs.Status.DOING
+    app.job_manager.get_job_status.assert_called_once_with(job.id)
+
+
+async def test_should_abort_async_with_cache(app, job_factory, mocker):
+    app.job_manager.get_job_status_async = mocker.AsyncMock(
+        return_value=jobs.Status.DOING
+    )
+    await app.job_manager.defer_job_async(job=job_factory())
+    job = await app.job_manager.fetch_job(queues=None)
+    context = job_context.JobContext(app=app, job=job)
+    assert "job_status_last_checked" not in context.cache
+    assert "cached_job_status" not in context.cache
+
+    mocker.patch("procrastinate.job_context.time.time", return_value=1000000000)
+    assert await context.should_abort_async(cache=10) is False
+    assert context.cache["job_status_last_checked"] == 1000000000
+    assert context.cache["cached_job_status"] == jobs.Status.DOING
+
+    mocker.patch("procrastinate.job_context.time.time", return_value=1000000005)
+    assert await context.should_abort_async(cache=10) is False
+    assert context.cache["job_status_last_checked"] == 1000000000
+    assert context.cache["cached_job_status"] == jobs.Status.DOING
+    app.job_manager.get_job_status_async.assert_awaited_once_with(job.id)
+    app.job_manager.get_job_status_async.reset_mock()
+
+    mocker.patch("procrastinate.job_context.time.time", return_value=1000000010)
+    assert await context.should_abort_async(cache=10) is False
+    assert context.cache["job_status_last_checked"] == 1000000010
+    assert context.cache["cached_job_status"] == jobs.Status.DOING
+    app.job_manager.get_job_status_async.assert_awaited_once_with(job.id)

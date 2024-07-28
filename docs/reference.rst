@@ -39,7 +39,8 @@ When tasks are created with argument ``pass_context``, they are provided a
 `JobContext` argument:
 
 .. autoclass:: procrastinate.JobContext
-    :members: app, worker_name, worker_queues, job, task
+    :members: app, worker_name, worker_queues, job, task,
+              should_abort, should_abort_async
 
 Blueprints
 ----------
