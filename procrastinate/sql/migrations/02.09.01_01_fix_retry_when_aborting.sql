@@ -21,7 +21,7 @@ BEGIN
     WHERE id = job_id AND status IN ('doing', 'aborting')
     RETURNING id INTO _job_id;
     IF _job_id IS NULL THEN
-        RAISE 'Job was not found or not in "doing" status (job id: %)', job_id;
+        RAISE 'Job was not found or not in "doing" or "aborting" status (job id: %)', job_id;
     END IF;
 END;
 $$;
