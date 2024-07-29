@@ -306,11 +306,18 @@ class Worker:
             exc_info = e
             critical = not isinstance(e, Exception)
 
-            retry_exception = task.get_retry_exception(exception=e, job=job)
-            if retry_exception:
-                log_title = "Error, to retry"
-                log_action = "job_error_retry"
-                log_level = logging.INFO
+            assert job.id
+            status = await self.job_manager.get_job_status_async(job_id=job.id)
+
+            if status == jobs.Status.ABORTING:
+                retry_exception = None
+            else:
+                retry_exception = task.get_retry_exception(exception=e, job=job)
+                if retry_exception:
+                    log_title = "Error, to retry"
+                    log_action = "job_error_retry"
+                    log_level = logging.INFO
+
             raise exceptions.JobError(
                 retry_exception=retry_exception, critical=critical
             ) from e

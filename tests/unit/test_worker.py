@@ -366,7 +366,7 @@ async def test_run_job_aborted(app, caplog):
     )
 
 
-async def test_run_job_error(app, caplog):
+async def test_run_job_error(app, caplog, mocker):
     caplog.set_level("INFO")
 
     def job_func(a, b):  # pylint: disable=unused-argument
@@ -385,6 +385,7 @@ async def test_run_job_error(app, caplog):
         task_name="job",
         queue="yay",
     )
+    app.job_manager.get_job_status_async = mocker.AsyncMock(return_value="doing")
     test_worker = worker.Worker(app, queues=["yay"])
     with pytest.raises(exceptions.JobError):
         await test_worker.run_job(job=job, worker_id=3)
@@ -401,7 +402,7 @@ async def test_run_job_error(app, caplog):
     )
 
 
-async def test_run_job_critical_error(app, caplog):
+async def test_run_job_critical_error(app, caplog, mocker):
     caplog.set_level("INFO")
 
     def job_func(a, b):  # pylint: disable=unused-argument
@@ -420,6 +421,7 @@ async def test_run_job_critical_error(app, caplog):
         task_name="job",
         queue="yay",
     )
+    app.job_manager.get_job_status_async = mocker.AsyncMock(return_value="doing")
     test_worker = worker.Worker(app, queues=["yay"])
     with pytest.raises(exceptions.JobError) as exc_info:
         await test_worker.run_job(job=job, worker_id=3)
@@ -427,7 +429,7 @@ async def test_run_job_critical_error(app, caplog):
     assert exc_info.value.critical is True
 
 
-async def test_run_job_retry(app, caplog):
+async def test_run_job_retry(app, caplog, mocker):
     caplog.set_level("INFO")
 
     def job_func(a, b):  # pylint: disable=unused-argument
@@ -446,6 +448,7 @@ async def test_run_job_retry(app, caplog):
         queueing_lock="houba",
         queue="yay",
     )
+    app.job_manager.get_job_status_async = mocker.AsyncMock(return_value="doing")
     test_worker = worker.Worker(app, queues=["yay"])
     with pytest.raises(exceptions.JobError) as exc_info:
         await test_worker.run_job(job=job, worker_id=3)

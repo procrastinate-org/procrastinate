@@ -145,3 +145,22 @@ async def test_abort(async_app):
 
     status = await async_app.job_manager.get_job_status_async(job2_id)
     assert status == Status.ABORTED
+
+
+async def test_retry_when_aborting(async_app):
+    attempts = 0
+
+    @async_app.task(queue="default", name="task1", pass_context=True, retry=True)
+    async def example_task(context):
+        nonlocal attempts
+        attempts += 1
+        await async_app.job_manager.cancel_job_by_id_async(context.job.id, abort=True)
+        raise ValueError()
+
+    job_id = await example_task.defer_async()
+
+    await async_app.run_worker_async(queues=["default"], wait=False)
+
+    status = await async_app.job_manager.get_job_status_async(job_id)
+    assert status == Status.FAILED
+    assert attempts == 1
