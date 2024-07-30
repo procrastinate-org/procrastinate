@@ -288,6 +288,35 @@ async def test_stopping_worker_waits_for_task(app: App, worker):
     assert status == Status.SUCCEEDED
 
 
+async def test_stopping_worker_cancels_task_after_timeout(app: App, worker):
+    complete_task_event = asyncio.Event()
+
+    @app.task()
+    async def task_func():
+        await asyncio.wait_for(complete_task_event.wait(), 0.2)
+
+    run_task = await start_worker(worker)
+
+    job_id = await task_func.defer_async()
+
+    await asyncio.sleep(0.05)
+
+    # this should still be running waiting for the task to complete
+    assert run_task.done() is False
+
+    # we don't tell task to complete, it will be cancelled after timeout
+
+    # this should mark the job as aborted and re-raise the CancelledError
+    with pytest.raises(asyncio.TimeoutError):
+        worker.stop(timeout=0.02)
+        await asyncio.sleep(0.1)
+        assert worker.run_task.done()
+        await worker.run_task
+
+    status = await app.job_manager.get_job_status_async(job_id)
+    assert status == Status.ABORTED
+
+
 @pytest.mark.parametrize(
     "worker",
     [({"additional_context": {"foo": "bar"}})],

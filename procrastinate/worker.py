@@ -67,10 +67,14 @@ class Worker:
         self._running_jobs: dict[asyncio.Task, job_context.JobContext] = {}
         self._job_semaphore = asyncio.Semaphore(self.concurrency)
         self._stop_event = asyncio.Event()
+        self._stop_timeout: float | None = None
+        self._stop_timed_out = False
 
-    def stop(self):
+    def stop(self, timeout: float | None = None):
         if self._stop_event.is_set():
             return
+        self._stop_timed_out = False
+        self._stop_timeout = timeout
         self.logger.info(
             "Stop requested",
             extra=self._log_extra(context=None, action="stopping_worker"),
@@ -195,25 +199,42 @@ class Worker:
 
             exc_info: bool | BaseException = False
 
-            await_func: Callable[..., Awaitable]
-            if inspect.iscoroutinefunction(task.func):
-                await_func = task
-            else:
-                await_func = functools.partial(utils.sync_to_async, task)
+            async def ensure_async() -> Callable[..., Awaitable]:
+                await_func: Callable[..., Awaitable]
+                if inspect.iscoroutinefunction(task.func):
+                    await_func = task
+                else:
+                    await_func = functools.partial(utils.sync_to_async, task)
 
-            job_args = [context] if task.pass_context else []
-            task_result = await await_func(*job_args, **job.task_kwargs)
-            # In some cases, the task function might be a synchronous function
-            # that returns an awaitable without actually being a
-            # coroutinefunction. In that case, in the await above, we haven't
-            # actually called the task, but merely generated the awaitable that
-            # implements the task. In that case, we want to wait this awaitable.
-            # It's easy enough to be in that situation that the best course of
-            # action is probably to await the awaitable.
-            # It's not even sure it's worth emitting a warning
-            if inspect.isawaitable(task_result):
-                task_result = await task_result
-            job_result.result = task_result
+                job_args = [context] if task.pass_context else []
+                task_result = await await_func(*job_args, **job.task_kwargs)
+                # In some cases, the task function might be a synchronous function
+                # that returns an awaitable without actually being a
+                # coroutinefunction. In that case, in the await above, we haven't
+                # actually called the task, but merely generated the awaitable that
+                # implements the task. In that case, we want to wait this awaitable.
+                # It's easy enough to be in that situation that the best course of
+                # action is probably to await the awaitable.
+                # It's not even sure it's worth emitting a warning
+                if inspect.isawaitable(task_result):
+                    task_result = await task_result
+
+                return task_result
+
+            async_task = asyncio.create_task(ensure_async())
+
+            await utils.wait_any(
+                async_task, self._stop_event.wait(), cancel_other_tasks=False
+            )
+
+            if self._stop_event.is_set() and not async_task.done():
+                try:
+                    await asyncio.wait_for(async_task, timeout=self._stop_timeout)
+                except asyncio.TimeoutError:
+                    self._stop_timed_out = True
+                    raise
+
+            job_result.result = async_task.result() if async_task.done() else None
 
         except BaseException as e:
             exc_info = e
@@ -234,7 +255,9 @@ class Worker:
         finally:
             job_result.end_timestamp = time.time()
 
-            if isinstance(exc_info, exceptions.JobAborted):
+            if isinstance(exc_info, exceptions.JobAborted) or isinstance(
+                exc_info, asyncio.TimeoutError
+            ):
                 status = jobs.Status.ABORTED
             elif exc_info:
                 status = jobs.Status.FAILED
@@ -397,3 +420,6 @@ class Worker:
                     await self._fetch_and_process_jobs()
         finally:
             await self._shutdown(side_tasks=side_tasks)
+
+        if self._stop_timed_out:
+            raise asyncio.TimeoutError()
