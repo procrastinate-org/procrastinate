@@ -108,7 +108,7 @@ class JobContext:
         assert self.job.id
 
         job_id = self.job.id
-        return self.app.job_manager.get_job_abort(job_id)
+        return self.app.job_manager.get_job_abort_requested(job_id)
 
     async def should_abort_async(self) -> bool:
         assert self.app
@@ -116,4 +116,4 @@ class JobContext:
         assert self.job.id
 
         job_id = self.job.id
-        return await self.app.job_manager.get_job_abort_async(job_id)
+        return await self.app.job_manager.get_job_abort_requested_async(job_id)

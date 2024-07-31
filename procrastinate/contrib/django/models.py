@@ -77,7 +77,7 @@ class ProcrastinateJob(ProcrastinateReadOnlyModelMixin, models.Model):
     scheduled_at = models.DateTimeField(blank=True, null=True)
     attempts = models.IntegerField()
     queueing_lock = models.TextField(unique=True, blank=True, null=True)
-    abort = models.BooleanField()
+    abort_requested = models.BooleanField()
 
     objects = ProcrastinateReadOnlyManager()
 

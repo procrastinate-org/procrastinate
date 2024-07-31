@@ -1,8 +1,8 @@
--- Add an 'abort' column to the procrastinate_jobs table
-ALTER TABLE procrastinate_jobs ADD COLUMN "abort" boolean DEFAULT false NOT NULL;
+-- Add an 'abort_requested' column to the procrastinate_jobs table
+ALTER TABLE procrastinate_jobs ADD COLUMN abort_requested boolean DEFAULT false NOT NULL;
 
--- Set abort flag on all jobs with 'aborting' status
-UPDATE procrastinate_jobs SET abort = true WHERE status = 'aborting';
+-- Set abort requested flag on all jobs with 'aborting' status
+UPDATE procrastinate_jobs SET abort_requested = true WHERE status = 'aborting';
 
 -- Delete the indexes that depends on the old status and enum type
 DROP INDEX IF EXISTS procrastinate_jobs_queueing_lock_idx;
@@ -115,7 +115,7 @@ BEGIN
     ELSE
         UPDATE procrastinate_jobs
         SET status = end_status,
-            abort = false,
+            abort_requested = false,
             attempts = CASE status
                 WHEN 'doing' THEN attempts + 1 ELSE attempts
             END
@@ -143,7 +143,7 @@ BEGIN
     IF _job_id IS NULL THEN
         IF abort THEN
             UPDATE procrastinate_jobs
-            SET abort = true,
+            SET abort_requested = true,
                 status = CASE status
                     WHEN 'todo' THEN 'cancelled'::procrastinate_job_status ELSE status
                 END
@@ -217,6 +217,7 @@ BEGIN
     ELSE
         UPDATE procrastinate_jobs
         SET status = end_status,
+            abort_requested = false,
             attempts =
                 CASE
                     WHEN status = 'doing' THEN attempts + 1

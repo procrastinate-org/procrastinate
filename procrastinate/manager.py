@@ -353,41 +353,41 @@ class JobManager:
         )
         return jobs.Status(result["status"])
 
-    def get_job_abort(self, job_id: int) -> bool:
+    def get_job_abort_requested(self, job_id: int) -> bool:
         """
-        Check if a job is marked for abortion by its id.
+        Check if a job is requested for abortion.
 
         Parameters
         ----------
         job_id : ``int``
-            The id of the job to get the status of
+            The id of the job to get the abortion request of
 
         Returns
         -------
         ``bool``
         """
         result = self.connector.get_sync_connector().execute_query_one(
-            query=sql.queries["get_job_abort"], job_id=job_id
+            query=sql.queries["get_job_abort_requested"], job_id=job_id
         )
-        return bool(result["abort"])
+        return bool(result["abort_requested"])
 
-    async def get_job_abort_async(self, job_id: int) -> bool:
+    async def get_job_abort_requested_async(self, job_id: int) -> bool:
         """
-        Check if a job is marked for abortion by its id.
+        Check if a job is requested for abortion.
 
         Parameters
         ----------
         job_id : ``int``
-            The id of the job to get the status of
+            The id of the job to get the abortion request of
 
         Returns
         -------
         ``bool``
         """
         result = await self.connector.execute_query_one_async(
-            query=sql.queries["get_job_abort"], job_id=job_id
+            query=sql.queries["get_job_abort_requested"], job_id=job_id
         )
-        return bool(result["abort"])
+        return bool(result["abort_requested"])
 
     async def retry_job(
         self,

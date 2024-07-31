@@ -27,7 +27,7 @@ class Migration(migrations.Migration):
         ),
         migrations.AddField(
             "procrastinatejob",
-            "abort",
+            "abort_requested",
             models.BooleanField(),
         ),
     ]

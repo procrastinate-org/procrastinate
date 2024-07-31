@@ -35,7 +35,7 @@ async def test_manager_defer_job(job_manager, job_factory, connector):
             "scheduled_at": None,
             "status": "todo",
             "task_name": "bla",
-            "abort": False,
+            "abort_requested": False,
         }
     }
 
@@ -252,7 +252,7 @@ async def test_abort_doing_job(job_manager, job_factory, connector):
         {"job_id": 1, "abort": True, "delete_job": False},
     )
     assert connector.jobs[1]["status"] == "doing"
-    assert connector.jobs[1]["abort"] is True
+    assert connector.jobs[1]["abort_requested"] is True
 
 
 def test_get_job_status(job_manager, job_factory, connector):

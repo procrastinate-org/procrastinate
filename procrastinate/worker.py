@@ -307,7 +307,7 @@ class Worker:
             critical = not isinstance(e, Exception)
 
             assert job.id
-            abort_requested = await self.job_manager.get_job_abort_async(job_id=job.id)
+            abort_requested = await self.job_manager.get_job_abort_requested_async(job_id=job.id)
 
             if abort_requested:
                 retry_exception = None

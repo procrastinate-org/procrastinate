@@ -138,7 +138,7 @@ class InMemoryConnector(connector.BaseAsyncConnector):
             "status": "todo",
             "scheduled_at": scheduled_at,
             "attempts": 0,
-            "abort": False,
+            "abort_requested": False,
         }
         self.events[id] = []
         if scheduled_at:
@@ -223,7 +223,7 @@ class InMemoryConnector(connector.BaseAsyncConnector):
         job_row = self.jobs[job_id]
         job_row["status"] = status
         job_row["attempts"] += 1
-        job_row["abort"] = False
+        job_row["abort_requested"] = False
         self.events[job_id].append({"type": status, "at": utils.utcnow()})
 
     def cancel_job_one(self, job_id: int, abort: bool, delete_job: bool) -> dict:
@@ -238,7 +238,7 @@ class InMemoryConnector(connector.BaseAsyncConnector):
             return {"id": job_id}
 
         if abort:
-            job_row["abort"] = True
+            job_row["abort_requested"] = True
             return {"id": job_id}
 
         return {"id": None}
@@ -246,8 +246,8 @@ class InMemoryConnector(connector.BaseAsyncConnector):
     def get_job_status_one(self, job_id: int) -> dict:
         return {"status": self.jobs[job_id]["status"]}
 
-    def get_job_abort_one(self, job_id: int) -> dict:
-        return {"abort": self.jobs[job_id]["abort"]}
+    def get_job_abort_requested_one(self, job_id: int) -> dict:
+        return {"abort_requested": self.jobs[job_id]["abort_requested"]}
 
     def retry_job_run(
         self,

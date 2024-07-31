@@ -58,9 +58,9 @@ SELECT procrastinate_cancel_job(%(job_id)s, %(abort)s, %(delete_job)s) AS id;
 -- Get the status of a job
 SELECT status FROM procrastinate_jobs WHERE id = %(job_id)s;
 
--- get_job_abort --
--- Check if a job should be aborted
-SELECT abort FROM procrastinate_jobs WHERE id = %(job_id)s;
+-- get_job_abort_requested --
+-- Check if an abortion of a job was requested
+SELECT abort_requested FROM procrastinate_jobs WHERE id = %(job_id)s;
 
 -- retry_job --
 -- Retry a job, changing it from "doing" to "todo"

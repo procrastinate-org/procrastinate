@@ -21,7 +21,7 @@ CREATE TYPE procrastinate_job_event_type AS ENUM (
     'succeeded',  -- doing -> succeeded
     'cancelled', -- todo -> cancelled
     'abort_requested', -- not a state transition, but set in a separate field
-    'aborted', -- doing -> aborted (only allowed when abort field is set)
+    'aborted', -- doing -> aborted (only allowed when abort_requested field is set)
     'scheduled' -- not a state transition, but recording when a task is scheduled for
 );
 
@@ -38,7 +38,7 @@ CREATE TABLE procrastinate_jobs (
     status procrastinate_job_status DEFAULT 'todo'::procrastinate_job_status NOT NULL,
     scheduled_at timestamp with time zone NULL,
     attempts integer DEFAULT 0 NOT NULL,
-    abort boolean DEFAULT false NOT NULL
+    abort_requested boolean DEFAULT false NOT NULL
 );
 
 CREATE TABLE procrastinate_periodic_defers (
@@ -210,7 +210,7 @@ BEGIN
     ELSE
         UPDATE procrastinate_jobs
         SET status = end_status,
-            abort = false,
+            abort_requested = false,
             attempts = CASE status
                 WHEN 'doing' THEN attempts + 1 ELSE attempts
             END
@@ -238,7 +238,7 @@ BEGIN
     IF _job_id IS NULL THEN
         IF abort THEN
             UPDATE procrastinate_jobs
-            SET abort = true,
+            SET abort_requested = true,
                 status = CASE status
                     WHEN 'todo' THEN 'cancelled'::procrastinate_job_status ELSE status
                 END
@@ -441,6 +441,7 @@ BEGIN
     ELSE
         UPDATE procrastinate_jobs
         SET status = end_status,
+            abort_requested = false,
             attempts =
                 CASE
                     WHEN status = 'doing' THEN attempts + 1

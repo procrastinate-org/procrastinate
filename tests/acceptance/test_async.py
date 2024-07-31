@@ -142,13 +142,13 @@ async def test_abort(async_app):
 
     status = await async_app.job_manager.get_job_status_async(job1_id)
     assert status == Status.ABORTED
-    abort = await async_app.job_manager.get_job_abort_async(job1_id)
-    assert abort is False
+    abort_requested = await async_app.job_manager.get_job_abort_requested_async(job1_id)
+    assert abort_requested is False
 
     status = await async_app.job_manager.get_job_status_async(job2_id)
     assert status == Status.ABORTED
-    abort = await async_app.job_manager.get_job_abort_async(job2_id)
-    assert abort is False
+    abort_requested = await async_app.job_manager.get_job_abort_requested_async(job2_id)
+    assert abort_requested is False
 
 
 async def test_retry_when_aborting(async_app):
