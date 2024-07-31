@@ -167,6 +167,7 @@ async def test_defer(entrypoint, cli_app, connector):
             "status": "todo",
             "task_name": "hello",
             "priority": 0,
+            "abort": False,
         }
     }
 
@@ -192,6 +193,7 @@ async def test_defer_priority(entrypoint, cli_app, connector):
             "status": "todo",
             "task_name": "hello",
             "priority": 5,
+            "abort": False,
         }
     }
 
@@ -222,6 +224,7 @@ async def test_defer_at(entrypoint, cli_app, connector):
             "status": "todo",
             "task_name": "hello",
             "priority": 0,
+            "abort": False,
         }
     }
 
@@ -251,6 +254,7 @@ async def test_defer_in(entrypoint, cli_app, connector):
         "status": "todo",
         "task_name": "hello",
         "priority": 0,
+        "abort": False,
     }
     assert (
         now + datetime.timedelta(seconds=9)
@@ -315,6 +319,7 @@ async def test_defer_unknown(entrypoint, cli_app, connector):
             "status": "todo",
             "task_name": "hello",
             "priority": 0,
+            "abort": False,
         }
     }
 

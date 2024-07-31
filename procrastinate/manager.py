@@ -252,9 +252,9 @@ class JobManager:
         job_id : ``int``
             The id of the job to cancel
         abort : ``bool``
-            If True, a job in ``doing`` state will be marked as ``aborting``, but the task
-            itself has to respect the abortion request. If False, only jobs in ``todo``
-            state will be set to ``cancelled`` and won't be processed by a worker anymore.
+            If True, a job will be marked for abortion, but the task itself has to
+            respect the abortion request. If False, only jobs in ``todo`` state will
+            be set to ``cancelled`` and won't be processed by a worker anymore.
         delete_job : ``bool``
             If True, the job will be deleted from the database after being cancelled. Does
             not affect the jobs that should be aborted.
@@ -290,9 +290,9 @@ class JobManager:
         job_id : ``int``
             The id of the job to cancel
         abort : ``bool``
-            If True, a job in ``doing`` state will be marked as ``aborting``, but the task
-            itself has to respect the abortion request. If False, only jobs in ``todo``
-            state will be set to ``cancelled`` and won't be processed by a worker anymore.
+            If True, a job will be marked for abortion, but the task itself has to
+            respect the abortion request. If False, only jobs in ``todo`` state will
+            be set to ``cancelled`` and won't be processed by a worker anymore.
         delete_job : ``bool``
             If True, the job will be deleted from the database after being cancelled. Does
             not affect the jobs that should be aborted.
@@ -352,6 +352,42 @@ class JobManager:
             query=sql.queries["get_job_status"], job_id=job_id
         )
         return jobs.Status(result["status"])
+
+    def get_job_abort(self, job_id: int) -> bool:
+        """
+        Check if a job is marked for abortion by its id.
+
+        Parameters
+        ----------
+        job_id : ``int``
+            The id of the job to get the status of
+
+        Returns
+        -------
+        ``bool``
+        """
+        result = self.connector.get_sync_connector().execute_query_one(
+            query=sql.queries["get_job_abort"], job_id=job_id
+        )
+        return bool(result["abort"])
+
+    async def get_job_abort_async(self, job_id: int) -> bool:
+        """
+        Check if a job is marked for abortion by its id.
+
+        Parameters
+        ----------
+        job_id : ``int``
+            The id of the job to get the status of
+
+        Returns
+        -------
+        ``bool``
+        """
+        result = await self.connector.execute_query_one_async(
+            query=sql.queries["get_job_abort"], job_id=job_id
+        )
+        return bool(result["abort"])
 
     async def retry_job(
         self,
@@ -584,8 +620,7 @@ class JobManager:
         -------
         ``List[Dict[str, Any]]``
             A list of dictionaries representing queues stats (``name``, ``jobs_count``,
-            ``todo``, ``doing``, ``succeeded``, ``failed``, ``cancelled``, ``aborting``,
-            ``aborted``).
+            ``todo``, ``doing``, ``succeeded``, ``failed``, ``cancelled``, ``aborted``).
         """
         return [
             {
@@ -596,7 +631,6 @@ class JobManager:
                 "succeeded": row["stats"].get("succeeded", 0),
                 "failed": row["stats"].get("failed", 0),
                 "cancelled": row["stats"].get("cancelled", 0),
-                "aborting": row["stats"].get("aborting", 0),
                 "aborted": row["stats"].get("aborted", 0),
             }
             for row in await self.connector.execute_query_all_async(
@@ -627,7 +661,6 @@ class JobManager:
                 "succeeded": row["stats"].get("succeeded", 0),
                 "failed": row["stats"].get("failed", 0),
                 "cancelled": row["stats"].get("cancelled", 0),
-                "aborting": row["stats"].get("aborting", 0),
                 "aborted": row["stats"].get("aborted", 0),
             }
             for row in self.connector.get_sync_connector().execute_query_all(
@@ -664,8 +697,7 @@ class JobManager:
         -------
         ``List[Dict[str, Any]]``
             A list of dictionaries representing tasks stats (``name``, ``jobs_count``,
-            ``todo``, ``doing``, ``succeeded``, ``failed``, ``cancelled``, ``aborting``,
-            ``aborted``).
+            ``todo``, ``doing``, ``succeeded``, ``failed``, ``cancelled``, ``aborted``).
         """
         return [
             {
@@ -676,7 +708,6 @@ class JobManager:
                 "succeeded": row["stats"].get("succeeded", 0),
                 "failed": row["stats"].get("failed", 0),
                 "cancelled": row["stats"].get("cancelled", 0),
-                "aborting": row["stats"].get("aborting", 0),
                 "aborted": row["stats"].get("aborted", 0),
             }
             for row in await self.connector.execute_query_all_async(
@@ -707,7 +738,6 @@ class JobManager:
                 "succeeded": row["stats"].get("succeeded", 0),
                 "failed": row["stats"].get("failed", 0),
                 "cancelled": row["stats"].get("cancelled", 0),
-                "aborting": row["stats"].get("aborting", 0),
                 "aborted": row["stats"].get("aborted", 0),
             }
             for row in self.connector.get_sync_connector().execute_query_all(
@@ -744,8 +774,7 @@ class JobManager:
         -------
         ``List[Dict[str, Any]]``
             A list of dictionaries representing locks stats (``name``, ``jobs_count``,
-            ``todo``, ``doing``, ``succeeded``, ``failed``, ``cancelled``, ``aborting``,
-            ``aborted``).
+            ``todo``, ``doing``, ``succeeded``, ``failed``, ``cancelled``, ``aborted``).
         """
         result = []
         for row in await self.connector.execute_query_all_async(
@@ -764,7 +793,6 @@ class JobManager:
                     "succeeded": row["stats"].get("succeeded", 0),
                     "failed": row["stats"].get("failed", 0),
                     "cancelled": row["stats"].get("cancelled", 0),
-                    "aborting": row["stats"].get("aborting", 0),
                     "aborted": row["stats"].get("aborted", 0),
                 }
             )
@@ -797,7 +825,6 @@ class JobManager:
                     "succeeded": row["stats"].get("succeeded", 0),
                     "failed": row["stats"].get("failed", 0),
                     "cancelled": row["stats"].get("cancelled", 0),
-                    "aborting": row["stats"].get("aborting", 0),
                     "aborted": row["stats"].get("aborted", 0),
                 }
             )

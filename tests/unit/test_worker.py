@@ -385,7 +385,7 @@ async def test_run_job_error(app, caplog, mocker):
         task_name="job",
         queue="yay",
     )
-    app.job_manager.get_job_status_async = mocker.AsyncMock(return_value="doing")
+    app.job_manager.get_job_abort_async = mocker.AsyncMock(return_value=False)
     test_worker = worker.Worker(app, queues=["yay"])
     with pytest.raises(exceptions.JobError):
         await test_worker.run_job(job=job, worker_id=3)
@@ -421,7 +421,7 @@ async def test_run_job_critical_error(app, caplog, mocker):
         task_name="job",
         queue="yay",
     )
-    app.job_manager.get_job_status_async = mocker.AsyncMock(return_value="doing")
+    app.job_manager.get_job_abort_async = mocker.AsyncMock(return_value=False)
     test_worker = worker.Worker(app, queues=["yay"])
     with pytest.raises(exceptions.JobError) as exc_info:
         await test_worker.run_job(job=job, worker_id=3)
@@ -448,7 +448,7 @@ async def test_run_job_retry(app, caplog, mocker):
         queueing_lock="houba",
         queue="yay",
     )
-    app.job_manager.get_job_status_async = mocker.AsyncMock(return_value="doing")
+    app.job_manager.get_job_abort_async = mocker.AsyncMock(return_value=False)
     test_worker = worker.Worker(app, queues=["yay"])
     with pytest.raises(exceptions.JobError) as exc_info:
         await test_worker.run_job(job=job, worker_id=3)

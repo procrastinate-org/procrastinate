@@ -39,7 +39,6 @@ class Status(Enum):
     SUCCEEDED = "succeeded"  #: The job ended successfully
     FAILED = "failed"  #: The job ended with an error
     CANCELLED = "cancelled"  #: The job was cancelled
-    ABORTING = "aborting"  #: The job is requested to be aborted
     ABORTED = "aborted"  #: The job was aborted
 
 
