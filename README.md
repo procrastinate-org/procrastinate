@@ -49,8 +49,8 @@
 | procrastinate/testing.py                                          |      164 |        1 |       57 |        1 |     99% |       150 |
 | procrastinate/types.py                                            |       13 |        0 |        0 |        0 |    100% |           |
 | procrastinate/utils.py                                            |      190 |        0 |       48 |        0 |    100% |           |
-| procrastinate/worker.py                                           |      180 |        0 |       46 |        0 |    100% |           |
-|                                                         **TOTAL** | **2511** |   **25** |  **727** |   **15** | **99%** |           |
+| procrastinate/worker.py                                           |      184 |        0 |       48 |        0 |    100% |           |
+|                                                         **TOTAL** | **2515** |   **25** |  **729** |   **15** | **99%** |           |
 
 
 ## Setup coverage badge
