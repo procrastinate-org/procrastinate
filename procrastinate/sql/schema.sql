@@ -357,6 +357,17 @@ BEGIN
 END;
 $$;
 
+CREATE FUNCTION procrastinate_trigger_abort_requested_events_procedure()
+    RETURNS trigger
+    LANGUAGE plpgsql
+AS $$
+BEGIN
+    INSERT INTO procrastinate_events(job_id, type)
+        VALUES (NEW.id, 'abort_requested'::procrastinate_job_event_type);
+    RETURN NEW;
+END;
+$$;
+
 CREATE FUNCTION procrastinate_unlink_periodic_defers()
     RETURNS trigger
     LANGUAGE plpgsql
@@ -390,6 +401,11 @@ CREATE TRIGGER procrastinate_trigger_scheduled_events
     AFTER UPDATE OR INSERT ON procrastinate_jobs
     FOR EACH ROW WHEN ((new.scheduled_at IS NOT NULL AND new.status = 'todo'::procrastinate_job_status))
     EXECUTE PROCEDURE procrastinate_trigger_scheduled_events_procedure();
+
+CREATE TRIGGER procrastinate_trigger_abort_requested_events
+    AFTER UPDATE OF abort_requested ON procrastinate_jobs
+    FOR EACH ROW WHEN ((new.abort_requested = true))
+    EXECUTE PROCEDURE procrastinate_trigger_abort_requested_events_procedure();
 
 CREATE TRIGGER procrastinate_trigger_delete_jobs
     BEFORE DELETE ON procrastinate_jobs
