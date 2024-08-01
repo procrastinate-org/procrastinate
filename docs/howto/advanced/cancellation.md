@@ -70,3 +70,8 @@ async def my_task(context):
 database and might flood the database. Ensure you do it only sometimes and
 not from too many parallel tasks.
 :::
+
+:::{note}
+When a task of a job that was requested to be aborted raises an error, the job
+is marked as failed (regardless of the retry strategy).
+:::

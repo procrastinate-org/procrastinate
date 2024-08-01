@@ -488,7 +488,7 @@ def configure_shell_parser(subparsers: argparse._SubParsersAction):
     )
     add_argument(
         shell_parser,
-        "args",
+        "shell_command",
         nargs="*",
         help="Invoke a shell command and exit",
     )
@@ -644,7 +644,7 @@ async def healthchecks(app: procrastinate.App):
     print("Found procrastinate_jobs table: OK")
 
 
-async def shell_(app: procrastinate.App, args: list[str]):
+async def shell_(app: procrastinate.App, shell_command: list[str]):
     """
     Administration shell for procrastinate.
     """
@@ -652,8 +652,8 @@ async def shell_(app: procrastinate.App, args: list[str]):
         job_manager=app.job_manager,
     )
 
-    if args:
-        await utils.sync_to_async(shell_obj.onecmd, line=shlex.join(args))
+    if shell_command:
+        await utils.sync_to_async(shell_obj.onecmd, line=shlex.join(shell_command))
     else:
         await utils.sync_to_async(shell_obj.cmdloop)
 

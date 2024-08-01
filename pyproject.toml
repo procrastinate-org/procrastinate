@@ -61,7 +61,11 @@ ruff = "*"
 aiopg = "*"
 sqlalchemy = { extras = ["mypy"], version = "*" }
 psycopg2-binary = "*"
-psycopg = { extras = ["binary"], version = "^3.1.13" }
+psycopg = [
+    { version = "^3.1.13", extras = ["binary", "pool"], markers = "sys_platform != 'darwin' or platform_machine != 'arm64'"},
+    { version = "^3.1.13", extras = ["binary", "pool"], markers = "sys_platform == 'darwin' and platform_machine == 'arm64'", python = ">=3.10"},
+    { version = "^3.1.13", extras = ["pool"], markers = "sys_platform == 'darwin' and platform_machine == 'arm64'", python = "<3.10" }
+]
 
 [tool.poetry.group.django.dependencies]
 django = ">=2.2"

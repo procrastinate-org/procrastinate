@@ -112,14 +112,14 @@ def test_main(mocker):
             ["shell"],
             {
                 "command": "shell",
-                "args": [],
+                "shell_command": [],
             },
         ),
         (
             ["shell", "list_jobs"],
             {
                 "command": "shell",
-                "args": ["list_jobs"],
+                "shell_command": ["list_jobs"],
             },
         ),
     ],
@@ -288,7 +288,7 @@ async def test_shell_single_command(app: app.App, capsys):
 
     await mytask.defer_async(a=1)
 
-    await cli.shell_(app=app, args=["list_jobs"])
+    await cli.shell_(app=app, shell_command=["list_jobs"])
 
     out, _ = capsys.readouterr()
 
@@ -304,7 +304,7 @@ async def test_shell_interactive_command(app: app.App, capsys, mocker):
 
     mocker.patch("sys.stdin", io.StringIO("list_jobs\nexit\n"))
 
-    await cli.shell_(app=app, args=[])
+    await cli.shell_(app=app, shell_command=[])
 
     out, _ = capsys.readouterr()
 
