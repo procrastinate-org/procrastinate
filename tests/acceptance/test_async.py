@@ -238,3 +238,55 @@ async def test_retry_when_aborting(async_app: app_module.App):
     status = await async_app.job_manager.get_job_status_async(job_id)
     assert status == Status.FAILED
     assert attempts == 1
+
+
+async def test_stop_worker(async_app: app_module.App):
+    results = []
+
+    @async_app.task(name="appender")
+    async def appender(a: int):
+        await asyncio.sleep(0.1)
+        results.append(a)
+
+    job_ids: list[int] = []
+
+    job_ids.append(await appender.defer_async(a=1))
+    job_ids.append(await appender.defer_async(a=2))
+
+    run_task = asyncio.create_task(async_app.run_worker_async(concurrency=2, wait=True))
+    await asyncio.sleep(0.5)
+
+    with pytest.raises(asyncio.CancelledError):
+        run_task.cancel()
+        await asyncio.wait_for(run_task, 1)
+
+    for job_id in job_ids:
+        status = await async_app.job_manager.get_job_status_async(job_id)
+        assert status == Status.SUCCEEDED
+
+
+async def test_stop_worker_aborts_jobs_past_shutdown_timeout(async_app: app_module.App):
+    @async_app.task(queue="default", name="fast_job")
+    async def fast_job():
+        pass
+
+    @async_app.task(queue="default", name="slow_job")
+    async def slow_job():
+        await asyncio.sleep(2)
+
+    fast_job_id = await fast_job.defer_async()
+    slow_job_id = await slow_job.defer_async()
+
+    run_task = asyncio.create_task(
+        async_app.run_worker_async(wait=False, shutdown_timeout=0.3)
+    )
+    await asyncio.sleep(0.05)
+
+    with pytest.raises(asyncio.CancelledError):
+        run_task.cancel()
+        await run_task
+
+    fast_job_status = await async_app.job_manager.get_job_status_async(fast_job_id)
+    slow_job_status = await async_app.job_manager.get_job_status_async(slow_job_id)
+    assert fast_job_status == Status.SUCCEEDED
+    assert slow_job_status == Status.ABORTED

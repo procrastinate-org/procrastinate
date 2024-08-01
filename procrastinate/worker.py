@@ -325,10 +325,16 @@ class Worker:
             # instead, a stop event is set to enable graceful shutdown
             await utils.wait_any(asyncio.shield(loop_task), self._stop_event.wait())
             if self._stop_event.is_set():
-                await asyncio.wait_for(loop_task, timeout=self.shutdown_timeout)
+                try:
+                    await asyncio.wait_for(loop_task, timeout=self.shutdown_timeout)
+                except asyncio.TimeoutError:
+                    pass
         except asyncio.CancelledError:
             self.stop()
-            await asyncio.wait_for(loop_task, timeout=self.shutdown_timeout)
+            try:
+                await asyncio.wait_for(loop_task, timeout=self.shutdown_timeout)
+            except asyncio.TimeoutError:
+                pass
             raise
 
     async def _shutdown(self, side_tasks: list[asyncio.Task]):

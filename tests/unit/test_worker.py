@@ -308,16 +308,19 @@ async def test_stopping_worker_aborts_job_after_timeout(app: App, worker, mode):
 
     # we don't tell task to complete, it will be cancelled after timeout
 
-    # this should mark the job as aborted and raise a TimeoutError
-    with pytest.raises(asyncio.TimeoutError):
-        if mode == "stop":
-            worker.stop()
-        else:
-            run_task.cancel()
+    if mode == "stop":
+        worker.stop()
 
         await asyncio.sleep(0.1)
-        assert worker.run_task.done()
-        await worker.run_task
+        assert run_task.done()
+        await run_task
+    else:
+        with pytest.raises(asyncio.CancelledError):
+            run_task.cancel()
+
+            await asyncio.sleep(0.1)
+            assert run_task.done()
+            await run_task
 
     status = await app.job_manager.get_job_status_async(job_id)
     assert status == Status.ABORTED
