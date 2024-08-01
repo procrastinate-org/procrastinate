@@ -37,6 +37,7 @@ class Worker:
         concurrency: int = WORKER_CONCURRENCY,
         wait: bool = True,
         timeout: float = POLLING_INTERVAL,
+        shutdown_timeout: float | None = None,
         listen_notify: bool = True,
         delete_jobs: str | jobs.DeleteJobCondition | None = None,
         additional_context: dict[str, Any] | None = None,
@@ -67,14 +68,11 @@ class Worker:
         self._running_jobs: dict[asyncio.Task, job_context.JobContext] = {}
         self._job_semaphore = asyncio.Semaphore(self.concurrency)
         self._stop_event = asyncio.Event()
-        self._stop_timeout: float | None = None
-        self._stop_timed_out = False
+        self.shutdown_timeout = shutdown_timeout
 
-    def stop(self, timeout: float | None = None):
+    def stop(self):
         if self._stop_event.is_set():
             return
-        self._stop_timed_out = False
-        self._stop_timeout = timeout
         self.logger.info(
             "Stop requested",
             extra=self._log_extra(context=None, action="stopping_worker"),
@@ -221,20 +219,7 @@ class Worker:
 
                 return task_result
 
-            async_task = asyncio.create_task(ensure_async())
-
-            await utils.wait_any(
-                async_task, self._stop_event.wait(), cancel_other_tasks=False
-            )
-
-            if self._stop_event.is_set() and not async_task.done():
-                try:
-                    await asyncio.wait_for(async_task, timeout=self._stop_timeout)
-                except asyncio.TimeoutError:
-                    self._stop_timed_out = True
-                    raise
-
-            job_result.result = async_task.result() if async_task.done() else None
+            job_result.result = await ensure_async()
 
         except BaseException as e:
             exc_info = e
@@ -256,7 +241,7 @@ class Worker:
             job_result.end_timestamp = time.time()
 
             if isinstance(exc_info, exceptions.JobAborted) or isinstance(
-                exc_info, asyncio.TimeoutError
+                exc_info, asyncio.CancelledError
             ):
                 status = jobs.Status.ABORTED
             elif exc_info:
@@ -332,10 +317,12 @@ class Worker:
         try:
             # shield the loop task from cancellation
             # instead, a stop event is set to enable graceful shutdown
-            await asyncio.shield(loop_task)
+            await utils.wait_any(asyncio.shield(loop_task), self._stop_event.wait())
+            if self._stop_event.is_set():
+                await asyncio.wait_for(loop_task, timeout=self.shutdown_timeout)
         except asyncio.CancelledError:
             self.stop()
-            await loop_task
+            await asyncio.wait_for(loop_task, timeout=self.shutdown_timeout)
             raise
 
     async def _shutdown(self, side_tasks: list[asyncio.Task]):
@@ -420,6 +407,3 @@ class Worker:
                     await self._fetch_and_process_jobs()
         finally:
             await self._shutdown(side_tasks=side_tasks)
-
-        if self._stop_timed_out:
-            raise asyncio.TimeoutError()

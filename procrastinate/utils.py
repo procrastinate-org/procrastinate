@@ -232,9 +232,7 @@ async def cancel_and_capture_errors(tasks: list[asyncio.Task]):
             logger.debug(f"Cancelled task ${task.get_name()}")
 
 
-async def wait_any(
-    *coros_or_futures: Coroutine | asyncio.Future, cancel_other_tasks: bool = True
-):
+async def wait_any(*coros_or_futures: Coroutine | asyncio.Future):
     """Starts and wait on the first coroutine to complete and return it
     Other pending coroutines are either cancelled or left running"""
     futures = set(asyncio.ensure_future(fut) for fut in coros_or_futures)
@@ -244,10 +242,9 @@ async def wait_any(
         return_when=asyncio.FIRST_COMPLETED,
     )
 
-    if cancel_other_tasks:
-        for task in pending:
-            task.cancel()
-        await asyncio.gather(*pending, return_exceptions=True)
+    for task in pending:
+        task.cancel()
+    await asyncio.gather(*pending, return_exceptions=True)
 
 
 def add_namespace(name: str, namespace: str) -> str:

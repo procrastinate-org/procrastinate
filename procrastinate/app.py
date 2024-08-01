@@ -29,6 +29,7 @@ class WorkerOptions(TypedDict):
     concurrency: NotRequired[int]
     wait: NotRequired[bool]
     timeout: NotRequired[float]
+    shutdown_timeout: NotRequired[float]
     listen_notify: NotRequired[bool]
     delete_jobs: NotRequired[str | jobs.DeleteJobCondition]
     additional_context: NotRequired[dict[str, Any]]
@@ -267,6 +268,11 @@ class App(blueprints.Blueprint):
             each database job poll. Raising this parameter can lower the rate at which
             the worker makes queries to the database for requesting jobs.
             (defaults to 5.0)
+        shutdown_timeout : ``float``
+            Indicates the maximum duration (in seconds) the worker waits for jobs to
+            complete when requested stop. Jobs that have not been completed by that time
+            are aborted. A value of None corresponds to no timeout.
+            (defaults to None)
         listen_notify : ``bool``
             If ``True``, the worker will dedicate a connection from the pool to
             listening to database events, notifying of newly available jobs.
