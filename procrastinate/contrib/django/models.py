@@ -108,6 +108,7 @@ class ProcrastinateEvent(ProcrastinateReadOnlyModelMixin, models.Model):
     class Meta:  # type: ignore
         managed = False
         db_table = "procrastinate_events"
+        get_latest_by = "at"
 
 
 class ProcrastinatePeriodicDefer(ProcrastinateReadOnlyModelMixin, models.Model):
