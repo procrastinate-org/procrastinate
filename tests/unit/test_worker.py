@@ -293,9 +293,16 @@ async def test_stopping_worker_aborts_job_after_timeout(app: App, worker, mode):
     complete_task_event = asyncio.Event()
     worker.shutdown_timeout = 0.02
 
+    task_cancelled = False
+
     @app.task()
     async def task_func():
-        await complete_task_event.wait()
+        nonlocal task_cancelled
+        try:
+            await complete_task_event.wait()
+        except asyncio.CancelledError:
+            task_cancelled = True
+            raise
 
     run_task = await start_worker(worker)
 
@@ -324,6 +331,7 @@ async def test_stopping_worker_aborts_job_after_timeout(app: App, worker, mode):
 
     status = await app.job_manager.get_job_status_async(job_id)
     assert status == Status.ABORTED
+    assert task_cancelled
 
 
 @pytest.mark.parametrize(

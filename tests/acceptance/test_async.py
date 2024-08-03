@@ -266,13 +266,20 @@ async def test_stop_worker(async_app: app_module.App):
 
 
 async def test_stop_worker_aborts_jobs_past_shutdown_timeout(async_app: app_module.App):
+    slow_job_cancelled = False
+
     @async_app.task(queue="default", name="fast_job")
     async def fast_job():
         pass
 
     @async_app.task(queue="default", name="slow_job")
     async def slow_job():
-        await asyncio.sleep(2)
+        nonlocal slow_job_cancelled
+        try:
+            await asyncio.sleep(2)
+        except asyncio.CancelledError:
+            slow_job_cancelled = True
+            raise
 
     fast_job_id = await fast_job.defer_async()
     slow_job_id = await slow_job.defer_async()
@@ -290,3 +297,5 @@ async def test_stop_worker_aborts_jobs_past_shutdown_timeout(async_app: app_modu
     slow_job_status = await async_app.job_manager.get_job_status_async(slow_job_id)
     assert fast_job_status == Status.SUCCEEDED
     assert slow_job_status == Status.ABORTED
+
+    assert slow_job_cancelled

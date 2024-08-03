@@ -105,6 +105,26 @@ async def test_app_run_worker_async_cancel(app: app_module.App):
     assert result == [1]
 
 
+async def test_app_run_worker_async_abort(app: app_module.App):
+    result = []
+
+    @app.task
+    async def my_task(a):
+        await asyncio.sleep(3)
+        result.append(a)
+
+    task = asyncio.create_task(app.run_worker_async(shutdown_timeout=0.1))
+    await my_task.defer_async(a=1)
+    await asyncio.sleep(0.01)
+    task.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        # this wait_for is just here to fail the test faster
+        await asyncio.wait_for(task, timeout=1)
+        pytest.fail("Expected the worker to be force stopped")
+
+    assert result == []
+
+
 def test_from_path(mocker):
     load = mocker.patch("procrastinate.utils.load_from_path")
     assert app_module.App.from_path("dotted.path") is load.return_value

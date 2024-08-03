@@ -330,6 +330,7 @@ class Worker:
                 except asyncio.TimeoutError:
                     pass
         except asyncio.CancelledError:
+            # worker.run is cancelled, usually by cancelling app.run_worker_async
             self.stop()
             try:
                 await asyncio.wait_for(loop_task, timeout=self.shutdown_timeout)
