@@ -35,6 +35,7 @@ async def test_manager_defer_job(job_manager, job_factory, connector):
             "scheduled_at": None,
             "status": "todo",
             "task_name": "bla",
+            "abort_requested": False,
         }
     }
 
@@ -250,7 +251,8 @@ async def test_abort_doing_job(job_manager, job_factory, connector):
         "cancel_job",
         {"job_id": 1, "abort": True, "delete_job": False},
     )
-    assert connector.jobs[1]["status"] == "aborting"
+    assert connector.jobs[1]["status"] == "doing"
+    assert connector.jobs[1]["abort_requested"] is True
 
 
 def test_get_job_status(job_manager, job_factory, connector):
@@ -466,7 +468,6 @@ async def test_list_queues_async(job_manager, job_factory):
             "succeeded": 0,
             "failed": 0,
             "cancelled": 0,
-            "aborting": 0,
             "aborted": 0,
         }
     ]
@@ -484,7 +485,6 @@ def test_list_queues_(job_manager, job_factory):
             "succeeded": 0,
             "failed": 0,
             "cancelled": 0,
-            "aborting": 0,
             "aborted": 0,
         }
     ]
@@ -502,7 +502,6 @@ async def test_list_tasks_async(job_manager, job_factory):
             "succeeded": 0,
             "failed": 0,
             "cancelled": 0,
-            "aborting": 0,
             "aborted": 0,
         }
     ]
@@ -520,7 +519,6 @@ def test_list_tasks(job_manager, job_factory):
             "succeeded": 0,
             "failed": 0,
             "cancelled": 0,
-            "aborting": 0,
             "aborted": 0,
         }
     ]
@@ -538,7 +536,6 @@ async def test_list_locks_async(job_manager, job_factory):
             "succeeded": 0,
             "failed": 0,
             "cancelled": 0,
-            "aborting": 0,
             "aborted": 0,
         }
     ]
@@ -556,7 +553,6 @@ def test_list_locks(job_manager, job_factory):
             "succeeded": 0,
             "failed": 0,
             "cancelled": 0,
-            "aborting": 0,
             "aborted": 0,
         }
     ]

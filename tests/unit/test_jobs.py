@@ -79,6 +79,7 @@ async def test_job_deferrer_defer_async(job_factory, job_manager, connector):
             "scheduled_at": None,
             "status": "todo",
             "task_name": "mytask",
+            "abort_requested": False,
         }
     }
 

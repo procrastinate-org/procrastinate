@@ -89,7 +89,6 @@ class ProcrastinateShell(cmd.Cmd):
                 f"succeeded: {queue['succeeded']}, "
                 f"failed: {queue['failed']}, "
                 f"cancelled: {queue['cancelled']}, "
-                f"aborting: {queue['aborting']}, "
                 f"aborted: {queue['aborted']})"
             )
 
@@ -112,7 +111,6 @@ class ProcrastinateShell(cmd.Cmd):
                 f"succeeded: {task['succeeded']}, "
                 f"failed: {task['failed']}, "
                 f"cancelled: {task['cancelled']}, "
-                f"aborting: {task['aborting']}, "
                 f"aborted: {task['aborted']})"
             )
 
@@ -135,7 +133,6 @@ class ProcrastinateShell(cmd.Cmd):
                 f"succeeded: {lock['succeeded']}, "
                 f"failed: {lock['failed']}, "
                 f"cancelled: {lock['cancelled']}, "
-                f"aborting: {lock['aborting']}, "
                 f"aborted: {lock['aborted']})"
             )
 
