@@ -199,28 +199,16 @@ Having sub-workers wait for an available connection in the pool is suboptimal. Y
 resources will be better used with fewer sub-workers or a larger pool, but there are
 many factors to take into account when [sizing your pool](https://wiki.postgresql.org/wiki/Number_Of_Database_Connections).
 
-### Mind the `worker_timeout`
+### Mind the `polling_interval`
 
 Even when the database doesn't notify workers regarding newly deferred jobs, idle
 workers still poll the database every now and then, just in case.
 There could be previously locked jobs that are now free, or scheduled jobs that have
-reached the ETA. `worker_timeout` is the {py:meth}`App.run_worker` parameter (or the
+reached the ETA. `polling_interval` is the {py:meth}`App.run_worker` parameter (or the
 equivalent CLI flag) that sizes this "every now and then".
 
-On a non-concurrent idle worker, a database poll is run every `<worker_timeout>`
-seconds. On a concurrent worker, sub-workers poll the database every
-`<worker_timeout>*<concurrency>` seconds. This ensures that, on average, the time
-between each database poll is still `<worker_timeout>` seconds.
-
-The initial timeout for the first loop of each sub-worker is modified so that the
-workers are initially spread across all the total length of the timeout, but the
-randomness in job duration could create a situation where there is a long gap between
-polls. If you find this to happen in reality, please open an issue, and lower your
-`worker_timeout`.
-
-Note that as long as jobs are regularly deferred, or there are enqueued jobs,
-sub-workers will not wait and this will not be an issue. This is only about idle
-workers taking time to notice that a previously unavailable job has become available.
+A worker will keep fetching new jobs as long as they have capacity to process them.
+The polling interval starts from the moment the last attempt to fetch a new job yields no result.
 
 ## Procrastinate's usage of PostgreSQL functions and procedures
 
