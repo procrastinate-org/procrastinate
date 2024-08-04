@@ -36,7 +36,7 @@ class Worker:
         name: str | None = WORKER_NAME,
         concurrency: int = WORKER_CONCURRENCY,
         wait: bool = True,
-        timeout: float = POLLING_INTERVAL,
+        polling_interval: float = POLLING_INTERVAL,
         shutdown_timeout: float | None = None,
         listen_notify: bool = True,
         delete_jobs: str | jobs.DeleteJobCondition | None = None,
@@ -48,7 +48,7 @@ class Worker:
         self.worker_name = name
         self.concurrency = concurrency
         self.wait = wait
-        self.polling_interval = timeout
+        self.polling_interval = polling_interval
         self.listen_notify = listen_notify
         self.delete_jobs = (
             jobs.DeleteJobCondition(delete_jobs)

@@ -291,11 +291,11 @@ def configure_worker_parser(subparsers: argparse._SubParsersAction):
     )
     add_argument(
         worker_parser,
-        "-t",
-        "--timeout",
+        "-p",
+        "--polling-interval",
         type=float,
         help="How long to wait for database event push before polling",
-        envvar="WORKER_TIMEOUT",
+        envvar="WORKER_POLLING_INTERVAL",
     )
     add_argument(
         worker_parser,

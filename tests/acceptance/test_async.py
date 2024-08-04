@@ -188,7 +188,7 @@ async def test_polling(async_app: app_module.App):
     # rely on polling to fetch new jobs
     worker_task = asyncio.create_task(
         async_app.run_worker_async(
-            concurrency=1, wait=True, listen_notify=False, timeout=0.3
+            concurrency=1, wait=True, listen_notify=False, polling_interval=0.3
         )
     )
 

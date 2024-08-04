@@ -200,7 +200,7 @@ async def test_worker_run_fetches_job_on_notification(worker, app: App):
 
 @pytest.mark.parametrize(
     "worker",
-    [({"timeout": 0.05})],
+    [({"polling_interval": 0.05})],
     indirect=["worker"],
 )
 async def test_worker_run_respects_polling(worker, app):
