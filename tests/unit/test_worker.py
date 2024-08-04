@@ -334,6 +334,37 @@ async def test_stopping_worker_aborts_job_after_timeout(app: App, worker, mode):
     assert task_cancelled
 
 
+async def test_stopping_worker_job_suppresses_cancellation(app: App, worker):
+    complete_task_event = asyncio.Event()
+    worker.shutdown_timeout = 0.02
+
+    @app.task()
+    async def task_func():
+        try:
+            await complete_task_event.wait()
+        except asyncio.CancelledError:
+            # supress the cancellation
+            pass
+
+    run_task = await start_worker(worker)
+
+    job_id = await task_func.defer_async()
+
+    await asyncio.sleep(0.05)
+
+    # this should still be running waiting for the task to complete
+    assert run_task.done() is False
+
+    worker.stop()
+
+    await asyncio.sleep(0.1)
+    assert run_task.done()
+    await run_task
+
+    status = await app.job_manager.get_job_status_async(job_id)
+    assert status == Status.SUCCEEDED
+
+
 @pytest.mark.parametrize(
     "worker",
     [({"additional_context": {"foo": "bar"}})],
