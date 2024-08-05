@@ -36,7 +36,7 @@ repos:
           - aiopg==1.4.0
           - anyio==4.4.0
           - asgiref==3.8.1
-          - attrs==23.2.0
+          - attrs==24.1.0
           - contextlib2==21.6.0
           - croniter==3.0.3
           - django-stubs==5.0.4
