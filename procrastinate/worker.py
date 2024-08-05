@@ -318,7 +318,7 @@ class Worker:
         This will run forever until asked to stop/cancelled, or until no more job is available is configured not to wait
         """
         self.run_task = asyncio.current_task()
-        loop_task = asyncio.create_task(self._run_loop())
+        loop_task = asyncio.create_task(self._run_loop(), name="worker loop")
 
         try:
             # shield the loop task from cancellation
@@ -365,7 +365,7 @@ class Worker:
 
     def _start_side_tasks(self) -> list[asyncio.Task]:
         """Start side tasks such as periodic deferrer and notification listener"""
-        side_tasks = [asyncio.create_task(self.periodic_deferrer())]
+        side_tasks = [asyncio.create_task(self.periodic_deferrer(), name="deferrer")]
         if self.wait and self.listen_notify:
             listener_coro = self.app.job_manager.listen_for_jobs(
                 event=self._notify_event,
