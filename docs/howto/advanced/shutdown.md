@@ -60,7 +60,7 @@ async with app.open_async():
         try:
             await worker
         except asyncio.CancelledError:
-            # at this point, the worker is shut down.
+            # at this point, the worker is shutdown.
             # Any job that took longer than 10 seconds to complete have aborted
             pass
 ```
