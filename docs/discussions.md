@@ -199,7 +199,7 @@ Having sub-workers wait for an available connection in the pool is suboptimal. Y
 resources will be better used with fewer sub-workers or a larger pool, but there are
 many factors to take into account when [sizing your pool](https://wiki.postgresql.org/wiki/Number_Of_Database_Connections).
 
-### Mind the `polling_interval`
+### How the `polling_interval` works
 
 Even when the database doesn't notify workers regarding newly deferred jobs, idle
 workers still poll the database every now and then, just in case.
