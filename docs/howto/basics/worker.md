@@ -31,13 +31,7 @@ When running the worker inside a bigger application, you may want to use
 `install_signal_handlers=False` so that the worker doesn't interfere with
 your application's signal handlers.
 
-When you run the worker as a task, at any point, you can call `task.cancel()`
-to request the worker to gracefully stop at the next opportunity.
-You may then wait for it to actually stop using `await task` if you're
-ready to wait indefinitely, or `asyncio.wait_for(task, timeout)` if you
-want to set a timeout.
-
-
+For more information about stopping the worker, see {doc}`../advanced/shutdown`.
 
 Here is an example FastAPI application that does this:
 
