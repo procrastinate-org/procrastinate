@@ -12,6 +12,8 @@ async def remove_old_jobs(
     max_hours: int,
     queue: str | None = None,
     remove_error: bool | None = False,
+    remove_cancelled: bool | None = False,
+    remove_aborted: bool | None = False,
 ) -> None:
     """
     This task cleans your database by removing old jobs. Note that jobs and linked
@@ -24,11 +26,21 @@ async def remove_old_jobs(
     queue :
         The name of the queue in which jobs will be deleted. If not specified, the
         task will delete jobs from all queues.
-    remove_error :
+    remove_error : ``Optional[bool]``
         By default only successful jobs will be removed. When this parameter is True
         failed jobs will also be deleted.
+    remove_cancelled : ``Optional[bool]``
+        By default only successful jobs will be removed. When this parameter is True
+        cancelled jobs will also be deleted.
+    remove_aborted : ``Optional[bool]``
+        By default only successful jobs will be removed. When this parameter is True
+        aborted jobs will also be deleted.
     """
     assert context.app
     await context.app.job_manager.delete_old_jobs(
-        nb_hours=max_hours, queue=queue, include_error=remove_error
+        nb_hours=max_hours,
+        queue=queue,
+        include_error=remove_error,
+        include_cancelled=remove_cancelled,
+        include_aborted=remove_aborted,
     )
