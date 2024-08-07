@@ -209,6 +209,9 @@ equivalent CLI flag) that sizes this "every now and then".
 
 A worker will keep fetching new jobs as long as they have capacity to process them.
 The polling interval starts from the moment the last attempt to fetch a new job yields no result.
+:::{note}
+The polling interval was previously called `timeout` in pre-v3 versions of Procrastinate. It was renamed to `polling_interval` for clarity.
+:::
 
 ## Procrastinate's usage of PostgreSQL functions and procedures
 
