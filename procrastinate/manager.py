@@ -181,9 +181,13 @@ class JobManager:
         nb_hours: int,
         queue: str | None = None,
         include_error: bool | None = False,
+        include_cancelled: bool | None = False,
+        include_aborted: bool | None = False,
     ) -> None:
         """
-        Delete jobs that have reached a final state (``succeeded`` or ``failed``).
+        Delete jobs that have reached a final state (``succeeded``, ``failed``,
+        ``cancelled``, or ``aborted``). By default, only considers jobs that have
+        succeeded.
 
         Parameters
         ----------
@@ -192,14 +196,20 @@ class JobManager:
         queue : ``Optional[str]``
             Filter by job queue name
         include_error : ``Optional[bool]``
-            If ``True``, only succeeded jobs will be considered. If ``False``, both
-            succeeded and failed jobs will be considered, ``False`` by default
+            If ``True``, also consider errored jobs. ``False`` by default
+        include_cancelled : ``Optional[bool]``
+            If ``True``, also consider cancelled jobs. ``False`` by default.
+        include_aborted : ``Optional[bool]``
+            If ``True``, also consider aborted jobs. ``False`` by default.
         """
         # We only consider finished jobs by default
-        if not include_error:
-            statuses = [jobs.Status.SUCCEEDED.value]
-        else:
-            statuses = [jobs.Status.SUCCEEDED.value, jobs.Status.FAILED.value]
+        statuses = [jobs.Status.SUCCEEDED.value]
+        if include_error:
+            statuses.append(jobs.Status.FAILED.value)
+        if include_cancelled:
+            statuses.append(jobs.Status.CANCELLED.value)
+        if include_aborted:
+            statuses.append(jobs.Status.ABORTED.value)
 
         await self.connector.execute_query_async(
             query=sql.queries["delete_old_jobs"],
