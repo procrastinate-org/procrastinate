@@ -28,7 +28,6 @@ async def remove_old_jobs(
         By default only successful jobs will be removed. When this parameter is True
         failed jobs will also be deleted.
     """
-    assert context.app
     await context.app.job_manager.delete_old_jobs(
         nb_hours=max_hours, queue=queue, include_error=remove_error
     )

@@ -1,249 +1,421 @@
 from __future__ import annotations
 
 import asyncio
+import signal
+from typing import cast
 
 import pytest
 
-from procrastinate import exceptions, job_context, jobs, tasks, worker
-from procrastinate.retry import RetryDecision
+from procrastinate.app import App
+from procrastinate.exceptions import JobAborted
+from procrastinate.job_context import JobContext
+from procrastinate.jobs import DEFAULT_QUEUE, Job, Status
+from procrastinate.testing import InMemoryConnector
+from procrastinate.worker import Worker
 
-from .. import conftest
+
+async def start_worker(worker: Worker):
+    task = asyncio.create_task(worker.run())
+    await asyncio.sleep(0.01)
+    return task
 
 
 @pytest.fixture
-def test_worker(app):
-    return worker.Worker(app, queues=None)
+async def worker(app: App, request: pytest.FixtureRequest):
+    kwargs = request.param if hasattr(request, "param") else {}
+    worker = Worker(app, **kwargs)
+    yield worker
+    if worker.run_task and not worker.run_task.done():
+        worker.stop()
+        try:
+            await asyncio.wait_for(worker.run_task, timeout=0.2)
+        except asyncio.CancelledError:
+            pass
 
 
-@pytest.fixture
-def context(app):
-    def _(job):
-        return job_context.JobContext(app=app, worker_name="worker", job=job)
+@pytest.mark.parametrize(
+    "available_jobs, concurrency",
+    [
+        (0, 1),
+        (1, 1),
+        (2, 1),
+        (1, 2),
+        (2, 2),
+        (4, 2),
+    ],
+)
+async def test_worker_run_no_wait(app: App, available_jobs, concurrency):
+    worker = Worker(app, wait=False, concurrency=concurrency)
 
-    return _
+    @app.task
+    async def perform_job():
+        pass
+
+    for i in range(available_jobs):
+        await perform_job.defer_async()
+
+    await asyncio.wait_for(worker.run(), 0.1)
 
 
-def test_worker_additional_context(app):
-    worker_obj = worker.Worker(app=app, additional_context={"foo": "bar"})
-    assert worker_obj.base_context.additional_context == {"foo": "bar"}
+async def test_worker_run_wait_until_cancelled(app: App):
+    worker = Worker(app, wait=True)
+    with pytest.raises(asyncio.TimeoutError):
+        await asyncio.wait_for(worker.run(), 0.05)
 
 
-async def test_run(test_worker, mocker, caplog):
+async def test_worker_run_wait_stop(app: App, caplog):
     caplog.set_level("INFO")
-
-    single_worker = mocker.Mock()
-
-    async def mock(worker_id):
-        single_worker(worker_id=worker_id)
-
-    test_worker.single_worker = mock
-
-    await test_worker.run()
-
-    single_worker.assert_called()
+    worker = Worker(app, wait=True)
+    run_task = asyncio.create_task(worker.run())
+    # wait just enough to make sure the task is running
+    await asyncio.sleep(0.01)
+    worker.stop()
+    await asyncio.wait_for(run_task, 0.1)
 
     assert set(caplog.messages) == {
         "Starting worker on all queues",
+        "Stop requested",
         "Stopped worker on all queues",
         "No periodic task found, periodic deferrer will not run.",
     }
 
 
-@pytest.mark.parametrize(
-    "side_effect, status",
-    [
-        (None, "succeeded"),
-        (exceptions.JobAborted(), "aborted"),
-        (exceptions.JobError(), "failed"),
-        (exceptions.TaskNotFound(), "failed"),
-    ],
-)
-async def test_process_job(
-    mocker, test_worker, job_factory, connector, side_effect, status
-):
-    async def coro(*args, **kwargs):
-        pass
+async def test_worker_run_once_log_messages(app: App, caplog):
+    caplog.set_level("INFO")
+    worker = Worker(app, wait=False)
+    await asyncio.wait_for(worker.run(), 0.1)
 
-    test_worker.run_job = mocker.Mock(side_effect=side_effect or coro)
-    job = job_factory(id=1)
-    await test_worker.job_manager.defer_job_async(job)
+    assert set(caplog.messages) == {
+        "Starting worker on all queues",
+        "No job found. Stopping worker because wait=False",
+        "Stopped worker on all queues",
+        "No periodic task found, periodic deferrer will not run.",
+    }
 
-    await test_worker.process_job(job=job)
 
-    test_worker.run_job.assert_called_with(job=job, worker_id=0)
-    assert connector.jobs[1]["status"] == status
+async def test_worker_run_wait_listen(worker):
+    await start_worker(worker)
+    connector = cast(InMemoryConnector, worker.app.connector)
+
+    assert connector.notify_event
+    assert connector.notify_channels == ["procrastinate_any_queue"]
 
 
 @pytest.mark.parametrize(
-    "side_effect, delete_jobs",
+    "available_jobs, worker",
     [
-        (None, "successful"),
-        (None, "always"),
-        (exceptions.JobError(), "always"),
+        (2, {"concurrency": 1}),
+        (3, {"concurrency": 2}),
     ],
+    indirect=["worker"],
 )
-async def test_process_job_with_deletion(
-    mocker, app, job_factory, connector, side_effect, delete_jobs
+async def test_worker_run_respects_concurrency(
+    worker: Worker, app: App, available_jobs
 ):
-    async def coro(*args, **kwargs):
-        pass
+    complete_tasks = asyncio.Event()
 
-    test_worker = worker.Worker(app, delete_jobs=delete_jobs)
-    test_worker.run_job = mocker.Mock(side_effect=side_effect or coro)
-    job = job_factory(id=1)
-    await test_worker.job_manager.defer_job_async(job)
+    @app.task
+    async def perform_job():
+        await complete_tasks.wait()
 
-    await test_worker.process_job(job=job)
+    for _ in range(available_jobs):
+        await perform_job.defer_async()
 
-    assert 1 not in connector.jobs
+    await start_worker(worker)
+
+    connector = cast(InMemoryConnector, app.connector)
+
+    doings_jobs = list(connector.list_jobs_all(status=Status.DOING.value))
+    todo_jobs = list(connector.list_jobs_all(status=Status.TODO.value))
+
+    assert len(doings_jobs) == worker.concurrency
+    assert len(todo_jobs) == available_jobs - worker.concurrency
+
+    complete_tasks.set()
+
+
+async def test_worker_run_respects_concurrency_variant(worker: Worker, app: App):
+    worker.concurrency = 2
+
+    max_parallelism = 0
+    parallel_jobs = 0
+
+    @app.task
+    async def perform_job(sleep: float):
+        nonlocal max_parallelism
+        nonlocal parallel_jobs
+        parallel_jobs += 1
+
+        max_parallelism = max(max_parallelism, parallel_jobs)
+        await asyncio.sleep(sleep)
+        parallel_jobs -= 1
+
+    await perform_job.defer_async(sleep=0.05)
+    await perform_job.defer_async(sleep=0.1)
+
+    await start_worker(worker)
+
+    # wait enough to run out of job and to have one pending job
+    await asyncio.sleep(0.05)
+
+    assert max_parallelism == 2
+    assert parallel_jobs == 1
+
+    # defer more jobs than the worker can process in parallel
+    await perform_job.defer_async(sleep=0.05)
+    await perform_job.defer_async(sleep=0.05)
+    await perform_job.defer_async(sleep=0.05)
+
+    worker._notify_event.set()
+
+    await asyncio.sleep(0.2)
+    assert max_parallelism == 2
+    assert parallel_jobs == 0
+
+
+async def test_worker_run_fetches_job_on_notification(worker, app: App):
+    complete_tasks = asyncio.Event()
+
+    @app.task
+    async def perform_job():
+        await complete_tasks.wait()
+
+    await start_worker(worker)
+
+    connector = cast(InMemoryConnector, app.connector)
+
+    assert len([query for query in connector.queries if query[0] == "fetch_job"]) == 1
+
+    await asyncio.sleep(0.01)
+
+    assert len([query for query in connector.queries if query[0] == "fetch_job"]) == 1
+
+    await perform_job.defer_async()
+    await asyncio.sleep(0.01)
+
+    assert len([query for query in connector.queries if query[0] == "fetch_job"]) == 2
+
+    complete_tasks.set()
 
 
 @pytest.mark.parametrize(
-    "side_effect, delete_jobs",
-    [
-        (None, "never"),
-        (exceptions.JobError(), "never"),
-        (exceptions.JobError(), "successful"),
-    ],
+    "worker",
+    [({"polling_interval": 0.05})],
+    indirect=["worker"],
 )
-async def test_process_job_without_deletion(
-    mocker, app, job_factory, connector, side_effect, delete_jobs
-):
-    async def coro(*args, **kwargs):
-        pass
+async def test_worker_run_respects_polling(worker, app):
+    await start_worker(worker)
 
-    test_worker = worker.Worker(app, delete_jobs=delete_jobs)
-    test_worker.run_job = mocker.Mock(side_effect=side_effect or coro)
-    job = job_factory(id=1)
-    await test_worker.job_manager.defer_job_async(job)
+    connector = cast(InMemoryConnector, app.connector)
+    assert len([query for query in connector.queries if query[0] == "fetch_job"]) == 1
 
-    await test_worker.process_job(job=job)
+    await asyncio.sleep(0.05)
 
-    assert 1 in connector.jobs
+    assert len([query for query in connector.queries if query[0] == "fetch_job"]) == 2
 
 
-async def test_process_job_retry_failed_job(
-    mocker, test_worker, job_factory, connector
-):
-    async def coro(*args, **kwargs):
-        pass
+@pytest.mark.parametrize(
+    "worker, fail_task",
+    [
+        ({"delete_jobs": "never"}, False),
+        ({"delete_jobs": "never"}, True),
+        ({"delete_jobs": "successful"}, True),
+    ],
+    indirect=["worker"],
+)
+async def test_process_job_without_deletion(app: App, worker, fail_task):
+    @app.task()
+    async def task_func():
+        if fail_task:
+            raise ValueError("Nope")
 
-    retry_at = conftest.aware_datetime(2000, 1, 1)
-    test_worker.run_job = mocker.Mock(
-        side_effect=exceptions.JobError(
-            retry_exception=exceptions.JobRetry(
-                retry_decision=RetryDecision(retry_at=retry_at)
-            )
-        )
-    )
-    job = job_factory(id=1)
-    await test_worker.job_manager.defer_job_async(job)
+    job_id = await task_func.defer_async()
 
-    await test_worker.process_job(job=job, worker_id=0)
+    await start_worker(worker)
 
-    test_worker.run_job.assert_called_with(job=job, worker_id=0)
-    assert connector.jobs[1]["status"] == "todo"
-    assert connector.jobs[1]["scheduled_at"] == retry_at
-    assert connector.jobs[1]["attempts"] == 1
+    connector = cast(InMemoryConnector, app.connector)
+    assert job_id in connector.jobs
 
 
-async def test_process_job_retry_failed_job_critical(
-    mocker, test_worker, job_factory, connector
-):
-    class TestException(BaseException):
-        pass
+@pytest.mark.parametrize(
+    "worker, fail_task",
+    [
+        ({"delete_jobs": "successful"}, False),
+        ({"delete_jobs": "always"}, False),
+        ({"delete_jobs": "always"}, True),
+    ],
+    indirect=["worker"],
+)
+async def test_process_job_with_deletion(app: App, worker, fail_task):
+    @app.task()
+    async def task_func():
+        if fail_task:
+            raise ValueError("Nope")
 
-    job_exception = exceptions.JobError(critical=True)
-    job_exception.__cause__ = TestException()
+    job_id = await task_func.defer_async()
 
-    test_worker.run_job = mocker.Mock(side_effect=job_exception)
-    job = job_factory(id=1)
-    await test_worker.job_manager.defer_job_async(job)
+    await start_worker(worker)
 
-    # Exceptions that extend BaseException should be re-raised after the failed job
-    # is scheduled for retry (if retry is applicable).
-    with pytest.raises(TestException):
-        await test_worker.process_job(job=job, worker_id=0)
-
-    test_worker.run_job.assert_called_with(job=job, worker_id=0)
-    assert connector.jobs[1]["status"] == "failed"
-    assert connector.jobs[1]["scheduled_at"] is None
-    assert connector.jobs[1]["attempts"] == 1
-
-
-async def test_process_job_retry_failed_job_retry_critical(
-    mocker, test_worker, job_factory, connector
-):
-    class TestException(BaseException):
-        pass
-
-    retry_at = conftest.aware_datetime(2000, 1, 1)
-    job_exception = exceptions.JobError(
-        critical=True,
-        retry_exception=exceptions.JobRetry(
-            retry_decision=RetryDecision(retry_at=retry_at)
-        ),
-    )
-    job_exception.__cause__ = TestException()
-
-    test_worker.run_job = mocker.Mock(side_effect=job_exception)
-    job = job_factory(id=1)
-    await test_worker.job_manager.defer_job_async(job)
-
-    # Exceptions that extend BaseException should be re-raised after the failed job
-    # is scheduled for retry (if retry is applicable).
-    with pytest.raises(TestException):
-        await test_worker.process_job(job=job, worker_id=0)
-
-    test_worker.run_job.assert_called_with(job=job, worker_id=0)
-    assert connector.jobs[1]["status"] == "todo"
-    assert connector.jobs[1]["scheduled_at"] == retry_at
-    assert connector.jobs[1]["attempts"] == 1
+    connector = cast(InMemoryConnector, app.connector)
+    assert job_id not in connector.jobs
 
 
-async def test_run_job(app):
-    result = []
+async def test_stopping_worker_waits_for_task(app: App, worker):
+    complete_task_event = asyncio.Event()
 
-    @app.task(queue="yay", name="task_func")
-    def task_func(a, b):
-        result.append(a + b)
+    @app.task()
+    async def task_func():
+        await complete_task_event.wait()
 
-    job = jobs.Job(
-        id=16,
-        task_kwargs={"a": 9, "b": 3},
-        lock="sherlock",
-        queueing_lock="houba",
-        task_name="task_func",
-        queue="yay",
-    )
-    test_worker = worker.Worker(app, queues=["yay"])
-    await test_worker.run_job(job=job, worker_id=3)
+    run_task = await start_worker(worker)
 
-    assert result == [12]
+    job_id = await task_func.defer_async()
+
+    await asyncio.sleep(0.05)
+
+    # this should still be running waiting for the task to complete
+    assert run_task.done() is False
+
+    # tell the task to complete
+    complete_task_event.set()
+
+    # this should successfully complete the job and re-raise the CancelledError
+    with pytest.raises(asyncio.CancelledError):
+        run_task.cancel()
+        await asyncio.wait_for(run_task, 0.1)
+
+    status = await app.job_manager.get_job_status_async(job_id)
+    assert status == Status.SUCCEEDED
 
 
-async def test_run_job_async(app):
+@pytest.mark.parametrize("mode", [("stop"), ("cancel")])
+async def test_stopping_worker_aborts_job_after_timeout(app: App, worker, mode):
+    complete_task_event = asyncio.Event()
+    worker.shutdown_timeout = 0.02
+
+    task_cancelled = False
+
+    @app.task()
+    async def task_func():
+        nonlocal task_cancelled
+        try:
+            await complete_task_event.wait()
+        except asyncio.CancelledError:
+            task_cancelled = True
+            raise
+
+    run_task = await start_worker(worker)
+
+    job_id = await task_func.defer_async()
+
+    await asyncio.sleep(0.05)
+
+    # this should still be running waiting for the task to complete
+    assert run_task.done() is False
+
+    # we don't tell task to complete, it will be cancelled after timeout
+
+    if mode == "stop":
+        worker.stop()
+
+        await asyncio.sleep(0.1)
+        assert run_task.done()
+        await run_task
+    else:
+        with pytest.raises(asyncio.CancelledError):
+            run_task.cancel()
+
+            await asyncio.sleep(0.1)
+            assert run_task.done()
+            await run_task
+
+    status = await app.job_manager.get_job_status_async(job_id)
+    assert status == Status.ABORTED
+    assert task_cancelled
+
+
+async def test_stopping_worker_job_suppresses_cancellation(app: App, worker):
+    complete_task_event = asyncio.Event()
+    worker.shutdown_timeout = 0.02
+
+    @app.task()
+    async def task_func():
+        try:
+            await complete_task_event.wait()
+        except asyncio.CancelledError:
+            # supress the cancellation
+            pass
+
+    run_task = await start_worker(worker)
+
+    job_id = await task_func.defer_async()
+
+    await asyncio.sleep(0.05)
+
+    # this should still be running waiting for the task to complete
+    assert run_task.done() is False
+
+    worker.stop()
+
+    await asyncio.sleep(0.1)
+    assert run_task.done()
+    await run_task
+
+    status = await app.job_manager.get_job_status_async(job_id)
+    assert status == Status.SUCCEEDED
+
+
+@pytest.mark.parametrize(
+    "worker",
+    [({"additional_context": {"foo": "bar"}})],
+    indirect=["worker"],
+)
+async def test_worker_passes_additional_context(app: App, worker):
+    @app.task(pass_context=True)
+    async def task_func(jobContext: JobContext):
+        assert jobContext.additional_context["foo"] == "bar"
+
+    job_id = await task_func.defer_async()
+
+    await start_worker(worker)
+
+    status = await app.job_manager.get_job_status_async(job_id)
+    assert status == Status.SUCCEEDED
+
+
+async def test_run_job_async(app: App, worker):
     result = []
 
     @app.task(queue="yay", name="task_func")
     async def task_func(a, b):
         result.append(a + b)
 
-    job = jobs.Job(
-        id=16,
-        task_kwargs={"a": 9, "b": 3},
-        lock="sherlock",
-        queueing_lock="houba",
-        task_name="task_func",
-        queue="yay",
-    )
-    test_worker = worker.Worker(app, queues=["yay"])
-    await test_worker.run_job(job=job, worker_id=3)
+    job_id = task_func.defer(a=9, b=3)
 
+    await start_worker(worker)
     assert result == [12]
 
+    status = await app.job_manager.get_job_status_async(job_id)
+    assert status == Status.SUCCEEDED
 
-async def test_run_job_semi_async(app):
+
+async def test_run_job_sync(app: App, worker):
+    result = []
+
+    @app.task(queue="yay", name="task_func")
+    def task_func(a, b):
+        result.append(a + b)
+
+    job_id = task_func.defer(a=9, b=3)
+
+    await start_worker(worker)
+    assert result == [12]
+
+    status = await app.job_manager.get_job_status_async(job_id)
+    assert status == Status.SUCCEEDED
+
+
+async def test_run_job_semi_async(app: App, worker):
     result = []
 
     @app.task(queue="yay", name="task_func")
@@ -253,46 +425,26 @@ async def test_run_job_semi_async(app):
 
         return inner()
 
-    job = jobs.Job(
-        id=16,
-        task_kwargs={"a": 9, "b": 3},
-        lock="sherlock",
-        queueing_lock="houba",
-        task_name="task_func",
-        queue="yay",
-    )
-    test_worker = worker.Worker(app, queues=["yay"])
-    await test_worker.run_job(job=job, worker_id=3)
+    job_id = task_func.defer(a=9, b=3)
+
+    await start_worker(worker)
 
     assert result == [12]
 
+    status = await app.job_manager.get_job_status_async(job_id)
+    assert status == Status.SUCCEEDED
 
-async def test_run_job_log_result(caplog, app):
+
+async def test_run_job_log_result(caplog, app: App, worker):
     caplog.set_level("INFO")
 
-    result = []
+    @app.task(queue="yay", name="task_func")
+    async def task_func(a, b):
+        return a + b
 
-    def task_func(a, b):  # pylint: disable=unused-argument
-        s = a + b
-        result.append(s)
-        return s
+    task_func.defer(a=9, b=3)
 
-    task = tasks.Task(task_func, blueprint=app, queue="yay", name="job")
-
-    app.tasks = {"task_func": task}
-
-    job = jobs.Job(
-        id=16,
-        task_kwargs={"a": 9, "b": 3},
-        lock="sherlock",
-        queueing_lock="houba",
-        task_name="task_func",
-        queue="yay",
-    )
-    test_worker = worker.Worker(app, queues=["yay"])
-    await test_worker.run_job(job=job, worker_id=3)
-
-    assert result == [12]
+    await start_worker(worker)
 
     records = [record for record in caplog.records if record.action == "job_success"]
     assert len(records) == 1
@@ -301,408 +453,195 @@ async def test_run_job_log_result(caplog, app):
     assert "Result: 12" in record.message
 
 
+async def test_run_task_not_found_status(app: App, worker, caplog):
+    job = await app.job_manager.defer_job_async(
+        Job(
+            task_name="random_task_name",
+            queue=DEFAULT_QUEUE,
+            lock=None,
+            queueing_lock=None,
+        )
+    )
+    assert job.id
+
+    await start_worker(worker)
+    await asyncio.sleep(0.01)
+    status = await app.job_manager.get_job_status_async(job.id)
+    assert status == Status.FAILED
+
+    records = [record for record in caplog.records if record.action == "task_not_found"]
+    assert len(records) == 1
+    record = records[0]
+    assert record.levelname == "ERROR"
+
+
+class CustomCriticalError(BaseException):
+    pass
+
+
 @pytest.mark.parametrize(
-    "worker_name, logger_name, record_worker_name",
-    [(None, "worker", "worker"), ("w1", "worker.w1", "w1")],
+    "critical_error",
+    [
+        (False),
+        (True),
+    ],
 )
-async def test_run_job_log_name(
-    caplog, app, worker_name, logger_name, record_worker_name
+async def test_run_job_error(app: App, worker, critical_error, caplog):
+    @app.task(queue="yay", name="task_func")
+    def task_func(a, b):
+        raise CustomCriticalError("Nope") if critical_error else ValueError("Nope")
+
+    job_id = task_func.defer(a=9, b=3)
+
+    await start_worker(worker)
+
+    await asyncio.sleep(0.05)
+    status = await app.job_manager.get_job_status_async(job_id)
+    assert status == Status.FAILED
+
+    records = [
+        record
+        for record in caplog.records
+        if hasattr(record, "action") and record.action == "job_error"
+    ]
+    assert len(records) == 1
+    record = records[0]
+    assert record.levelname == "ERROR"
+    assert "to retry" not in record.message
+
+
+async def test_run_job_aborted(app: App, worker, caplog):
+    caplog.set_level("INFO")
+
+    @app.task(queue="yay", name="task_func")
+    async def task_func():
+        raise JobAborted()
+
+    job_id = task_func.defer()
+
+    await start_worker(worker)
+
+    status = await app.job_manager.get_job_status_async(job_id)
+    assert status == Status.ABORTED
+
+    records = [record for record in caplog.records if record.action == "job_aborted"]
+    assert len(records) == 1
+    record = records[0]
+    assert record.levelname == "INFO"
+    assert "Aborted" in record.message
+
+
+@pytest.mark.parametrize(
+    "critical_error, recover_on_attempt_number, expected_status, expected_attempts",
+    [
+        (False, 2, "succeeded", 2),
+        (True, 2, "succeeded", 2),
+        (False, 3, "failed", 2),
+        (True, 3, "failed", 2),
+    ],
+)
+async def test_run_job_retry_failed_job(
+    app: App,
+    worker,
+    critical_error,
+    recover_on_attempt_number,
+    expected_status,
+    expected_attempts,
 ):
-    caplog.set_level("INFO")
+    worker.wait = False
 
-    test_worker = worker.Worker(app, name=worker_name, wait=False)
+    attempt = 0
 
-    @app.task
-    def task():
-        pass
+    @app.task(retry=1)
+    def task_func():
+        nonlocal attempt
+        attempt += 1
+        if attempt < recover_on_attempt_number:
+            raise CustomCriticalError("Nope") if critical_error else ValueError("Nope")
 
-    await task.defer_async()
+    job_id = task_func.defer()
 
-    await test_worker.run()
+    await start_worker(worker)
 
-    # We're not interested in defer logs
-    records = [r for r in caplog.records if "worker" in r.name]
+    await asyncio.sleep(0.01)
 
-    assert len(records)
-    record_names = [record.name for record in records]
-    assert all([name.endswith(logger_name) for name in record_names])
-
-    worker_names = [getattr(record, "worker", {}).get("name") for record in records]
-    assert all([name == record_worker_name for name in worker_names])
-
-
-async def test_run_job_aborted(app, caplog):
-    caplog.set_level("INFO")
-
-    def job_func(a, b):  # pylint: disable=unused-argument
-        raise exceptions.JobAborted()
-
-    task = tasks.Task(job_func, blueprint=app, queue="yay", name="job")
-    task.func = job_func
-
-    app.tasks = {"job": task}
-
-    job = jobs.Job(
-        id=16,
-        task_kwargs={"a": 9, "b": 3},
-        lock="sherlock",
-        queueing_lock="houba",
-        task_name="job",
-        queue="yay",
-    )
-    test_worker = worker.Worker(app, queues=["yay"])
-    with pytest.raises(exceptions.JobAborted):
-        await test_worker.run_job(job=job, worker_id=3)
-
-    assert (
-        len(
-            [
-                r
-                for r in caplog.records
-                if r.levelname == "INFO" and "Aborted" in r.message
-            ]
-        )
-        == 1
-    )
+    connector = cast(InMemoryConnector, app.connector)
+    job_row = connector.jobs[job_id]
+    assert job_row["status"] == expected_status
+    assert job_row["attempts"] == expected_attempts
 
 
-async def test_run_job_error(app, caplog, mocker):
-    caplog.set_level("INFO")
+async def test_run_log_actions(app: App, caplog, worker):
+    caplog.set_level("DEBUG")
 
-    def job_func(a, b):  # pylint: disable=unused-argument
-        raise ValueError("nope")
+    done = asyncio.Event()
 
-    task = tasks.Task(job_func, blueprint=app, queue="yay", name="job")
-    task.func = job_func
+    @app.task(queue="some_queue")
+    def t():
+        done.set()
 
-    app.tasks = {"job": task}
+    await t.defer_async()
 
-    job = jobs.Job(
-        id=16,
-        task_kwargs={"a": 9, "b": 3},
-        lock="sherlock",
-        queueing_lock="houba",
-        task_name="job",
-        queue="yay",
-    )
-    app.job_manager.get_job_status_async = mocker.AsyncMock(return_value="doing")
-    test_worker = worker.Worker(app, queues=["yay"])
-    with pytest.raises(exceptions.JobError):
-        await test_worker.run_job(job=job, worker_id=3)
+    await start_worker(worker)
 
-    assert (
-        len(
-            [
-                r
-                for r in caplog.records
-                if r.levelname == "ERROR" and "to retry" not in r.message
-            ]
-        )
-        == 1
-    )
+    await asyncio.wait_for(done.wait(), timeout=0.05)
 
-
-async def test_run_job_critical_error(app, caplog, mocker):
-    caplog.set_level("INFO")
-
-    def job_func(a, b):  # pylint: disable=unused-argument
-        raise BaseException("nope")
-
-    task = tasks.Task(job_func, blueprint=app, queue="yay", name="job")
-    task.func = job_func
-
-    app.tasks = {"job": task}
-
-    job = jobs.Job(
-        id=16,
-        task_kwargs={"a": 9, "b": 3},
-        lock="sherlock",
-        queueing_lock="houba",
-        task_name="job",
-        queue="yay",
-    )
-    app.job_manager.get_job_status_async = mocker.AsyncMock(return_value="doing")
-    test_worker = worker.Worker(app, queues=["yay"])
-    with pytest.raises(exceptions.JobError) as exc_info:
-        await test_worker.run_job(job=job, worker_id=3)
-
-    assert exc_info.value.critical is True
-
-
-async def test_run_job_retry(app, caplog, mocker):
-    caplog.set_level("INFO")
-
-    def job_func(a, b):  # pylint: disable=unused-argument
-        raise ValueError("nope")
-
-    task = tasks.Task(job_func, blueprint=app, queue="yay", name="job", retry=True)
-    task.func = job_func
-
-    app.tasks = {"job": task}
-
-    job = jobs.Job(
-        id=16,
-        task_kwargs={"a": 9, "b": 3},
-        lock="sherlock",
-        task_name="job",
-        queueing_lock="houba",
-        queue="yay",
-    )
-    app.job_manager.get_job_status_async = mocker.AsyncMock(return_value="doing")
-    test_worker = worker.Worker(app, queues=["yay"])
-    with pytest.raises(exceptions.JobError) as exc_info:
-        await test_worker.run_job(job=job, worker_id=3)
-
-    assert isinstance(exc_info.value.retry_exception, exceptions.JobRetry)
-
-    assert (
-        len(
-            [
-                r
-                for r in caplog.records
-                if r.levelname == "INFO" and "to retry" in r.message
-            ]
-        )
-        == 1
-    )
-    assert len([r for r in caplog.records if r.levelname == "ERROR"]) == 0
-
-
-async def test_run_job_not_found(app):
-    job = jobs.Job(
-        id=16,
-        task_kwargs={"a": 9, "b": 3},
-        lock="sherlock",
-        queueing_lock="houba",
-        task_name="job",
-        queue="yay",
-    )
-    test_worker = worker.Worker(app, queues=["yay"])
-    with pytest.raises(exceptions.TaskNotFound):
-        await test_worker.run_job(job=job, worker_id=3)
-
-
-async def test_run_job_pass_context(app):
-    result = []
-
-    @app.task(queue="yay", name="job", pass_context=True)
-    def task_func(test_context, a):
-        result.extend([test_context, a])
-
-    job = jobs.Job(
-        id=16,
-        task_kwargs={"a": 1},
-        lock="sherlock",
-        queueing_lock="houba",
-        task_name="job",
-        queue="yay",
-    )
-    test_worker = worker.Worker(
-        app, queues=["yay"], name="my_worker", additional_context={"foo": "bar"}
-    )
-    context = test_worker.context_for_worker(worker_id=3)
-
-    await test_worker.run_job(job=job, worker_id=3)
-
-    context = context.evolve(task=task_func)
-
-    assert result == [
-        context,
-        1,
+    connector = cast(InMemoryConnector, app.connector)
+    assert [q[0] for q in connector.queries] == [
+        "defer_job",
+        "fetch_job",
+        "finish_job",
+        "fetch_job",
     ]
 
-
-async def test_wait_for_job_with_job(app, mocker):
-    test_worker = worker.Worker(app)
-    # notify_event is set to None initially, and we skip run()
-    test_worker.notify_event = mocker.Mock()
-
-    wait_for = mocker.Mock()
-
-    async def mock(coro, timeout):
-        wait_for(coro, timeout=timeout)
-
-    mocker.patch("asyncio.wait_for", mock)
-
-    await test_worker.wait_for_job(timeout=42)
-
-    wait_for.assert_called_with(test_worker.notify_event.wait.return_value, timeout=42)
-
-    assert test_worker.notify_event.mock_calls == [
-        mocker.call.clear(),
-        mocker.call.wait(),
-        mocker.call.clear(),
-    ]
+    logs = {(r.action, r.levelname) for r in caplog.records}
+    # remove the periodic_deferrer_no_task log record because that makes the test flaky
+    assert {
+        ("about_to_defer_job", "DEBUG"),
+        ("job_defer", "INFO"),
+        ("start_worker", "INFO"),
+        ("loaded_job_info", "DEBUG"),
+        ("start_job", "INFO"),
+        ("job_success", "INFO"),
+        ("finish_task", "DEBUG"),
+    } <= logs
 
 
-async def test_wait_for_job_without_job(app, mocker):
-    test_worker = worker.Worker(app)
-    # notify_event is set to None initially, and we skip run()
-    test_worker.notify_event = mocker.Mock()
+async def test_run_log_current_job_when_stopping(app: App, worker, caplog):
+    caplog.set_level("DEBUG")
+    complete_job_event = asyncio.Event()
 
-    wait_for = mocker.Mock(side_effect=asyncio.TimeoutError)
+    @app.task(queue="some_queue")
+    async def t():
+        await complete_job_event.wait()
 
-    async def mock(coro, timeout):
-        wait_for(coro, timeout=timeout)
+    job_id = await t.defer_async()
+    run_task = await start_worker(worker)
+    worker.stop()
+    await asyncio.sleep(0.01)
+    complete_job_event.set()
 
-    mocker.patch("asyncio.wait_for", mock)
-
-    await test_worker.wait_for_job(timeout=42)
-
-    wait_for.assert_called_with(test_worker.notify_event.wait.return_value, timeout=42)
-
-    assert test_worker.notify_event.mock_calls == [
-        mocker.call.clear(),
-        mocker.call.wait(),
-    ]
-
-
-async def test_single_worker_no_wait(app, mocker):
-    process_job = mocker.Mock()
-    wait_for_job = mocker.Mock()
-
-    class TestWorker(worker.Worker):
-        async def process_job(self, job):
-            process_job(job=job)
-
-        async def wait_for_job(self, timeout):
-            wait_for_job(timeout)
-
-    await TestWorker(app=app, wait=False).single_worker(worker_id=0)
-
-    assert process_job.called is False
-    assert wait_for_job.called is False
-
-
-async def test_single_worker_stop_during_execution(app, mocker):
-    process_job = mocker.Mock()
-    wait_for_job = mocker.Mock()
-
-    await app.configure_task("bla").defer_async()
-
-    class TestWorker(worker.Worker):
-        async def process_job(self, job, worker_id):
-            process_job(job=job, worker_id=worker_id)
-            self.stop_requested = True
-
-        async def wait_for_job(self, timeout):
-            wait_for_job(timeout=timeout)
-
-    await TestWorker(app=app).single_worker(worker_id=0)
-
-    assert wait_for_job.called is False
-    process_job.assert_called_once()
-
-
-async def test_single_worker_stop_during_wait(app, mocker):
-    process_job = mocker.Mock()
-    wait_for_job = mocker.Mock()
-
-    await app.configure_task("bla").defer_async()
-
-    class TestWorker(worker.Worker):
-        async def process_job(self, job, worker_id):
-            process_job(job=job, worker_id=worker_id)
-
-        async def wait_for_job(self, timeout):
-            wait_for_job()
-            self.stop_requested = True
-
-    await TestWorker(app=app).single_worker(worker_id=0)
-
-    process_job.assert_called_once()
-    wait_for_job.assert_called_once()
-
-
-async def test_single_worker_spread_wait(app, mocker):
-    process_job = mocker.Mock()
-    wait_for_job = mocker.Mock()
-
-    await app.configure_task("bla").defer_async()
-
-    class TestWorker(worker.Worker):
-        stop = False
-
-        async def process_job(self, job, worker_id):
-            process_job(job=job, worker_id=worker_id)
-
-        async def wait_for_job(self, timeout):
-            wait_for_job(timeout)
-            self.stop_requested = self.stop
-            self.stop = True
-
-    await TestWorker(app=app, timeout=4, concurrency=7).single_worker(worker_id=3)
-
-    process_job.assert_called_once()
-    assert wait_for_job.call_args_list == [mocker.call(4 * (3 + 1)), mocker.call(4 * 7)]
-
-
-def test_context_for_worker(app):
-    test_worker = worker.Worker(app=app, name="foo")
-    expected = job_context.JobContext(app=app, worker_id=3, worker_name="foo")
-
-    context = test_worker.context_for_worker(worker_id=3)
-
-    assert context == expected
-
-
-def test_context_for_worker_kwargs(app):
-    test_worker = worker.Worker(app=app, name="foo")
-    expected = job_context.JobContext(app=app, worker_id=3, worker_name="bar")
-
-    context = test_worker.context_for_worker(worker_id=3, worker_name="bar")
-
-    assert context == expected
-
-
-def test_context_for_worker_value_kept(app):
-    test_worker = worker.Worker(app=app, name="foo")
-    expected = job_context.JobContext(app=app, worker_id=3, worker_name="bar")
-
-    test_worker.context_for_worker(worker_id=3, worker_name="bar")
-    context = test_worker.context_for_worker(worker_id=3)
-
-    assert context == expected
-
-
-def test_context_for_worker_reset(app):
-    test_worker = worker.Worker(app=app, name="foo")
-    expected = job_context.JobContext(app=app, worker_id=3, worker_name="foo")
-
-    test_worker.context_for_worker(worker_id=3, worker_name="bar")
-    context = test_worker.context_for_worker(worker_id=3, reset=True)
-
-    assert context == expected
-
-
-def test_worker_copy_additional_context(app):
-    additional_context = {"foo": "bar"}
-    test_worker = worker.Worker(
-        app=app,
-        name="worker",
-        additional_context=additional_context,
+    await asyncio.wait_for(run_task, timeout=0.05)
+    # We want to make sure that the log that names the current running task fired.
+    logs = " ".join(r.message for r in caplog.records)
+    assert "Stop requested" in logs
+    assert (
+        f"Waiting for job to finish: worker: tests.unit.test_worker.t[{job_id}]()"
+        in logs
     )
 
-    # mutate the additional_context object and test that we have the original
-    # value in the worker
-    additional_context["foo"] = "baz"
-    assert test_worker.base_context.additional_context == {"foo": "bar"}
+
+async def test_run_no_listen_notify(app: App, worker):
+    worker.listen_notify = False
+    await start_worker(worker)
+    connector = cast(InMemoryConnector, app.connector)
+    assert connector.notify_event is None
 
 
-def test_context_for_worker_with_additional_context(app):
-    additional_context = {"foo": "bar"}
-    test_worker = worker.Worker(
-        app=app,
-        name="worker",
-        additional_context=additional_context,
-    )
-
-    context1 = test_worker.context_for_worker(worker_id=3)
-
-    # mutate the additional_context object for one worker and test that it
-    # hasn't changed for other workers
-    context1.additional_context["foo"] = "baz"
-
-    context2 = test_worker.context_for_worker(worker_id=4)
-
-    assert context2.additional_context == {"foo": "bar"}
+async def test_run_no_signal_handlers(worker, kill_own_pid):
+    worker.install_signal_handlers = False
+    await start_worker(worker)
+    with pytest.raises(KeyboardInterrupt):
+        await asyncio.sleep(0.01)
+        # Test that handlers are NOT installed
+        kill_own_pid(signal=signal.SIGINT)

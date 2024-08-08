@@ -8,21 +8,20 @@ from procrastinate import app
 from procrastinate import worker as worker_module
 
 
-async def test_wait_for_activity(psycopg_connector):
+async def test_wait_for_activity_cancelled(psycopg_connector):
     """
-    Testing that a new event interrupts the wait
+    Testing that the work can be cancelled
     """
     pg_app = app.App(connector=psycopg_connector)
-    worker = worker_module.Worker(app=pg_app, timeout=2)
-    worker.notify_event = asyncio.Event()
-    task = asyncio.ensure_future(worker.single_worker(worker_id=0))
+    worker = worker_module.Worker(app=pg_app, polling_interval=2)
+    task = asyncio.ensure_future(worker.run())
     await asyncio.sleep(0.2)  # should be enough so that we're waiting
 
-    worker.stop_requested = True
-    worker.notify_event.set()
+    task.cancel()
 
     try:
-        await asyncio.wait_for(task, timeout=0.2)
+        with pytest.raises(asyncio.CancelledError):
+            await asyncio.wait_for(task, timeout=0.2)
     except asyncio.TimeoutError:
         pytest.fail("Failed to stop worker within .2s")
 
@@ -32,18 +31,11 @@ async def test_wait_for_activity_timeout(psycopg_connector):
     Testing that we timeout if nothing happens
     """
     pg_app = app.App(connector=psycopg_connector)
-    worker = worker_module.Worker(app=pg_app, timeout=2)
-    worker.notify_event = asyncio.Event()
-    task = asyncio.ensure_future(worker.single_worker(worker_id=0))
-    try:
-        await asyncio.sleep(0.2)  # should be enough so that we're waiting
-
-        worker.stop_requested = True
-
-        with pytest.raises(asyncio.TimeoutError):
-            await asyncio.wait_for(task, timeout=0.2)
-    finally:
-        worker.notify_event.set()
+    worker = worker_module.Worker(app=pg_app, polling_interval=2)
+    task = asyncio.ensure_future(worker.run())
+    await asyncio.sleep(0.2)  # should be enough so that we're waiting
+    with pytest.raises(asyncio.TimeoutError):
+        await asyncio.wait_for(task, timeout=0.2)
 
 
 async def test_wait_for_activity_stop_from_signal(psycopg_connector, kill_own_pid):
@@ -51,7 +43,7 @@ async def test_wait_for_activity_stop_from_signal(psycopg_connector, kill_own_pi
     Testing than ctrl+c interrupts the wait
     """
     pg_app = app.App(connector=psycopg_connector)
-    worker = worker_module.Worker(app=pg_app, timeout=2)
+    worker = worker_module.Worker(app=pg_app, polling_interval=2)
     task = asyncio.ensure_future(worker.run())
     await asyncio.sleep(0.2)  # should be enough so that we're waiting
 
@@ -65,10 +57,10 @@ async def test_wait_for_activity_stop_from_signal(psycopg_connector, kill_own_pi
 
 async def test_wait_for_activity_stop(psycopg_connector):
     """
-    Testing than calling job_manager.stop() interrupts the wait
+    Testing than calling worker.stop() interrupts the wait
     """
     pg_app = app.App(connector=psycopg_connector)
-    worker = worker_module.Worker(app=pg_app, timeout=2)
+    worker = worker_module.Worker(app=pg_app, polling_interval=2)
     task = asyncio.ensure_future(worker.run())
     await asyncio.sleep(0.2)  # should be enough so that we're waiting
 
