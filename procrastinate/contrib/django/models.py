@@ -4,6 +4,8 @@ from typing import Any, NoReturn
 
 from django.db import models
 
+from procrastinate import jobs
+
 from . import exceptions, settings
 
 
@@ -84,6 +86,24 @@ class ProcrastinateJob(ProcrastinateReadOnlyModelMixin, models.Model):
     class Meta:  # type: ignore
         managed = False
         db_table = "procrastinate_jobs"
+
+    @property
+    def procrastinate_job(self) -> jobs.Job:
+        return jobs.Job(
+            id=self.id,
+            queue=self.queue_name,
+            task_name=self.task_name,
+            task_kwargs=self.args,
+            priority=self.priority,
+            lock=self.lock,
+            status=self.status,
+            scheduled_at=self.scheduled_at,
+            attempts=self.attempts,
+            queueing_lock=self.queueing_lock,
+        )
+
+    def __str__(self) -> str:
+        return self.procrastinate_job.call_string
 
 
 class ProcrastinateEvent(ProcrastinateReadOnlyModelMixin, models.Model):
