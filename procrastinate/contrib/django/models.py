@@ -130,6 +130,9 @@ class ProcrastinateEvent(ProcrastinateReadOnlyModelMixin, models.Model):
         db_table = "procrastinate_events"
         get_latest_by = "at"
 
+    def __str__(self) -> str:
+        return f"Event {self.id} - Job {self.job_id}: {self.type} at {self.at}"  # type: ignore
+
 
 class ProcrastinatePeriodicDefer(ProcrastinateReadOnlyModelMixin, models.Model):
     id = models.BigAutoField(primary_key=True)
