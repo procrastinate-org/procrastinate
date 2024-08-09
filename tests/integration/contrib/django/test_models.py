@@ -8,6 +8,7 @@ import pytest
 import procrastinate
 import procrastinate.contrib.django
 import procrastinate.contrib.django.exceptions
+from procrastinate import jobs as jobs_module
 from procrastinate.contrib.django import models
 
 
@@ -28,6 +29,33 @@ def test_procrastinate_job(db):
         "attempts": 0,
         "queueing_lock": None,
     }
+
+
+def test_procrastinate_job__property(db):
+    job = models.ProcrastinateJob(
+        id=1,
+        queue_name="foo",
+        task_name="test_task",
+        priority=0,
+        lock="bar",
+        args={"a": 1, "b": 2},
+        status="todo",
+        scheduled_at=datetime.datetime(2021, 1, 1, tzinfo=datetime.timezone.utc),
+        attempts=0,
+        queueing_lock="baz",
+    )
+    assert job.procrastinate_job == jobs_module.Job(
+        id=1,
+        queue="foo",
+        task_name="test_task",
+        task_kwargs={"a": 1, "b": 2},
+        priority=0,
+        lock="bar",
+        status="todo",
+        scheduled_at=datetime.datetime(2021, 1, 1, tzinfo=datetime.timezone.utc),
+        attempts=0,
+        queueing_lock="baz",
+    )
 
 
 def test_procrastinate_job__no_create(db):
