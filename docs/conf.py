@@ -42,6 +42,7 @@ extensions = [
     "sphinxcontrib.programoutput",
     "sphinx_github_changelog",
     "sphinx_copybutton",
+    "procrastinate.contrib.sphinx",
 ]
 
 myst_enable_extensions = [
