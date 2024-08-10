@@ -11,7 +11,7 @@ import sys
 from typing import Any, Awaitable, Callable, Literal, Union
 
 import procrastinate
-from procrastinate import connector, exceptions, jobs, shell, types, utils, worker
+from procrastinate import connector, exceptions, jobs, shell, types, utils
 
 logger = logging.getLogger(__name__)
 
@@ -291,11 +291,11 @@ def configure_worker_parser(subparsers: argparse._SubParsersAction):
     )
     add_argument(
         worker_parser,
-        "-t",
-        "--timeout",
+        "-p",
+        "--polling-interval",
         type=float,
         help="How long to wait for database event push before polling",
-        envvar="WORKER_TIMEOUT",
+        envvar="WORKER_POLLING_INTERVAL",
     )
     add_argument(
         worker_parser,
@@ -323,8 +323,8 @@ def configure_worker_parser(subparsers: argparse._SubParsersAction):
     add_argument(
         worker_parser,
         "--delete-jobs",
-        choices=worker.DeleteJobCondition,
-        type=worker.DeleteJobCondition,
+        choices=jobs.DeleteJobCondition,
+        type=jobs.DeleteJobCondition,
         help="If set, delete jobs on completion",
         envvar="WORKER_DELETE_JOBS",
     )

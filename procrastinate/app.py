@@ -4,7 +4,15 @@ import asyncio
 import contextlib
 import functools
 import logging
-from typing import TYPE_CHECKING, Any, Iterable, Iterator
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Iterable,
+    Iterator,
+    TypedDict,
+)
+
+from typing_extensions import NotRequired, Unpack
 
 from procrastinate import blueprints, exceptions, jobs, manager, schema, utils
 from procrastinate import connector as connector_module
@@ -13,6 +21,19 @@ if TYPE_CHECKING:
     from procrastinate import worker
 
 logger = logging.getLogger(__name__)
+
+
+class WorkerOptions(TypedDict):
+    queues: NotRequired[Iterable[str]]
+    name: NotRequired[str]
+    concurrency: NotRequired[int]
+    wait: NotRequired[bool]
+    polling_interval: NotRequired[float]
+    shutdown_timeout: NotRequired[float]
+    listen_notify: NotRequired[bool]
+    delete_jobs: NotRequired[str | jobs.DeleteJobCondition]
+    additional_context: NotRequired[dict[str, Any]]
+    install_signal_handlers: NotRequired[bool]
 
 
 class App(blueprints.Blueprint):
@@ -52,7 +73,7 @@ class App(blueprints.Blueprint):
         *,
         connector: connector_module.BaseConnector,
         import_paths: Iterable[str] | None = None,
-        worker_defaults: dict | None = None,
+        worker_defaults: WorkerOptions | None = None,
         periodic_defaults: dict | None = None,
     ):
         """
@@ -198,10 +219,10 @@ class App(blueprints.Blueprint):
                 )
             raise exceptions.TaskNotFound from exc
 
-    def _worker(self, **kwargs) -> worker.Worker:
+    def _worker(self, **kwargs: Unpack[WorkerOptions]) -> worker.Worker:
         from procrastinate import worker
 
-        final_kwargs = {**self.worker_defaults, **kwargs}
+        final_kwargs: WorkerOptions = {**self.worker_defaults, **kwargs}
 
         return worker.Worker(app=self, **final_kwargs)
 
@@ -217,7 +238,7 @@ class App(blueprints.Blueprint):
             extra={"action": "imported_tasks", "tasks": list(self.tasks)},
         )
 
-    async def run_worker_async(self, **kwargs) -> None:
+    async def run_worker_async(self, **kwargs: Unpack[WorkerOptions]) -> None:
         """
         Run a worker. This worker will run in the foreground and execute the jobs in the
         provided queues. If wait is True, the function will not
@@ -242,16 +263,21 @@ class App(blueprints.Blueprint):
             Name of the worker. Will be passed in the `JobContext` and used in the
             logs (defaults to ``None`` which will result in the worker named
             ``worker``).
-        timeout : ``float``
+        polling_interval : ``float``
             Indicates the maximum duration (in seconds) the worker waits between
             each database job poll. Raising this parameter can lower the rate at which
             the worker makes queries to the database for requesting jobs.
             (defaults to 5.0)
+        shutdown_timeout : ``float``
+            Indicates the maximum duration (in seconds) the worker waits for jobs to
+            complete when requested stop. Jobs that have not been completed by that time
+            are aborted. A value of None corresponds to no timeout.
+            (defaults to None)
         listen_notify : ``bool``
             If ``True``, the worker will dedicate a connection from the pool to
             listening to database events, notifying of newly available jobs.
             If ``False``, the worker will just poll the database periodically
-            (see ``timeout``). (defaults to ``True``)
+            (see ``polling_interval``). (defaults to ``True``)
         delete_jobs : ``str``
             If ``always``, the worker will automatically delete all jobs on completion.
             If ``successful`` the worker will only delete successful jobs.
@@ -268,13 +294,7 @@ class App(blueprints.Blueprint):
         """
         self.perform_import_paths()
         worker = self._worker(**kwargs)
-        task = asyncio.create_task(worker.run())
-        try:
-            await asyncio.shield(task)
-        except asyncio.CancelledError:
-            worker.stop()
-            await task
-            raise
+        await worker.run()
 
     def run_worker(self, **kwargs) -> None:
         """

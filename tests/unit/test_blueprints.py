@@ -219,7 +219,6 @@ def test_blueprint_task_explicit(blueprint: blueprints.Blueprint, mocker):
     def my_task(context: JobContext):
         return "foo"
 
-    assert my_task(JobContext()) == "foo"
     assert blueprint.tasks["foobar"].name == "foobar"
     assert blueprint.tasks["foobar"].queue == "bar"
     assert blueprint.tasks["foobar"].lock == "sher"

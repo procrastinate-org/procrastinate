@@ -50,19 +50,6 @@ class JobRetry(ProcrastinateException):
         super().__init__()
 
 
-class JobError(ProcrastinateException):
-    """
-    Job ended with an exception.
-    """
-
-    def __init__(
-        self, *args, retry_exception: JobRetry | None = None, critical: bool = False
-    ):
-        super().__init__(*args)
-        self.retry_exception = retry_exception
-        self.critical = critical
-
-
 class JobAborted(ProcrastinateException):
     """
     Job was aborted.
