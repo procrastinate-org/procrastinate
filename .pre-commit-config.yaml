@@ -36,7 +36,7 @@ repos:
           - aiopg==1.4.0
           - anyio==4.4.0
           - asgiref==3.8.1
-          - attrs==24.1.0
+          - attrs==24.2.0
           - contextlib2==21.6.0
           - croniter==3.0.3
           - django-stubs==5.0.4
@@ -46,7 +46,7 @@ repos:
           - psycopg2-binary==2.9.9
           - psycopg[pool]==3.2.1
           - python-dateutil==2.9.0.post0
-          - sqlalchemy==2.0.31
+          - sqlalchemy==2.0.32
           - typing-extensions==4.12.2
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.5.7
