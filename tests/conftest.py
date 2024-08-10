@@ -25,6 +25,10 @@ for key in os.environ:
     if key.startswith("PROCRASTINATE_"):
         os.environ.pop(key)
 
+# Infortunately, we need the sphinx fixtures even though they generate an "app" fixture
+# that conflicts with our own "app" fixture
+pytest_plugins = ["sphinx.testing.fixtures"]
+
 
 def cursor_execute(cursor, query, *identifiers):
     if identifiers:
