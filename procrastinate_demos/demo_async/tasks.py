@@ -5,9 +5,11 @@ from .app import app
 
 @app.task(queue="sums")
 async def sum(a, b):
+    """Sum two numbers."""
     return a + b
 
 
 @app.task(queue="defer")
 async def defer():
+    """Defer a another task."""
     await sum.defer_async(a=1, b=2)
