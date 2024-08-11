@@ -53,20 +53,20 @@ class RetryDecision:
 
         Parameters
         ----------
-        retry_at : ``Optional[datetime.datetime]``
+        retry_at:
             If set at present time or in the past, the job may be retried immediately.
             Otherwise, the job will be retried no sooner than this date & time.
             Should be timezone-aware (even if UTC). Defaults to present time.
-        retry_in : ``Optional[types.TimeDeltaParams]``
+        retry_in:
             If set, the job will be retried after this duration. If not set, the job will
             be retried immediately.
-        priority : ``Optional[int]``
+        priority:
             If set, the job will be retried with this priority. If not set, the priority
             remains unchanged.
-        queue : ``Optional[int]``
+        queue:
             If set, the job will be retried on this queue. If not set, the queue remains
             unchanged.
-        lock : ``Optional[int]``
+        lock:
             If set, the job will be retried with this lock. If not set, the lock remains
             unchanged.
         """
@@ -127,7 +127,7 @@ class BaseRetryStrategy:
 
         Returns
         -------
-        ``Optional[int]``
+        :
             If a job should not be retried, this function should return None.
             Otherwise, it should return the duration after which to schedule the
             new job run, *in seconds*.
