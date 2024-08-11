@@ -42,6 +42,7 @@ extensions = [
     "sphinxcontrib.programoutput",
     "sphinx_github_changelog",
     "sphinx_copybutton",
+    "sphinxcontrib.mermaid",
 ]
 
 myst_enable_extensions = [
@@ -96,6 +97,10 @@ html_theme_options = {
 }
 
 html_favicon = "favicon.ico"
+
+# -- Options for sphinxcontrib.mermaid ---------------------------------
+mermaid_output_format = "svg"
+mermaid_cmd = "scripts/mermaid"
 
 # -- Options for sphinx_github_changelog ---------------------------------
 

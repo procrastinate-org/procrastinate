@@ -6,11 +6,11 @@
 
 Procrastinate is based on several things:
 
-- PostgreSQL's top notch ability to manage locks, thanks to its [ACID] properties.
-  This ensures that when a worker starts executing a {term}`job`, it's the only one.
-  Procrastinate does this by executing a `SELECT FOR UPDATE` that will lock the
-  impacted rows, and ensure no other process can edit the same row.
-- PostgreSQL's [LISTEN] allows us to be notified whenever a task is available.
+-   PostgreSQL's top notch ability to manage locks, thanks to its [ACID] properties.
+    This ensures that when a worker starts executing a {term}`job`, it's the only one.
+    Procrastinate does this by executing a `SELECT FOR UPDATE` that will lock the
+    impacted rows, and ensure no other process can edit the same row.
+-   PostgreSQL's [LISTEN] allows us to be notified whenever a task is available.
 
 ## Why are you doing a task queue in PostgreSQL ?
 
@@ -47,16 +47,16 @@ completely satisfied with.
 Nevertheless, we acknowledge the impressive Open Source work accomplished by
 some projects that really stand out, to name a few:
 
-- [Celery]: Is really big and supports a whole variety of cases, but not using
-  PostgreSQL as a message queue. We could have tried to add this, but it
-  really feels like Celery is doing a lot already, and every addition to it is
-  a lot of compromises, and would probably have been a lot harder.
-- [Dramatiq] + [dramatiq-pg]: Dramatiq is another very nice Python task queue
-  that does things quite well, and it happens that there is a third party
-  addition for using PostgreSQL as a backend. In fact, it was built around the
-  same time as we started Procrastinate, and the paradigm it uses makes it hard to
-  integrate a few of the feature we really wanted to use Procrastinate for, namely
-  locks.
+-   [Celery]: Is really big and supports a whole variety of cases, but not using
+    PostgreSQL as a message queue. We could have tried to add this, but it
+    really feels like Celery is doing a lot already, and every addition to it is
+    a lot of compromises, and would probably have been a lot harder.
+-   [Dramatiq] + [dramatiq-pg]: Dramatiq is another very nice Python task queue
+    that does things quite well, and it happens that there is a third party
+    addition for using PostgreSQL as a backend. In fact, it was built around the
+    same time as we started Procrastinate, and the paradigm it uses makes it hard to
+    integrate a few of the feature we really wanted to use Procrastinate for, namely
+    locks.
 
 (top-level-app)=
 
@@ -66,21 +66,21 @@ It can be tempting to define your procrastinate app at the top level of your
 application, and in many cases, this will be the perfect place, but you need
 to be aware of several caveats:
 
-- Your app needs to know about your tasks. This either means that all the tasks
-  must be defined in the same module as the app, or that you need to correctly
-  submit the `import_paths` argument of <project:#procrastinate.App> to point to all the modules
-  that define a task (or that importing the module containing your app should,
-  as a side effect, import all modules containing all of your tasks, but that
-  last possibility is more error-prone).
-- If your procrastinate app is defined in the module (let's call it
-  `that_module.py`) in which `__name__ == "__main__"` (which means you
-  launch your program with either `python that_module.py` or `python -m
-  that_module`), AND if your tasks are defined in a different module which
-  does `import that_module`, then you will end up with two distinct instances
-  of your app (`__main__.app` and `that_module.app`) and you will likely
-  run into problems. The best thing to do in this case is to create a dedicated
-  module for your app (e.g. `procrastinate.py`) (or to put everything in the
-  same module, but this doesn't scale well).
+-   Your app needs to know about your tasks. This either means that all the tasks
+    must be defined in the same module as the app, or that you need to correctly
+    submit the `import_paths` argument of <project:#procrastinate.App> to point to all the modules
+    that define a task (or that importing the module containing your app should,
+    as a side effect, import all modules containing all of your tasks, but that
+    last possibility is more error-prone).
+-   If your procrastinate app is defined in the module (let's call it
+    `that_module.py`) in which `__name__ == "__main__"` (which means you
+    launch your program with either `python that_module.py` or `python -m
+that_module`), AND if your tasks are defined in a different module which
+    does `import that_module`, then you will end up with two distinct instances
+    of your app (`__main__.app` and `that_module.app`) and you will likely
+    run into problems. The best thing to do in this case is to create a dedicated
+    module for your app (e.g. `procrastinate.py`) (or to put everything in the
+    same module, but this doesn't scale well).
 
 (discussion-locks)=
 
@@ -98,20 +98,20 @@ pretty much is too.
 
 We can solve this problem by using locks. Procrastinate gives us two guarantees:
 
-- Jobs are consumed in creation order. When a worker requests a job, it can receive
-  a job with a lock, or a job without a lock. If there is a lock, then the received
-  job will be the oldest one with that lock. If the oldest job awaiting execution is
-  not available for this worker (either it's on a queue that this worker doesn't
-  listen to, or it's scheduled in the future), then jobs with this lock will not be
-  considered.
-- If a group of jobs share the same lock, then only one can be executed at a time.
+-   Jobs are consumed in creation order. When a worker requests a job, it can receive
+    a job with a lock, or a job without a lock. If there is a lock, then the received
+    job will be the oldest one with that lock. If the oldest job awaiting execution is
+    not available for this worker (either it's on a queue that this worker doesn't
+    listen to, or it's scheduled in the future), then jobs with this lock will not be
+    considered.
+-   If a group of jobs share the same lock, then only one can be executed at a time.
 
 These two facts allow us to draw the following conclusion for our 4 letter jobs from
 above. If our 4 jobs share the same lock (for example, the name of the file we're
 writing to):
 
-- The 4 jobs will be started in order;
-- A job will not start before the previous one is finished.
+-   The 4 jobs will be started in order;
+-   A job will not start before the previous one is finished.
 
 This says we can safely expect the file to contain `abcd`.
 
@@ -131,6 +131,36 @@ manually set to "failed" or "succeeded". If a job simply fails, following jobs w
 same locks may run.
 
 For a more practical approach, see {doc}`howto/advanced/locks`.
+
+## What are the different states of a Job and how do they go from one to another?
+
+A job can be in one of the following states:
+
+```{mermaid}
+flowchart LR
+
+    START:::hidden
+    todo[TODO]
+    doing[DOING]
+    succeeded[SUCCEEDED]
+    failed[FAILED]
+    cancelled[CANCELLED]
+    aborting[ABORTING]
+    aborted[ABORTED]
+
+    START -- `task.defer()` --> todo
+    todo -- Worker starts processing task --> doing
+    doing -- Worker finishes processing task succesfully --> succeeded
+    doing -- Worker encounters an error while processing, no retry --> failed
+    todo -- `job_manager.cancel_job_by_id[_async]()` --> cancelled
+    doing -- `job_manager.cancel_job_by_id[_async]()` --> aborting
+    aborting -- job raises `exceptions.JobAborted` --> aborted
+    doing -- Worker encounters an error while processing, with retry --> todo
+    aborting -- Job actually finished succesfully\nwithout acknowledging cancellation --> succeeded
+    aborting -- Job actually errored without acknowledging cancellation --> failed
+
+    classDef hidden display: none;
+```
 
 (discussion-async)=
 
@@ -247,19 +277,19 @@ codebases.
 Here are the tricks we're using to make synchronous codebases work with
 Procrastinate:
 
-- For synchronously deferring a task: we duplicate a small part of the code. We have a
-  synchronous version of the code that uses a synchronous database driver, and
-  an asynchronous version of the code that uses an asynchronous database
-  driver. Under the hood, we have factored as much as possible the non-I/O
-  parts of the code, so that the synchronous and asynchronous versions are
-  only separate in the way they handle I/Os.
-- For executing a synchronous task: we use `asgiref.sync.sync_to_async` to run the
-  synchronous code in a thread.
-- There are a few case where we facilitate calling Procrastinate from
-  synchronous codebases, by providing a synchronous API, where we'll create an
-  event loop and execute the corresponding asynchronous code in it. This is the
-  case for {py:meth}`App.run_worker`. It's ok for a long-lived call like this one, but
-  it would not be recommended to do that for short-lived calls.
+-   For synchronously deferring a task: we duplicate a small part of the code. We have a
+    synchronous version of the code that uses a synchronous database driver, and
+    an asynchronous version of the code that uses an asynchronous database
+    driver. Under the hood, we have factored as much as possible the non-I/O
+    parts of the code, so that the synchronous and asynchronous versions are
+    only separate in the way they handle I/Os.
+-   For executing a synchronous task: we use `asgiref.sync.sync_to_async` to run the
+    synchronous code in a thread.
+-   There are a few case where we facilitate calling Procrastinate from
+    synchronous codebases, by providing a synchronous API, where we'll create an
+    event loop and execute the corresponding asynchronous code in it. This is the
+    case for {py:meth}`App.run_worker`. It's ok for a long-lived call like this one, but
+    it would not be recommended to do that for short-lived calls.
 
 ## How stable is Procrastinate?
 
