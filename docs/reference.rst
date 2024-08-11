@@ -7,33 +7,26 @@ App
 .. autoclass:: procrastinate.App
     :members: open, open_async, task, run_worker, run_worker_async, configure_task,
               from_path, add_tasks_from, add_task_alias, with_connector, periodic,
+              tasks, job_manager
 
 Connectors
 ----------
 .. autoclass:: procrastinate.PsycopgConnector
-    :members:
-    :exclude-members: open_async, close_async
 
 .. autoclass:: procrastinate.SyncPsycopgConnector
-    :members:
-    :exclude-members: open, close
 
 .. autoclass:: procrastinate.contrib.aiopg.AiopgConnector
-    :members:
-    :exclude-members: open_async, close_async
 
 .. autoclass:: procrastinate.contrib.psycopg2.Psycopg2Connector
-    :members:
-    :exclude-members: open, close
 
 .. autoclass:: procrastinate.testing.InMemoryConnector
-    :members: reset
-
+    :members: reset, jobs
 
 Tasks
 -----
 .. autoclass:: procrastinate.tasks.Task
-    :members: defer, defer_async, configure
+    :members: defer, defer_async, configure, name, aliases, retry_strategy,
+              pass_context, queue, lock, queueing_lock
 
 When tasks are created with argument ``pass_context``, they are provided a
 `JobContext` argument:
@@ -62,6 +55,7 @@ Jobs
 ----
 
 .. autoclass:: procrastinate.jobs.Job
+    :members:
 
 
 Retry strategies
