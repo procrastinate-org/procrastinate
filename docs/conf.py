@@ -98,6 +98,13 @@ html_theme_options = {
 
 html_favicon = "favicon.ico"
 
+# -- Options for sphinx.ext.autodoc ------------------------------------------
+
+autodoc_typehints = "both"
+autodoc_type_aliases = {
+    "JSONDict": "procrastinate.types.JSONDict",
+}
+
 # -- Options for sphinx_github_changelog ---------------------------------
 
 sphinx_github_changelog_token = os.environ.get("CHANGELOG_GITHUB_TOKEN")
