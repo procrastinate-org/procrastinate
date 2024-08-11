@@ -29,6 +29,7 @@
 | procrastinate/contrib/django/utils.py                             |       16 |        0 |        0 |        0 |    100% |           |
 | procrastinate/contrib/psycopg2/\_\_init\_\_.py                    |        3 |        0 |        0 |        0 |    100% |           |
 | procrastinate/contrib/psycopg2/psycopg2\_connector.py             |      102 |        1 |       62 |        1 |     99% |        26 |
+| procrastinate/contrib/sphinx/\_\_init\_\_.py                      |       16 |        0 |        2 |        0 |    100% |           |
 | procrastinate/contrib/sqlalchemy/\_\_init\_\_.py                  |        3 |        0 |        0 |        0 |    100% |           |
 | procrastinate/contrib/sqlalchemy/psycopg2\_connector.py           |       78 |        1 |       46 |        0 |     99% |       109 |
 | procrastinate/exceptions.py                                       |       36 |        0 |        2 |        0 |    100% |           |
@@ -50,7 +51,7 @@
 | procrastinate/types.py                                            |       13 |        0 |        0 |        0 |    100% |           |
 | procrastinate/utils.py                                            |      190 |        0 |       48 |        0 |    100% |           |
 | procrastinate/worker.py                                           |      184 |        0 |       48 |        0 |    100% |           |
-|                                                         **TOTAL** | **2528** |   **27** |  **735** |   **15** | **99%** |           |
+|                                                         **TOTAL** | **2544** |   **27** |  **737** |   **15** | **99%** |           |
 
 
 ## Setup coverage badge
