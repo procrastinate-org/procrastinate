@@ -10,7 +10,6 @@ CREATE TYPE procrastinate_job_status AS ENUM (
     'succeeded',  -- The job ended successfully
     'failed',  -- The job ended with an error
     'cancelled', -- The job was cancelled
-    'aborting',  -- The job was requested to abort
     'aborted'  -- The job was aborted
 );
 
@@ -18,12 +17,12 @@ CREATE TYPE procrastinate_job_event_type AS ENUM (
     'deferred',  -- Job created, in todo
     'started',  -- todo -> doing
     'deferred_for_retry',  -- doing -> todo
-    'failed',  -- doing or aborting -> failed
-    'succeeded',  -- doing or aborting -> succeeded
+    'failed',  -- doing -> failed
+    'succeeded',  -- doing -> succeeded
     'cancelled', -- todo -> cancelled
-    'abort_requested', -- doing -> aborting
-    'aborted', -- doing or aborting -> aborted
-    'scheduled' -- not an event transition, but recording when a task is scheduled for
+    'abort_requested', -- not a state transition, but set in a separate field
+    'aborted', -- doing -> aborted (only allowed when abort_requested field is set)
+    'scheduled' -- not a state transition, but recording when a task is scheduled for
 );
 
 -- Tables
@@ -38,7 +37,8 @@ CREATE TABLE procrastinate_jobs (
     args jsonb DEFAULT '{}' NOT NULL,
     status procrastinate_job_status DEFAULT 'todo'::procrastinate_job_status NOT NULL,
     scheduled_at timestamp with time zone NULL,
-    attempts integer DEFAULT 0 NOT NULL
+    attempts integer DEFAULT 0 NOT NULL,
+    abort_requested boolean DEFAULT false NOT NULL
 );
 
 CREATE TABLE procrastinate_periodic_defers (
@@ -175,7 +175,7 @@ BEGIN
                         WHERE
                             jobs.lock IS NOT NULL
                             AND earlier_jobs.lock = jobs.lock
-                            AND earlier_jobs.status IN ('todo', 'doing', 'aborting')
+                            AND earlier_jobs.status IN ('todo', 'doing')
                             AND earlier_jobs.id < jobs.id)
                 AND jobs.status = 'todo'
                 AND (target_queue_names IS NULL OR jobs.queue_name = ANY( target_queue_names ))
@@ -193,9 +193,6 @@ BEGIN
 END;
 $$;
 
--- procrastinate_finish_job
--- the next_scheduled_at argument is kept for compatibility reasons, it is to be
--- removed after 1.0.0 is released
 CREATE FUNCTION procrastinate_finish_job(job_id bigint, end_status procrastinate_job_status, delete_job boolean)
     RETURNS void
     LANGUAGE plpgsql
@@ -208,21 +205,20 @@ BEGIN
     END IF;
     IF delete_job THEN
         DELETE FROM procrastinate_jobs
-        WHERE id = job_id AND status IN ('todo', 'doing', 'aborting')
+        WHERE id = job_id AND status IN ('todo', 'doing')
         RETURNING id INTO _job_id;
     ELSE
         UPDATE procrastinate_jobs
         SET status = end_status,
-            attempts =
-                CASE
-                    WHEN status = 'doing' THEN attempts + 1
-                    ELSE attempts
-                END
-        WHERE id = job_id AND status IN ('todo', 'doing', 'aborting')
+            abort_requested = false,
+            attempts = CASE status
+                WHEN 'doing' THEN attempts + 1 ELSE attempts
+            END
+        WHERE id = job_id AND status IN ('todo', 'doing')
         RETURNING id INTO _job_id;
     END IF;
     IF _job_id IS NULL THEN
-        RAISE 'Job was not found or not in "doing", "todo" or "aborting" status (job id: %)', job_id;
+        RAISE 'Job was not found or not in "doing" or "todo" status (job id: %)', job_id;
     END IF;
 END;
 $$;
@@ -242,10 +238,10 @@ BEGIN
     IF _job_id IS NULL THEN
         IF abort THEN
             UPDATE procrastinate_jobs
-            SET status = CASE status
-                WHEN 'todo' THEN 'cancelled'::procrastinate_job_status
-                WHEN 'doing' THEN 'aborting'::procrastinate_job_status
-            END
+            SET abort_requested = true,
+                status = CASE status
+                    WHEN 'todo' THEN 'cancelled'::procrastinate_job_status ELSE status
+                END
             WHERE id = job_id AND status IN ('todo', 'doing')
             RETURNING id INTO _job_id;
         ELSE
@@ -336,12 +332,6 @@ BEGIN
                 )
                 THEN 'cancelled'::procrastinate_job_event_type
             WHEN OLD.status = 'doing'::procrastinate_job_status
-                AND NEW.status = 'aborting'::procrastinate_job_status
-                THEN 'abort_requested'::procrastinate_job_event_type
-            WHEN (
-                    OLD.status = 'doing'::procrastinate_job_status
-                    OR OLD.status = 'aborting'::procrastinate_job_status
-                )
                 AND NEW.status = 'aborted'::procrastinate_job_status
                 THEN 'aborted'::procrastinate_job_event_type
             ELSE NULL
@@ -364,6 +354,17 @@ BEGIN
         VALUES (NEW.id, 'scheduled'::procrastinate_job_event_type, NEW.scheduled_at);
 
 	RETURN NEW;
+END;
+$$;
+
+CREATE FUNCTION procrastinate_trigger_abort_requested_events_procedure()
+    RETURNS trigger
+    LANGUAGE plpgsql
+AS $$
+BEGIN
+    INSERT INTO procrastinate_events(job_id, type)
+        VALUES (NEW.id, 'abort_requested'::procrastinate_job_event_type);
+    RETURN NEW;
 END;
 $$;
 
@@ -401,13 +402,17 @@ CREATE TRIGGER procrastinate_trigger_scheduled_events
     FOR EACH ROW WHEN ((new.scheduled_at IS NOT NULL AND new.status = 'todo'::procrastinate_job_status))
     EXECUTE PROCEDURE procrastinate_trigger_scheduled_events_procedure();
 
+CREATE TRIGGER procrastinate_trigger_abort_requested_events
+    AFTER UPDATE OF abort_requested ON procrastinate_jobs
+    FOR EACH ROW WHEN ((new.abort_requested = true))
+    EXECUTE PROCEDURE procrastinate_trigger_abort_requested_events_procedure();
+
 CREATE TRIGGER procrastinate_trigger_delete_jobs
     BEFORE DELETE ON procrastinate_jobs
     FOR EACH ROW EXECUTE PROCEDURE procrastinate_unlink_periodic_defers();
 
 
--- Old versions of functions, for backwards compatibility (to be removed
--- after 2.0.0)
+-- Old versions of functions, for backwards compatibility (to be removed in a future release)
 
 -- procrastinate_defer_job
 -- the function without the priority argument is kept for compatibility reasons
@@ -434,6 +439,7 @@ END;
 $$;
 
 -- procrastinate_finish_job
+-- the next_scheduled_at argument is kept for compatibility reasons
 CREATE OR REPLACE FUNCTION procrastinate_finish_job(job_id integer, end_status procrastinate_job_status, next_scheduled_at timestamp with time zone, delete_job boolean)
     RETURNS void
     LANGUAGE plpgsql
@@ -451,6 +457,7 @@ BEGIN
     ELSE
         UPDATE procrastinate_jobs
         SET status = end_status,
+            abort_requested = false,
             attempts =
                 CASE
                     WHEN status = 'doing' THEN attempts + 1

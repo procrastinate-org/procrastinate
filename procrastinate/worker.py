@@ -223,13 +223,13 @@ class Worker:
 
         except BaseException as e:
             exc_info = e
-            is_aborting = (
-                (await self.app.job_manager.get_job_status_async(job_id=job.id))
-                == jobs.Status.ABORTING
-                if job.id
-                else False
+
+            assert job.id
+            abort_requested = await self.app.job_manager.get_job_abort_requested_async(
+                job_id=job.id
             )
-            if not isinstance(e, exceptions.JobAborted) and not is_aborting:
+
+            if not isinstance(e, exceptions.JobAborted) and not abort_requested:
                 job_retry = (
                     task.get_retry_exception(exception=e, job=job) if task else None
                 )

@@ -142,9 +142,13 @@ async def test_abort(async_app: app_module.App):
 
     status = await async_app.job_manager.get_job_status_async(job1_id)
     assert status == Status.ABORTED
+    abort_requested = await async_app.job_manager.get_job_abort_requested_async(job1_id)
+    assert abort_requested is False
 
     status = await async_app.job_manager.get_job_status_async(job2_id)
     assert status == Status.ABORTED
+    abort_requested = await async_app.job_manager.get_job_abort_requested_async(job2_id)
+    assert abort_requested is False
 
 
 async def test_concurrency(async_app: app_module.App):
