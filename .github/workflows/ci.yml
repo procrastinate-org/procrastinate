@@ -48,7 +48,7 @@ jobs:
 
       - run: poetry env use "${{ matrix.python-version }}"
 
-      - run: poetry install --extras "django sqlalchemy"
+      - run: poetry install --extras "django sqlalchemy" --without "docs"
 
       - name: Run tests
         run: scripts/tests
@@ -75,11 +75,14 @@ jobs:
 
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.8" # Important for importlib_metadata
+          python-version: "3.8"
           cache: "poetry"
 
+      - name: Use selected Python version
+        run: poetry env use 3.8
+
       - name: Install dependencies
-        run: poetry install --all-extras --with=types
+        run: poetry install --all-extras --with=types --without=docs
 
       - name: Activate virtualenv
         run: echo "$(poetry env info --path)/bin" >> $GITHUB_PATH
