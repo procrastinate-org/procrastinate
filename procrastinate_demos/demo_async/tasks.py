@@ -11,5 +11,5 @@ async def sum(a, b):
 
 @app.task(queue="defer")
 async def defer():
-    """Defer a nother task."""
+    """Defer a another task."""
     await sum.defer_async(a=1, b=2)
