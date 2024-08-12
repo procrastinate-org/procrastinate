@@ -104,7 +104,7 @@ async def sync_to_async(func: Callable[..., T], *args, **kwargs) -> T:
     Given a callable, return a callable that will call the original one in an
     async context.
     """
-    return await sync.sync_to_async(func)(*args, **kwargs)
+    return await sync.sync_to_async(func, thread_sensitive=False)(*args, **kwargs)
 
 
 def causes(exc: BaseException | None):
