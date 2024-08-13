@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from time import sleep
 
 import pytest
 from asgiref.sync import sync_to_async
@@ -78,6 +79,30 @@ async def test_nested_sync_to_async(sync_app, async_app):
     await async_app.run_worker_async(queues=["default"], wait=False)
 
     assert sum_results == [3]
+
+
+async def test_sync_task_runs_in_parallel(sync_app, async_app):
+    results = []
+
+    @sync_app.task(queue="default", name="sync_task_1")
+    def sync_task_1():
+        for i in range(3):
+            sleep(0.1)
+            results.append(i)
+
+    @sync_app.task(queue="default", name="sync_task_2")
+    def sync_task_2():
+        for i in range(3):
+            sleep(0.1)
+            results.append(i)
+
+    sync_task_1.defer()
+    sync_task_2.defer()
+
+    async_app.tasks = sync_app.tasks
+    await async_app.run_worker_async(queues=["default"], concurrency=2, wait=False)
+
+    assert results == [0, 0, 1, 1, 2, 2]
 
 
 async def test_cancel(sync_app, async_app):
