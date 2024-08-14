@@ -180,7 +180,7 @@ def blueprint():
 
 
 @pytest.fixture
-def job_manager(app):
+def job_manager(app: app_module.App):
     return app.job_manager
 
 

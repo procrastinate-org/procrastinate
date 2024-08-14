@@ -75,7 +75,6 @@ async def test_should_abort(app, job_factory):
     job = await app.job_manager.fetch_job(queues=None)
     await app.job_manager.cancel_job_by_id_async(job.id, abort=True)
     context = job_context.JobContext(app=app, job=job)
-    assert context.should_abort() is True
     assert await context.should_abort_async() is True
 
 
@@ -84,5 +83,4 @@ async def test_should_not_abort(app, job_factory):
     job = await app.job_manager.fetch_job(queues=None)
     await app.job_manager.cancel_job_by_id_async(job.id)
     context = job_context.JobContext(app=app, job=job)
-    assert context.should_abort() is False
     assert await context.should_abort_async() is False

@@ -125,8 +125,8 @@ async def test_worker_run_respects_concurrency(
 
     connector = cast(InMemoryConnector, app.connector)
 
-    doings_jobs = list(connector.list_jobs_all(status=Status.DOING.value))
-    todo_jobs = list(connector.list_jobs_all(status=Status.TODO.value))
+    doings_jobs = list(await connector.list_jobs_all(status=Status.DOING.value))
+    todo_jobs = list(await connector.list_jobs_all(status=Status.TODO.value))
 
     assert len(doings_jobs) == worker.concurrency
     assert len(todo_jobs) == available_jobs - worker.concurrency
@@ -390,7 +390,7 @@ async def test_run_job_async(app: App, worker):
     async def task_func(a, b):
         result.append(a + b)
 
-    job_id = task_func.defer(a=9, b=3)
+    job_id = await task_func.defer_async(a=9, b=3)
 
     await start_worker(worker)
     assert result == [12]
@@ -406,7 +406,7 @@ async def test_run_job_sync(app: App, worker):
     def task_func(a, b):
         result.append(a + b)
 
-    job_id = task_func.defer(a=9, b=3)
+    job_id = await task_func.defer_async(a=9, b=3)
 
     await start_worker(worker)
     assert result == [12]
@@ -425,7 +425,7 @@ async def test_run_job_semi_async(app: App, worker):
 
         return inner()
 
-    job_id = task_func.defer(a=9, b=3)
+    job_id = await task_func.defer_async(a=9, b=3)
 
     await start_worker(worker)
 
@@ -442,7 +442,7 @@ async def test_run_job_log_result(caplog, app: App, worker):
     async def task_func(a, b):
         return a + b
 
-    task_func.defer(a=9, b=3)
+    await task_func.defer_async(a=9, b=3)
 
     await start_worker(worker)
 
@@ -491,7 +491,7 @@ async def test_run_job_error(app: App, worker, critical_error, caplog):
     def task_func(a, b):
         raise CustomCriticalError("Nope") if critical_error else ValueError("Nope")
 
-    job_id = task_func.defer(a=9, b=3)
+    job_id = await task_func.defer_async(a=9, b=3)
 
     await start_worker(worker)
 
@@ -517,7 +517,7 @@ async def test_run_job_aborted(app: App, worker, caplog):
     async def task_func():
         raise JobAborted()
 
-    job_id = task_func.defer()
+    job_id = await task_func.defer_async()
 
     await start_worker(worker)
 
@@ -559,7 +559,7 @@ async def test_run_job_retry_failed_job(
         if attempt < recover_on_attempt_number:
             raise CustomCriticalError("Nope") if critical_error else ValueError("Nope")
 
-    job_id = task_func.defer()
+    job_id = await task_func.defer_async()
 
     await start_worker(worker)
 
