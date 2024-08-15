@@ -42,7 +42,7 @@ repos:
           - django-stubs==5.0.4
           - django==4.2.15
           - importlib-metadata==8.2.0
-          - importlib-resources==6.4.0
+          - importlib-resources==6.4.2
           - psycopg2-binary==2.9.9
           - psycopg[pool]==3.2.1
           - python-dateutil==2.9.0.post0
@@ -50,7 +50,7 @@ repos:
           - sqlalchemy==2.0.32
           - typing-extensions==4.12.2
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.5.7
+    rev: v0.6.0
     hooks:
       - id: ruff
         args: [--fix, --unsafe-fixes]

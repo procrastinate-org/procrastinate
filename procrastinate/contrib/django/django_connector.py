@@ -10,6 +10,7 @@ from typing import (
 )
 
 import asgiref.sync
+from django import db as django_db
 from django.core import exceptions as django_exceptions
 from django.db import connections
 from django.db.backends.base.base import BaseDatabaseWrapper
@@ -41,7 +42,14 @@ def wrap_exceptions() -> Generator[None, None, None]:
         )
 
     with wrap():
-        yield
+        try:
+            yield
+        except django_db.DatabaseError as exc:
+            # __cause__ is always defined but might be None, it's set by Django
+            # (using `raise x from y) to the original db driver exception
+            if exc.__cause__:
+                raise exc.__cause__
+            raise exc
 
 
 class DjangoConnector(connector.BaseAsyncConnector):
