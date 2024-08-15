@@ -88,7 +88,7 @@ pytest-mock = "*"
 migra = "*"
 # migra depends on schemainspect, which has an implicit dependency on setuptools
 # (pkg_resources).
-setuptools = { version = "*", python = ">=3.12" }
+setuptools = { version = "*" }
 
 [tool.poetry.group.docs.dependencies]
 django = ">=2.2"
