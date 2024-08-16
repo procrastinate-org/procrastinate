@@ -94,12 +94,18 @@ class App(blueprints.Blueprint):
 
         self._register_builtin_tasks()
 
-    def with_connector(self, connector: connector_module.BaseConnector) -> App:
+    def with_connector(
+        self,
+        connector: connector_module.BaseConnector,
+    ) -> App:
         """
         Create another app instance sychronized with this one, with a different
-        connector. For all things regarding periodic tasks, the original app
-        (and its original connector) will be used, even when the new app's
-        methods are used.
+        connector.
+
+        .. deprecated:: 2.14.0
+            Use `replace_connector` instead. Because this method creates a new
+            app that references the same tasks, and the task have a link
+            back to the app, using this method can lead to unexpected behavior.
 
         Parameters
         ----------
@@ -109,7 +115,7 @@ class App(blueprints.Blueprint):
         Returns
         -------
         :
-            A new compatible app.
+            A new app with the same tasks.
         """
         app = App(
             connector=connector,
@@ -126,6 +132,12 @@ class App(blueprints.Blueprint):
     ) -> Iterator[App]:
         """
         Replace the connector of the app while in the context block, then restore it.
+        The context variable is the same app as this method is called on.
+
+        >>> with app.replace_connector(new_connector) as app2:
+        ...    ...
+        ...    # app and app2 are the same object
+
 
         Parameters
         ----------
@@ -134,8 +146,8 @@ class App(blueprints.Blueprint):
 
         Yields
         -------
-        `App`
-            A new compatible app.
+        :
+            A context manager that yields the same app with the new connector.
         """
         old_connector = self.connector
         self.connector = connector

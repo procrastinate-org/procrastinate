@@ -24,8 +24,8 @@ def app():
     # Replace the connector in the current app
     # Note that this fixture gives you the app back for convenience, but it's
     # the same instance as you'd get with `procrastinate.contrib.django.app`.
-    with procrastinate_app.current_app.replace_connector(in_memory) as app_with_connector:
-        yield app_with_connector
+    with procrastinate_app.current_app.replace_connector(in_memory) as app:
+        yield app
 
 def test_my_task(app):
     # Run the task
@@ -126,8 +126,8 @@ class TestingTaskClass(TransactionTestCase):
         my_task.defer(a=1, b=2)
 
         # Start worker
-        app = app.with_connector(app.connector.get_worker_connector())
-        app.run_worker(wait=False, install_signal_handlers=False, listen_notify=False)
+        with app.replace_connector(app.connector.get_worker_connector())
+            app.run_worker(wait=False, install_signal_handlers=False, listen_notify=False)
 
         # Check task has been executed
         assert ProcrastinateJob.objects.filter(task_name="my_task").status == "succeeded"
@@ -144,8 +144,8 @@ def test_task():
     my_task.defer(a=1, b=2)
 
     # Start worker
-    app = app.with_connector(app.connector.get_worker_connector())
-    app.run_worker(wait=False, install_signal_handlers=False, listen_notify=False)
+    with app.replace_connector(app.connector.get_worker_connector())
+        app.run_worker(wait=False, install_signal_handlers=False, listen_notify=False)
 
     # Check task has been executed
     assert ProcrastinateJob.objects.filter(task_name="my_task").status == "succeeded"
@@ -153,11 +153,11 @@ def test_task():
 # Or with a fixture
 @pytest.fixture
 def worker(transactional_db):
-    def _():
-        app = app.with_connector(app.connector.get_worker_connector())
-        app.run_worker(wait=False, install_signal_handlers=False, listen_notify=False)
-        return app
-    return _
+    with app.replace_connector(app.connector.get_worker_connector())
+        def f():
+            app.run_worker(wait=False, install_signal_handlers=False, listen_notify=False)
+            return app
+    yield f
 
 def test_task(worker):
     # Run tasks

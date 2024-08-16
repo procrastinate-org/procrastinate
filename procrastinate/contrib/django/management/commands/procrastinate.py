@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 
 from django.core.management.base import BaseCommand
 
@@ -24,6 +25,11 @@ class Command(BaseCommand):
 
     def handle(self, *args, **kwargs):
         kwargs = {k: v for k, v in kwargs.items() if k not in self._django_options}
+        context = contextlib.nullcontext()
+
         if isinstance(app.connector, django_connector.DjangoConnector):
-            kwargs["app"] = app.with_connector(app.connector.get_worker_connector())
-        asyncio.run(cli.execute_command(kwargs))
+            kwargs["app"] = app
+            context = app.replace_connector(app.connector.get_worker_connector())
+
+        with context:
+            asyncio.run(cli.execute_command(kwargs))

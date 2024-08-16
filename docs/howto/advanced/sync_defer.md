@@ -55,24 +55,6 @@ app = App(connector=SQLAlchemyPsycopg2Connector())
 app.open(engine)
 ```
 
-## Having multiple apps
-
-If you need to have multiple connectors interact with the tasks, you can
-create multiple synchronized apps with {py:meth}`App.with_connector`:
-
-```
-import procrastinate
-
-
-app = procrastinate.App(
-    connector=procrastinate.PsycopgConnector(...),
-)
-
-sync_app = app.with_connector(
-    connector=procrastinate.SyncPsycopgConnector(...),
-)
-```
-
 ## Procrastinate's automatic connector selection
 
 Async connectors are able to summon their synchronous counterpart when needed
