@@ -1945,4 +1945,4 @@ sqlalchemy = ["sqlalchemy"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8"
-content-hash = "c4354f07b502aa8452ed2d5779abb298bdd112daf7c11625480c2d556ea5aaf2"
+content-hash = "94a265554ef42d9521bda4878cb93069758a2f7e4c52a5f63af06df31c90fe8d"

@@ -89,7 +89,12 @@ migra = "*"
 # (pkg_resources).
 setuptools = { version = "*" }
 
+[tool.poetry.group.docs]
+optional = true
+
 [tool.poetry.group.docs.dependencies]
+python = "^3.10"
+
 django = ">=2.2"
 furo = "*"
 Sphinx = { version = ">=8", python = ">=3.10" }
