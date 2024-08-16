@@ -285,7 +285,7 @@ async def test_defer_queueing_lock_ignore(entrypoint, cli_app, connector):
     def mytask(a):
         pass
 
-    cli_app.configure_task(name="hello", queueing_lock="houba").defer(a=1)
+    await cli_app.configure_task(name="hello", queueing_lock="houba").defer_async(a=1)
 
     result = await entrypoint(
         """defer --queueing-lock=houba --ignore-already-enqueued hello {"a":2}"""

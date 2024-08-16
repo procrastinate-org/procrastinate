@@ -231,7 +231,7 @@ async def test_cancel_doing_job(job_manager, job_factory, connector):
     await job_manager.defer_job_async(job=job)
     await job_manager.fetch_job(queues=None)
 
-    cancelled = job_manager.cancel_job_by_id(job_id=1)
+    cancelled = await job_manager.cancel_job_by_id_async(job_id=1)
     assert not cancelled
     assert connector.queries[-1] == (
         "cancel_job",
@@ -245,7 +245,7 @@ async def test_abort_doing_job(job_manager, job_factory, connector):
     await job_manager.defer_job_async(job=job)
     await job_manager.fetch_job(queues=None)
 
-    cancelled = job_manager.cancel_job_by_id(job_id=1, abort=True)
+    cancelled = await job_manager.cancel_job_by_id_async(job_id=1, abort=True)
     assert cancelled
     assert connector.queries[-1] == (
         "cancel_job",
@@ -445,7 +445,7 @@ def test_retry_job_by_id(job_manager, connector, job_factory, dt):
 
 
 async def test_list_jobs_async(job_manager, job_factory):
-    job = job_manager.defer_job(job=job_factory())
+    job = await job_manager.defer_job_async(job=job_factory())
 
     assert await job_manager.list_jobs_async() == [job]
 
@@ -457,7 +457,7 @@ def test_list_jobs(job_manager, job_factory):
 
 
 async def test_list_queues_async(job_manager, job_factory):
-    job_manager.defer_job(job=job_factory(queue="foo"))
+    await job_manager.defer_job_async(job=job_factory(queue="foo"))
 
     assert await job_manager.list_queues_async() == [
         {
@@ -491,7 +491,7 @@ def test_list_queues_(job_manager, job_factory):
 
 
 async def test_list_tasks_async(job_manager, job_factory):
-    job_manager.defer_job(job=job_factory(task_name="foo"))
+    await job_manager.defer_job_async(job=job_factory(task_name="foo"))
 
     assert await job_manager.list_tasks_async() == [
         {
@@ -525,7 +525,7 @@ def test_list_tasks(job_manager, job_factory):
 
 
 async def test_list_locks_async(job_manager, job_factory):
-    job_manager.defer_job(job=job_factory(lock="foo"))
+    await job_manager.defer_job_async(job=job_factory(lock="foo"))
 
     assert await job_manager.list_locks_async() == [
         {
