@@ -93,15 +93,14 @@ setuptools = { version = "*" }
 optional = true
 
 [tool.poetry.group.docs.dependencies]
-python = "^3.10"
 
 django = ">=2.2"
 furo = "*"
-Sphinx = { version = ">=8", python = ">=3.10" }
+Sphinx = "*"
 sphinx-copybutton = "*"
 sphinx-github-changelog = "*"
 sphinxcontrib-programoutput = "*"
-myst-parser = { version = ">=4", python = ">=3.10" }
+myst-parser = "*"
 
 [tool.poetry-dynamic-versioning]
 enable = true

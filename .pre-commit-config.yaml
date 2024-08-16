@@ -45,7 +45,7 @@ repos:
           - psycopg2-binary==2.9.9
           - psycopg[pool]==3.2.1
           - python-dateutil==2.9.0.post0
-          - sphinx==8.0.2
+          - sphinx==7.1.2
           - sqlalchemy==2.0.32
           - typing-extensions==4.12.2
   - repo: https://github.com/astral-sh/ruff-pre-commit
