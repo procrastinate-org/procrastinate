@@ -46,8 +46,6 @@ jobs:
           python-version: "${{ matrix.python-version }}"
           cache: "poetry"
 
-      - run: poetry env use "${{ matrix.python-version }}"
-
       - run: poetry install --all-extras
 
       - name: Run tests
@@ -77,9 +75,6 @@ jobs:
         with:
           python-version: "3.8"
           cache: "poetry"
-
-      - name: Use selected Python version
-        run: poetry env use 3.8
 
       - name: Install dependencies
         run: poetry install --all-extras --with=types
