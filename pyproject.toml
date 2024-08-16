@@ -6,7 +6,7 @@ build-backend = "poetry_dynamic_versioning.backend"
 name = "procrastinate"
 version = "0.0.0"
 description = "Postgres-based distributed task processing library"
-authors = ["Joachim Jablon", "Eric Lemoine"]
+authors = ["Joachim Jablon", "Eric Lemoine", "Kai Schlamp"]
 license = "MIT License"
 classifiers = [
     "Development Status :: 4 - Beta",

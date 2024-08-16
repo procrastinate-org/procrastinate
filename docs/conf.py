@@ -24,9 +24,10 @@ import django
 
 project = "Procrastinate"
 copyright = (
-    f"""2019-{datetime.datetime.now().year}, Joachim Jablon, Eric Lemoine, PeopleDoc"""
+    f"2019-{datetime.datetime.now().year}, "
+    "Joachim Jablon, Eric Lemoine, Kai Schlamp, PeopleDoc"
 )
-author = "Joachim Jablon"
+author = "Joachim Jablon, Eric Lemoine, Kai Schlamp"
 
 
 # -- General configuration ---------------------------------------------------
