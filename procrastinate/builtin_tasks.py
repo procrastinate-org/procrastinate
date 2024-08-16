@@ -26,13 +26,13 @@ async def remove_old_jobs(
     queue :
         The name of the queue in which jobs will be deleted. If not specified, the
         task will delete jobs from all queues.
-    remove_error : ``Optional[bool]``
+    remove_error:
         By default only successful jobs will be removed. When this parameter is True
         failed jobs will also be deleted.
-    remove_cancelled : ``Optional[bool]``
+    remove_cancelled:
         By default only successful jobs will be removed. When this parameter is True
         cancelled jobs will also be deleted.
-    remove_aborted : ``Optional[bool]``
+    remove_aborted:
         By default only successful jobs will be removed. When this parameter is True
         aborted jobs will also be deleted.
     """

@@ -29,11 +29,12 @@ class JobManager:
 
         Parameters
         ----------
-        job : `jobs.Job`
+        job:
+            The job to defer
 
         Returns
         -------
-        `jobs.Job`
+        :
             A copy of the job instance with the id set.
         """
         # Make sure this code stays synchronized with .defer_job()
@@ -125,12 +126,12 @@ class JobManager:
 
         Parameters
         ----------
-        queues : ``Optional[Iterable[str]]``
+        queues:
             Filter by job queue names
 
         Returns
         -------
-        ``Optional[jobs.Job]``
+        :
             None if no suitable job was found. The job otherwise.
         """
 
@@ -156,17 +157,13 @@ class JobManager:
 
         Parameters
         ----------
-        nb_seconds : ``int``
+        nb_seconds:
             Only jobs that have been in ``doing`` state for longer than this will be
             returned
-        queue : ``Optional[str]``
+        queue:
             Filter by job queue name
-        task_name : ``Optional[str]``
+        task_name:
             Filter by job task name
-
-        Returns
-        -------
-        ``Iterable[jobs.Job]``
         """
         rows = await self.connector.execute_query_all_async(
             query=sql.queries["select_stalled_jobs"],
@@ -191,15 +188,15 @@ class JobManager:
 
         Parameters
         ----------
-        nb_hours : ``int``
+        nb_hours:
             Consider jobs that been in a final state for more than ``nb_hours``
-        queue : ``Optional[str]``
+        queue:
             Filter by job queue name
-        include_error : ``Optional[bool]``
+        include_error:
             If ``True``, also consider errored jobs. ``False`` by default
-        include_cancelled : ``Optional[bool]``
+        include_cancelled:
             If ``True``, also consider cancelled jobs. ``False`` by default.
-        include_aborted : ``Optional[bool]``
+        include_aborted:
             If ``True``, also consider aborted jobs. ``False`` by default.
         """
         # We only consider finished jobs by default
@@ -229,8 +226,8 @@ class JobManager:
 
         Parameters
         ----------
-        job : `jobs.Job`
-        status : `jobs.Status`
+        job:
+        status:
             ``succeeded``, ``failed`` or ``aborted``
         """
         assert job.id  # TODO remove this
@@ -259,19 +256,19 @@ class JobManager:
 
         Parameters
         ----------
-        job_id : ``int``
+        job_id:
             The id of the job to cancel
-        abort : ``bool``
+        abort:
             If True, a job in ``doing`` state will be marked as ``aborting``, but the task
             itself has to respect the abortion request. If False, only jobs in ``todo``
             state will be set to ``cancelled`` and won't be processed by a worker anymore.
-        delete_job : ``bool``
+        delete_job:
             If True, the job will be deleted from the database after being cancelled. Does
             not affect the jobs that should be aborted.
 
         Returns
         -------
-        ``bool``
+        :
             If True, the job was cancelled (or its abortion was requested). If False,
             nothing was done: either there is no job with this id or it's not in a state
             where it may be cancelled (i.e. `todo` or `doing`)
@@ -297,19 +294,19 @@ class JobManager:
 
         Parameters
         ----------
-        job_id : ``int``
+        job_id:
             The id of the job to cancel
-        abort : ``bool``
+        abort:
             If True, a job in ``doing`` state will be marked as ``aborting``, but the task
             itself has to respect the abortion request. If False, only jobs in ``todo``
             state will be set to ``cancelled`` and won't be processed by a worker anymore.
-        delete_job : ``bool``
+        delete_job:
             If True, the job will be deleted from the database after being cancelled. Does
             not affect the jobs that should be aborted.
 
         Returns
         -------
-        ``bool``
+        :
             If True, the job was cancelled (or its abortion was requested). If False,
             nothing was done: either there is no job with this id or it's not in a state
             where it may be cancelled (i.e. `todo` or `doing`)
@@ -333,12 +330,12 @@ class JobManager:
 
         Parameters
         ----------
-        job_id : ``int``
+        job_id:
             The id of the job to get the status of
 
         Returns
         -------
-        `jobs.Status`
+        :
         """
         result = self.connector.get_sync_connector().execute_query_one(
             query=sql.queries["get_job_status"], job_id=job_id
@@ -351,12 +348,12 @@ class JobManager:
 
         Parameters
         ----------
-        job_id : ``int``
+        job_id:
             The id of the job to get the status of
 
         Returns
         -------
-        `jobs.Status`
+        :
         """
         result = await self.connector.execute_query_one_async(
             query=sql.queries["get_job_status"], job_id=job_id
@@ -376,18 +373,18 @@ class JobManager:
 
         Parameters
         ----------
-        job : `jobs.Job`
-        retry_at : ``Optional[datetime.datetime]``
+        job:
+        retry_at:
             If set at present time or in the past, the job may be retried immediately.
             Otherwise, the job will be retried no sooner than this date & time.
             Should be timezone-aware (even if UTC). Defaults to present time.
-        priority : ``Optional[int]``
+        priority:
             If set, the job will be retried with this priority. If not set, the priority
             remains unchanged.
-        queue : ``Optional[int]``
+        queue:
             If set, the job will be retried on this queue. If not set, the queue remains
             unchanged.
-        lock : ``Optional[int]``
+        lock:
             If set, the job will be retried with this lock. If not set, the lock remains
             unchanged.
         """
@@ -413,18 +410,18 @@ class JobManager:
 
         Parameters
         ----------
-        job_id : ``int``
-        retry_at : ``datetime.datetime``
+        job_id:
+        retry_at:
             If set at present time or in the past, the job may be retried immediately.
             Otherwise, the job will be retried no sooner than this date & time.
             Should be timezone-aware (even if UTC).
-        priority : ``Optional[int]``
+        priority:
             If set, the job will be retried with this priority. If not set, the priority
             remains unchanged.
-        queue : ``Optional[int]``
+        queue:
             If set, the job will be retried on this queue. If not set, the queue remains
             unchanged.
-        lock : ``Optional[int]``
+        lock:
             If set, the job will be retried with this lock. If not set, the lock remains
             unchanged.
         """
@@ -469,9 +466,9 @@ class JobManager:
 
         Parameters
         ----------
-        event : ``asyncio.Event``
+        event:
             This event will be set each time a defer operation occurs
-        queues : ``Optional[Iterable[str]]``
+        queues:
             If ``None``, all defer operations will be considered. If an iterable of
             queue names is passed, only defer operations on those queues will be
             considered. Defaults to ``None``
@@ -487,7 +484,7 @@ class JobManager:
 
         Returns
         -------
-        ``bool``
+        :
             ``True`` if the table exists, ``False`` otherwise.
         """
         result = await self.connector.execute_query_one_async(
@@ -518,22 +515,22 @@ class JobManager:
 
         Parameters
         ----------
-        id : ``int``
+        id:
             Filter by job ID
-        queue : ``str``
+        queue:
             Filter by job queue name
-        task : ``str``
+        task:
             Filter by job task name
-        status : ``str``
+        status:
             Filter by job status (``todo``/``doing``/``succeeded``/``failed``)
-        lock : ``str``
+        lock:
             Filter by job lock
-        queueing_lock : ``str``
+        queueing_lock:
             Filter by job queueing_lock
 
         Returns
         -------
-        ``Iterable[jobs.Job]``
+        :
         """
         rows = await self.connector.execute_query_all_async(
             query=sql.queries["list_jobs"],
@@ -581,18 +578,18 @@ class JobManager:
 
         Parameters
         ----------
-        queue : ``str``
+        queue:
             Filter by job queue name
-        task : ``str``
+        task:
             Filter by job task name
-        status : ``str``
+        status:
             Filter by job status (``todo``/``doing``/``succeeded``/``failed``)
-        lock : ``str``
+        lock:
             Filter by job lock
 
         Returns
         -------
-        ``List[Dict[str, Any]]``
+        :
             A list of dictionaries representing queues stats (``name``, ``jobs_count``,
             ``todo``, ``doing``, ``succeeded``, ``failed``, ``cancelled``, ``aborting``,
             ``aborted``).
@@ -661,18 +658,18 @@ class JobManager:
 
         Parameters
         ----------
-        queue : ``str``
+        queue:
             Filter by job queue name
-        task : ``str``
+        task:
             Filter by job task name
-        status : ``str``
+        status:
             Filter by job status (``todo``/``doing``/``succeeded``/``failed``)
-        lock : ``str``
+        lock:
             Filter by job lock
 
         Returns
         -------
-        ``List[Dict[str, Any]]``
+        :
             A list of dictionaries representing tasks stats (``name``, ``jobs_count``,
             ``todo``, ``doing``, ``succeeded``, ``failed``, ``cancelled``, ``aborting``,
             ``aborted``).
@@ -741,18 +738,18 @@ class JobManager:
 
         Parameters
         ----------
-        queue : ``str``
+        queue:
             Filter by job queue name
-        task : ``str``
+        task:
             Filter by job task name
-        status : ``str``
+        status:
             Filter by job status (``todo``/``doing``/``succeeded``/``failed``)
-        lock : ``str``
+        lock:
             Filter by job lock
 
         Returns
         -------
-        ``List[Dict[str, Any]]``
+        :
             A list of dictionaries representing locks stats (``name``, ``jobs_count``,
             ``todo``, ``doing``, ``succeeded``, ``failed``, ``cancelled``, ``aborting``,
             ``aborted``).

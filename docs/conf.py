@@ -39,7 +39,6 @@ extensions = [
     "myst_parser",
     "sphinx.ext.napoleon",
     "sphinx.ext.autodoc",
-    "sphinx_autodoc_typehints",
     "sphinxcontrib.programoutput",
     "sphinx_github_changelog",
     "sphinx_copybutton",
@@ -98,6 +97,13 @@ html_theme_options = {
 }
 
 html_favicon = "favicon.ico"
+
+# -- Options for sphinx.ext.autodoc ------------------------------------------
+
+autodoc_typehints = "both"
+autodoc_type_aliases = {
+    "JSONDict": "procrastinate.types.JSONDict",
+}
 
 # -- Options for sphinx_github_changelog ---------------------------------
 

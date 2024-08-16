@@ -156,7 +156,7 @@ class DjangoConnector(connector.BaseAsyncConnector):
 
         Returns
         -------
-        ``procrastinate.contrib.aiopg.AiopgConnector`` or ``procrastinate.contrib.psycopg3.PsycopgConnector``
+        :
             A connector that can be used in a worker
         """
         alias = settings.settings.DATABASE_ALIAS

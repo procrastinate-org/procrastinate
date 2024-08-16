@@ -48,42 +48,29 @@ class Job:
     """
     A job is the launching of a specific task with specific values for the
     keyword arguments.
-
-    Attributes
-    ----------
-    id :
-        Internal id uniquely identifying the job.
-    status :
-        Status of the job.
-    priority :
-        Priority of the job.
-    queue :
-        Queue name the job will be run in.
-    lock :
-        No two jobs with the same lock string can run simultaneously
-    queueing_lock :
-        No two jobs with the same queueing lock can be waiting in the queue.
-    task_name :
-        Name of the associated task.
-    task_kwargs :
-        Arguments used to call the task.
-    scheduled_at :
-        Date and time after which the job is expected to run.
-    attempts :
-        Number of times the job has been tried.
     """
 
+    #: Internal id uniquely identifying the job.
     id: int | None = None
+    #: Status of the job.
     status: str | None = None
+    #: Queue name the job will be run in.
     queue: str
+    #: Priority of the job.
     priority: int = DEFAULT_PRIORITY
+    #: No two jobs with the same lock string can run simultaneously
     lock: str | None
+    #: No two jobs with the same queueing lock can be waiting in the queue.
     queueing_lock: str | None
+    #: Name of the associated task.
     task_name: str
+    #: Arguments used to call the task.
     task_kwargs: types.JSONDict = attr.ib(factory=dict)
+    #: Date and time after which the job is expected to run.
     scheduled_at: datetime.datetime | None = attr.ib(
         default=None, validator=check_aware
     )
+    #: Number of times the job has been tried.
     attempts: int = 0
 
     @classmethod

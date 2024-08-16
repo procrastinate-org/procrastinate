@@ -40,28 +40,19 @@ class JobContext:
     Execution context of a running job.
     In theory, all attributes are optional. In practice, in a task, they will
     always be set to their proper value.
-
-    Attributes
-    ----------
-    app : `App`
-        Procrastinate `App` running this job
-    worker_name : ``str``
-        Name of the worker (may be useful for logging)
-    worker_queues : ``Optional[Iterable[str]]``
-        Queues listened by this worker
-    worker_id : ``int```
-        In case there are multiple async sub-workers, this is the id of the sub-worker.
-    job : `Job`
-        Current `Job` instance
-    task : `Task`
-        Current `Task` instance
     """
 
+    #: Procrastinate `App` running this job
     app: app_module.App | None = None
+    #: Name of the worker (may be useful for logging)
     worker_name: str | None = None
+    #: Queues listened by this worker
     worker_queues: Iterable[str] | None = None
+    #: In case there are multiple async sub-workers, this is the id of the sub-worker.
     worker_id: int | None = None
+    #: Corresponding :py:class:`~jobs.Job`
     job: jobs.Job | None = None
+    #: Corresponding :py:class:`~tasks.Task`
     task: tasks.Task | None = None
     job_result: JobResult = attr.ib(factory=JobResult)
     additional_context: dict = attr.ib(factory=dict)
