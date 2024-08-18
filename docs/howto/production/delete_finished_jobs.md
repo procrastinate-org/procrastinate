@@ -88,6 +88,8 @@ async def remove_old_jobs(context, timestamp):
         context,
         max_hours=72,
         remove_error=True,
+        remove_cancelled=True,
+        remove_aborted=True,
     )
 ```
 

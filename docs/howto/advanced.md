@@ -18,4 +18,5 @@ advanced/sync_defer
 advanced/custom_json_encoder_decoder
 advanced/blueprints
 advanced/shutdown
+advanced/sphinx
 :::

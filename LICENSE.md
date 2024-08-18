@@ -1,7 +1,8 @@
 MIT License
 
 Copyright (c) 2019-2021, PeopleDoc
-Copyright (c) 2021-, Joachim Jablon, Eric Lemoine
+Copyright (c) 2021-2023, Joachim Jablon, Eric Lemoine
+Copyright (c) 2024-, Joachim Jablon, Kai Schlamp
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this
 software and associated documentation files (the "Software"), to deal in the Software

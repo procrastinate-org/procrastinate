@@ -69,6 +69,8 @@ class Blueprint:
     """
 
     def __init__(self) -> None:
+        #: The mapping of all tasks known by the app. Only procrastinate is
+        #: expected to make changes to this mapping.
         self.tasks: dict[str, Task] = {}
         self.periodic_registry = periodic.PeriodicRegistry()
         self._check_stack()

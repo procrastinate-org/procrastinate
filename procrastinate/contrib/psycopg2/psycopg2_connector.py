@@ -83,23 +83,23 @@ class Psycopg2Connector(connector.BaseConnector):
 
         Parameters
         ----------
-        json_dumps :
+        json_dumps:
             The JSON dumps function to use for serializing job arguments. Defaults to
             the function used by psycopg2. See the `psycopg2 doc`_.
-        json_loads :
+        json_loads:
             The JSON loads function to use for deserializing job arguments. Defaults
             to the function used by psycopg2. See the `psycopg2 doc`_. Unused if the
             pool is externally created and set into the connector through the
             ``App.open`` method.
-        minconn : int
+        minconn: int
             Passed to psycopg2, default set to 1 (same as aiopg).
-        maxconn : int
+        maxconn: int
             Passed to psycopg2, default set to 10 (same as aiopg).
-        dsn : ``Optional[str]``
+        dsn: ``Optional[str]``
             Passed to psycopg2. Default is "" instead of None, which means if no
             argument is passed, it will connect to localhost:5432 instead of a
             Unix-domain local socket file.
-        cursor_factory : ``psycopg2.extensions.cursor``
+        cursor_factory: ``psycopg2.extensions.cursor``
             Passed to psycopg2. Default is ``psycopg2.extras.RealDictCursor``
             instead of standard cursor. There is no identified use case for changing
             this.

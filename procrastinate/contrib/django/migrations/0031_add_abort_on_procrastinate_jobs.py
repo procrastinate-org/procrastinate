@@ -31,5 +31,5 @@ class Migration(migrations.Migration):
             models.BooleanField(),
         ),
     ]
-    name = "0030_add_abort_on_procrastinate_jobs"
-    dependencies = [("procrastinate", "0029_add_additional_params_to_retry_job")]
+    name = "0031_add_abort_on_procrastinate_jobs"
+    dependencies = [("procrastinate", "0030_alter_procrastinateevent_options")]

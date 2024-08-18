@@ -24,9 +24,10 @@ import django
 
 project = "Procrastinate"
 copyright = (
-    f"""2019-{datetime.datetime.now().year}, Joachim Jablon, Eric Lemoine, PeopleDoc"""
+    f"2019-{datetime.datetime.now().year}, "
+    "Joachim Jablon, Eric Lemoine, Kai Schlamp, PeopleDoc"
 )
-author = "Joachim Jablon"
+author = "Joachim Jablon, Eric Lemoine, Kai Schlamp"
 
 
 # -- General configuration ---------------------------------------------------
@@ -38,10 +39,10 @@ extensions = [
     "myst_parser",
     "sphinx.ext.napoleon",
     "sphinx.ext.autodoc",
-    "sphinx_autodoc_typehints",
     "sphinxcontrib.programoutput",
     "sphinx_github_changelog",
     "sphinx_copybutton",
+    "procrastinate.contrib.sphinx",
 ]
 
 myst_enable_extensions = [
@@ -96,6 +97,13 @@ html_theme_options = {
 }
 
 html_favicon = "favicon.ico"
+
+# -- Options for sphinx.ext.autodoc ------------------------------------------
+
+autodoc_typehints = "both"
+autodoc_type_aliases = {
+    "JSONDict": "procrastinate.types.JSONDict",
+}
 
 # -- Options for sphinx_github_changelog ---------------------------------
 
