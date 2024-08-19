@@ -111,12 +111,14 @@ async def test_procrastinate_periodic_defers(db):
         pass
 
     django_app = procrastinate.contrib.django.app
-    app = django_app.with_connector(django_app.connector.get_worker_connector())
-    async with app.open_async():
-        try:
-            await asyncio.wait_for(app.run_worker_async(), timeout=0.1)
-        except asyncio.TimeoutError:
-            pass
+    with django_app.replace_connector(
+        django_app.connector.get_worker_connector()
+    ) as app:
+        async with app.open_async():
+            try:
+                await asyncio.wait_for(app.run_worker_async(), timeout=0.1)
+            except asyncio.TimeoutError:
+                pass
 
     periodic_defers = []
     async for element in models.ProcrastinatePeriodicDefer.objects.values().all():
