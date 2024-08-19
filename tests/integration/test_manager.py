@@ -198,7 +198,7 @@ async def test_delete_old_jobs_job_doing(
 
 
 @pytest.mark.parametrize(
-    "status, nb_hours, queue, include_error, expected_job_count",
+    "status, nb_hours, queue, include_failed, expected_job_count",
     [
         # nb_hours
         (jobs.Status.SUCCEEDED, 1, None, False, 0),
@@ -208,7 +208,7 @@ async def test_delete_old_jobs_job_doing(
         (jobs.Status.SUCCEEDED, 3, "queue_a", False, 1),
         (jobs.Status.SUCCEEDED, 1, "queue_b", False, 1),
         (jobs.Status.SUCCEEDED, 1, "queue_b", False, 1),
-        # include_error
+        # include_failed
         (jobs.Status.FAILED, 1, None, False, 1),
         (jobs.Status.FAILED, 1, None, True, 0),
     ],
@@ -220,7 +220,7 @@ async def test_delete_old_jobs_parameters(
     status,
     nb_hours,
     queue,
-    include_error,
+    include_failed,
     expected_job_count,
     fetched_job_factory,
 ):
@@ -236,7 +236,7 @@ async def test_delete_old_jobs_parameters(
     )
 
     await pg_job_manager.delete_old_jobs(
-        nb_hours=nb_hours, queue=queue, include_error=include_error
+        nb_hours=nb_hours, queue=queue, include_failed=include_failed
     )
     jobs_count = len(await get_all("procrastinate_jobs", "id"))
     assert jobs_count == expected_job_count

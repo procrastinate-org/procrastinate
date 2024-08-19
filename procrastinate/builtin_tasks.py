@@ -11,7 +11,7 @@ async def remove_old_jobs(
     *,
     max_hours: int,
     queue: str | None = None,
-    remove_error: bool | None = False,
+    remove_failed: bool | None = False,
     remove_cancelled: bool | None = False,
     remove_aborted: bool | None = False,
 ) -> None:
@@ -26,7 +26,7 @@ async def remove_old_jobs(
     queue :
         The name of the queue in which jobs will be deleted. If not specified, the
         task will delete jobs from all queues.
-    remove_error:
+    remove_failed:
         By default only successful jobs will be removed. When this parameter is True
         failed jobs will also be deleted.
     remove_cancelled:
@@ -39,7 +39,7 @@ async def remove_old_jobs(
     await context.app.job_manager.delete_old_jobs(
         nb_hours=max_hours,
         queue=queue,
-        include_error=remove_error,
+        include_failed=remove_failed,
         include_cancelled=remove_cancelled,
         include_aborted=remove_aborted,
     )

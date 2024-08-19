@@ -13,7 +13,7 @@ async def test_remove_old_jobs(app: App, job_factory):
         job_context.JobContext(app=app, job=job),
         max_hours=2,
         queue="queue_a",
-        remove_error=True,
+        remove_failed=True,
         remove_cancelled=True,
         remove_aborted=True,
     )

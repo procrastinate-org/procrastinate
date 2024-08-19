@@ -177,7 +177,7 @@ class JobManager:
         self,
         nb_hours: int,
         queue: str | None = None,
-        include_error: bool | None = False,
+        include_failed: bool | None = False,
         include_cancelled: bool | None = False,
         include_aborted: bool | None = False,
     ) -> None:
@@ -192,7 +192,7 @@ class JobManager:
             Consider jobs that been in a final state for more than ``nb_hours``
         queue:
             Filter by job queue name
-        include_error:
+        include_failed:
             If ``True``, also consider errored jobs. ``False`` by default
         include_cancelled:
             If ``True``, also consider cancelled jobs. ``False`` by default.
@@ -201,7 +201,7 @@ class JobManager:
         """
         # We only consider finished jobs by default
         statuses = [jobs.Status.SUCCEEDED.value]
-        if include_error:
+        if include_failed:
             statuses.append(jobs.Status.FAILED.value)
         if include_cancelled:
             statuses.append(jobs.Status.CANCELLED.value)
