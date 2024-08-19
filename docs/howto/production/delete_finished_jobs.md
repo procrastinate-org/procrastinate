@@ -87,7 +87,7 @@ async def remove_old_jobs(context, timestamp):
     return await builtin_tasks.remove_old_jobs(
         context,
         max_hours=72,
-        remove_error=True,
+        remove_failed=True,
         remove_cancelled=True,
         remove_aborted=True,
     )
