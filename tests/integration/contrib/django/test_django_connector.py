@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import pytest
-from django.core import exceptions
+from django.core import exceptions as django_exceptions
 
-from procrastinate import psycopg_connector
+import procrastinate.contrib.django
+from procrastinate import exceptions, psycopg_connector
 from procrastinate.contrib.aiopg import aiopg_connector
 from procrastinate.contrib.django import django_connector as django_connector_module
 
@@ -11,6 +12,16 @@ from procrastinate.contrib.django import django_connector as django_connector_mo
 @pytest.fixture
 def django_connector(db):
     return django_connector_module.DjangoConnector(alias="default")
+
+
+def test_wrap_exceptions__integrity_error(db):
+    @procrastinate.contrib.django.app.task(queueing_lock="foo")
+    def foo():
+        pass
+
+    with pytest.raises(exceptions.AlreadyEnqueued):
+        foo.defer()
+        foo.defer()
 
 
 def test_get_sync_connector(django_connector):
@@ -22,7 +33,7 @@ def test_open(django_connector):
 
 
 def test_open_pool(django_connector):
-    with pytest.raises(exceptions.ImproperlyConfigured):
+    with pytest.raises(django_exceptions.ImproperlyConfigured):
         django_connector.open(pool=object())
 
 
@@ -35,7 +46,7 @@ async def test_open_async(django_connector):
 
 
 async def test_open_pool_async(django_connector):
-    with pytest.raises(exceptions.ImproperlyConfigured):
+    with pytest.raises(django_exceptions.ImproperlyConfigured):
         await django_connector.open_async(pool=object())
 
 
@@ -112,5 +123,5 @@ async def test_get_worker_connector__error(django_connector, mocker):
         return_value=False,
     )
 
-    with pytest.raises(exceptions.ImproperlyConfigured):
+    with pytest.raises(django_exceptions.ImproperlyConfigured):
         django_connector.get_worker_connector()

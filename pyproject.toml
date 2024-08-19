@@ -6,7 +6,7 @@ build-backend = "poetry_dynamic_versioning.backend"
 name = "procrastinate"
 version = "0.0.0"
 description = "Postgres-based distributed task processing library"
-authors = ["Joachim Jablon", "Eric Lemoine"]
+authors = ["Joachim Jablon", "Eric Lemoine", "Kai Schlamp"]
 license = "MIT License"
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -31,19 +31,20 @@ attrs = "*"
 contextlib2 = { version = "*", python = "<3.10" }
 croniter = "*"
 django = { version = ">=2.2", optional = true }
-importlib-metadata = { version = "*", python = "<3.8" }
 importlib-resources = { version = ">=1.4", python = "<3.9" }
-psycopg = { extras = ["pool"], version = "^3.1.13" }
+psycopg = { extras = ["pool"], version = "*" }
 psycopg2-binary = { version = "*", optional = true }
 python-dateutil = "*"
 sqlalchemy = { version = "^2.0", optional = true }
 typing-extensions = { version = "*", python = "<3.8" }
+sphinx = { version = "*", optional = true }
 
 [tool.poetry.extras]
 django = ["django"]
 sqlalchemy = ["sqlalchemy"]
 aiopg = ["aiopg", "psycopg2-binary"]
 psycopg2 = ["psycopg2-binary"]
+sphinx = ["sphinx"]
 
 [tool.poetry.group.types]
 optional = true
@@ -62,9 +63,17 @@ aiopg = "*"
 sqlalchemy = { extras = ["mypy"], version = "*" }
 psycopg2-binary = "*"
 psycopg = [
-    { version = "^3.1.13", extras = ["binary", "pool"], markers = "sys_platform != 'darwin' or platform_machine != 'arm64'"},
-    { version = "^3.1.13", extras = ["binary", "pool"], markers = "sys_platform == 'darwin' and platform_machine == 'arm64'", python = ">=3.10"},
-    { version = "^3.1.13", extras = ["pool"], markers = "sys_platform == 'darwin' and platform_machine == 'arm64'", python = "<3.10" }
+    { version = "*", extras = [
+        "binary",
+        "pool",
+    ], markers = "sys_platform != 'darwin' or platform_machine != 'arm64'" },
+    { version = "*", extras = [
+        "binary",
+        "pool",
+    ], markers = "sys_platform == 'darwin' and platform_machine == 'arm64'", python = ">=3.10" },
+    { version = "*", extras = [
+        "pool",
+    ], markers = "sys_platform == 'darwin' and platform_machine == 'arm64'", python = "<3.10" },
 ]
 
 [tool.poetry.group.django.dependencies]
@@ -78,13 +87,16 @@ pytest-mock = "*"
 migra = "*"
 # migra depends on schemainspect, which has an implicit dependency on setuptools
 # (pkg_resources).
-setuptools = { version = "*", python = ">=3.12" }
+setuptools = { version = "*" }
+
+[tool.poetry.group.docs]
+optional = true
 
 [tool.poetry.group.docs.dependencies]
+
 django = ">=2.2"
 furo = "*"
 Sphinx = "*"
-sphinx-autodoc-typehints = "*"
 sphinx-copybutton = "*"
 sphinx-github-changelog = "*"
 sphinxcontrib-programoutput = "*"

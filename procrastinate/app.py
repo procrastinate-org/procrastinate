@@ -44,14 +44,6 @@ class App(blueprints.Blueprint):
     and use it to decorate your tasks with `App.task`.
 
     You can run a worker with `App.run_worker`.
-
-    Attributes
-    ----------
-    tasks : ``Dict[str, tasks.Task]``
-        The mapping of all tasks known by the app. Only procrastinate is expected to
-        make changes to this mapping.
-    job_manager : `manager.JobManager`
-        The `JobManager` linked to the application
     """
 
     @classmethod
@@ -116,7 +108,10 @@ class App(blueprints.Blueprint):
         self.worker_defaults = worker_defaults or {}
         self.periodic_defaults = periodic_defaults or {}
 
-        self.job_manager = manager.JobManager(connector=self.connector)
+        #: The :py:class:`~manager.JobManager` linked to the application
+        self.job_manager: manager.JobManager = manager.JobManager(
+            connector=self.connector
+        )
 
         self._register_builtin_tasks()
 
@@ -134,7 +129,7 @@ class App(blueprints.Blueprint):
 
         Returns
         -------
-        `App`
+        :
             A new compatible app.
         """
         app = App(
@@ -158,7 +153,7 @@ class App(blueprints.Blueprint):
         connector :
             The new connector to use.
 
-        Returns
+        Yields
         -------
         `App`
             A new compatible app.
@@ -195,7 +190,7 @@ class App(blueprints.Blueprint):
 
         Parameters
         ----------
-        name : str
+        name:
             Name of the task. If not explicitly defined, this will be the dotted path
             to the task (``my.module.my_task``)
 
@@ -204,7 +199,7 @@ class App(blueprints.Blueprint):
 
         Returns
         -------
-        ``jobs.JobDeferrer``
+        :
             Launch ``.defer(**task_kwargs)`` on this object to defer your job.
         """
         from procrastinate import tasks
@@ -248,18 +243,18 @@ class App(blueprints.Blueprint):
 
         Parameters
         ----------
-        queues : ``Optional[Iterable[str]]``
+        queues: ``Optional[Iterable[str]]``
             List of queues to listen to, or None to listen to every queue (defaults to
             ``None``).
-        wait : ``bool``
+        wait: ``bool``
             If False, the worker will terminate as soon as it has caught up with the
             queues. If True, the worker will work until it is stopped by a signal
             (``ctrl+c``, ``SIGINT``, ``SIGTERM``) (defaults to ``True``).
-        concurrency : ``int``
+        concurrency: ``int``
             Indicates how many asynchronous jobs the worker can run in parallel.
             Do not use concurrency if you have synchronous blocking tasks.
             See `howto/production/concurrency` (defaults to ``1``).
-        name : ``Optional[str]``
+        name: ``Optional[str]``
             Name of the worker. Will be passed in the `JobContext` and used in the
             logs (defaults to ``None`` which will result in the worker named
             ``worker``).

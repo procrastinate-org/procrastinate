@@ -1,6 +1,10 @@
 from __future__ import annotations
 
+import asyncio
+import time
+
 import pytest
+from asgiref.sync import sync_to_async
 
 import procrastinate
 from procrastinate.contrib import psycopg2
@@ -52,6 +56,53 @@ async def test_defer(sync_app, async_app):
 
     assert sum_results == [3, 7, 11]
     assert product_results == [12]
+
+
+async def test_nested_sync_to_async(sync_app, async_app):
+    sum_results = []
+
+    @sync_app.task(queue="default", name="sum_task")
+    def sum_task_sync(a, b):
+        async def _sum_task_async(a, b):
+            def _inner_sum_task_sync(a, b):
+                sum_results.append(a + b)
+
+            # Only works if the worker runs the sync task in a separate thread
+            await sync_to_async(_inner_sum_task_sync)(a, b)
+
+        asyncio.run(_sum_task_async(a, b))
+
+    sum_task_sync.defer(a=1, b=2)
+
+    # We need to run the async app to execute the tasks
+    async_app.tasks = sync_app.tasks
+    await async_app.run_worker_async(queues=["default"], wait=False)
+
+    assert sum_results == [3]
+
+
+async def test_sync_task_runs_in_parallel(sync_app, async_app):
+    results = []
+
+    @sync_app.task(queue="default", name="sync_task_1")
+    def sync_task_1():
+        for i in range(3):
+            time.sleep(0.1)
+            results.append(i)
+
+    @sync_app.task(queue="default", name="sync_task_2")
+    def sync_task_2():
+        for i in range(3):
+            time.sleep(0.1)
+            results.append(i)
+
+    sync_task_1.defer()
+    sync_task_2.defer()
+
+    async_app.tasks = sync_app.tasks
+    await async_app.run_worker_async(queues=["default"], concurrency=2, wait=False)
+
+    assert results == [0, 0, 1, 1, 2, 2]
 
 
 async def test_cancel(sync_app, async_app):

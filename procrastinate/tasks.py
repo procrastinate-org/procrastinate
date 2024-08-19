@@ -66,31 +66,6 @@ class Task(Generic[P, Args]):
     """
     A task is a function that should be executed later. It is linked to a
     default queue, and expects keyword arguments.
-
-    Attributes
-    ----------
-    name : ``str``
-        Name of the task, usually the dotted path of the decorated function.
-    aliases : ``List[str]``
-        Additional names for the task.
-    retry_strategy : `RetryStrategy`
-        Value indicating the retry conditions in case of
-        :py:class:`procrastinate.jobs.Job` error.
-    pass_context : ``bool``
-        If ``True``, passes the task execution context as first positional argument on
-        :py:class:`procrastinate.jobs.Job` execution.
-    queue : ``str``
-        Default queue to send deferred jobs to. The queue can be overridden when a
-        job is deferred.
-    priority :
-        Default priority (an integer) of jobs that are deferred from this task.
-        Jobs with higher priority are run first. Priority can be positive or negative.
-        If no default priority is set then the default priority is 0.
-    lock : ``Optional[str]``
-        Default lock. The lock can be overridden when a job is deferred.
-    queueing_lock : ``Optional[str]``
-        Default queueing lock. The queuing lock can be overridden when a job is
-        deferred.
     """
 
     def __init__(
@@ -110,16 +85,33 @@ class Task(Generic[P, Args]):
         lock: str | None = None,
         queueing_lock: str | None = None,
     ):
-        self.queue = queue
-        self.priority = priority
-        self.blueprint = blueprint
+        #: Default queue to send deferred jobs to. The queue can be overridden
+        #: when a job is deferred.
+        self.queue: str = queue
+        #: Default priority (an integer) of jobs that are deferred from this
+        #: task. Jobs with higher priority are run first. Priority can be
+        #: positive or negative. If no default priority is set then the default
+        #: priority is 0.
+        self.priority: int = priority
+        self.blueprint: blueprints.Blueprint = blueprint
         self.func: Callable[P] = func
-        self.aliases = aliases if aliases else []
-        self.retry_strategy = retry_module.get_retry_strategy(retry)
+        #: Additional names for the task.
+        self.aliases: list[str] = aliases if aliases else []
+        #: Value indicating the retry conditions in case of
+        #: :py:class:`procrastinate.jobs.Job` error.
+        self.retry_strategy: retry_module.BaseRetryStrategy | None = (
+            retry_module.get_retry_strategy(retry)
+        )
+        #: Name of the task, usually the dotted path of the decorated function.
         self.name: str = name if name else self.full_path
-        self.pass_context = pass_context
-        self.lock = lock
-        self.queueing_lock = queueing_lock
+        #: If ``True``, passes the task execution context as first positional
+        #: argument on :py:class:`procrastinate.jobs.Job` execution.
+        self.pass_context: bool = pass_context
+        #: Default lock. The lock can be overridden when a job is deferred.
+        self.lock: str | None = lock
+        #: Default queueing lock. The queuing lock can be overridden when a job
+        #: is deferred.
+        self.queueing_lock: str | None = queueing_lock
 
     def add_namespace(self, namespace: str) -> None:
         """
@@ -190,7 +182,7 @@ class Task(Generic[P, Args]):
 
         Returns
         -------
-        ``jobs.JobDeferrer``
+        :
             An object with a ``defer`` method, identical to `Task.defer`
 
         Raises

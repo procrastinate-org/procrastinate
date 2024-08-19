@@ -98,35 +98,35 @@ class AiopgConnector(connector.BaseAsyncConnector):
 
         Parameters
         ----------
-        json_dumps :
+        json_dumps:
             The JSON dumps function to use for serializing job arguments. Defaults to
             the function used by psycopg2. See the `psycopg2 doc`_.
-        json_loads :
+        json_loads:
             The JSON loads function to use for deserializing job arguments. Defaults
             to the function used by psycopg2. See the `psycopg2 doc`_. Unused if the
             pool is externally created and set into the connector through the
             ``App.open_async`` method.
-        dsn : ``Optional[str]``
+        dsn: ``Optional[str]``
             Passed to aiopg. Default is "" instead of None, which means if no argument
             is passed, it will connect to localhost:5432 instead of a Unix-domain
             local socket file.
-        enable_json : ``bool``
+        enable_json: ``bool``
             Passed to aiopg. Default is False instead of True to avoid messing with
             the global state.
         enable_hstore: ``bool``
             Passed to aiopg. Default is False instead of True to avoid messing with
             the global state.
-        enable_uuid : ``bool``
+        enable_uuid: ``bool``
             Passed to aiopg. Default is False instead of True to avoid messing with
             the global state.
-        cursor_factory : ``psycopg2.extensions.cursor``
+        cursor_factory: ``psycopg2.extensions.cursor``
             Passed to aiopg. Default is ``psycopg2.extras.RealDictCursor``
             instead of standard cursor. There is no identified use case for changing
             this.
-        maxsize : ``int``
+        maxsize: ``int``
             Passed to aiopg. If value is 1, then listen/notify feature will be
             deactivated.
-        minsize : ``int``
+        minsize: ``int``
             Passed to aiopg. Initial connections are not opened when the connector
             is created, but at first use of the pool.
         """

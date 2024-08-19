@@ -20,7 +20,7 @@ def connector_params(alias: str = "default") -> dict[str, Any]:
 
     Returns
     -------
-    ``Dict[str, Any]``
+    :
         Provide these keyword arguments when instantiating your connector
     """
     wrapper = connections[alias]

@@ -22,15 +22,11 @@ class InMemoryConnector(connector.BaseAsyncConnector):
     """
 
     def __init__(self):
-        """
-        Attributes
-        ----------
-        jobs : ``Dict[int, Dict]``
-            Mapping of ``{<job id>: <Job database row as a dictionary>}``
-        """
         self.reset()
         self.reverse_queries = {value: key for key, value in sql.queries.items()}
         self.reverse_queries[schema.SchemaManager.get_schema()] = "apply_schema"
+        #: Mapping of ``{<job id>: <Job database row as a dictionary>}``
+        self.jobs: dict[int, JobRow] = {}
 
     def reset(self) -> None:
         """
