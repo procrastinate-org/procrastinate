@@ -417,8 +417,15 @@ async def test_listen_for_jobs_run(connector):
 async def test_defer_no_notify(connector):
     # This test is there to check that if the deferred queue doesn't match the
     # listened queue, the testing connector doesn't notify.
+
     event = asyncio.Event()
-    await connector.listen_notify(event=event, channels="some_other_channel")
+
+    async def on_notification(*, channel: str, payload: str):
+        event.set()
+
+    await connector.listen_notify(
+        on_notification=on_notification, channels="some_other_channel"
+    )
     await connector.defer_job_one(
         task_name="foo",
         priority=0,

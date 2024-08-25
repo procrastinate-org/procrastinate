@@ -42,6 +42,7 @@ def test_job_get_context(job_factory, scheduled_at, context_scheduled_at):
         "scheduled_at": context_scheduled_at,
         "attempts": 42,
         "call_string": "mytask[12](a='b')",
+        "abort_requested": False,
     }
 
 

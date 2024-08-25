@@ -97,7 +97,6 @@ async def test_worker_run_wait_listen(worker):
     await start_worker(worker)
     connector = cast(InMemoryConnector, worker.app.connector)
 
-    assert connector.notify_event
     assert connector.notify_channels == ["procrastinate_any_queue"]
 
 
@@ -165,8 +164,6 @@ async def test_worker_run_respects_concurrency_variant(worker: Worker, app: App)
     await perform_job.defer_async(sleep=0.05)
     await perform_job.defer_async(sleep=0.05)
     await perform_job.defer_async(sleep=0.05)
-
-    worker._notify_event.set()
 
     await asyncio.sleep(0.2)
     assert max_parallelism == 2
@@ -534,6 +531,37 @@ async def test_run_job_aborted(app: App, worker, caplog):
 
 
 @pytest.mark.parametrize(
+    "worker",
+    [
+        ({"listen_notify": False, "polling_interval": 0.05}),
+        ({"listen_notify": True, "polling_interval": 1}),
+    ],
+    indirect=["worker"],
+)
+async def test_run_job_abort(app: App, worker: Worker):
+    @app.task(queue="yay", name="task_func", pass_context=True)
+    async def task_func(job_context: JobContext):
+        while True:
+            await asyncio.sleep(0.01)
+            if job_context.should_abort():
+                raise JobAborted()
+
+    job_id = await task_func.defer_async()
+
+    await start_worker(worker)
+
+    await app.job_manager.cancel_job_by_id_async(job_id, abort=True)
+
+    await asyncio.sleep(0.01 if worker.listen_notify else 0.05)
+
+    status = await app.job_manager.get_job_status_async(job_id)
+    assert status == Status.ABORTED
+    assert (
+        worker._job_ids_to_abort == set()
+    ), "Expected cancelled job id to be removed from set"
+
+
+@pytest.mark.parametrize(
     "critical_error, recover_on_attempt_number, expected_status, expected_attempts",
     [
         (False, 2, "succeeded", 2),
@@ -596,7 +624,7 @@ async def test_run_log_actions(app: App, caplog, worker):
         "fetch_job",
     ]
 
-    logs = {(r.action, r.levelname) for r in caplog.records}
+    logs = {(r.action, r.levelname) for r in caplog.records if hasattr(r, "action")}
     # remove the periodic_deferrer_no_task log record because that makes the test flaky
     assert {
         ("about_to_defer_job", "DEBUG"),
@@ -631,13 +659,6 @@ async def test_run_log_current_job_when_stopping(app: App, worker, caplog):
         f"Waiting for job to finish: worker: tests.unit.test_worker.t[{job_id}]()"
         in logs
     )
-
-
-async def test_run_no_listen_notify(app: App, worker):
-    worker.listen_notify = False
-    await start_worker(worker)
-    connector = cast(InMemoryConnector, app.connector)
-    assert connector.notify_event is None
 
 
 async def test_run_no_signal_handlers(worker, kill_own_pid):

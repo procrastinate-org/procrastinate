@@ -44,6 +44,7 @@ def test_procrastinate_job__property(db):
         scheduled_at=datetime.datetime(2021, 1, 1, tzinfo=datetime.timezone.utc),
         attempts=0,
         queueing_lock="baz",
+        abort_requested=False,
     )
     assert job.procrastinate_job == jobs_module.Job(
         id=1,

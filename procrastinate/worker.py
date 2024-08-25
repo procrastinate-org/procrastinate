@@ -64,11 +64,12 @@ class Worker:
             self.logger = logger
 
         self._loop_task: asyncio.Future | None = None
-        self._notify_event = asyncio.Event()
+        self._new_job_event = asyncio.Event()
         self._running_jobs: dict[asyncio.Task, job_context.JobContext] = {}
         self._job_semaphore = asyncio.Semaphore(self.concurrency)
         self._stop_event = asyncio.Event()
         self.shutdown_timeout = shutdown_timeout
+        self._job_ids_to_abort = set()
 
     def stop(self):
         if self._stop_event.is_set():
@@ -80,7 +81,7 @@ class Worker:
 
         self._stop_event.set()
 
-    async def periodic_deferrer(self):
+    async def _periodic_deferrer(self):
         deferrer = periodic.PeriodicDeferrer(
             registry=self.app.periodic_registry,
             **self.app.periodic_defaults,
@@ -224,12 +225,7 @@ class Worker:
         except BaseException as e:
             exc_info = e
 
-            assert job.id
-            abort_requested = await self.app.job_manager.get_job_abort_requested_async(
-                job_id=job.id
-            )
-
-            if not isinstance(e, exceptions.JobAborted) and not abort_requested:
+            if not isinstance(e, exceptions.JobAborted):
                 job_retry = (
                     task.get_retry_exception(exception=e, job=job) if task else None
                 )
@@ -265,6 +261,8 @@ class Worker:
                 job=job, status=status, retry_decision=retry_decision
             )
 
+            self._job_ids_to_abort.discard(job.id)
+
             self.logger.debug(
                 f"Acknowledged job completion {job.call_string}",
                 extra=self._log_extra(
@@ -285,10 +283,13 @@ class Worker:
             finally:
                 if (not job or self._stop_event.is_set()) and acquire_sem_task.done():
                     self._job_semaphore.release()
-                self._notify_event.clear()
+                self._new_job_event.clear()
 
             if not job:
                 break
+
+            job_id = job.id
+            assert job_id
 
             context = job_context.JobContext(
                 app=self.app,
@@ -299,6 +300,7 @@ class Worker:
                 else {},
                 job=job,
                 task=self.app.tasks.get(job.task_name),
+                should_abort=lambda: job_id in self._job_ids_to_abort,
             )
             job_task = asyncio.create_task(
                 self._process_job(context),
@@ -338,6 +340,41 @@ class Worker:
                 pass
             raise
 
+    async def _handle_notification(
+        self, *, channel: str, notification: jobs.Notification
+    ):
+        if notification["type"] == "job_inserted":
+            self._new_job_event.set()
+        elif notification["type"] == "abort_job_requested":
+            self._handle_abort_jobs_requested([notification["job_id"]])
+
+    async def _poll_jobs_to_abort(self):
+        while True:
+            logger.debug(
+                f"waiting for {self.polling_interval}s before querying jobs to abort"
+            )
+            await asyncio.sleep(self.polling_interval)
+            if not self._running_jobs:
+                logger.debug("Not querying jobs to abort because no job is running")
+                continue
+            try:
+                job_ids = await self.app.job_manager.list_jobs_to_abort_async()
+                self._handle_abort_jobs_requested(job_ids)
+            except Exception as error:
+                logger.exception(
+                    f"poll_jobs_to_abort error: {error!r}",
+                    exc_info=error,
+                    extra={
+                        "action": "poll_jobs_to_abort_error",
+                    },
+                )
+                # recover from errors and continue polling
+
+    def _handle_abort_jobs_requested(self, job_ids: Iterable[int]):
+        running_job_ids = {c.job.id for c in self._running_jobs.values() if c.job.id}
+        self._job_ids_to_abort |= set(job_ids)
+        self._job_ids_to_abort &= running_job_ids
+
     async def _shutdown(self, side_tasks: list[asyncio.Task]):
         """
         Gracefully shutdown the worker by cancelling side tasks
@@ -365,10 +402,13 @@ class Worker:
 
     def _start_side_tasks(self) -> list[asyncio.Task]:
         """Start side tasks such as periodic deferrer and notification listener"""
-        side_tasks = [asyncio.create_task(self.periodic_deferrer(), name="deferrer")]
-        if self.wait and self.listen_notify:
+        side_tasks = [
+            asyncio.create_task(self._periodic_deferrer(), name="deferrer"),
+            asyncio.create_task(self._poll_jobs_to_abort(), name="poll_jobs_to_abort"),
+        ]
+        if self.listen_notify:
             listener_coro = self.app.job_manager.listen_for_jobs(
-                event=self._notify_event,
+                on_notification=self._handle_notification,
                 queues=self.queues,
             )
             side_tasks.append(asyncio.create_task(listener_coro, name="listener"))
@@ -384,7 +424,7 @@ class Worker:
                 action="start_worker", context=None, queues=self.queues
             ),
         )
-        self._notify_event.clear()
+        self._new_job_event.clear()
         self._stop_event.clear()
         self._running_jobs = {}
         self._job_semaphore = asyncio.Semaphore(self.concurrency)
@@ -413,7 +453,7 @@ class Worker:
                 while not self._stop_event.is_set():
                     # wait for a new job notification, a stop even or the next polling interval
                     await utils.wait_any(
-                        self._notify_event.wait(),
+                        self._new_job_event.wait(),
                         asyncio.sleep(self.polling_interval),
                         self._stop_event.wait(),
                     )

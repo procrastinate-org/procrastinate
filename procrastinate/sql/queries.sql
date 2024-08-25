@@ -58,10 +58,6 @@ SELECT procrastinate_cancel_job(%(job_id)s, %(abort)s, %(delete_job)s) AS id;
 -- Get the status of a job
 SELECT status FROM procrastinate_jobs WHERE id = %(job_id)s;
 
--- get_job_abort_requested --
--- Check if an abortion of a job was requested
-SELECT abort_requested FROM procrastinate_jobs WHERE id = %(job_id)s;
-
 -- retry_job --
 -- Retry a job, changing it from "doing" to "todo"
 SELECT procrastinate_retry_job(%(job_id)s, %(retry_at)s, %(new_priority)s, %(new_queue_name)s, %(new_lock)s);
@@ -89,7 +85,8 @@ SELECT id,
        args,
        status,
        scheduled_at,
-       attempts
+       attempts,
+       abort_requested
   FROM procrastinate_jobs
  WHERE (%(id)s::bigint IS NULL OR id = %(id)s)
    AND (%(queue_name)s::varchar IS NULL OR queue_name = %(queue_name)s)
@@ -191,3 +188,10 @@ SELECT
 FROM locks
 GROUP BY name
 ORDER BY name;
+
+-- list_jobs_to_abort --
+-- Get list of running jobs that are requested to be aborted
+SELECT id from procrastinate_jobs
+WHERE status = 'doing'
+AND abort_requested = true
+AND (%(queue_name)s::varchar IS NULL OR queue_name = %(queue_name)s)

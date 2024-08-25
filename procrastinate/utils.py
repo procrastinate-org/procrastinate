@@ -229,7 +229,7 @@ async def cancel_and_capture_errors(tasks: list[asyncio.Task]):
         if error:
             log_task_exception(task, error=error)
         else:
-            logger.debug(f"Cancelled task ${task.get_name()}")
+            logger.debug(f"Cancelled task {task.get_name()}")
 
 
 async def wait_any(*coros_or_futures: Coroutine | asyncio.Future):

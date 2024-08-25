@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import time
-from typing import Any, Iterable
+from typing import Any, Callable, Iterable
 
 import attr
 
@@ -54,6 +54,8 @@ class JobContext:
     additional_context: dict = attr.ib(factory=dict)
     task_result: Any = None
 
+    should_abort: Callable[[], bool]
+
     def evolve(self, **update: Any) -> JobContext:
         return attr.evolve(self, **update)
 
@@ -68,13 +70,3 @@ class JobContext:
             message += f" (started {duration:.3f} s ago)"
 
         return message
-
-    def should_abort(self) -> bool:
-        assert self.job.id
-        job_id = self.job.id
-        return self.app.job_manager.get_job_abort_requested(job_id)
-
-    async def should_abort_async(self) -> bool:
-        assert self.job.id
-        job_id = self.job.id
-        return await self.app.job_manager.get_job_abort_requested_async(job_id)
