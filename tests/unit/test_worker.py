@@ -207,9 +207,11 @@ async def test_worker_run_respects_polling(worker, app):
     await start_worker(worker)
 
     connector = cast(InMemoryConnector, app.connector)
+    await asyncio.sleep(0.01)
+
     assert len([query for query in connector.queries if query[0] == "fetch_job"]) == 1
 
-    await asyncio.sleep(0.05)
+    await asyncio.sleep(0.07)
 
     assert len([query for query in connector.queries if query[0] == "fetch_job"]) == 2
 
