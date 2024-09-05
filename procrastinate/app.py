@@ -115,12 +115,18 @@ class App(blueprints.Blueprint):
 
         self._register_builtin_tasks()
 
-    def with_connector(self, connector: connector_module.BaseConnector) -> App:
+    def with_connector(
+        self,
+        connector: connector_module.BaseConnector,
+    ) -> App:
         """
         Create another app instance sychronized with this one, with a different
-        connector. For all things regarding periodic tasks, the original app
-        (and its original connector) will be used, even when the new app's
-        methods are used.
+        connector.
+
+        .. deprecated:: 2.14.0
+            Use `replace_connector` instead. Because this method creates a new
+            app that references the same tasks, and the task have a link
+            back to the app, using this method can lead to unexpected behavior.
 
         Parameters
         ----------
@@ -130,7 +136,7 @@ class App(blueprints.Blueprint):
         Returns
         -------
         :
-            A new compatible app.
+            A new app with the same tasks.
         """
         app = App(
             connector=connector,
@@ -147,6 +153,12 @@ class App(blueprints.Blueprint):
     ) -> Iterator[App]:
         """
         Replace the connector of the app while in the context block, then restore it.
+        The context variable is the same app as this method is called on.
+
+        >>> with app.replace_connector(new_connector) as app2:
+        ...    ...
+        ...    # app and app2 are the same object
+
 
         Parameters
         ----------
@@ -155,8 +167,8 @@ class App(blueprints.Blueprint):
 
         Yields
         -------
-        `App`
-            A new compatible app.
+        :
+            A context manager that yields the same app with the new connector.
         """
         old_connector = self.connector
         self.connector = connector
@@ -258,22 +270,22 @@ class App(blueprints.Blueprint):
             Name of the worker. Will be passed in the `JobContext` and used in the
             logs (defaults to ``None`` which will result in the worker named
             ``worker``).
-        polling_interval : ``float``
+        polling_interval: ``float``
             Indicates the maximum duration (in seconds) the worker waits between
             each database job poll. Raising this parameter can lower the rate at which
             the worker makes queries to the database for requesting jobs.
             (defaults to 5.0)
-        shutdown_timeout : ``float``
+        shutdown_timeout: ``float``
             Indicates the maximum duration (in seconds) the worker waits for jobs to
             complete when requested stop. Jobs that have not been completed by that time
             are aborted. A value of None corresponds to no timeout.
             (defaults to None)
-        listen_notify : ``bool``
+        listen_notify: ``bool``
             If ``True``, the worker will dedicate a connection from the pool to
             listening to database events, notifying of newly available jobs.
             If ``False``, the worker will just poll the database periodically
             (see ``polling_interval``). (defaults to ``True``)
-        delete_jobs : ``str``
+        delete_jobs: ``str``
             If ``always``, the worker will automatically delete all jobs on completion.
             If ``successful`` the worker will only delete successful jobs.
             If ``never``, the worker will keep the jobs in the database.

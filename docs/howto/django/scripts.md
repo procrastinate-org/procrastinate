@@ -21,8 +21,8 @@ def main():
     django.setup()
     # By default, the app uses the Django database connection, which is unsuitable
     # for the worker.
-    app = app.with_connector(app.connector.get_worker_connector())
-    app.run_worker()
+    with app.replace_connector(app.connector.get_worker_connector()):
+        app.run_worker()
 
 if __name__ == "__main__":
     main()

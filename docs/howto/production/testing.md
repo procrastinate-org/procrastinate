@@ -17,8 +17,8 @@ def app():
     # Replace the connector in the current app
     # Note that this fixture gives you the app back for covenience,
     # but it's the same instance as `my_app`.
-    with my_app.replace_connector(in_memory) as app_with_connector:
-        yield app_with_connector
+    with my_app.replace_connector(in_memory) as app:
+        yield app
 
 
 def test_my_task(app):

@@ -38,27 +38,17 @@ class JobResult:
 class JobContext:
     """
     Execution context of a running job.
-
-
-    Attributes
-    ----------
-    app : `App`
-        Procrastinate `App` running this job
-    worker_name : ``str``
-        Name of the worker (may be useful for logging)
-    worker_queues : ``Optional[Iterable[str]]``
-        Queues listened by this worker
-    job : `Job`
-        Current `Job` instance
-    task : `Task`
-        Current `Task` instance. This can be None when the a task cannot be found for a given job.
-        Any task function being called with a job context can be guaranteed to have its own task instance set.
     """
 
+    #: Procrastinate `App` running this job
     app: app_module.App
+    #: Name of the worker (may be useful for logging)
     worker_name: str | None = None
+    #: Queues listened by this worker
     worker_queues: Iterable[str] | None = None
+    #: Corresponding :py:class:`~jobs.Job`
     job: jobs.Job
+    #: Corresponding :py:class:`~tasks.Task`
     task: tasks.Task | None = None
     job_result: JobResult = attr.ib(factory=JobResult)
     additional_context: dict = attr.ib(factory=dict)
