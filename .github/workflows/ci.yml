@@ -61,6 +61,7 @@ jobs:
         with:
           name: coverage-${{ matrix.python-version }}
           path: .coverage.${{ matrix.python-version }}
+          include-hidden-files: true
 
   static-typing:
     name: Run Pyright
