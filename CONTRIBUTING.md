@@ -13,13 +13,13 @@ Of course, feel free to read the script before launching it.
 This script is intended to be a one-liner that sets up everything you need. It makes
 the following assumptions:
 
-- You're using `MacOS` or `Linux`, and `bash` or `zsh`.
-- You already have `python3` available
-- You have `poetry` [installed](https://python-poetry.org/docs/#installation)
-- Either you've already setup a PostgreSQL database and environment variables (`PG*`)
-  are set or you have `docker-compose` available and port 5432 is free.
-- Either `psql` and other `libpq` executables are available in the `PATH` or they
-  are located in `usr/local/opt/libpq/bin` (`Homebrew`).
+-   You're using `MacOS` or `Linux`, and `bash` or `zsh`.
+-   You already have `python3` available
+-   You have `poetry` [installed](https://python-poetry.org/docs/#installation)
+-   Either you've already setup a PostgreSQL database and environment variables (`PG*`)
+    are set or you have `docker compose` available and port 5432 is free.
+-   Either `psql` and other `libpq` executables are available in the `PATH` or they
+    are located in `usr/local/opt/libpq/bin` (`Homebrew`).
 
 The `dev-env` script will add the `scripts` folder to your `$PATH` for the current
 shell, so in the following documentation, if you see `scripts/foo`, you're welcome
@@ -46,7 +46,7 @@ The PostgreSQL database we used is a fresh standard out-of-the-box database
 on the latest stable version.
 
 ```console
-$ docker-compose up -d postgres
+$ docker compose up -d postgres
 ```
 
 If you want to try out the project locally, it's useful to have `postgresql-client`
@@ -128,7 +128,6 @@ This will keep you from creating a commit if there's a linting problem.
 In addition, an [editorconfig] file will help your favorite editor to respect
 procrastinate coding style. It is automatically used by most famous IDEs, such as
 Pycharm and VS Code.
-
 
 ### Write the documentation
 
@@ -301,23 +300,23 @@ Python environment on the host system. Alternatively, they can be installed in a
 image, and Procrastinate and all the development tools can be run in Docker containers.
 Docker is useful when you can't, or don't want to, install system requirements.
 
-This section shows, through `docker-compose` command examples, how to test and run
+This section shows, through `docker compose` command examples, how to test and run
 Procrastinate in Docker.
 
 Build the `procrastinate` Docker image:
 
 ```console
 $ export UID GID
-$ docker-compose build procrastinate
+$ docker compose build procrastinate
 ```
 
 Run the automated tests:
 
 ```console
-$ docker-compose run --rm procrastinate pytest
+$ docker compose run --rm procrastinate pytest
 ```
 
-Docker Compose is configured (in `docker-compose.yml`) to mount the local directory on
+Docker Compose is configured (in `docker compose.yml`) to mount the local directory on
 the host system onto `/src` in the container. This means that local
 changes made to the Procrastinate code are visible in Procrastinate containers.
 
@@ -326,7 +325,7 @@ container to be run with the current user id and group id. If not set or exporte
 Procrastinate container will run as root, and files owned by root may be created in the
 developer's working directory.
 
-In the definition of the `procrastinate` service in `docker-compose.yml` the
+In the definition of the `procrastinate` service in `docker compose.yml` the
 `PROCRASTINATE_APP` variable is set to `procrastinate_demo.app.app` (the
 Procrastinate demo application). So `procrastinate` commands run in Procrastinate
 containers are always run as if they were passed `--app procrastinate_demo.app.app`.
@@ -334,55 +333,55 @@ containers are always run as if they were passed `--app procrastinate_demo.app.a
 Run the `procrastinate` command :
 
 ```console
-$ docker-compose run --rm procrastinate procrastinate -h
+$ docker compose run --rm procrastinate procrastinate -h
 ```
 
 Apply the Procrastinate database schema:
 
 ```console
-$ docker-compose run --rm procrastinate procrastinate schema --apply
+$ docker compose run --rm procrastinate procrastinate schema --apply
 ```
 
 Run the Procrastinate healthchecks:
 
 ```console
-$ docker-compose run --rm procrastinate procrastinate healthchecks
+$ docker compose run --rm procrastinate procrastinate healthchecks
 ```
 
 Start a Procrastinate worker (`-d` used to start the container in detached mode):
 
 ```console
-$ docker-compose up -d procrastinate
+$ docker compose up -d procrastinate
 ```
 
 Run a command (`bash` here) in the Procrastinate worker container just started:
 
 ```console
-$ docker-compose exec procrastinate bash
+$ docker compose exec procrastinate bash
 ```
 
 Watch the Procrastinate worker logs:
 
 ```console
-$ docker-compose logs -ft procrastinate
+$ docker compose logs -ft procrastinate
 ```
 
 Use the `procrastinate defer` command to create a job:
 
 ```console
-$ docker-compose run --rm procrastinate procrastinate defer procrastinate_demo.tasks.sum '{"a":3, "b": 5}'
+$ docker compose run --rm procrastinate procrastinate defer procrastinate_demo.tasks.sum '{"a":3, "b": 5}'
 ```
 
 Or run the demo main file:
 
 ```console
-$ docker-compose run --rm procrastinate python -m procrastinate_demo
+$ docker compose run --rm procrastinate python -m procrastinate_demo
 ```
 
 Stop and remove all the containers (including the `postgres` container):
 
 ```console
-$ docker-compose down
+$ docker compose down
 ```
 
 ## Wait, there are `async` and `await` keywords everywhere!?
