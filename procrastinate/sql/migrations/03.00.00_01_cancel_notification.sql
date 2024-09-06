@@ -59,6 +59,10 @@ CREATE UNIQUE INDEX procrastinate_jobs_queueing_lock_idx ON procrastinate_jobs (
 CREATE UNIQUE INDEX procrastinate_jobs_lock_idx ON procrastinate_jobs (lock) WHERE status = 'doing';
 CREATE INDEX procrastinate_jobs_id_lock_idx ON procrastinate_jobs (id, lock) WHERE status = ANY (ARRAY['todo'::procrastinate_job_status, 'doing'::procrastinate_job_status]);
 
+-- Create a new constraint
+ALTER TABLE procrastinate_jobs
+    ADD CONSTRAINT procrastinate_jobs_no_aborting_todo CHECK (NOT (status = 'todo' AND abort_requested));
+
 -- Recreate and update the functions
 CREATE OR REPLACE FUNCTION procrastinate_fetch_job(
     target_queue_names character varying[]
