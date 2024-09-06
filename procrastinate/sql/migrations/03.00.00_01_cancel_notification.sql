@@ -1,44 +1,53 @@
 -- Add an 'abort_requested' column to the procrastinate_jobs table
-ALTER TABLE procrastinate_jobs ADD COLUMN abort_requested boolean DEFAULT false NOT NULL;
+ALTER TABLE procrastinate_jobs
+ADD COLUMN abort_requested boolean DEFAULT false NOT NULL;
 
 -- Set abort requested flag on all jobs with 'aborting' status
-UPDATE procrastinate_jobs SET abort_requested = true WHERE status = 'aborting';
+UPDATE procrastinate_jobs
+SET
+    abort_requested = true
+WHERE
+    status = 'aborting';
 
 -- Delete the indexes that depends on the old status and enum type
 DROP INDEX IF EXISTS procrastinate_jobs_queueing_lock_idx;
+
 DROP INDEX IF EXISTS procrastinate_jobs_lock_idx;
+
 DROP INDEX IF EXISTS procrastinate_jobs_id_lock_idx;
 
 -- Delete the triggers that depends on the old status type (to recreate them later)
 DROP TRIGGER IF EXISTS procrastinate_jobs_notify_queue ON procrastinate_jobs;
+
 DROP TRIGGER IF EXISTS procrastinate_trigger_status_events_update ON procrastinate_jobs;
+
 DROP TRIGGER IF EXISTS procrastinate_trigger_status_events_insert ON procrastinate_jobs;
+
 DROP TRIGGER IF EXISTS procrastinate_trigger_scheduled_events ON procrastinate_jobs;
 
 -- Delete the functions that depends on the old status type
 DROP FUNCTION IF EXISTS procrastinate_fetch_job;
-DROP FUNCTION IF EXISTS procrastinate_finish_job(bigint, procrastinate_job_status, boolean);
+
+DROP FUNCTION IF EXISTS procrastinate_finish_job (bigint, procrastinate_job_status, boolean);
+
 DROP FUNCTION IF EXISTS procrastinate_cancel_job;
+
 DROP FUNCTION IF EXISTS procrastinate_trigger_status_events_procedure_update;
-DROP FUNCTION IF EXISTS procrastinate_finish_job(integer, procrastinate_job_status, timestamp with time zone, boolean);
+
+DROP FUNCTION IF EXISTS procrastinate_finish_job (integer, procrastinate_job_status, timestamp with time zone, boolean);
 
 -- Create a new enum type without 'aborting'
-CREATE TYPE procrastinate_job_status_new AS ENUM (
-    'todo',
-    'doing',
-    'succeeded',
-    'failed',
-    'cancelled',
-    'aborted'
-);
+CREATE TYPE procrastinate_job_status_new AS ENUM('todo', 'doing', 'succeeded', 'failed', 'cancelled', 'aborted');
 
 -- We need to drop the default temporarily as otherwise DatatypeMismatch would occur
-ALTER TABLE procrastinate_jobs ALTER COLUMN status DROP DEFAULT;
+ALTER TABLE procrastinate_jobs
+ALTER COLUMN status
+DROP DEFAULT;
 
 -- Alter the table to use the new type
 ALTER TABLE procrastinate_jobs
-ALTER COLUMN status TYPE procrastinate_job_status_new
-USING (
+ALTER COLUMN status
+TYPE procrastinate_job_status_new USING (
     CASE status::text
         WHEN 'aborting' THEN 'doing'::procrastinate_job_status_new
         ELSE status::text::procrastinate_job_status_new
@@ -46,30 +55,47 @@ USING (
 );
 
 -- Recreate the default
-ALTER TABLE procrastinate_jobs ALTER COLUMN status SET DEFAULT 'todo'::procrastinate_job_status_new;
+ALTER TABLE procrastinate_jobs
+ALTER COLUMN status
+SET DEFAULT 'todo'::procrastinate_job_status_new;
 
 -- Drop the old type
 DROP TYPE procrastinate_job_status;
 
 -- Rename the new type to the original name
-ALTER TYPE procrastinate_job_status_new RENAME TO procrastinate_job_status;
+ALTER TYPE procrastinate_job_status_new
+RENAME TO procrastinate_job_status;
 
 -- Recreate the indexes
-CREATE UNIQUE INDEX procrastinate_jobs_queueing_lock_idx ON procrastinate_jobs (queueing_lock) WHERE status = 'todo';
-CREATE UNIQUE INDEX procrastinate_jobs_lock_idx ON procrastinate_jobs (lock) WHERE status = 'doing';
-CREATE INDEX procrastinate_jobs_id_lock_idx ON procrastinate_jobs (id, lock) WHERE status = ANY (ARRAY['todo'::procrastinate_job_status, 'doing'::procrastinate_job_status]);
+CREATE UNIQUE INDEX procrastinate_jobs_queueing_lock_idx ON procrastinate_jobs (queueing_lock)
+WHERE
+    status = 'todo';
+
+CREATE UNIQUE INDEX procrastinate_jobs_lock_idx ON procrastinate_jobs (
+    lock
+)
+WHERE
+    status = 'doing';
+
+CREATE INDEX procrastinate_jobs_id_lock_idx ON procrastinate_jobs (
+    id,
+    lock
+)
+WHERE
+    status = ANY (ARRAY['todo'::procrastinate_job_status, 'doing'::procrastinate_job_status]);
 
 -- Create a new constraint
 ALTER TABLE procrastinate_jobs
-    ADD CONSTRAINT procrastinate_jobs_no_aborting_todo CHECK (NOT (status = 'todo' AND abort_requested));
+ADD CONSTRAINT procrastinate_jobs_no_aborting_todo CHECK (
+    NOT (
+        status = 'todo'
+        AND abort_requested
+    )
+);
 
 -- Recreate and update the functions
-CREATE OR REPLACE FUNCTION procrastinate_fetch_job(
-    target_queue_names character varying[]
-)
-    RETURNS procrastinate_jobs
-    LANGUAGE plpgsql
-AS $$
+CREATE
+OR REPLACE FUNCTION procrastinate_fetch_job (target_queue_names character varying[]) RETURNS procrastinate_jobs LANGUAGE plpgsql AS $$
 DECLARE
 	found_jobs procrastinate_jobs;
 BEGIN
@@ -102,10 +128,7 @@ BEGIN
 END;
 $$;
 
-CREATE FUNCTION procrastinate_finish_job(job_id bigint, end_status procrastinate_job_status, delete_job boolean)
-    RETURNS void
-    LANGUAGE plpgsql
-AS $$
+CREATE FUNCTION procrastinate_finish_job (job_id bigint, end_status procrastinate_job_status, delete_job boolean) RETURNS void LANGUAGE plpgsql AS $$
 DECLARE
     _job_id bigint;
 BEGIN
@@ -132,10 +155,11 @@ BEGIN
 END;
 $$;
 
-CREATE FUNCTION procrastinate_cancel_job(job_id bigint, abort boolean, delete_job boolean)
-    RETURNS bigint
-    LANGUAGE plpgsql
-AS $$
+CREATE FUNCTION procrastinate_cancel_job (
+    job_id bigint,
+    abort boolean,
+    delete_job boolean
+) RETURNS bigint LANGUAGE plpgsql AS $$
 DECLARE
     _job_id bigint;
 BEGIN
@@ -164,10 +188,7 @@ BEGIN
 END;
 $$;
 
-CREATE FUNCTION procrastinate_trigger_status_events_procedure_update()
-    RETURNS trigger
-    LANGUAGE plpgsql
-AS $$
+CREATE FUNCTION procrastinate_trigger_status_events_procedure_update () RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
     WITH t AS (
         SELECT CASE
@@ -204,10 +225,12 @@ BEGIN
 END;
 $$;
 
-CREATE FUNCTION procrastinate_finish_job(job_id integer, end_status procrastinate_job_status, next_scheduled_at timestamp with time zone, delete_job boolean)
-    RETURNS void
-    LANGUAGE plpgsql
-AS $$
+CREATE FUNCTION procrastinate_finish_job (
+    job_id integer,
+    end_status procrastinate_job_status,
+    next_scheduled_at timestamp with time zone,
+    delete_job boolean
+) RETURNS void LANGUAGE plpgsql AS $$
 DECLARE
     _job_id bigint;
 BEGIN
@@ -238,30 +261,31 @@ $$;
 
 -- Recreate the deleted triggers
 CREATE TRIGGER procrastinate_jobs_notify_queue
-    AFTER INSERT ON procrastinate_jobs
-    FOR EACH ROW WHEN ((new.status = 'todo'::procrastinate_job_status))
-    EXECUTE PROCEDURE procrastinate_notify_queue();
+AFTER INSERT ON procrastinate_jobs FOR EACH ROW WHEN ((new.status = 'todo'::procrastinate_job_status))
+EXECUTE PROCEDURE procrastinate_notify_queue ();
 
 CREATE TRIGGER procrastinate_trigger_status_events_update
-    AFTER UPDATE OF status ON procrastinate_jobs
-    FOR EACH ROW
-    EXECUTE PROCEDURE procrastinate_trigger_status_events_procedure_update();
+AFTER
+UPDATE OF status ON procrastinate_jobs FOR EACH ROW
+EXECUTE PROCEDURE procrastinate_trigger_status_events_procedure_update ();
 
 CREATE TRIGGER procrastinate_trigger_status_events_insert
-    AFTER INSERT ON procrastinate_jobs
-    FOR EACH ROW WHEN ((new.status = 'todo'::procrastinate_job_status))
-    EXECUTE PROCEDURE procrastinate_trigger_status_events_procedure_insert();
+AFTER INSERT ON procrastinate_jobs FOR EACH ROW WHEN ((new.status = 'todo'::procrastinate_job_status))
+EXECUTE PROCEDURE procrastinate_trigger_status_events_procedure_insert ();
 
 CREATE TRIGGER procrastinate_trigger_scheduled_events
-    AFTER UPDATE OR INSERT ON procrastinate_jobs
-    FOR EACH ROW WHEN ((new.scheduled_at IS NOT NULL AND new.status = 'todo'::procrastinate_job_status))
-    EXECUTE PROCEDURE procrastinate_trigger_scheduled_events_procedure();
+AFTER
+UPDATE
+OR INSERT ON procrastinate_jobs FOR EACH ROW WHEN (
+    (
+        new.scheduled_at IS NOT NULL
+        AND new.status = 'todo'::procrastinate_job_status
+    )
+)
+EXECUTE PROCEDURE procrastinate_trigger_scheduled_events_procedure ();
 
 -- Create additional function and trigger for abortion requests
-CREATE FUNCTION procrastinate_trigger_abort_requested_events_procedure()
-    RETURNS trigger
-    LANGUAGE plpgsql
-AS $$
+CREATE FUNCTION procrastinate_trigger_abort_requested_events_procedure () RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
     INSERT INTO procrastinate_events(job_id, type)
         VALUES (NEW.id, 'abort_requested'::procrastinate_job_event_type);
@@ -270,14 +294,12 @@ END;
 $$;
 
 CREATE TRIGGER procrastinate_trigger_abort_requested_events
-    AFTER UPDATE OF abort_requested ON procrastinate_jobs
-    FOR EACH ROW WHEN ((new.abort_requested = true))
-    EXECUTE PROCEDURE procrastinate_trigger_abort_requested_events_procedure();
+AFTER
+UPDATE OF abort_requested ON procrastinate_jobs FOR EACH ROW WHEN ((new.abort_requested = true))
+EXECUTE PROCEDURE procrastinate_trigger_abort_requested_events_procedure ();
 
-CREATE OR REPLACE FUNCTION procrastinate_notify_queue_job_inserted()
-RETURNS trigger
-    LANGUAGE plpgsql
-AS $$
+CREATE
+OR REPLACE FUNCTION procrastinate_notify_queue_job_inserted () RETURNS trigger LANGUAGE plpgsql AS $$
 DECLARE
     payload TEXT;
 BEGIN
@@ -291,16 +313,13 @@ $$;
 DROP TRIGGER IF EXISTS procrastinate_jobs_notify_queue ON procrastinate_jobs;
 
 CREATE TRIGGER procrastinate_jobs_notify_queue_job_inserted
-    AFTER INSERT ON procrastinate_jobs
-    FOR EACH ROW WHEN ((new.status = 'todo'::procrastinate_job_status))
-    EXECUTE PROCEDURE procrastinate_notify_queue_job_inserted();
+AFTER INSERT ON procrastinate_jobs FOR EACH ROW WHEN ((new.status = 'todo'::procrastinate_job_status))
+EXECUTE PROCEDURE procrastinate_notify_queue_job_inserted ();
 
 DROP FUNCTION IF EXISTS procrastinate_notify_queue;
 
-CREATE OR REPLACE FUNCTION procrastinate_notify_queue_abort_job()
-RETURNS trigger
-    LANGUAGE plpgsql
-AS $$
+CREATE
+OR REPLACE FUNCTION procrastinate_notify_queue_abort_job () RETURNS trigger LANGUAGE plpgsql AS $$
 DECLARE
     payload TEXT;
 BEGIN
@@ -312,20 +331,24 @@ END;
 $$;
 
 CREATE TRIGGER procrastinate_jobs_notify_queue_abort_job
-    AFTER UPDATE OF abort_requested ON procrastinate_jobs
-    FOR EACH ROW WHEN ((old.abort_requested = false AND new.abort_requested = true AND new.status = 'doing'::procrastinate_job_status))
-    EXECUTE PROCEDURE procrastinate_notify_queue_abort_job();
+AFTER
+UPDATE OF abort_requested ON procrastinate_jobs FOR EACH ROW WHEN (
+    (
+        old.abort_requested = false
+        AND new.abort_requested = true
+        AND new.status = 'doing'::procrastinate_job_status
+    )
+)
+EXECUTE PROCEDURE procrastinate_notify_queue_abort_job ();
 
-CREATE OR REPLACE FUNCTION procrastinate_retry_job(
+CREATE
+OR REPLACE FUNCTION procrastinate_retry_job (
     job_id bigint,
     retry_at timestamp with time zone,
     new_priority integer,
     new_queue_name character varying,
     new_lock character varying
-)
-    RETURNS void
-    LANGUAGE plpgsql
-AS $$
+) RETURNS void LANGUAGE plpgsql AS $$
 DECLARE
     _job_id bigint;
 BEGIN
