@@ -108,47 +108,76 @@ async def test_no_job_to_cancel_found(async_app: app_module.App):
     assert len(jobs) == 1
 
 
-async def test_abort(async_app: app_module.App):
+@pytest.mark.parametrize("mode", ["listen", "poll"])
+async def test_abort_async_task(async_app: app_module.App, mode):
     @async_app.task(queue="default", name="task1", pass_context=True)
     async def task1(context):
         while True:
             await asyncio.sleep(0.02)
-            if await context.should_abort_async():
+            if context.should_abort():
                 raise JobAborted
 
-    @async_app.task(queue="default", name="task2", pass_context=True)
-    def task2(context):
+    job_id = await task1.defer_async()
+
+    polling_interval = 0.1
+
+    worker_task = asyncio.create_task(
+        async_app.run_worker_async(
+            queues=["default"],
+            wait=False,
+            polling_interval=polling_interval,
+            listen_notify=True if mode == "listen" else False,
+        )
+    )
+
+    await asyncio.sleep(0.05)
+    result = await async_app.job_manager.cancel_job_by_id_async(job_id, abort=True)
+    assert result is True
+
+    # when listening for notifications, job should cancel within ms
+    # if notifications are disabled, job will only cancel after polling_interval
+    await asyncio.wait_for(
+        worker_task, timeout=0.1 if mode == "listen" else polling_interval * 2
+    )
+
+    status = await async_app.job_manager.get_job_status_async(job_id)
+    assert status == Status.ABORTED
+
+
+@pytest.mark.parametrize("mode", ["listen", "poll"])
+async def test_abort_sync_task(async_app: app_module.App, mode):
+    @async_app.task(queue="default", name="task1", pass_context=True)
+    def task1(context):
         while True:
             time.sleep(0.02)
             if context.should_abort():
                 raise JobAborted
 
-    job1_id = await task1.defer_async()
-    job2_id = await task2.defer_async()
+    job_id = await task1.defer_async()
+
+    polling_interval = 0.1
 
     worker_task = asyncio.create_task(
-        async_app.run_worker_async(queues=["default"], wait=False)
+        async_app.run_worker_async(
+            queues=["default"],
+            wait=False,
+            polling_interval=polling_interval,
+            listen_notify=True if mode == "listen" else False,
+        )
     )
 
-    await asyncio.sleep(0.1)
-    result = await async_app.job_manager.cancel_job_by_id_async(job1_id, abort=True)
+    await asyncio.sleep(0.05)
+    result = await async_app.job_manager.cancel_job_by_id_async(job_id, abort=True)
     assert result is True
 
-    await asyncio.sleep(0.1)
-    result = await async_app.job_manager.cancel_job_by_id_async(job2_id, abort=True)
-    assert result is True
+    # when listening for notifications, job should cancel within ms
+    # if notifications are disabled, job will only cancel after polling_interval
+    await asyncio.wait_for(
+        worker_task, timeout=0.1 if mode == "listen" else polling_interval * 2
+    )
 
-    await worker_task
-
-    status = await async_app.job_manager.get_job_status_async(job1_id)
+    status = await async_app.job_manager.get_job_status_async(job_id)
     assert status == Status.ABORTED
-    abort_requested = await async_app.job_manager.get_job_abort_requested_async(job1_id)
-    assert abort_requested is False
-
-    status = await async_app.job_manager.get_job_status_async(job2_id)
-    assert status == Status.ABORTED
-    abort_requested = await async_app.job_manager.get_job_abort_requested_async(job2_id)
-    assert abort_requested is False
 
 
 async def test_concurrency(async_app: app_module.App):

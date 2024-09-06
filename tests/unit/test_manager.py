@@ -300,17 +300,17 @@ async def test_retry_job(job_manager, job_factory, connector):
     ],
 )
 async def test_listen_for_jobs(job_manager, connector, mocker, queues, channels):
-    event = mocker.Mock()
+    on_notification = mocker.Mock()
 
-    await job_manager.listen_for_jobs(queues=queues, event=event)
-    assert connector.notify_event is event
+    await job_manager.listen_for_jobs(queues=queues, on_notification=on_notification)
+    assert connector.on_notification
     assert connector.notify_channels == channels
 
 
 @pytest.fixture
 def configure(app):
     @app.task
-    def foo(timestamp):
+    def foo(timestamp: int):
         pass
 
     return foo.configure

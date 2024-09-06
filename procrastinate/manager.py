@@ -1,15 +1,21 @@
 from __future__ import annotations
 
-import asyncio
 import datetime
+import json
 import logging
-from typing import Any, Iterable, NoReturn
+from typing import Any, Awaitable, Iterable, NoReturn, Protocol
 
 from procrastinate import connector, exceptions, jobs, sql, utils
 
 logger = logging.getLogger(__name__)
 
 QUEUEING_LOCK_CONSTRAINT = "procrastinate_jobs_queueing_lock_idx"
+
+
+class NotificationCallback(Protocol):
+    def __call__(
+        self, *, channel: str, notification: jobs.Notification
+    ) -> Awaitable[None]: ...
 
 
 def get_channel_for_queues(queues: Iterable[str] | None = None) -> Iterable[str]:
@@ -360,42 +366,6 @@ class JobManager:
         )
         return jobs.Status(result["status"])
 
-    def get_job_abort_requested(self, job_id: int) -> bool:
-        """
-        Check if a job is requested for abortion.
-
-        Parameters
-        ----------
-        job_id : ``int``
-            The id of the job to get the abortion request of
-
-        Returns
-        -------
-        ``bool``
-        """
-        result = self.connector.get_sync_connector().execute_query_one(
-            query=sql.queries["get_job_abort_requested"], job_id=job_id
-        )
-        return bool(result["abort_requested"])
-
-    async def get_job_abort_requested_async(self, job_id: int) -> bool:
-        """
-        Check if a job is requested for abortion.
-
-        Parameters
-        ----------
-        job_id : ``int``
-            The id of the job to get the abortion request of
-
-        Returns
-        -------
-        ``bool``
-        """
-        result = await self.connector.execute_query_one_async(
-            query=sql.queries["get_job_abort_requested"], job_id=job_id
-        )
-        return bool(result["abort_requested"])
-
     async def retry_job(
         self,
         job: jobs.Job,
@@ -491,26 +461,39 @@ class JobManager:
         )
 
     async def listen_for_jobs(
-        self, *, event: asyncio.Event, queues: Iterable[str] | None = None
+        self,
+        *,
+        on_notification: NotificationCallback,
+        queues: Iterable[str] | None = None,
     ) -> None:
         """
-        Listens to defer operation in the database, and raises the event each time an
-        defer operation is seen.
+        Listens to job notifications from the database, and invokes the callback each time an
+        notification is received.
 
         This coroutine either returns ``None`` upon calling if it cannot start
         listening or does not return and needs to be cancelled to end.
 
         Parameters
         ----------
-        event:
-            This event will be set each time a defer operation occurs
-        queues:
-            If ``None``, all defer operations will be considered. If an iterable of
+        on_notification : ``connector.Notify``
+            A coroutine that will be called and awaited every time a notification is received
+        queues : ``Optional[Iterable[str]]``
+            If ``None``, all notification will be considered. If an iterable of
             queue names is passed, only defer operations on those queues will be
             considered. Defaults to ``None``
         """
+
+        async def handle_notification(channel: str, payload: str):
+            notification: jobs.Notification = json.loads(payload)
+            logger.debug(
+                f"Received {notification['type']} notification from channel",
+                extra={channel: channel, payload: payload},
+            )
+            await on_notification(channel=channel, notification=notification)
+
         await self.connector.listen_notify(
-            event=event, channels=get_channel_for_queues(queues=queues)
+            on_notification=handle_notification,
+            channels=get_channel_for_queues(queues=queues),
         )
 
     async def check_connection_async(self) -> bool:
@@ -836,3 +819,12 @@ class JobManager:
                 }
             )
         return result
+
+    async def list_jobs_to_abort_async(self, queue: str | None = None) -> Iterable[int]:
+        """
+        List ids of running jobs to abort
+        """
+        rows = await self.connector.execute_query_all_async(
+            query=sql.queries["list_jobs_to_abort"], queue_name=queue
+        )
+        return [row["id"] for row in rows]

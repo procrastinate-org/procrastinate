@@ -166,15 +166,26 @@ async def test_close_async(psycopg_connector):
 async def test_listen_notify(psycopg_connector):
     channel = "somechannel"
     event = asyncio.Event()
+    received_args: list[dict] = []
+
+    async def handle_notification(*, channel: str, payload: str):
+        event.set()
+        received_args.append({"channel": channel, "payload": payload})
 
     task = asyncio.ensure_future(
-        psycopg_connector.listen_notify(channels=[channel], event=event)
+        psycopg_connector.listen_notify(
+            channels=[channel], on_notification=handle_notification
+        )
     )
     try:
-        await asyncio.wait_for(event.wait(), timeout=0.2)
-        event.clear()
-        await psycopg_connector.execute_query_async(f"""NOTIFY "{channel}" """)
+        await asyncio.sleep(0.1)
+        await psycopg_connector.execute_query_async(
+            f"""NOTIFY "{channel}", 'somepayload' """
+        )
         await asyncio.wait_for(event.wait(), timeout=1)
+        args = received_args.pop()
+        assert args["channel"] == "somechannel"
+        assert args["payload"] == "somepayload"
     except asyncio.TimeoutError:
         pytest.fail("Notify not received within 1 sec")
     finally:
@@ -193,10 +204,14 @@ async def test_get_standalone_connection_applies_configure(psycopg_connector_fac
 
 async def test_loop_notify_stop_when_connection_closed(psycopg_connector):
     # We want to make sure that the when the connection is closed, the loop end.
-    event = asyncio.Event()
+    async def handle_notification(channel: str, payload: str):
+        pass
+
     await psycopg_connector.open_async()
     async with psycopg_connector._async_pool.connection() as connection:
-        coro = psycopg_connector._loop_notify(event=event, connection=connection)
+        coro = psycopg_connector._loop_notify(
+            on_notification=handle_notification, connection=connection
+        )
 
     await psycopg_connector._async_pool.close()
     assert connection.closed
@@ -210,11 +225,18 @@ async def test_loop_notify_stop_when_connection_closed(psycopg_connector):
 async def test_loop_notify_timeout(psycopg_connector):
     # We want to make sure that when the listen starts, we don't listen forever. If the
     # connection closes, we eventually finish the coroutine.
+
     event = asyncio.Event()
+
+    async def handle_notification(channel: str, payload: str):
+        event.set()
+
     await psycopg_connector.open_async()
     async with psycopg_connector._async_pool.connection() as connection:
         task = asyncio.ensure_future(
-            psycopg_connector._loop_notify(event=event, connection=connection)
+            psycopg_connector._loop_notify(
+                on_notification=handle_notification, connection=connection
+            )
         )
         assert not task.done()
 

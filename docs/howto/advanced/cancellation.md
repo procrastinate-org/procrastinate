@@ -24,11 +24,10 @@ app.job_manager.cancel_job_by_id(33, delete_job=True)
 await app.job_manager.cancel_job_by_id_async(33, delete_job=True)
 ```
 
-## Mark a currently being processed job for abortion
+## Mark a running job for abortion
 
 If a worker has not picked up the job yet, the below command behaves like the
-command without the `abort` option. But if a job is already in the middle of
-being processed, the `abort` option marks this job for abortion (see below
+command without the `abort` option. But if a job is already running, the `abort` option marks this job for abortion (see below
 how to handle this request).
 
 ```python
@@ -38,10 +37,10 @@ app.job_manager.cancel_job_by_id(33, abort=True)
 await app.job_manager.cancel_job_by_id_async(33, abort=True)
 ```
 
-## Handle a abortion request inside the task
+## Handle an abortion request inside the task
 
 In our task, we can check (for example, periodically) if the task should be
-aborted. If we want to respect that request (we don't have to), we raise a
+aborted. If we want to respect that abortion request (we don't have to), we raise a
 `JobAborted` error. Any message passed to `JobAborted` (e.g.
 `raise JobAborted("custom message")`) will end up in the logs.
 
@@ -54,24 +53,10 @@ def my_task(context):
     do_something_expensive()
 ```
 
-There is also an async API
+Behind the scenes, the worker receives a Postgres notification every time a job is requested to abort, (unless `listen_notify=False`).
 
-```python
-@app.task(pass_context=True)
-async def my_task(context):
-  for i in range(100):
-    if await context.should_abort_async():
-      raise exceptions.JobAborted
-    do_something_expensive()
-```
-
-:::{warning}
-`context.should_abort()` and `context.should_abort_async()` does poll the
-database and might flood the database. Ensure you do it only sometimes and
-not from too many parallel tasks.
-:::
+The worker also polls (respecting `polling_interval`) the database for abortion requests, as long as the worker is running at least one job (in the absence of running job, there is nothing to abort).
 
 :::{note}
-When a task of a job that was requested to be aborted raises an error, the job
-is marked as failed (regardless of the retry strategy).
+When a job is requested to abort and that job fails, it will not be retried (regardless of the retry strategy).
 :::

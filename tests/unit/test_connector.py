@@ -30,7 +30,7 @@ async def test_close_async(connector):
         ["execute_query_async", {"query": ""}],
         ["execute_query_one_async", {"query": ""}],
         ["execute_query_all_async", {"query": ""}],
-        ["listen_notify", {"event": None, "channels": []}],
+        ["listen_notify", {"on_notification": None, "channels": []}],
     ],
 )
 async def test_missing_app_async(method_name, kwargs):

@@ -96,6 +96,7 @@ async def test_app_run_worker_async_cancel(app: app_module.App):
         result.append(a)
 
     task = asyncio.create_task(app.run_worker_async())
+    await asyncio.sleep(0.01)
     await my_task.defer_async(a=1)
     await asyncio.sleep(0.01)
     task.cancel()

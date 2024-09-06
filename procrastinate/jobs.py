@@ -4,9 +4,10 @@ import datetime
 import functools
 import logging
 from enum import Enum
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, TypedDict, Union
 
 import attr
+from typing_extensions import Literal
 
 from procrastinate import types
 
@@ -20,6 +21,19 @@ DEFAULT_QUEUE = "default"
 DEFAULT_PRIORITY = 0
 
 cached_property = getattr(functools, "cached_property", property)
+
+
+class JobInserted(TypedDict):
+    type: Literal["job_inserted"]
+    job_id: int
+
+
+class AbortJobRequested(TypedDict):
+    type: Literal["abort_job_requested"]
+    job_id: int
+
+
+Notification = Union[JobInserted, AbortJobRequested]
 
 
 def check_aware(
@@ -82,6 +96,9 @@ class Job:
     #: Number of times the job has been tried.
     attempts: int = 0
 
+    # True if the job is requested to abort
+    abort_requested: bool = False
+
     @classmethod
     def from_row(cls, row: dict[str, Any]) -> Job:
         return cls(
@@ -95,6 +112,7 @@ class Job:
             scheduled_at=row["scheduled_at"],
             queue=row["queue_name"],
             attempts=row["attempts"],
+            abort_requested=row.get("abort_requested", False),
         )
 
     def asdict(self) -> dict[str, Any]:

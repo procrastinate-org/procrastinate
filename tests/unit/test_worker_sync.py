@@ -2,18 +2,13 @@ from __future__ import annotations
 
 import pytest
 
-from procrastinate import exceptions, job_context, worker
+from procrastinate import exceptions, worker
 from procrastinate.app import App
 
 
 @pytest.fixture
 def test_worker(app: App) -> worker.Worker:
     return worker.Worker(app=app, queues=["yay"])
-
-
-@pytest.fixture
-def context(app: App, job_factory):
-    return job_context.JobContext(app=app, job=job_factory())
 
 
 def test_worker_find_task_missing(test_worker):
