@@ -40,7 +40,7 @@ repos:
           - contextlib2==21.6.0
           - croniter==3.0.3
           - django-stubs==5.0.4
-          - django==4.2.15
+          - django==4.2.16
           - importlib-resources==6.4.4
           - psycopg2-binary==2.9.9
           - psycopg[pool]==3.2.1
