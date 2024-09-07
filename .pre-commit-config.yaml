@@ -29,7 +29,7 @@ repos:
       - id: trailing-whitespace
       - id: mixed-line-ending
   - repo: https://github.com/RobertCraigie/pyright-python
-    rev: v1.1.378
+    rev: v1.1.379
     hooks:
       - id: pyright
         additional_dependencies:
@@ -40,22 +40,22 @@ repos:
           - contextlib2==21.6.0
           - croniter==3.0.3
           - django-stubs==5.0.4
-          - django==4.2.15
+          - django==4.2.16
           - importlib-resources==6.4.4
           - psycopg2-binary==2.9.9
           - psycopg[pool]==3.2.1
           - python-dateutil==2.9.0.post0
           - sphinx==7.1.2
-          - sqlalchemy==2.0.32
+          - sqlalchemy==2.0.34
           - typing-extensions==4.12.2
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.6.3
+    rev: v0.6.4
     hooks:
       - id: ruff
         args: [--fix, --unsafe-fixes]
       - id: ruff-format
   - repo: https://github.com/PyCQA/doc8
-    rev: v1.1.1
+    rev: v1.1.2
     hooks:
       - id: doc8
   - repo: https://github.com/ewjoachim/poetry-to-pre-commit
