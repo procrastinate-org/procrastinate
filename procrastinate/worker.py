@@ -257,9 +257,17 @@ class Worker:
                 job_retry=job_retry,
                 exc_info=exc_info,
             )
-            await self._persist_job_status(
-                job=job, status=status, retry_decision=retry_decision
+
+            persist_job_status_task = asyncio.create_task(
+                self._persist_job_status(
+                    job=job, status=status, retry_decision=retry_decision
+                )
             )
+            try:
+                await asyncio.shield(persist_job_status_task)
+            except asyncio.CancelledError:
+                await persist_job_status_task
+                raise
 
             self._job_ids_to_abort.discard(job.id)
 
@@ -372,8 +380,19 @@ class Worker:
 
     def _handle_abort_jobs_requested(self, job_ids: Iterable[int]):
         running_job_ids = {c.job.id for c in self._running_jobs.values() if c.job.id}
-        self._job_ids_to_abort |= set(job_ids)
-        self._job_ids_to_abort &= running_job_ids
+        new_job_ids_to_abort = (running_job_ids & set(job_ids)) - self._job_ids_to_abort
+        self._job_ids_to_abort |= new_job_ids_to_abort
+
+        tasks_to_cancel = (
+            task
+            for (task, context) in self._running_jobs.items()
+            if context.job.id in new_job_ids_to_abort
+            and context.task
+            and asyncio.iscoroutinefunction(context.task.func)
+        )
+
+        for task in tasks_to_cancel:
+            task.cancel()
 
     async def _shutdown(self, side_tasks: list[asyncio.Task]):
         """

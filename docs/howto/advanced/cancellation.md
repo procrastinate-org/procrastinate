@@ -37,9 +37,19 @@ app.job_manager.cancel_job_by_id(33, abort=True)
 await app.job_manager.cancel_job_by_id_async(33, abort=True)
 ```
 
+Behind the scenes, the worker receives a Postgres notification every time a job is requested to abort, (unless `listen_notify=False`).
+
+The worker also polls (respecting `polling_interval`) the database for abortion requests, as long as the worker is running at least one job (in the absence of running job, there is nothing to abort).
+
+:::{note}
+When a job is requested to abort and that job fails, it will not be retried (regardless of the retry strategy).
+:::
+
 ## Handle an abortion request inside the task
 
-In our task, we can check (for example, periodically) if the task should be
+## Sync tasks
+
+In a sync task, we can check (for example, periodically) if the task should be
 aborted. If we want to respect that abortion request (we don't have to), we raise a
 `JobAborted` error. Any message passed to `JobAborted` (e.g.
 `raise JobAborted("custom message")`) will end up in the logs.
@@ -53,10 +63,30 @@ def my_task(context):
     do_something_expensive()
 ```
 
-Behind the scenes, the worker receives a Postgres notification every time a job is requested to abort, (unless `listen_notify=False`).
+# Async tasks
 
-The worker also polls (respecting `polling_interval`) the database for abortion requests, as long as the worker is running at least one job (in the absence of running job, there is nothing to abort).
+For async tasks (coroutines), the async taks will be cancelled via [asyncio cancellation](https://docs.python.org/3/library/asyncio-task.html#task-cancellation) mechasnism.
+As such, the task will be cancelled at the next opportunity.
 
-:::{note}
-When a job is requested to abort and that job fails, it will not be retried (regardless of the retry strategy).
-:::
+```python
+@app.task()
+async def my_task():
+  do_something_synchronous()
+  # if the job is aborted while it waits for do_something to complete, asyncio.CancelledError will be raised here
+  await do_something()
+```
+
+It is possible to prevent the job from aborting by capturing  asyncio.CancelledError.
+
+```python
+@app.task()
+async def my_task():
+    try:
+      # shield something_important from being cancelled
+      important_task = asyncio.create_task(something_important())
+      await asyncio.shield(important_task)
+    except asyncio.CancelledError:
+      # capture the error and waits for something important to complete
+      await important_task
+      # if the job should be marked as aborted, rethrow. Otherwise continue for job to succeed
+```
