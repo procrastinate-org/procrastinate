@@ -119,6 +119,7 @@ class Worker:
         job: jobs.Job,
         status: jobs.Status,
         retry_decision: retry.RetryDecision | None,
+        context: job_context.JobContext,
     ):
         if retry_decision:
             await self.app.job_manager.retry_job(
@@ -137,6 +138,13 @@ class Worker:
             await self.app.job_manager.finish_job(
                 job=job, status=status, delete_job=delete_job
             )
+
+        self._job_ids_to_abort.discard(job.id)
+
+        self.logger.debug(
+            f"Acknowledged job completion {job.call_string}",
+            extra=self._log_extra(action="finish_task", context=context, status=status),
+        )
 
     def _log_job_outcome(
         self,
@@ -260,7 +268,10 @@ class Worker:
 
             persist_job_status_task = asyncio.create_task(
                 self._persist_job_status(
-                    job=job, status=status, retry_decision=retry_decision
+                    job=job,
+                    status=status,
+                    retry_decision=retry_decision,
+                    context=context,
                 )
             )
             try:
@@ -268,15 +279,6 @@ class Worker:
             except asyncio.CancelledError:
                 await persist_job_status_task
                 raise
-
-            self._job_ids_to_abort.discard(job.id)
-
-            self.logger.debug(
-                f"Acknowledged job completion {job.call_string}",
-                extra=self._log_extra(
-                    action="finish_task", context=context, status=status
-                ),
-            )
 
     async def _fetch_and_process_jobs(self):
         """Fetch and process jobs until there is no job left or asked to stop"""
