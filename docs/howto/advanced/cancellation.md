@@ -47,7 +47,7 @@ When a job is requested to abort and that job fails, it will not be retried (reg
 
 ## Handle an abortion request inside the task
 
-## Sync tasks
+### Sync tasks
 
 In a sync task, we can check (for example, periodically) if the task should be
 aborted. If we want to respect that abortion request (we don't have to), we raise a
@@ -63,10 +63,9 @@ def my_task(context):
     do_something_expensive()
 ```
 
-# Async tasks
+### Async tasks
 
-For async tasks (coroutines), the async taks will be cancelled via [asyncio cancellation](https://docs.python.org/3/library/asyncio-task.html#task-cancellation) mechasnism.
-As such, the task will be cancelled at the next opportunity.
+For async tasks (coroutines), they are cancelled via the [asyncio cancellation](https://docs.python.org/3/library/asyncio-task.html#task-cancellation) mechasnism.
 
 ```python
 @app.task()
@@ -76,14 +75,14 @@ async def my_task():
   await do_something()
 ```
 
-It is possible to prevent the job from aborting by capturing  asyncio.CancelledError.
+It is possible to prevent the job from aborting by capturing asyncio.CancelledError.
 
 ```python
 @app.task()
 async def my_task():
     try:
-      # shield something_important from being cancelled
       important_task = asyncio.create_task(something_important())
+      # shield something_important from being cancelled
       await asyncio.shield(important_task)
     except asyncio.CancelledError:
       # capture the error and waits for something important to complete
