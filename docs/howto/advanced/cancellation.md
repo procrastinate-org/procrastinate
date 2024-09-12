@@ -75,7 +75,7 @@ async def my_task():
   await do_something()
 ```
 
-It is possible to prevent the job from aborting by capturing asyncio.CancelledError.
+If you want to have some custom behavior at cancellation time, use a combination of [shielding](https://docs.python.org/3/library/asyncio-task.html#shielding-from-cancellation) and capturing `except asyncio.CancelledError`.
 
 ```python
 @app.task()
@@ -87,5 +87,7 @@ async def my_task():
     except asyncio.CancelledError:
       # capture the error and waits for something important to complete
       await important_task
-      # if the job should be marked as aborted, rethrow. Otherwise continue for job to succeed
+      # raise if the job should be marked as aborted, or swallow CancelledError if the job should be
+      # marked as suceeeded
+      raise
 ```

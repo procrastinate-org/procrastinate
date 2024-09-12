@@ -383,18 +383,28 @@ class Worker:
     def _handle_abort_jobs_requested(self, job_ids: Iterable[int]):
         running_job_ids = {c.job.id for c in self._running_jobs.values() if c.job.id}
         new_job_ids_to_abort = (running_job_ids & set(job_ids)) - self._job_ids_to_abort
-        self._job_ids_to_abort |= new_job_ids_to_abort
 
-        tasks_to_cancel = (
-            task
-            for (task, context) in self._running_jobs.items()
-            if context.job.id in new_job_ids_to_abort
-            and context.task
-            and asyncio.iscoroutinefunction(context.task.func)
+        for process_job_task, context in self._running_jobs.items():
+            if context.job.id in new_job_ids_to_abort:
+                self._abort_job(process_job_task, context)
+
+    def _abort_job(
+        self, process_job_task: asyncio.Task, context: job_context.JobContext
+    ):
+        self._job_ids_to_abort.add(context.job.id)
+
+        log_message: str
+        if not context.task:
+            log_message = "Received a request to abort a job but the job has no associated task. No action to perform"
+        elif not asyncio.iscoroutinefunction(context.task.func):
+            log_message = "Received a request to abort a synchronous job. Job is responsible for aborting by checking context.should_abort"
+        else:
+            log_message = "Received a request to abort an asynchronous job. Cancelling asyncio task"
+            process_job_task.cancel()
+
+        self.logger.debug(
+            log_message, extra=self._log_extra(action="abort_job", context=context)
         )
-
-        for task in tasks_to_cancel:
-            task.cancel()
 
     async def _shutdown(self, side_tasks: list[asyncio.Task]):
         """
