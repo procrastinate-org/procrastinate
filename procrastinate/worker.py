@@ -119,6 +119,7 @@ class Worker:
         job: jobs.Job,
         status: jobs.Status,
         retry_decision: retry.RetryDecision | None,
+        context: job_context.JobContext,
     ):
         if retry_decision:
             await self.app.job_manager.retry_job(
@@ -137,6 +138,13 @@ class Worker:
             await self.app.job_manager.finish_job(
                 job=job, status=status, delete_job=delete_job
             )
+
+        self._job_ids_to_abort.discard(job.id)
+
+        self.logger.debug(
+            f"Acknowledged job completion {job.call_string}",
+            extra=self._log_extra(action="finish_task", context=context, status=status),
+        )
 
     def _log_job_outcome(
         self,
@@ -257,18 +265,20 @@ class Worker:
                 job_retry=job_retry,
                 exc_info=exc_info,
             )
-            await self._persist_job_status(
-                job=job, status=status, retry_decision=retry_decision
-            )
 
-            self._job_ids_to_abort.discard(job.id)
-
-            self.logger.debug(
-                f"Acknowledged job completion {job.call_string}",
-                extra=self._log_extra(
-                    action="finish_task", context=context, status=status
-                ),
+            persist_job_status_task = asyncio.create_task(
+                self._persist_job_status(
+                    job=job,
+                    status=status,
+                    retry_decision=retry_decision,
+                    context=context,
+                )
             )
+            try:
+                await asyncio.shield(persist_job_status_task)
+            except asyncio.CancelledError:
+                await persist_job_status_task
+                raise
 
     async def _fetch_and_process_jobs(self):
         """Fetch and process jobs until there is no job left or asked to stop"""
@@ -372,8 +382,29 @@ class Worker:
 
     def _handle_abort_jobs_requested(self, job_ids: Iterable[int]):
         running_job_ids = {c.job.id for c in self._running_jobs.values() if c.job.id}
-        self._job_ids_to_abort |= set(job_ids)
-        self._job_ids_to_abort &= running_job_ids
+        new_job_ids_to_abort = (running_job_ids & set(job_ids)) - self._job_ids_to_abort
+
+        for process_job_task, context in self._running_jobs.items():
+            if context.job.id in new_job_ids_to_abort:
+                self._abort_job(process_job_task, context)
+
+    def _abort_job(
+        self, process_job_task: asyncio.Task, context: job_context.JobContext
+    ):
+        self._job_ids_to_abort.add(context.job.id)
+
+        log_message: str
+        if not context.task:
+            log_message = "Received a request to abort a job but the job has no associated task. No action to perform"
+        elif not asyncio.iscoroutinefunction(context.task.func):
+            log_message = "Received a request to abort a synchronous job. Job is responsible for aborting by checking context.should_abort"
+        else:
+            log_message = "Received a request to abort an asynchronous job. Cancelling asyncio task"
+            process_job_task.cancel()
+
+        self.logger.debug(
+            log_message, extra=self._log_extra(action="abort_job", context=context)
+        )
 
     async def _shutdown(self, side_tasks: list[asyncio.Task]):
         """

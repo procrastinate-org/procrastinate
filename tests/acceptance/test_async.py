@@ -110,12 +110,9 @@ async def test_no_job_to_cancel_found(async_app: app_module.App):
 
 @pytest.mark.parametrize("mode", ["listen", "poll"])
 async def test_abort_async_task(async_app: app_module.App, mode):
-    @async_app.task(queue="default", name="task1", pass_context=True)
-    async def task1(context):
-        while True:
-            await asyncio.sleep(0.02)
-            if context.should_abort():
-                raise JobAborted
+    @async_app.task(queue="default", name="task1")
+    async def task1():
+        await asyncio.sleep(0.5)
 
     job_id = await task1.defer_async()
 

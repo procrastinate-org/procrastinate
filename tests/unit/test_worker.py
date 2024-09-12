@@ -5,6 +5,7 @@ import signal
 from typing import cast
 
 import pytest
+from pytest_mock import MockerFixture
 
 from procrastinate.app import App
 from procrastinate.exceptions import JobAborted
@@ -509,7 +510,7 @@ async def test_run_job_error(app: App, worker, critical_error, caplog):
     assert "to retry" not in record.message
 
 
-async def test_run_job_aborted(app: App, worker, caplog):
+async def test_run_job_raising_job_aborted(app: App, worker, caplog):
     caplog.set_level("INFO")
 
     @app.task(queue="yay", name="task_func")
@@ -528,6 +529,73 @@ async def test_run_job_aborted(app: App, worker, caplog):
     record = records[0]
     assert record.levelname == "INFO"
     assert "Aborted" in record.message
+
+
+async def test_abort_async_job(app: App, worker):
+    @app.task(queue="yay", name="task_func")
+    async def task_func():
+        await asyncio.sleep(0.2)
+
+    job_id = await task_func.defer_async()
+
+    await start_worker(worker)
+    await app.job_manager.cancel_job_by_id_async(job_id, abort=True)
+    await asyncio.sleep(0.01)
+    status = await app.job_manager.get_job_status_async(job_id)
+    assert status == Status.ABORTED
+
+
+async def test_abort_async_job_while_finishing(app: App, worker, mocker: MockerFixture):
+    """
+    Tests that aborting a job after that job completes but before the job status is updated
+    does not prevent the job status from being updated
+    """
+    connector = cast(InMemoryConnector, app.connector)
+    original_finish_job_run = connector.finish_job_run
+
+    complete_finish_job_event = asyncio.Event()
+
+    async def delayed_finish_job_run(**arguments):
+        await complete_finish_job_event.wait()
+        return await original_finish_job_run(**arguments)
+
+    connector.finish_job_run = mocker.AsyncMock(name="finish_job_run")
+    connector.finish_job_run.side_effect = delayed_finish_job_run
+
+    @app.task(queue="yay", name="task_func")
+    async def task_func():
+        pass
+
+    job_id = await task_func.defer_async()
+
+    await start_worker(worker)
+    await app.job_manager.cancel_job_by_id_async(job_id, abort=True)
+    await asyncio.sleep(0.01)
+    complete_finish_job_event.set()
+    await asyncio.sleep(0.01)
+    status = await app.job_manager.get_job_status_async(job_id)
+    assert status == Status.SUCCEEDED
+
+
+async def test_abort_async_job_preventing_cancellation(app: App, worker):
+    """
+    Tests that an async job can prevent itself from being aborted
+    """
+
+    @app.task(queue="yay", name="task_func")
+    async def task_func():
+        try:
+            await asyncio.sleep(0.2)
+        except asyncio.CancelledError:
+            pass
+
+    job_id = await task_func.defer_async()
+
+    await start_worker(worker)
+    await app.job_manager.cancel_job_by_id_async(job_id, abort=True)
+    await asyncio.sleep(0.01)
+    status = await app.job_manager.get_job_status_async(job_id)
+    assert status == Status.SUCCEEDED
 
 
 @pytest.mark.parametrize(
