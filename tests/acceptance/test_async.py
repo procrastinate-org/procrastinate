@@ -116,13 +116,13 @@ async def test_abort_async_task(async_app: app_module.App, mode):
 
     job_id = await task1.defer_async()
 
-    polling_interval = 0.1
+    abort_job_polling_interval = 0.1
 
     worker_task = asyncio.create_task(
         async_app.run_worker_async(
             queues=["default"],
             wait=False,
-            polling_interval=polling_interval,
+            abort_job_polling_interval=abort_job_polling_interval,
             listen_notify=True if mode == "listen" else False,
         )
     )
@@ -132,9 +132,9 @@ async def test_abort_async_task(async_app: app_module.App, mode):
     assert result is True
 
     # when listening for notifications, job should cancel within ms
-    # if notifications are disabled, job will only cancel after polling_interval
+    # if notifications are disabled, job will only cancel after abort_job_polling_interval
     await asyncio.wait_for(
-        worker_task, timeout=0.1 if mode == "listen" else polling_interval * 2
+        worker_task, timeout=0.1 if mode == "listen" else abort_job_polling_interval * 2
     )
 
     status = await async_app.job_manager.get_job_status_async(job_id)
@@ -152,13 +152,13 @@ async def test_abort_sync_task(async_app: app_module.App, mode):
 
     job_id = await task1.defer_async()
 
-    polling_interval = 0.1
+    abort_job_polling_interval = 0.1
 
     worker_task = asyncio.create_task(
         async_app.run_worker_async(
             queues=["default"],
             wait=False,
-            polling_interval=polling_interval,
+            abort_job_polling_interval=abort_job_polling_interval,
             listen_notify=True if mode == "listen" else False,
         )
     )
@@ -168,9 +168,9 @@ async def test_abort_sync_task(async_app: app_module.App, mode):
     assert result is True
 
     # when listening for notifications, job should cancel within ms
-    # if notifications are disabled, job will only cancel after polling_interval
+    # if notifications are disabled, job will only cancel after abort_job_polling_interval
     await asyncio.wait_for(
-        worker_task, timeout=0.1 if mode == "listen" else polling_interval * 2
+        worker_task, timeout=0.1 if mode == "listen" else abort_job_polling_interval * 2
     )
 
     status = await async_app.job_manager.get_job_status_async(job_id)
@@ -218,7 +218,10 @@ async def test_polling(async_app: app_module.App):
     # rely on polling to fetch new jobs
     worker_task = asyncio.create_task(
         async_app.run_worker_async(
-            concurrency=1, wait=True, listen_notify=False, polling_interval=0.3
+            concurrency=1,
+            wait=True,
+            listen_notify=False,
+            fetch_job_polling_interval=0.3,
         )
     )
 

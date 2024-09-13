@@ -292,10 +292,18 @@ def configure_worker_parser(subparsers: argparse._SubParsersAction):
     add_argument(
         worker_parser,
         "-p",
-        "--polling-interval",
+        "--fetch-job-polling-interval",
         type=float,
         help="How long to wait for database event push before polling",
-        envvar="WORKER_POLLING_INTERVAL",
+        envvar="WORKER_FETCH_JOB_POLLING_INTERVAL",
+    )
+    add_argument(
+        worker_parser,
+        "-a",
+        "--abort-job-polling-interval",
+        type=float,
+        help="How often to polling for abort requests",
+        envvar="WORKER_ABORT_JOB_POLLING_INTERVAL",
     )
     add_argument(
         worker_parser,

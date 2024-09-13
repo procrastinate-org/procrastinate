@@ -39,7 +39,7 @@ await app.job_manager.cancel_job_by_id_async(33, abort=True)
 
 Behind the scenes, the worker receives a Postgres notification every time a job is requested to abort, (unless `listen_notify=False`).
 
-The worker also polls (respecting `polling_interval`) the database for abortion requests, as long as the worker is running at least one job (in the absence of running job, there is nothing to abort).
+The worker also polls (respecting `fetch_job_polling_interval`) the database for abortion requests, as long as the worker is running at least one job (in the absence of running job, there is nothing to abort).
 
 :::{note}
 When a job is requested to abort and that job fails, it will not be retried (regardless of the retry strategy).
