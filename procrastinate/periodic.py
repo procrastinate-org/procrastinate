@@ -8,11 +8,12 @@ from typing import Callable, Generic, Iterable, Tuple, cast
 
 import attr
 import croniter
-from typing_extensions import Concatenate, ParamSpec, Unpack
+from typing_extensions import Concatenate, ParamSpec, TypeVar, Unpack
 
 from procrastinate import exceptions, tasks
 
 P = ParamSpec("P")
+R = TypeVar("R")
 Args = ParamSpec("Args")
 
 # The maximum delay after which tasks will be considered as
@@ -28,8 +29,8 @@ cached_property = functools.cached_property
 
 
 @attr.dataclass(frozen=True)
-class PeriodicTask(Generic[P, Args]):
-    task: tasks.Task[P, Args]
+class PeriodicTask(Generic[P, R, Args]):
+    task: tasks.Task[P, R, Args]
     cron: str
     periodic_id: str
     configure_kwargs: tasks.ConfigureTaskOptions
@@ -51,31 +52,33 @@ class PeriodicRegistry:
         cron: str,
         periodic_id: str,
         **configure_kwargs: Unpack[tasks.ConfigureTaskOptions],
-    ) -> Callable[[tasks.Task[P, Concatenate[int, Args]]], tasks.Task[P, Args]]:
+    ) -> Callable[[tasks.Task[P, R, Concatenate[int, Args]]], tasks.Task[P, R, Args]]:
         """
         Decorator over a task definition that registers that task for periodic
         launch. This decorator should not be used directly, ``@app.periodic()`` is meant
         to be used instead.
         """
 
-        def wrapper(task: tasks.Task[P, Concatenate[int, Args]]) -> tasks.Task[P, Args]:
+        def wrapper(
+            task: tasks.Task[P, R, Concatenate[int, Args]],
+        ) -> tasks.Task[P, R, Args]:
             self.register_task(
                 task=task,
                 cron=cron,
                 periodic_id=periodic_id,
                 configure_kwargs=configure_kwargs,
             )
-            return cast(tasks.Task[P, Args], task)
+            return cast(tasks.Task[P, R, Args], task)
 
         return wrapper
 
     def register_task(
         self,
-        task: tasks.Task[P, Concatenate[int, Args]],
+        task: tasks.Task[P, R, Concatenate[int, Args]],
         cron: str,
         periodic_id: str,
         configure_kwargs: tasks.ConfigureTaskOptions,
-    ) -> PeriodicTask[P, Concatenate[int, Args]]:
+    ) -> PeriodicTask[P, R, Concatenate[int, Args]]:
         key = (task.name, periodic_id)
         if key in self.periodic_tasks:
             raise exceptions.TaskAlreadyRegistered(
