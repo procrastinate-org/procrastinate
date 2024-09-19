@@ -28,7 +28,8 @@ class WorkerOptions(TypedDict):
     name: NotRequired[str]
     concurrency: NotRequired[int]
     wait: NotRequired[bool]
-    polling_interval: NotRequired[float]
+    fetch_job_polling_interval: NotRequired[float]
+    abort_job_polling_interval: NotRequired[float]
     shutdown_timeout: NotRequired[float]
     listen_notify: NotRequired[bool]
     delete_jobs: NotRequired[str | jobs.DeleteJobCondition]
@@ -270,13 +271,19 @@ class App(blueprints.Blueprint):
             Name of the worker. Will be passed in the `JobContext` and used in the
             logs (defaults to ``None`` which will result in the worker named
             ``worker``).
-        polling_interval : ``float``
+        fetch_job_polling_interval : ``float``
             Maximum time (in seconds) between database job polls.
 
-            Controls the frequency of database queries for:
-            - Checking for new jobs to start
-            - Fetching updates for running jobs
-            - Checking for abort requests
+            Controls the frequency of database queries for new jobs to start.
+
+            When `listen_notify` is True, the polling interval acts as a fallback
+            mechanism and can reasonably be set to a higher value.
+
+            (defaults to 5.0)
+        abort_job_polling_interval : ``float``
+            Maximum time (in seconds) between database abort requet polls.
+
+            Controls the frequency of database queries for abort requests
 
             When `listen_notify` is True, the polling interval acts as a fallback
             mechanism and can reasonably be set to a higher value.

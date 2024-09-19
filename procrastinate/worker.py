@@ -25,7 +25,8 @@ logger = logging.getLogger(__name__)
 
 WORKER_NAME = "worker"
 WORKER_CONCURRENCY = 1  # maximum number of parallel jobs
-POLLING_INTERVAL = 5.0  # seconds
+FETCH_JOB_POLLING_INTERVAL = 5.0  # seconds
+ABORT_JOB_POLLING_INTERVAL = 5.0  # seconds
 
 
 class Worker:
@@ -36,7 +37,8 @@ class Worker:
         name: str | None = WORKER_NAME,
         concurrency: int = WORKER_CONCURRENCY,
         wait: bool = True,
-        polling_interval: float = POLLING_INTERVAL,
+        fetch_job_polling_interval: float = FETCH_JOB_POLLING_INTERVAL,
+        abort_job_polling_interval: float = ABORT_JOB_POLLING_INTERVAL,
         shutdown_timeout: float | None = None,
         listen_notify: bool = True,
         delete_jobs: str | jobs.DeleteJobCondition | None = None,
@@ -48,7 +50,8 @@ class Worker:
         self.worker_name = name
         self.concurrency = concurrency
         self.wait = wait
-        self.polling_interval = polling_interval
+        self.fetch_job_polling_interval = fetch_job_polling_interval
+        self.abort_job_polling_interval = abort_job_polling_interval
         self.listen_notify = listen_notify
         self.delete_jobs = (
             jobs.DeleteJobCondition(delete_jobs)
@@ -361,9 +364,9 @@ class Worker:
     async def _poll_jobs_to_abort(self):
         while True:
             logger.debug(
-                f"waiting for {self.polling_interval}s before querying jobs to abort"
+                f"waiting for {self.abort_job_polling_interval}s before querying jobs to abort"
             )
-            await asyncio.sleep(self.polling_interval)
+            await asyncio.sleep(self.abort_job_polling_interval)
             if not self._running_jobs:
                 logger.debug("Not querying jobs to abort because no job is running")
                 continue
@@ -485,7 +488,7 @@ class Worker:
                     # wait for a new job notification, a stop even or the next polling interval
                     await utils.wait_any(
                         self._new_job_event.wait(),
-                        asyncio.sleep(self.polling_interval),
+                        asyncio.sleep(self.fetch_job_polling_interval),
                         self._stop_event.wait(),
                     )
                     await self._fetch_and_process_jobs()

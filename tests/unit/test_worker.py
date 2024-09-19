@@ -198,7 +198,7 @@ async def test_worker_run_fetches_job_on_notification(worker, app: App):
 
 @pytest.mark.parametrize(
     "worker",
-    [({"polling_interval": 0.05})],
+    [({"fetch_job_polling_interval": 0.05})],
     indirect=["worker"],
 )
 async def test_worker_run_respects_polling(worker, app):
@@ -601,8 +601,8 @@ async def test_abort_async_job_preventing_cancellation(app: App, worker):
 @pytest.mark.parametrize(
     "worker",
     [
-        ({"listen_notify": False, "polling_interval": 0.05}),
-        ({"listen_notify": True, "polling_interval": 1}),
+        ({"listen_notify": False, "abort_job_polling_interval": 0.05}),
+        ({"listen_notify": True, "abort_job_polling_interval": 1}),
     ],
     indirect=["worker"],
 )

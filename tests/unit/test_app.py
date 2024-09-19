@@ -51,11 +51,11 @@ def test_app_register(app: app_module.App):
 def test_app_worker(app: app_module.App, mocker):
     Worker = mocker.patch("procrastinate.worker.Worker")
 
-    app.worker_defaults["polling_interval"] = 12
+    app.worker_defaults["fetch_job_polling_interval"] = 12
     app._worker(queues=["yay"], name="w1", wait=False)
 
     Worker.assert_called_once_with(
-        queues=["yay"], app=app, name="w1", polling_interval=12, wait=False
+        queues=["yay"], app=app, name="w1", fetch_job_polling_interval=12, wait=False
     )
 
 

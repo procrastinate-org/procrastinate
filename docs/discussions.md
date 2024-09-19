@@ -199,26 +199,30 @@ Having sub-workers wait for an available connection in the pool is suboptimal. Y
 resources will be better used with fewer sub-workers or a larger pool, but there are
 many factors to take into account when [sizing your pool](https://wiki.postgresql.org/wiki/Number_Of_Database_Connections).
 
-### How the `polling_interval` works
+### How polling works
+
+#### `fetch_job_polling_interval`
 
 Even when the database doesn't notify workers regarding newly deferred jobs, each worker still poll the database every now and then, just in case.
 There could be previously locked jobs that are now free, or scheduled jobs that have
-reached the ETA. `polling_interval` is the {py:meth}`App.run_worker` parameter (or the
+reached the ETA. `fetch_job_polling_interval` is the {py:meth}`App.run_worker` parameter (or the
 equivalent CLI flag) that sizes this "every now and then".
 
 A worker will keep fetching new jobs as long as they have capacity to process them.
 The polling interval starts from the moment the last attempt to fetch a new job yields no result.
 
-The `polling_interval` also defines how often the worker will poll the database for jobs to abort.
+:::{note}
+The polling interval was previously called `timeout` in pre-v3 versions of Procrastinate. It was renamed to `fetch_job_polling_interval` for clarity.
+:::
+
+#### `abort_job_polling_interval`
+
+Another polling interval is the `abort_job_polling_interval`. It defines how often the worker will poll the database for jobs to abort.
 When `listen_notify=True`, the worker will likely be notified "instantly" of each abort request prior to polling the database.
 
-However, in the event `listen_notify=False` or if the abort notification was missed, `polling_interval` will represent the maximum delay before the worker reacts to an abort request.
+However, when `listen_notify=False` or the abort notification was missed, `abort_job_polling_interval` will represent the maximum delay before the worker reacts to an abort request.
 
-Note that the worker will not poll the database for jobs to be aborted if it is idle (i.e. it has no running job).
-
-:::{note}
-The polling interval was previously called `timeout` in pre-v3 versions of Procrastinate. It was renamed to `polling_interval` for clarity.
-:::
+Note that the worker will only poll the database for abort requests when at least one job is running.
 
 ## Procrastinate's usage of PostgreSQL functions and procedures
 
