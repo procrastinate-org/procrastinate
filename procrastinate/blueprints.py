@@ -3,9 +3,9 @@ from __future__ import annotations
 import functools
 import logging
 import sys
-from typing import TYPE_CHECKING, Any, Callable, Literal, Union, cast, overload
+from typing import TYPE_CHECKING, Callable, Literal, Union, cast, overload
 
-from typing_extensions import Concatenate, ParamSpec, Unpack
+from typing_extensions import Concatenate, ParamSpec, TypeVar, Unpack
 
 from procrastinate import exceptions, jobs, periodic, retry, utils
 from procrastinate.job_context import JobContext
@@ -17,6 +17,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 P = ParamSpec("P")
+R = TypeVar("R")
 
 
 class Blueprint:
@@ -210,7 +211,7 @@ class Blueprint:
         priority: int = jobs.DEFAULT_PRIORITY,
         lock: str | None = None,
         queueing_lock: str | None = None,
-    ) -> Callable[[Callable[P]], Task[P, P]]:
+    ) -> Callable[[Callable[P, R]], Task[P, R, P]]:
         """Declare a function as a task. This method is meant to be used as a decorator
         Parameters
         ----------
@@ -265,8 +266,8 @@ class Blueprint:
         lock: str | None = None,
         queueing_lock: str | None = None,
     ) -> Callable[
-        [Callable[Concatenate[JobContext, P]]],
-        Task[Concatenate[JobContext, P], P],
+        [Callable[Concatenate[JobContext, P], R]],
+        Task[Concatenate[JobContext, P], R, P],
     ]:
         """Declare a function as a task. This method is meant to be used as a decorator
         Parameters
@@ -277,7 +278,7 @@ class Blueprint:
         ...
 
     @overload
-    def task(self, _func: Callable[P]) -> Task[P, P]:
+    def task(self, _func: Callable[P, R]) -> Task[P, R, P]:
         """Declare a function as a task. This method is meant to be used as a decorator
         Parameters
         ----------
@@ -288,7 +289,7 @@ class Blueprint:
 
     def task(
         self,
-        _func: Callable[P] | None = None,
+        _func: Callable[P, R] | None = None,
         *,
         name: str | None = None,
         aliases: list[str] | None = None,
@@ -316,7 +317,7 @@ class Blueprint:
         The second form will use the default value for all parameters.
         """
 
-        def _wrap(func: Callable[P]) -> Callable[P, Task[P, P]]:
+        def _wrap(func: Callable[P, R]) -> Task[P, R, P]:
             task = Task(
                 func,
                 blueprint=self,
@@ -331,15 +332,21 @@ class Blueprint:
             )
             self._register_task(task)
 
-            return functools.update_wrapper(task, func, updated=())
+            # The signature of a function returned by functools.update_wrapper
+            # is the same as the signature of the wrapped function (at least on pyright).
+            # Here, we're actually returning a Task so a cast is needed to provide the correct signature.
+            return cast(
+                Task[P, R, P],
+                functools.update_wrapper(task, func, updated=()),
+            )
 
         if _func is None:  # Called as @app.task(...)
             return cast(
                 Union[
-                    Callable[[Callable[P, Any]], Task[P, P]],
+                    Callable[[Callable[P, R]], Task[P, R, P]],
                     Callable[
-                        [Callable[Concatenate[JobContext, P], Any]],
-                        Task[Concatenate[JobContext, P], P],
+                        [Callable[Concatenate[JobContext, P], R]],
+                        Task[Concatenate[JobContext, P], R, P],
                     ],
                 ],
                 _wrap,

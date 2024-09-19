@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import datetime
 import logging
-from typing import Any, Callable, Generic, TypedDict, cast
+from typing import Callable, Generic, TypedDict, cast
 
-from typing_extensions import NotRequired, ParamSpec, Unpack
+from typing_extensions import NotRequired, ParamSpec, TypeVar, Unpack
 
 from procrastinate import app as app_module
 from procrastinate import blueprints, exceptions, jobs, manager, types, utils
@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 
 Args = ParamSpec("Args")
 P = ParamSpec("P")
+R = TypeVar("R")
 
 
 class ConfigureTaskOptions(TypedDict):
@@ -62,7 +63,7 @@ def configure_task(
     )
 
 
-class Task(Generic[P, Args]):
+class Task(Generic[P, R, Args]):
     """
     A task is a function that should be executed later. It is linked to a
     default queue, and expects keyword arguments.
@@ -70,7 +71,7 @@ class Task(Generic[P, Args]):
 
     def __init__(
         self,
-        func: Callable[P],
+        func: Callable[P, R],
         *,
         blueprint: blueprints.Blueprint,
         # task naming
@@ -94,7 +95,7 @@ class Task(Generic[P, Args]):
         #: priority is 0.
         self.priority: int = priority
         self.blueprint: blueprints.Blueprint = blueprint
-        self.func: Callable[P] = func
+        self.func: Callable[P, R] = func
         #: Additional names for the task.
         self.aliases: list[str] = aliases if aliases else []
         #: Value indicating the retry conditions in case of
@@ -123,7 +124,7 @@ class Task(Generic[P, Args]):
             for alias in self.aliases
         ]
 
-    def __call__(self, *args: P.args, **kwargs: P.kwargs) -> Any:
+    def __call__(self, *args: P.args, **kwargs: P.kwargs) -> R:
         return self.func(*args, **kwargs)
 
     @property
