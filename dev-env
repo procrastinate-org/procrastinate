@@ -61,6 +61,6 @@ echo "We've gone ahead and set up a few additional commands for you:"
 echo "- htmlcov: Opens the test coverage results in your browser"
 echo "- htmldoc: Opens the locally built sphinx documentation in your browser"
 echo "- lint: Run code formatters & linters"
-echo "- docs: Build doc (note: needs 'poetry install --with docs' which needs a recent Python)"
+echo "- docs: Build doc"
 echo ""
 echo 'Quit the poetry shell with the command `deactivate`'
