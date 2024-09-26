@@ -393,6 +393,42 @@ needs to be asynchronous at core.
 When possible, we're trying to avoid duplicating code, with designs such as
 ["hoisting the I/O"](https://www.youtube.com/watch?v=PBQN62oUnN8).
 
+## Dependencies management
+
+Dependencies for the package are handled by Poetry in
+[`pyproject.toml`](https://github.com/procrastinate-org/procrastinate/blob/main/pyproject.toml#L25).
+Whenever possible, we avoid pinning or putting any kind of limits on the
+requirements. We'll typically only do that if we know that there's a
+known conflict with specific versions. Typically, even if we support a subset of
+Django versions, we won't restrict the Procrastinate package to those versions,
+and if users use procrastinate with unsupported Django version and it works for
+them, everyone is happy.
+
+Dependencies for the development environment are kept in
+[`poetry.lock`](https://github.com/procrastinate-org/procrastinate/blob/main/poetry.lock).
+Those are updated regularily by [Renovate](https://docs.renovatebot.com/) which
+merges their own PRs.
+The versions in `pre-commit-config.yaml` are kept in sync with `poetry.lock`
+by the `pre-commit` hook
+[poetry-to-pre-commit](https://github.com/procrastinate-org/procrastinate/blob/main/.pre-commit-config.yaml#L61).
+
+If you need to recompute the lockfile in your PR, you can use:
+
+```console
+$ # Update all the pinned dependencies in pyproject.toml & all versions in poetry.lock
+$ # (there are actually no pinned dependencies in pyproject.toml, so this only updates the
+$ # lockfile).
+$ poetry update
+
+$ # Similarly, update dependencies in the lockfile. In procrastinate, it's equivalent
+$ # to the command above
+$ poetry lock
+
+$ # Recompute the lockfile (e.g. after the pyproject.toml was updated) without trying
+$ # to update anything
+$ poetry lock --no-update
+```
+
 ## Core contributor additional documentation
 
 ### Issues
