@@ -19,6 +19,7 @@ django/configuration
 django/basic_usage
 django/migrations
 django/models
+django/related
 django/settings
 django/logs
 django/tests

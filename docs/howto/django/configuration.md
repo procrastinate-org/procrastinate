@@ -2,9 +2,21 @@
 
 Many Django projects are deployed using PostgreSQL, so using procrastinate in
 conjunction with Django would remove the necessity of having another broker to
-schedule tasks.
+schedule tasks. Procrastinate is designed to play nicely with Django, let's see
+how.
 
-## Configuration
+## Prerequisites
+
+For each Python version supported by Procrastinate, Procastinate is tested with
+the latest Django version supported by that Python version.
+
+As of September 2024, this means Procrastinate is tested with Django 4.2 for
+Python 3.8 and 3.9, and Django 5.1 for Python 3.10+. This paragraph is likely
+to be outdated in the future, the best way to get up-to-date info is to have a
+look at the `tool.poetry.group.django.dependencies` section of the [package
+configuration](https://github.com/procrastinate-org/procrastinate/blob/pydjver/pyproject.toml#L79-L83)
+
+## Installation & configuration
 
 To start, install procrastinate with:
 
@@ -26,16 +38,18 @@ INSTALLED_APPS = [
 
 ## Configuring the app
 
-An app will be configured for you in `procrastinate.contrib.django.app`.
-You don't have to configure an app yourself.
+A Procrastinate app will be configured for you in
+`procrastinate.contrib.django.app`. You don't have to configure an app
+yourself.
 
-You can modify the app after its creation, for example to load additional tasks from
-blueprints, with:
+You can modify the app after its creation, for example to load additional tasks
+from blueprints, with:
 
 ```python
 # settings.py
 PROCRASTINATE_ON_APP_READY = "myapp.procrastinate.on_app_ready"
 ```
+
 ```python
 # myapp/procrastinate.py
 import procrastinate
