@@ -42,6 +42,7 @@ extensions = [
     "sphinxcontrib.programoutput",
     "sphinx_github_changelog",
     "sphinx_copybutton",
+    "sphinxcontrib.mermaid",
     "procrastinate.contrib.sphinx",
 ]
 
@@ -97,6 +98,13 @@ html_theme_options = {
 }
 
 html_favicon = "favicon.ico"
+
+mermaid_init_js = """
+mermaid.initialize({
+    startOnLoad: true,
+    theme: "neutral"
+});
+"""
 
 # -- Options for sphinx.ext.autodoc ------------------------------------------
 

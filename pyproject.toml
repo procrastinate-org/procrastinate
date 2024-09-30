@@ -99,6 +99,7 @@ Sphinx = "*"
 sphinx-copybutton = "*"
 sphinx-github-changelog = "*"
 sphinxcontrib-programoutput = "*"
+sphinxcontrib-mermaid = "*"
 myst-parser = "*"
 
 [tool.poetry-dynamic-versioning]
