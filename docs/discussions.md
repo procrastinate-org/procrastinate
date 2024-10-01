@@ -157,7 +157,7 @@ flowchart LR
     classDef hidden display: none;
 ```
 
-- **a**: The job was deferred by `my_task.defer()` or `await my_task.defer_async()`
+- **a**: The job was deferred by `my_task.defer()` (or the async equivalent)
 - **b**: A worker fetched the job from the database and started processing it
 - **c**: A worker finished processing a job successfully
 - **d**: The job failed by raising an error but will be retried
