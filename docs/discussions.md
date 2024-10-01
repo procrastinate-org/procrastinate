@@ -164,8 +164,7 @@ flowchart LR
 - **e**: The job failed by raising an error and won't be retried
 - **f**: The job was cancelled by calling `job_manager.cancel_job_by_id(job_id)` (or the async equivalent) before its processing was started
 - **g**: The job was aborted during being processed by calling
-  `job_manager.cancel_job_by_id(job_id, abort=True)` or
-  `await job_manager.cancel_job_by_id_async(job_id, abort=True)`. A sync job must also
+  `job_manager.cancel_job_by_id(job_id, abort=True)` (or the async equivalent). A sync job must also
   handle the abort request by checking `context.should_abort()` and raising a
   `JobAborted` exception. An async job handles it automatically by internally raising a
   `CancelledError` exception.
