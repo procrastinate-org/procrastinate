@@ -134,6 +134,41 @@ For a more practical approach, see {doc}`howto/advanced/locks`.
 
 (discussion-async)=
 
+## What are the different states of a Job and how do they go from one to another?
+
+A job can be in one of the following states:
+
+```{mermaid}
+flowchart LR
+    START:::hidden
+    todo[TODO]
+    doing[DOING]
+    succeeded[SUCCEEDED]
+    failed[FAILED]
+    cancelled[CANCELLED]
+    aborted[ABORTED]
+    START -- a --> todo
+    todo -- b --> doing
+    doing -- c --> succeeded
+    doing -- d --> todo
+    doing -- e --> failed
+    todo -- f --> cancelled
+    doing -- g --> aborted
+    classDef hidden display: none;
+```
+
+- **a**: The job was deferred by `my_task.defer()` (or the async equivalent)
+- **b**: A worker fetched the job from the database and started processing it
+- **c**: A worker finished processing a job successfully
+- **d**: The job failed by raising an error but will be retried
+- **e**: The job failed by raising an error and won't be retried
+- **f**: The job was cancelled by calling `job_manager.cancel_job_by_id(job_id)` (or the async equivalent) before its processing was started
+- **g**: The job was aborted during being processed by calling
+  `job_manager.cancel_job_by_id(job_id, abort=True)` (or the async equivalent). A sync job must also
+  handle the abort request by checking `context.should_abort()` and raising a
+  `JobAborted` exception. An async job handles it automatically by internally raising a
+  `CancelledError` exception.
+
 ## Asynchronous operations & concurrency
 
 Here, asynchronous (or async) means "using the Python `async/await` keywords, to
