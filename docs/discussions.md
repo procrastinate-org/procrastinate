@@ -162,8 +162,7 @@ flowchart LR
 - **c**: A worker finished processing a job successfully
 - **d**: The job failed by raising an error but will be retried
 - **e**: The job failed by raising an error and won't be retried
-- **f**: The job was cancelled by calling `job_manager.cancel_job_by_id(job_id)` or
-  `await job_manager.cancel_job_by_id_async(job_id)` before its processing was started
+- **f**: The job was cancelled by calling `job_manager.cancel_job_by_id(job_id)` (or the async equivalent) before its processing was started
 - **g**: The job was aborted during being processed by calling
   `job_manager.cancel_job_by_id(job_id, abort=True)` or
   `await job_manager.cancel_job_by_id_async(job_id, abort=True)`. A sync job must also
