@@ -157,13 +157,19 @@ flowchart LR
     classDef hidden display: none;
 ```
 
-a: A job was deferred by `my_task.defer()` or `await my_task.defer_async()`\
-b: A worker fetched a job from the database and started processing it\
-c: A worker finished processing a job successfully\
-d: A job failed but will be retried\
-e: A job failed and won't be retried\
-f: A job was cancelled before processing was started\
-g: A job was aborted that was already processing\
+- **a**: The job was deferred by `my_task.defer()` or `await my_task.defer_async()`
+- **b**: A worker fetched the job from the database and started processing it
+- **c**: A worker finished processing a job successfully
+- **d**: The job failed by raising an error but will be retried
+- **e**: The job failed by raising an error and won't be retried
+- **f**: The job was cancelled by calling `job_manager.cancel_job_by_id(job_id)` or
+  `await job_manager.cancel_job_by_id_async(job_id)` before its processing was started
+- **g**: The job was aborted during being processed by calling
+  `job_manager.cancel_job_by_id(job_id, abort=True)` or
+  `await job_manager.cancel_job_by_id_async(job_id, abort=True)`. A sync job must also
+  handle the abort request by checking `context.should_abort()` and raising a
+  `JobAborted` exception. An async job handles it automatically by internally raising a
+  `CancelledError` exception.
 
 ## Asynchronous operations & concurrency
 
