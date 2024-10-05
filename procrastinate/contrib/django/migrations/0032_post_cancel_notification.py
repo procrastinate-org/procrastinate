@@ -8,7 +8,7 @@ from .. import migrations_utils
 class Migration(migrations.Migration):
     operations = [
         migrations_utils.RunProcrastinateSQL(
-            name="02.09.02_01_add_abort_on_procrastinate_jobs.sql"
+            name="03.00.00_50_post_cancel_notification.sql"
         ),
         migrations.AlterField(
             "procrastinatejob",
@@ -25,11 +25,6 @@ class Migration(migrations.Migration):
                 max_length=32,
             ),
         ),
-        migrations.AddField(
-            "procrastinatejob",
-            "abort_requested",
-            models.BooleanField(),
-        ),
     ]
-    name = "0031_add_abort_on_procrastinate_jobs"
-    dependencies = [("procrastinate", "0030_alter_procrastinateevent_options")]
+    name = "0032_post_cancel_notification"
+    dependencies = [("procrastinate", "0031_pre_cancel_notification")]
