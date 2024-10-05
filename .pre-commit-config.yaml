@@ -32,7 +32,7 @@ repos:
     rev: "3.2.0"
     hooks:
       - id: sqlfluff-fix
-        args: ["--dialect=postgres"]
+        args: [--dialect=postgres, --quiet]
   - repo: https://github.com/RobertCraigie/pyright-python
     rev: v1.1.381
     hooks:

@@ -177,3 +177,18 @@ required-imports = ["from __future__ import annotations"]
 [tool.doc8]
 max-line-length = 88
 ignore-path = "docs/_build,.venv"
+
+[tool.sqlfluff.core]
+dialect = "postgres"
+templater = "placeholder"
+max_line_length = 120
+quiet = true
+
+[tool.sqlfluff.templater.placeholder]
+param_style = "pyformat"
+
+[tool.sqlfluff.indentation]
+allow_implicit_indents = true
+
+[tool.sqlfluff.rules.convention.not_equal]
+preferred_not_equal_style = "c_style"
