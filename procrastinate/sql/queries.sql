@@ -10,12 +10,12 @@ SELECT procrastinate_defer_job(%(queue)s, %(task_name)s, %(priority)s, %(lock)s,
 -- defer_periodic_job --
 -- Create a periodic job if it doesn't already exist, and delete periodic metadata
 -- for previous jobs in the same task.
-SELECT procrastinate_defer_periodic_job(%(queue)s, %(lock)s, %(queueing_lock)s, %(task_name)s, %(periodic_id)s, %(defer_timestamp)s, %(args)s) AS id;
+SELECT procrastinate_defer_periodic_job(%(queue)s, %(lock)s, %(queueing_lock)s, %(task_name)s, %(priority)s, %(periodic_id)s, %(defer_timestamp)s, %(args)s) AS id;
 
 -- fetch_job --
 -- Get the first awaiting job
 SELECT id, status, task_name, priority, lock, queueing_lock, args, scheduled_at, queue_name, attempts
-    FROM procrastinate_fetch_job(%(queues)s);
+    FROM procrastinate_fetch_job_v1(%(queues)s::varchar[]);
 
 -- select_stalled_jobs --
 -- Get running jobs that started more than a given time ago
@@ -41,18 +41,18 @@ WHERE id IN (
               ON job.id = event.job_id
             ORDER BY job.id, event.at DESC
     ) AS job
-    WHERE job.status = ANY(%(statuses)s::procrastinate_job_status[])
+    WHERE job.status = ANY(%(statuses)s::procrastinate_job_status_v1[])
       AND (%(queue)s::varchar IS NULL OR job.queue_name = %(queue)s)
       AND latest_at < NOW() - (%(nb_hours)s || 'HOUR')::INTERVAL
 )
 
 -- finish_job --
 -- Finish a job, changing it from "doing" to "succeeded" or "failed"
-SELECT procrastinate_finish_job(%(job_id)s, %(status)s, %(delete_job)s);
+SELECT procrastinate_finish_job_v1(%(job_id)s, %(status)s, %(delete_job)s);
 
 -- cancel_job --
 -- Cancel a job, changing it from "todo" to "cancelled" or mark for abortion
-SELECT procrastinate_cancel_job(%(job_id)s, %(abort)s, %(delete_job)s) AS id;
+SELECT procrastinate_cancel_job_v1(%(job_id)s, %(abort)s, %(delete_job)s) AS id;
 
 -- get_job_status --
 -- Get the status of a job
@@ -60,7 +60,7 @@ SELECT status FROM procrastinate_jobs WHERE id = %(job_id)s;
 
 -- retry_job --
 -- Retry a job, changing it from "doing" to "todo"
-SELECT procrastinate_retry_job(%(job_id)s, %(retry_at)s, %(new_priority)s, %(new_queue_name)s, %(new_lock)s);
+SELECT procrastinate_retry_job_v1(%(job_id)s, %(retry_at)s, %(new_priority)s, %(new_queue_name)s, %(new_lock)s);
 
 -- listen_queue --
 -- In this one, the argument is an identifier, shoud not be escaped the same way
@@ -91,7 +91,7 @@ SELECT id,
  WHERE (%(id)s::bigint IS NULL OR id = %(id)s)
    AND (%(queue_name)s::varchar IS NULL OR queue_name = %(queue_name)s)
    AND (%(task_name)s::varchar IS NULL OR task_name = %(task_name)s)
-   AND (%(status)s::procrastinate_job_status IS NULL OR status = %(status)s)
+   AND (%(status)s::procrastinate_job_status_v1 IS NULL OR status = %(status)s)
    AND (%(lock)s::varchar IS NULL OR lock = %(lock)s)
    AND (%(queueing_lock)s::varchar IS NULL OR queueing_lock = %(queueing_lock)s)
  ORDER BY id ASC;
@@ -110,7 +110,7 @@ WITH jobs AS (
      FROM procrastinate_jobs
     WHERE (%(queue_name)s::varchar IS NULL OR queue_name = %(queue_name)s)
       AND (%(task_name)s::varchar IS NULL OR task_name = %(task_name)s)
-      AND (%(status)s::procrastinate_job_status IS NULL OR status = %(status)s)
+      AND (%(status)s::procrastinate_job_status_v1 IS NULL OR status = %(status)s)
       AND (%(lock)s::varchar IS NULL OR lock = %(lock)s)
 )
 SELECT queue_name AS name,
@@ -142,7 +142,7 @@ WITH jobs AS (
      FROM procrastinate_jobs
     WHERE (%(queue_name)s::varchar IS NULL OR queue_name = %(queue_name)s)
       AND (%(task_name)s::varchar IS NULL OR task_name = %(task_name)s)
-      AND (%(status)s::procrastinate_job_status IS NULL OR status = %(status)s)
+      AND (%(status)s::procrastinate_job_status_v1 IS NULL OR status = %(status)s)
       AND (%(lock)s::varchar IS NULL OR lock = %(lock)s)
 )
 SELECT task_name AS name,
@@ -170,7 +170,7 @@ WITH jobs AS (
   FROM procrastinate_jobs
   WHERE (%(queue_name)s::varchar IS NULL OR queue_name = %(queue_name)s)
   AND (%(task_name)s::varchar IS NULL OR task_name = %(task_name)s)
-  AND (%(status)s::procrastinate_job_status IS NULL OR status = %(status)s)
+  AND (%(status)s::procrastinate_job_status_v1 IS NULL OR status = %(status)s)
   AND (%(lock)s::varchar IS NULL OR lock = %(lock)s)
   AND lock IS NOT NULL
 ), locks AS (
