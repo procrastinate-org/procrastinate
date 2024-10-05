@@ -28,6 +28,11 @@ repos:
       - id: end-of-file-fixer
       - id: trailing-whitespace
       - id: mixed-line-ending
+  - repo: https://github.com/sqlfluff/sqlfluff
+    rev: "3.2.0"
+    hooks:
+      - id: sqlfluff-fix
+        args: ["--dialect=postgres"]
   - repo: https://github.com/RobertCraigie/pyright-python
     rev: v1.1.381
     hooks:
