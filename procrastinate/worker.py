@@ -79,7 +79,9 @@ class Worker:
             return
         self.logger.info(
             "Stop requested",
-            extra=self._log_extra(context=None, action="stopping_worker"),
+            extra=self._log_extra(
+                context=None, action="stopping_worker", job_result=None
+            ),
         )
 
         self._stop_event.set()
@@ -98,7 +100,11 @@ class Worker:
             raise exceptions.TaskNotFound from exc
 
     def _log_extra(
-        self, action: str, context: job_context.JobContext | None, **kwargs: Any
+        self,
+        action: str,
+        context: job_context.JobContext | None,
+        job_result: job_context.JobResult | None,
+        **kwargs: Any,
     ) -> types.JSONDict:
         extra: types.JSONDict = {
             "action": action,
@@ -113,7 +119,7 @@ class Worker:
 
         return {
             **extra,
-            **(context.job_result if context else job_context.JobResult()).as_dict(),
+            **(job_result.as_dict() if job_result else {}),
             **kwargs,
         }
 
@@ -123,6 +129,7 @@ class Worker:
         status: jobs.Status,
         retry_decision: retry.RetryDecision | None,
         context: job_context.JobContext,
+        job_result: job_context.JobResult | None,
     ):
         if retry_decision:
             await self.app.job_manager.retry_job(
@@ -146,13 +153,19 @@ class Worker:
 
         self.logger.debug(
             f"Acknowledged job completion {job.call_string}",
-            extra=self._log_extra(action="finish_task", context=context, status=status),
+            extra=self._log_extra(
+                action="finish_task",
+                context=context,
+                status=status,
+                job_result=job_result,
+            ),
         )
 
     def _log_job_outcome(
         self,
         status: jobs.Status,
         context: job_context.JobContext,
+        job_result: job_context.JobResult | None,
         job_retry: exceptions.JobRetry | None,
         exc_info: bool | BaseException = False,
     ):
@@ -168,15 +181,15 @@ class Worker:
         text = f"Job {context.job.call_string} ended with status: {log_title}, "
         # in practice we should always have a start and end timestamp here
         # but in theory the JobResult class allows it to be None
-        if context.job_result.start_timestamp and context.job_result.end_timestamp:
-            duration = (
-                context.job_result.end_timestamp - context.job_result.start_timestamp
-            )
+        if job_result and job_result.start_timestamp and job_result.end_timestamp:
+            duration = job_result.end_timestamp - job_result.start_timestamp
             text += f"lasted {duration:.3f} s"
-        if context.job_result.result:
-            text += f" - Result: {context.job_result.result}"[:250]
+        if job_result and job_result.result:
+            text += f" - Result: {job_result.result}"[:250]
 
-        extra = self._log_extra(context=context, action=log_action)
+        extra = self._log_extra(
+            context=context, action=log_action, job_result=job_result
+        )
         log_level = logging.ERROR if status == jobs.Status.FAILED else logging.INFO
         logger.log(log_level, text, extra=extra, exc_info=exc_info)
 
@@ -184,14 +197,13 @@ class Worker:
         """
         Processes a given job and persists its status
         """
-        task = context.task
+        task = self.app.tasks.get(context.job.task_name)
         job_retry = None
         exc_info = False
         retry_decision = None
         job = context.job
 
-        job_result = context.job_result
-        job_result.start_timestamp = time.time()
+        job_result = job_context.JobResult(start_timestamp=context.start_timestamp)
 
         try:
             if not task:
@@ -199,12 +211,16 @@ class Worker:
 
             self.logger.debug(
                 f"Loaded job info, about to start job {job.call_string}",
-                extra=self._log_extra(context=context, action="loaded_job_info"),
+                extra=self._log_extra(
+                    context=context, action="loaded_job_info", job_result=job_result
+                ),
             )
 
             self.logger.info(
                 f"Starting job {job.call_string}",
-                extra=self._log_extra(context=context, action="start_job"),
+                extra=self._log_extra(
+                    context=context, action="start_job", job_result=job_result
+                ),
             )
 
             exc_info: bool | BaseException = False
@@ -248,6 +264,7 @@ class Worker:
                             context=context,
                             action="task_not_found",
                             exception=str(e),
+                            job_result=job_result,
                         ),
                     )
         finally:
@@ -265,6 +282,7 @@ class Worker:
             self._log_job_outcome(
                 status=status,
                 context=context,
+                job_result=job_result,
                 job_retry=job_retry,
                 exc_info=exc_info,
             )
@@ -275,6 +293,7 @@ class Worker:
                     status=status,
                     retry_decision=retry_decision,
                     context=context,
+                    job_result=job_result,
                 )
             )
             try:
@@ -312,8 +331,8 @@ class Worker:
                 if self.additional_context
                 else {},
                 job=job,
-                task=self.app.tasks.get(job.task_name),
                 should_abort=lambda: job_id in self._job_ids_to_abort,
+                start_timestamp=time.time(),
             )
             job_task = asyncio.create_task(
                 self._process_job(context),
@@ -397,16 +416,18 @@ class Worker:
         self._job_ids_to_abort.add(context.job.id)
 
         log_message: str
-        if not context.task:
+        task = self.app.tasks.get(context.job.task_name)
+        if not task:
             log_message = "Received a request to abort a job but the job has no associated task. No action to perform"
-        elif not asyncio.iscoroutinefunction(context.task.func):
+        elif not asyncio.iscoroutinefunction(task.func):
             log_message = "Received a request to abort a synchronous job. Job is responsible for aborting by checking context.should_abort"
         else:
             log_message = "Received a request to abort an asynchronous job. Cancelling asyncio task"
             process_job_task.cancel()
 
         self.logger.debug(
-            log_message, extra=self._log_extra(action="abort_job", context=context)
+            log_message,
+            extra=self._log_extra(action="abort_job", context=context, job_result=None),
         )
 
     async def _shutdown(self, side_tasks: list[asyncio.Task]):
@@ -418,10 +439,12 @@ class Worker:
 
         now = time.time()
         for context in self._running_jobs.values():
+            duration = now - context.start_timestamp
             self.logger.info(
-                "Waiting for job to finish: "
-                + context.job_description(current_timestamp=now),
-                extra=self._log_extra(context=None, action="ending_job"),
+                f"Waiting for job to finish: worker: {context.job.call_string} (started {duration:.3f} s ago)",
+                extra=self._log_extra(
+                    context=None, action="ending_job", job_result=None
+                ),
             )
 
         # wait for any in progress job to complete processing
@@ -430,7 +453,7 @@ class Worker:
         self.logger.info(
             f"Stopped worker on {utils.queues_display(self.queues)}",
             extra=self._log_extra(
-                action="stop_worker", queues=self.queues, context=None
+                action="stop_worker", queues=self.queues, context=None, job_result=None
             ),
         )
 
@@ -455,7 +478,7 @@ class Worker:
         self.logger.info(
             f"Starting worker on {utils.queues_display(self.queues)}",
             extra=self._log_extra(
-                action="start_worker", context=None, queues=self.queues
+                action="start_worker", context=None, queues=self.queues, job_result=None
             ),
         )
         self._new_job_event.clear()
@@ -480,6 +503,7 @@ class Worker:
                             context=None,
                             action="stop_worker",
                             queues=self.queues,
+                            job_result=None,
                         ),
                     )
                     self._stop_event.set()
