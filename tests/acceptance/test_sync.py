@@ -33,7 +33,7 @@ async def async_app(not_opened_psycopg_connector):
 
 # Even if we test the purely sync parts, we'll still need an async worker to execute
 # the tasks
-async def test_defer(sync_app, async_app):
+async def test_defer(sync_app: procrastinate.App, async_app: procrastinate.App):
     sum_results = []
     product_results = []
 
@@ -58,7 +58,9 @@ async def test_defer(sync_app, async_app):
     assert product_results == [12]
 
 
-async def test_nested_sync_to_async(sync_app, async_app):
+async def test_nested_sync_to_async(
+    sync_app: procrastinate.App, async_app: procrastinate.App
+):
     sum_results = []
 
     @sync_app.task(queue="default", name="sum_task")
@@ -81,7 +83,9 @@ async def test_nested_sync_to_async(sync_app, async_app):
     assert sum_results == [3]
 
 
-async def test_sync_task_runs_in_parallel(sync_app, async_app):
+async def test_sync_task_runs_in_parallel(
+    sync_app: procrastinate.App, async_app: procrastinate.App
+):
     results = []
 
     @sync_app.task(queue="default", name="sync_task_1")
@@ -105,7 +109,7 @@ async def test_sync_task_runs_in_parallel(sync_app, async_app):
     assert results == [0, 0, 1, 1, 2, 2]
 
 
-async def test_cancel(sync_app, async_app):
+async def test_cancel(sync_app: procrastinate.App, async_app: procrastinate.App):
     sum_results = []
 
     @sync_app.task(queue="default", name="sum_task")
@@ -131,7 +135,7 @@ async def test_cancel(sync_app, async_app):
     assert sum_results == [7]
 
 
-def test_no_job_to_cancel_found(sync_app):
+def test_no_job_to_cancel_found(sync_app: procrastinate.App):
     @sync_app.task(queue="default", name="example_task")
     def example_task():
         pass

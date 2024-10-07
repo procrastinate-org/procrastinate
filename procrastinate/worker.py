@@ -39,7 +39,7 @@ class Worker:
         wait: bool = True,
         fetch_job_polling_interval: float = FETCH_JOB_POLLING_INTERVAL,
         abort_job_polling_interval: float = ABORT_JOB_POLLING_INTERVAL,
-        shutdown_timeout: float | None = None,
+        shutdown_graceful_timeout: float | None = None,
         listen_notify: bool = True,
         delete_jobs: str | jobs.DeleteJobCondition | None = None,
         additional_context: dict[str, Any] | None = None,
@@ -71,7 +71,7 @@ class Worker:
         self._running_jobs: dict[asyncio.Task, job_context.JobContext] = {}
         self._job_semaphore = asyncio.Semaphore(self.concurrency)
         self._stop_event = asyncio.Event()
-        self.shutdown_timeout = shutdown_timeout
+        self.shutdown_graceful_timeout = shutdown_graceful_timeout
         self._job_ids_to_abort = set()
 
     def stop(self):
@@ -338,19 +338,11 @@ class Worker:
         try:
             # shield the loop task from cancellation
             # instead, a stop event is set to enable graceful shutdown
-            await utils.wait_any(asyncio.shield(loop_task), self._stop_event.wait())
-            if self._stop_event.is_set():
-                try:
-                    await asyncio.wait_for(loop_task, timeout=self.shutdown_timeout)
-                except asyncio.TimeoutError:
-                    pass
+            await asyncio.shield(loop_task)
         except asyncio.CancelledError:
             # worker.run is cancelled, usually by cancelling app.run_worker_async
             self.stop()
-            try:
-                await asyncio.wait_for(loop_task, timeout=self.shutdown_timeout)
-            except asyncio.TimeoutError:
-                pass
+            await loop_task
             raise
 
     async def _handle_notification(
@@ -424,15 +416,32 @@ class Worker:
                 extra=self._log_extra(context=None, action="ending_job"),
             )
 
-        # wait for any in progress job to complete processing
-        # use return_exceptions to not cancel other job tasks if one was to fail
-        await asyncio.gather(*self._running_jobs, return_exceptions=True)
+        if self._running_jobs:
+            await asyncio.wait(
+                self._running_jobs, timeout=self.shutdown_graceful_timeout
+            )
+
+        if self._running_jobs:
+            self.logger.info(
+                f"{len(self._running_jobs)} jobs still running after graceful timeout. Aborting them",
+                extra=self._log_extra(
+                    action="stop_worker", queues=self.queues, context=None
+                ),
+            )
+            await self._abort_running_jobs()
+
         self.logger.info(
             f"Stopped worker on {utils.queues_display(self.queues)}",
             extra=self._log_extra(
                 action="stop_worker", queues=self.queues, context=None
             ),
         )
+
+    async def _abort_running_jobs(self):
+        for task, context in self._running_jobs.items():
+            self._abort_job(task, context)
+
+        await asyncio.gather(*self._running_jobs, return_exceptions=True)
 
     def _start_side_tasks(self) -> list[asyncio.Task]:
         """Start side tasks such as periodic deferrer and notification listener"""
