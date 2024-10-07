@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import time
+from enum import Enum
 from typing import Any, Callable, Iterable
 
 import attr
@@ -32,6 +33,17 @@ class JobResult:
         return result
 
 
+class AbortReason(Enum):
+    """
+    An enumeration of reasons a job is being aborted
+    """
+
+    USER_REQUEST = "user_request"  #: The user requested to abort the job
+    SHUTDOWN = (
+        "shutdown"  #: The job is being aborted as part of shutting down the worker
+    )
+
+
 @attr.dataclass(frozen=True, kw_only=True)
 class JobContext:
     """
@@ -51,7 +63,10 @@ class JobContext:
 
     additional_context: dict = attr.ib(factory=dict)
 
-    should_abort: Callable[[], bool]
+    abort_reason: Callable[[], AbortReason | None]
+
+    def should_abort(self) -> bool:
+        return bool(self.abort_reason())
 
     def evolve(self, **update: Any) -> JobContext:
         return attr.evolve(self, **update)

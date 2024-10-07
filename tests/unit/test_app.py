@@ -114,7 +114,7 @@ async def test_app_run_worker_async_abort(app: app_module.App):
         await asyncio.sleep(3)
         result.append(a)
 
-    task = asyncio.create_task(app.run_worker_async(shutdown_timeout=0.1))
+    task = asyncio.create_task(app.run_worker_async(shutdown_graceful_timeout=0.1))
     await my_task.defer_async(a=1)
     await asyncio.sleep(0.01)
     task.cancel()

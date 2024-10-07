@@ -30,7 +30,7 @@ class WorkerOptions(TypedDict):
     wait: NotRequired[bool]
     fetch_job_polling_interval: NotRequired[float]
     abort_job_polling_interval: NotRequired[float]
-    shutdown_timeout: NotRequired[float]
+    shutdown_graceful_timeout: NotRequired[float]
     listen_notify: NotRequired[bool]
     delete_jobs: NotRequired[str | jobs.DeleteJobCondition]
     additional_context: NotRequired[dict[str, Any]]
@@ -289,10 +289,11 @@ class App(blueprints.Blueprint):
             mechanism and can reasonably be set to a higher value.
 
             (defaults to 5.0)
-        shutdown_timeout: ``float``
+        shutdown_graceful_timeout: ``float``
             Indicates the maximum duration (in seconds) the worker waits for jobs to
-            complete when requested stop. Jobs that have not been completed by that time
+            complete when requested to stop. Jobs that have not been completed by that time
             are aborted. A value of None corresponds to no timeout.
+
             (defaults to None)
         listen_notify : ``bool``
             If ``True``, allocates a connection from the pool to

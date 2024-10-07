@@ -39,7 +39,7 @@ class Worker:
         wait: bool = True,
         fetch_job_polling_interval: float = FETCH_JOB_POLLING_INTERVAL,
         abort_job_polling_interval: float = ABORT_JOB_POLLING_INTERVAL,
-        shutdown_timeout: float | None = None,
+        shutdown_graceful_timeout: float | None = None,
         listen_notify: bool = True,
         delete_jobs: str | jobs.DeleteJobCondition | None = None,
         additional_context: dict[str, Any] | None = None,
@@ -71,8 +71,8 @@ class Worker:
         self._running_jobs: dict[asyncio.Task, job_context.JobContext] = {}
         self._job_semaphore = asyncio.Semaphore(self.concurrency)
         self._stop_event = asyncio.Event()
-        self.shutdown_timeout = shutdown_timeout
-        self._job_ids_to_abort = set()
+        self.shutdown_graceful_timeout = shutdown_graceful_timeout
+        self._job_ids_to_abort: dict[int, job_context.AbortReason] = dict()
 
     def stop(self):
         if self._stop_event.is_set():
@@ -149,7 +149,8 @@ class Worker:
                 job=job, status=status, delete_job=delete_job
             )
 
-        self._job_ids_to_abort.discard(job.id)
+        assert job.id
+        self._job_ids_to_abort.pop(job.id, None)
 
         self.logger.debug(
             f"Acknowledged job completion {job.call_string}",
@@ -171,8 +172,10 @@ class Worker:
     ):
         if status == jobs.Status.SUCCEEDED:
             log_action, log_title = "job_success", "Success"
-        elif status == jobs.Status.ABORTED:
+        elif status == jobs.Status.ABORTED and not job_retry:
             log_action, log_title = "job_aborted", "Aborted"
+        elif status == jobs.Status.ABORTED and job_retry:
+            log_action, log_title = "job_aborted_retry", "Aborted, to retry"
         elif job_retry:
             log_action, log_title = "job_error_retry", "Error, to retry"
         else:
@@ -252,7 +255,10 @@ class Worker:
         except BaseException as e:
             exc_info = e
 
-            if not isinstance(e, exceptions.JobAborted):
+            # aborted job can be retried if it is caused by a shutdown.
+            if not (isinstance(e, exceptions.JobAborted)) or (
+                context.abort_reason() == job_context.AbortReason.SHUTDOWN
+            ):
                 job_retry = (
                     task.get_retry_exception(exception=e, job=job) if task else None
                 )
@@ -321,7 +327,6 @@ class Worker:
                 break
 
             job_id = job.id
-            assert job_id
 
             context = job_context.JobContext(
                 app=self.app,
@@ -331,7 +336,9 @@ class Worker:
                 if self.additional_context
                 else {},
                 job=job,
-                should_abort=lambda: job_id in self._job_ids_to_abort,
+                abort_reason=lambda: self._job_ids_to_abort.get(job_id)
+                if job_id
+                else None,
                 start_timestamp=time.time(),
             )
             job_task = asyncio.create_task(
@@ -357,19 +364,11 @@ class Worker:
         try:
             # shield the loop task from cancellation
             # instead, a stop event is set to enable graceful shutdown
-            await utils.wait_any(asyncio.shield(loop_task), self._stop_event.wait())
-            if self._stop_event.is_set():
-                try:
-                    await asyncio.wait_for(loop_task, timeout=self.shutdown_timeout)
-                except asyncio.TimeoutError:
-                    pass
+            await asyncio.shield(loop_task)
         except asyncio.CancelledError:
             # worker.run is cancelled, usually by cancelling app.run_worker_async
             self.stop()
-            try:
-                await asyncio.wait_for(loop_task, timeout=self.shutdown_timeout)
-            except asyncio.TimeoutError:
-                pass
+            await loop_task
             raise
 
     async def _handle_notification(
@@ -404,16 +403,24 @@ class Worker:
 
     def _handle_abort_jobs_requested(self, job_ids: Iterable[int]):
         running_job_ids = {c.job.id for c in self._running_jobs.values() if c.job.id}
-        new_job_ids_to_abort = (running_job_ids & set(job_ids)) - self._job_ids_to_abort
+        new_job_ids_to_abort = (running_job_ids & set(job_ids)) - set(
+            self._job_ids_to_abort
+        )
 
         for process_job_task, context in self._running_jobs.items():
             if context.job.id in new_job_ids_to_abort:
-                self._abort_job(process_job_task, context)
+                self._abort_job(
+                    process_job_task, context, job_context.AbortReason.USER_REQUEST
+                )
 
     def _abort_job(
-        self, process_job_task: asyncio.Task, context: job_context.JobContext
+        self,
+        process_job_task: asyncio.Task,
+        context: job_context.JobContext,
+        reason: job_context.AbortReason,
     ):
-        self._job_ids_to_abort.add(context.job.id)
+        assert context.job.id
+        self._job_ids_to_abort[context.job.id] = reason
 
         log_message: str
         task = self.app.tasks.get(context.job.task_name)
@@ -447,15 +454,38 @@ class Worker:
                 ),
             )
 
-        # wait for any in progress job to complete processing
-        # use return_exceptions to not cancel other job tasks if one was to fail
-        await asyncio.gather(*self._running_jobs, return_exceptions=True)
+        if self._running_jobs:
+            await asyncio.wait(
+                self._running_jobs, timeout=self.shutdown_graceful_timeout
+            )
+
+        # As a reminder, tasks have a done callback that
+        # removes them from the self._running_jobs dict,
+        # so as the tasks stop, this dict will shrink.
+        if self._running_jobs:
+            self.logger.info(
+                f"{len(self._running_jobs)} jobs still running after graceful timeout. Aborting them",
+                extra=self._log_extra(
+                    action="stop_worker",
+                    queues=self.queues,
+                    context=None,
+                    job_result=None,
+                ),
+            )
+            await self._abort_running_jobs()
+
         self.logger.info(
             f"Stopped worker on {utils.queues_display(self.queues)}",
             extra=self._log_extra(
                 action="stop_worker", queues=self.queues, context=None, job_result=None
             ),
         )
+
+    async def _abort_running_jobs(self):
+        for task, context in self._running_jobs.items():
+            self._abort_job(task, context, job_context.AbortReason.SHUTDOWN)
+
+        await asyncio.gather(*self._running_jobs, return_exceptions=True)
 
     def _start_side_tasks(self) -> list[asyncio.Task]:
         """Start side tasks such as periodic deferrer and notification listener"""

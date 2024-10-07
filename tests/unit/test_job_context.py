@@ -52,6 +52,6 @@ def test_evolve(app: App, job_factory):
         app=app,
         job=job,
         worker_name="a",
-        should_abort=lambda: False,
+        abort_reason=lambda: None,
     )
     assert context.evolve(worker_name="b").worker_name == "b"
