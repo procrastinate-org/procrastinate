@@ -188,19 +188,20 @@ def test_queueing_lock(defer, running_worker):
 def test_periodic_deferrer(worker):
     # We're launching a worker that executes a periodic task every second, and
     # letting it run for 2.5 s. It should execute the task 3 times, and print to stdout:
-    # 0 <timestamp>
-    # 1 <timestamp + 1>
-    # 2 <timestamp + 2>  (this one won't always be there)
+    # 0 <priority> <timestamp>
+    # 1 <priority> <timestamp + 1>
+    # 2 <priority> <timestamp + 2>  (this one won't always be there)
     stdout, stderr = worker(app="cron_app", sleep=3)
     # This won't be visible unless the test fails
     print(stdout)
     print(stderr)
 
     # We're making a dict from the output
-    results = dict(
-        (int(a) for a in e[5:].split())
+    results = [
+        [int(a) for a in e[5:].split()]
         for e in stdout.splitlines()
         if e.startswith("tick ")
-    )
-    assert list(results)[:2] == [0, 1]
-    assert results[1] == results[0] + 1
+    ]
+    assert [row[0] for row in results][:2] == [0, 1]
+    assert [row[1] for row in results][:2] == [7, 7]
+    assert results[1][2] == results[0][2] + 1
