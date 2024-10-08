@@ -53,7 +53,7 @@ class JobContext:
     #: Corresponding :py:class:`~jobs.Job`
     job: jobs.Job | None = None
     #: Corresponding :py:class:`~tasks.Task`
-    task: tasks.Task | None = None
+    task: tasks.Task[Any, Any, Any] | None = None
     job_result: JobResult = attr.ib(factory=JobResult)
     additional_context: dict = attr.ib(factory=dict)
 
