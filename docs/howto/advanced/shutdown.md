@@ -6,13 +6,18 @@ A worker will keep running until:
 - [task.cancel](https://docs.python.org/3/library/asyncio-task.html#asyncio.Task.cancel) is called on the task created from `app.run_worker_async`
 
 When a worker is requested to stop, it will attempt to gracefully shut down by waiting for all running jobs to complete.
-If a `shutdown_timeout` option is specified, the worker will attempt to abort all jobs that have not completed by that time. Cancelling the `run_worker_async` task a second time also results in the worker aborting running jobs.
+If a `shutdown_graceful_timeout` option is specified, the worker will attempt to abort all jobs that have not completed by that time. Cancelling the `run_worker_async` task a second time also results in the worker aborting running jobs.
+
+The worker will then wait for all jobs to complete.
+
 
 :::{note}
-The worker aborts its remaining jobs by calling [task.cancel](https://docs.python.org/3/library/asyncio-task.html#asyncio.Task.cancel) on the underlying asyncio task that runs the job.
+The worker aborts its remaining jobs by:
+- setting `JobContext.should_abort` to `True`
+- calling [task.cancel](https://docs.python.org/3/library/asyncio-task.html#asyncio.Task.cancel) on the underlying asyncio task that runs the job when the job is asynchronous.
+Jobs that do not respect the request to abort will prevent the worker from shutting down.
+For more information, see {doc}`./cancellation`.
 
-It is possible for that task to handle `asyncio.CancelledError` and even suppress the cancellation.
-:::
 ## Examples
 
 ### Run a worker until no job is left
@@ -29,15 +34,15 @@ async with app.open_async():
 async with app.open_async():
     # give jobs up to 10 seconds to complete when a stop signal is received
     # all jobs still running after 10 seconds are aborted
-    # In the absence of shutdown_timeout, the task will complete when all jobs have completed.
-    await app.run_worker_async(shutdown_timeout=10)
+    # In the absence of shutdown_graceful_timeout, the task will complete when all jobs have completed.
+    await app.run_worker_async(shutdown_graceful_timeout=10)
 ```
 
 ### Run a worker until its Task is cancelled
 
 ```python
 async with app.open_async():
-    worker = asyncio.create_task(app    run_worker_async())
+    worker = asyncio.create_task(app.run_worker_async())
     # eventually
     worker.cancel()
     try:
@@ -51,7 +56,7 @@ async with app.open_async():
 
 ```python
 async with app.open_async():
-    worker = asyncio.create_task(app.run_worker_async(shutdown_timeout=10))
+    worker = asyncio.create_task(app.run_worker_async(shutdown_graceful_timeout=10))
     # eventually
     worker.cancel()
     try:
@@ -66,7 +71,7 @@ async with app.open_async():
 
 ```python
 async with app.open_async():
-    # Notice that shutdown_timeout is not specified
+    # Notice that shutdown_graceful_timeout is not specified
     worker = asyncio.create_task(app.run_worker_async())
 
     # eventually

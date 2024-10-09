@@ -570,7 +570,7 @@ class JobManager:
         status: str | None = None,
         lock: str | None = None,
         queueing_lock: str | None = None,
-    ) -> Iterable[jobs.Job]:
+    ) -> list[jobs.Job]:
         """
         Sync version of `list_jobs_async`
         """
