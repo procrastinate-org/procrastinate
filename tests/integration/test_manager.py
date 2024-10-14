@@ -331,7 +331,7 @@ async def test_enum_synced(psycopg_connector):
     pg_enum_rows = await psycopg_connector.execute_query_all_async(
         """SELECT e.enumlabel FROM pg_enum e
                JOIN pg_type t ON e.enumtypid = t.oid WHERE t.typname = %(type_name)s""",
-        type_name="procrastinate_job_status",
+        type_name="procrastinate_job_status_v1",
     )
 
     pg_values = {row["enumlabel"] for row in pg_enum_rows}
