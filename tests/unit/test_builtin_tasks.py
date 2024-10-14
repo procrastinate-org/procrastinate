@@ -12,7 +12,7 @@ async def test_remove_old_jobs(app: App, job_factory):
     job = job_factory()
     await builtin_tasks.remove_old_jobs(
         job_context.JobContext(
-            app=app, job=job, should_abort=lambda: False, start_timestamp=time.time()
+            app=app, job=job, abort_reason=lambda: None, start_timestamp=time.time()
         ),
         max_hours=2,
         queue="queue_a",

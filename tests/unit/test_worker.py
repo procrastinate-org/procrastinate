@@ -291,7 +291,7 @@ async def test_stopping_worker_waits_for_task(app: App, worker):
 @pytest.mark.parametrize("mode", [("stop"), ("cancel")])
 async def test_stopping_worker_aborts_job_after_timeout(app: App, worker, mode):
     complete_task_event = asyncio.Event()
-    worker.shutdown_timeout = 0.02
+    worker.shutdown_graceful_timeout = 0.02
 
     task_cancelled = False
 
@@ -336,7 +336,7 @@ async def test_stopping_worker_aborts_job_after_timeout(app: App, worker, mode):
 
 async def test_stopping_worker_job_suppresses_cancellation(app: App, worker):
     complete_task_event = asyncio.Event()
-    worker.shutdown_timeout = 0.02
+    worker.shutdown_graceful_timeout = 0.02
 
     @app.task()
     async def task_func():
@@ -625,7 +625,7 @@ async def test_run_job_abort(app: App, worker: Worker):
     status = await app.job_manager.get_job_status_async(job_id)
     assert status == Status.ABORTED
     assert (
-        worker._job_ids_to_abort == set()
+        worker._job_ids_to_abort == {}
     ), "Expected cancelled job id to be removed from set"
 
 

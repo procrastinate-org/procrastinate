@@ -8,6 +8,7 @@ import pytest
 from procrastinate import app as app_module
 from procrastinate.contrib import aiopg
 from procrastinate.exceptions import JobAborted
+from procrastinate.job_context import JobContext
 from procrastinate.jobs import Status
 
 
@@ -298,7 +299,9 @@ async def test_stop_worker(async_app: app_module.App):
         assert status == Status.SUCCEEDED
 
 
-async def test_stop_worker_aborts_jobs_past_shutdown_timeout(async_app: app_module.App):
+async def test_stop_worker_aborts_async_jobs_past_shutdown_graceful_timeout(
+    async_app: app_module.App,
+):
     slow_job_cancelled = False
 
     @async_app.task(queue="default", name="fast_job")
@@ -318,7 +321,7 @@ async def test_stop_worker_aborts_jobs_past_shutdown_timeout(async_app: app_modu
     slow_job_id = await slow_job.defer_async()
 
     run_task = asyncio.create_task(
-        async_app.run_worker_async(wait=False, shutdown_timeout=0.3)
+        async_app.run_worker_async(wait=False, shutdown_graceful_timeout=0.3)
     )
     await asyncio.sleep(0.05)
 
@@ -330,5 +333,104 @@ async def test_stop_worker_aborts_jobs_past_shutdown_timeout(async_app: app_modu
     slow_job_status = await async_app.job_manager.get_job_status_async(slow_job_id)
     assert fast_job_status == Status.SUCCEEDED
     assert slow_job_status == Status.ABORTED
+
+    assert slow_job_cancelled
+
+
+async def test_stop_worker_retries_async_jobs_past_shutdown_graceful_timeout(
+    async_app: app_module.App,
+):
+    slow_job_cancelled = False
+
+    @async_app.task(queue="default", name="slow_job", retry=1)
+    async def slow_job():
+        nonlocal slow_job_cancelled
+        try:
+            await asyncio.sleep(2)
+        except asyncio.CancelledError:
+            slow_job_cancelled = True
+            raise
+
+    slow_job_id = await slow_job.defer_async()
+
+    run_task = asyncio.create_task(
+        async_app.run_worker_async(wait=False, shutdown_graceful_timeout=0.3)
+    )
+    await asyncio.sleep(0.05)
+
+    with pytest.raises(asyncio.CancelledError):
+        run_task.cancel()
+        await run_task
+
+    slow_job_status = await async_app.job_manager.get_job_status_async(slow_job_id)
+    assert slow_job_cancelled
+    assert slow_job_status == Status.TODO
+
+
+async def test_stop_worker_aborts_sync_jobs_past_shutdown_graceful_timeout(
+    async_app: app_module.App,
+):
+    slow_job_cancelled = False
+
+    @async_app.task(queue="default", name="fast_job")
+    async def fast_job():
+        pass
+
+    @async_app.task(queue="default", name="slow_job", pass_context=True)
+    def slow_job(context: JobContext):
+        nonlocal slow_job_cancelled
+        while True:
+            time.sleep(0.05)
+            if context.should_abort():
+                slow_job_cancelled = True
+                raise JobAborted()
+
+    fast_job_id = await fast_job.defer_async()
+    slow_job_id = await slow_job.defer_async()
+
+    run_task = asyncio.create_task(
+        async_app.run_worker_async(wait=False, shutdown_graceful_timeout=0.3)
+    )
+    await asyncio.sleep(0.05)
+
+    with pytest.raises(asyncio.CancelledError):
+        run_task.cancel()
+        await run_task
+
+    fast_job_status = await async_app.job_manager.get_job_status_async(fast_job_id)
+    slow_job_status = await async_app.job_manager.get_job_status_async(slow_job_id)
+    assert fast_job_status == Status.SUCCEEDED
+    assert slow_job_status == Status.ABORTED
+
+    assert slow_job_cancelled
+
+
+async def test_stop_worker_retries_sync_jobs_past_shutdown_graceful_timeout(
+    async_app: app_module.App,
+):
+    slow_job_cancelled = False
+
+    @async_app.task(queue="default", name="slow_job", retry=1, pass_context=True)
+    def slow_job(context: JobContext):
+        nonlocal slow_job_cancelled
+        while True:
+            time.sleep(0.05)
+            if context.should_abort():
+                slow_job_cancelled = True
+                raise JobAborted()
+
+    slow_job_id = await slow_job.defer_async()
+
+    run_task = asyncio.create_task(
+        async_app.run_worker_async(wait=False, shutdown_graceful_timeout=0.3)
+    )
+    await asyncio.sleep(0.05)
+
+    with pytest.raises(asyncio.CancelledError):
+        run_task.cancel()
+        await run_task
+
+    slow_job_status = await async_app.job_manager.get_job_status_async(slow_job_id)
+    assert slow_job_status == Status.TODO
 
     assert slow_job_cancelled

@@ -307,6 +307,13 @@ def configure_worker_parser(subparsers: argparse._SubParsersAction):
     )
     add_argument(
         worker_parser,
+        "--shutdown-graceful-timeout",
+        type=float,
+        help="How long to wait for jobs to complete when shutting down before aborting them",
+        envvar="WORKER_SHUTDOWN_GRACEFUL_TIMEOUT",
+    )
+    add_argument(
+        worker_parser,
         "-w",
         "--wait",
         "--one-shot",
