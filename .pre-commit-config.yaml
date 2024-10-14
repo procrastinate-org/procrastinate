@@ -34,7 +34,7 @@ repos:
       - id: pyright
         additional_dependencies:
           - aiopg==1.4.0
-          - anyio==4.5.0
+          - anyio==4.6.2
           - asgiref==3.8.1
           - attrs==24.2.0
           - contextlib2==21.6.0
