@@ -1,19 +1,10 @@
 from __future__ import annotations
 
 import pathlib
-import sys
-from typing import TYPE_CHECKING, cast
+from importlib import resources
+from typing import cast
 
 from typing_extensions import LiteralString
-
-if TYPE_CHECKING:
-    import importlib_resources
-else:
-    # https://github.com/pypa/twine/pull/551
-    if sys.version_info[:2] < (3, 9):  # coverage: exclude
-        import importlib_resources
-    else:  # coverage: exclude
-        import importlib.resources as importlib_resources
 
 from procrastinate import connector as connector_module
 
@@ -29,9 +20,9 @@ class SchemaManager:
         # procrastinate takes full responsibility for the queries, we
         # can safely vouch for them being as safe as if they were
         # defined in the code itself.
-        schema_sql = (
-            importlib_resources.files("procrastinate.sql") / "schema.sql"
-        ).read_text(encoding="utf-8")
+        schema_sql = (resources.files("procrastinate.sql") / "schema.sql").read_text(
+            encoding="utf-8"
+        )
         return cast(LiteralString, schema_sql)
 
     @staticmethod
