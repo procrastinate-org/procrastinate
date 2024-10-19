@@ -91,9 +91,6 @@ CREATE TRIGGER procrastinate_trigger_status_events_update_temp
     FOR EACH ROW
     EXECUTE PROCEDURE procrastinate_trigger_status_events_procedure_update_temp();
 
-DROP TRIGGER IF EXISTS procrastinate_trigger_status_events_update ON procrastinate_jobs;
-DROP FUNCTION IF EXISTS procrastinate_trigger_status_events_procedure_update;
-
 DROP TRIGGER IF EXISTS procrastinate_jobs_notify_queue ON procrastinate_jobs;
 DROP FUNCTION IF EXISTS procrastinate_notify_queue;
 
