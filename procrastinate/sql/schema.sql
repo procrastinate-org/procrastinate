@@ -293,7 +293,7 @@ BEGIN
 END;
 $$;
 
-CREATE FUNCTION procrastinate_notify_queue_job_inserted_v2()
+CREATE FUNCTION procrastinate_notify_queue_job_inserted_v1()
     RETURNS trigger
     LANGUAGE plpgsql
 AS $$
@@ -332,7 +332,7 @@ BEGIN
 END;
 $$;
 
-CREATE FUNCTION procrastinate_trigger_function_status_events_update_v2()
+CREATE FUNCTION procrastinate_trigger_function_status_events_update_v1()
     RETURNS trigger
     LANGUAGE plpgsql
 AS $$
@@ -409,20 +409,20 @@ $$;
 
 -- Triggers
 
-CREATE TRIGGER procrastinate_jobs_notify_queue_job_inserted_v2
+CREATE TRIGGER procrastinate_jobs_notify_queue_job_inserted_v1
     AFTER INSERT ON procrastinate_jobs
     FOR EACH ROW WHEN ((new.status = 'todo'::procrastinate_job_status_v1))
-    EXECUTE PROCEDURE procrastinate_notify_queue_job_inserted_v2();
+    EXECUTE PROCEDURE procrastinate_notify_queue_job_inserted_v1();
 
 CREATE TRIGGER procrastinate_jobs_notify_queue_job_aborted_v1
     AFTER UPDATE OF abort_requested ON procrastinate_jobs
     FOR EACH ROW WHEN ((old.abort_requested = false AND new.abort_requested = true AND new.status = 'doing'::procrastinate_job_status_v1))
     EXECUTE PROCEDURE procrastinate_notify_queue_abort_job_v1();
 
-CREATE TRIGGER procrastinate_trigger_status_events_update_v2
+CREATE TRIGGER procrastinate_trigger_status_events_update_v1
     AFTER UPDATE OF status ON procrastinate_jobs
     FOR EACH ROW
-    EXECUTE PROCEDURE procrastinate_trigger_function_status_events_update_v2();
+    EXECUTE PROCEDURE procrastinate_trigger_function_status_events_update_v1();
 
 CREATE TRIGGER procrastinate_trigger_status_events_insert_v1
     AFTER INSERT ON procrastinate_jobs

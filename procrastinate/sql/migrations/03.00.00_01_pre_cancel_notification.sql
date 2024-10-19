@@ -46,7 +46,7 @@ CREATE TRIGGER procrastinate_trigger_sync_abort_requested_with_status_v1
 DROP TRIGGER IF EXISTS procrastinate_trigger_status_events_update ON procrastinate_jobs;
 DROP FUNCTION IF EXISTS procrastinate_trigger_status_events_procedure_update;
 
-CREATE FUNCTION procrastinate_trigger_status_events_procedure_update_v1()
+CREATE FUNCTION procrastinate_trigger_status_events_procedure_update_temp()
     RETURNS trigger
     LANGUAGE plpgsql
 AS $$
@@ -86,10 +86,10 @@ BEGIN
 END;
 $$;
 
-CREATE TRIGGER procrastinate_trigger_status_events_update_v1
+CREATE TRIGGER procrastinate_trigger_status_events_update_temp
     AFTER UPDATE OF status ON procrastinate_jobs
     FOR EACH ROW
-    EXECUTE PROCEDURE procrastinate_trigger_status_events_procedure_update_v1();
+    EXECUTE PROCEDURE procrastinate_trigger_status_events_procedure_update_temp();
 
 DROP TRIGGER IF EXISTS procrastinate_trigger_status_events_update ON procrastinate_jobs;
 DROP FUNCTION IF EXISTS procrastinate_trigger_status_events_procedure_update;
@@ -97,7 +97,7 @@ DROP FUNCTION IF EXISTS procrastinate_trigger_status_events_procedure_update;
 DROP TRIGGER IF EXISTS procrastinate_jobs_notify_queue ON procrastinate_jobs;
 DROP FUNCTION IF EXISTS procrastinate_notify_queue;
 
-CREATE OR REPLACE FUNCTION procrastinate_notify_queue_job_inserted_v1()
+CREATE OR REPLACE FUNCTION procrastinate_notify_queue_job_inserted_temp()
 RETURNS trigger
     LANGUAGE plpgsql
 AS $$
@@ -111,10 +111,10 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE TRIGGER procrastinate_jobs_notify_queue_job_inserted_v1
+CREATE OR REPLACE TRIGGER procrastinate_jobs_notify_queue_job_inserted_temp
     AFTER INSERT ON procrastinate_jobs
     FOR EACH ROW WHEN ((new.status = 'todo'::procrastinate_job_status))
-    EXECUTE PROCEDURE procrastinate_notify_queue_job_inserted_v1();
+    EXECUTE PROCEDURE procrastinate_notify_queue_job_inserted_temp();
 
 
 -- Create the new versioned functions (without aborting state)
