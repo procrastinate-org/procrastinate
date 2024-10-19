@@ -5,10 +5,19 @@
 --   This is a pre-migration script.
 -- - Whenever we recreate an immutable object (function, trigger, indexes), we
 --   will suffix its name with a version number.
---
--- Add an 'abort_requested' column to the procrastinate_jobs table
+
 -- Add an 'abort_requested' column to the procrastinate_jobs table
 ALTER TABLE procrastinate_jobs ADD COLUMN abort_requested boolean DEFAULT false NOT NULL;
+
+-- Create a new enum type without 'aborting'
+CREATE TYPE procrastinate_job_status_v1 AS ENUM (
+    'todo',
+    'doing',
+    'succeeded',
+    'failed',
+    'cancelled',
+    'aborted'
+);
 
 -- Set abort requested flag on all jobs with 'aborting' status
 UPDATE procrastinate_jobs SET abort_requested = true WHERE status = 'aborting';
@@ -108,7 +117,7 @@ CREATE OR REPLACE TRIGGER procrastinate_jobs_notify_queue_job_inserted_v1
     EXECUTE PROCEDURE procrastinate_notify_queue_job_inserted_v1();
 
 
--- Create the new versions for the functions
+-- Create the new versioned functions (without aborting state)
 CREATE FUNCTION procrastinate_fetch_job_v1(
     target_queue_names character varying[]
 )
