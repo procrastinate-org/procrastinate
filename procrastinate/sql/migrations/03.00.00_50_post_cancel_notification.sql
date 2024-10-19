@@ -54,16 +54,16 @@ DROP INDEX IF EXISTS procrastinate_jobs_id_lock_idx;
 DROP TRIGGER IF EXISTS procrastinate_trigger_status_events_update ON procrastinate_jobs;
 DROP TRIGGER IF EXISTS procrastinate_trigger_status_events_insert ON procrastinate_jobs;
 DROP TRIGGER IF EXISTS procrastinate_trigger_scheduled_events ON procrastinate_jobs;
-DROP TRIGGER IF EXISTS procrastinate_trigger_status_events_update_v1 ON procrastinate_jobs;
-DROP TRIGGER IF EXISTS procrastinate_jobs_notify_queue_job_inserted_v1 ON procrastinate_jobs;
+DROP TRIGGER IF EXISTS procrastinate_trigger_status_events_update_temp ON procrastinate_jobs;
+DROP TRIGGER IF EXISTS procrastinate_jobs_notify_queue_job_inserted_temp ON procrastinate_jobs;
 
 -- Delete the functions that depends on the old status type
 DROP FUNCTION IF EXISTS procrastinate_fetch_job;
 DROP FUNCTION IF EXISTS procrastinate_finish_job(bigint, procrastinate_job_status, boolean);
 DROP FUNCTION IF EXISTS procrastinate_cancel_job;
-DROP FUNCTION IF EXISTS procrastinate_trigger_status_events_procedure_update_v1;
+DROP FUNCTION IF EXISTS procrastinate_trigger_status_events_procedure_update_temp;
 DROP FUNCTION IF EXISTS procrastinate_finish_job(integer, procrastinate_job_status, timestamp with time zone, boolean);
-DROP FUNCTION IF EXISTS procrastinate_notify_queue_job_inserted_v1;
+DROP FUNCTION IF EXISTS procrastinate_notify_queue_job_inserted_temp;
 
 -- Alter the table to use the new type
 ALTER TABLE procrastinate_jobs
@@ -96,7 +96,7 @@ CREATE TRIGGER procrastinate_trigger_status_events_insert_v1
     FOR EACH ROW WHEN ((new.status = 'todo'::procrastinate_job_status_v1))
     EXECUTE PROCEDURE procrastinate_trigger_function_status_events_insert_v1();
 
-CREATE FUNCTION procrastinate_trigger_function_status_events_update_v2()
+CREATE FUNCTION procrastinate_trigger_function_status_events_update_v1()
     RETURNS trigger
     LANGUAGE plpgsql
 AS $$
@@ -136,10 +136,10 @@ BEGIN
 END;
 $$;
 
-CREATE TRIGGER procrastinate_trigger_status_events_update_v2
+CREATE TRIGGER procrastinate_trigger_status_events_update_v1
     AFTER UPDATE OF status ON procrastinate_jobs
     FOR EACH ROW
-    EXECUTE PROCEDURE procrastinate_trigger_function_status_events_update_v2();
+    EXECUTE PROCEDURE procrastinate_trigger_function_status_events_update_v1();
 
 ALTER FUNCTION procrastinate_trigger_scheduled_events_procedure
     RENAME TO procrastinate_trigger_function_scheduled_events_v1;
@@ -149,7 +149,7 @@ CREATE TRIGGER procrastinate_trigger_scheduled_events_v1
     FOR EACH ROW WHEN ((new.scheduled_at IS NOT NULL AND new.status = 'todo'::procrastinate_job_status_v1))
     EXECUTE PROCEDURE procrastinate_trigger_function_scheduled_events_v1();
 
-CREATE FUNCTION procrastinate_notify_queue_job_inserted_v2()
+CREATE FUNCTION procrastinate_notify_queue_job_inserted_v1()
 RETURNS trigger
     LANGUAGE plpgsql
 AS $$
@@ -163,10 +163,10 @@ BEGIN
 END;
 $$;
 
-CREATE TRIGGER procrastinate_jobs_notify_queue_job_inserted_v2
+CREATE TRIGGER procrastinate_jobs_notify_queue_job_inserted_v1
     AFTER INSERT ON procrastinate_jobs
     FOR EACH ROW WHEN ((new.status = 'todo'::procrastinate_job_status_v1))
-    EXECUTE PROCEDURE procrastinate_notify_queue_job_inserted_v2();
+    EXECUTE PROCEDURE procrastinate_notify_queue_job_inserted_v1();
 
 
 -- Create additional function and trigger for abortion requests
