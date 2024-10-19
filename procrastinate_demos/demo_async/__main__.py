@@ -4,12 +4,8 @@ import asyncio
 import json
 import logging
 
-import asgiref.sync
-
 from . import app as app_module
 from . import tasks
-
-ainput = asgiref.sync.sync_to_async(input)
 
 
 async def main():
@@ -22,7 +18,7 @@ async def main():
         print("Enter an empty line to quit")
         print()
         while True:
-            response = (await ainput("Your input: ")).strip()
+            response = (await asyncio.to_thread(input, "Your input: ")).strip()
             if not response:
                 break
             command, *args = (response).split(maxsplit=1)
