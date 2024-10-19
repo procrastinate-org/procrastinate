@@ -4,7 +4,6 @@ import asyncio
 import functools
 import json
 
-import asgiref.sync
 import attr
 import pytest
 
@@ -101,7 +100,6 @@ async def test_get_sync_connector(aiopg_connector_factory):
 
     aiopg_connector = await aiopg_connector_factory(open=False)
 
-    @asgiref.sync.sync_to_async
     def f():
         sync_conn = aiopg_connector.get_sync_connector()
         sync_conn.open()
@@ -110,7 +108,7 @@ async def test_get_sync_connector(aiopg_connector_factory):
         finally:
             sync_conn.close()
 
-    await f()
+    await asyncio.to_thread(f)
     assert list(result[0].values()) == [1]
 
 
