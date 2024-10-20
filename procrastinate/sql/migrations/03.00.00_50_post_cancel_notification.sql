@@ -45,25 +45,32 @@ DROP FUNCTION IF EXISTS procrastinate_sync_abort_requested_with_status_v1;
 -- We need to drop the default temporarily as otherwise DatatypeMismatch would occur
 ALTER TABLE procrastinate_jobs ALTER COLUMN status DROP DEFAULT;
 
--- Delete the indexes that depends on the old status and enum type
+-- Rename event type enum
+ALTER TYPE procrastinate_job_event_type RENAME TO procrastinate_job_event_type_v1;
+
+-- Delete the indexes that depend on the old status and enum type
 DROP INDEX IF EXISTS procrastinate_jobs_queueing_lock_idx;
 DROP INDEX IF EXISTS procrastinate_jobs_lock_idx;
 DROP INDEX IF EXISTS procrastinate_jobs_id_lock_idx;
 
--- Delete the triggers that depends on the old status type (to recreate them later)
+-- Delete the triggers that depend on the old status type (to recreate them later)
 DROP TRIGGER IF EXISTS procrastinate_trigger_status_events_update ON procrastinate_jobs;
 DROP TRIGGER IF EXISTS procrastinate_trigger_status_events_insert ON procrastinate_jobs;
 DROP TRIGGER IF EXISTS procrastinate_trigger_scheduled_events ON procrastinate_jobs;
 DROP TRIGGER IF EXISTS procrastinate_trigger_status_events_update_temp ON procrastinate_jobs;
 DROP TRIGGER IF EXISTS procrastinate_jobs_notify_queue_job_inserted_temp ON procrastinate_jobs;
 
--- Delete the functions that depends on the old status type
+-- Delete the functions that depend on the old status type
 DROP FUNCTION IF EXISTS procrastinate_fetch_job;
 DROP FUNCTION IF EXISTS procrastinate_finish_job(bigint, procrastinate_job_status, boolean);
 DROP FUNCTION IF EXISTS procrastinate_cancel_job;
 DROP FUNCTION IF EXISTS procrastinate_trigger_status_events_procedure_update_temp;
 DROP FUNCTION IF EXISTS procrastinate_finish_job(integer, procrastinate_job_status, timestamp with time zone, boolean);
 DROP FUNCTION IF EXISTS procrastinate_notify_queue_job_inserted_temp;
+
+-- Delete the functions that depend on the old event type
+DROP FUNCTION IF EXISTS procrastinate_trigger_status_events_procedure_insert;
+DROP FUNCTION IF EXISTS procrastinate_trigger_scheduled_events_procedure;
 
 -- Alter the table to use the new type
 ALTER TABLE procrastinate_jobs
@@ -93,8 +100,16 @@ DROP TYPE procrastinate_job_status;
 
 -- Recreate or rename the triggers & their associated functions
 
-ALTER FUNCTION procrastinate_trigger_status_events_procedure_insert
-    RENAME TO procrastinate_trigger_function_status_events_insert_v1;
+CREATE FUNCTION procrastinate_trigger_function_status_events_insert_v1()
+    RETURNS trigger
+    LANGUAGE plpgsql
+AS $$
+BEGIN
+    INSERT INTO procrastinate_events(job_id, type)
+        VALUES (NEW.id, 'deferred'::procrastinate_job_event_type_v1);
+	RETURN NEW;
+END;
+$$;
 
 CREATE TRIGGER procrastinate_trigger_status_events_insert_v1
     AFTER INSERT ON procrastinate_jobs
@@ -110,26 +125,26 @@ BEGIN
         SELECT CASE
             WHEN OLD.status = 'todo'::procrastinate_job_status_v1
                 AND NEW.status = 'doing'::procrastinate_job_status_v1
-                THEN 'started'::procrastinate_job_event_type
+                THEN 'started'::procrastinate_job_event_type_v1
             WHEN OLD.status = 'doing'::procrastinate_job_status_v1
                 AND NEW.status = 'todo'::procrastinate_job_status_v1
-                THEN 'deferred_for_retry'::procrastinate_job_event_type
+                THEN 'deferred_for_retry'::procrastinate_job_event_type_v1
             WHEN OLD.status = 'doing'::procrastinate_job_status_v1
                 AND NEW.status = 'failed'::procrastinate_job_status_v1
-                THEN 'failed'::procrastinate_job_event_type
+                THEN 'failed'::procrastinate_job_event_type_v1
             WHEN OLD.status = 'doing'::procrastinate_job_status_v1
                 AND NEW.status = 'succeeded'::procrastinate_job_status_v1
-                THEN 'succeeded'::procrastinate_job_event_type
+                THEN 'succeeded'::procrastinate_job_event_type_v1
             WHEN OLD.status = 'todo'::procrastinate_job_status_v1
                 AND (
                     NEW.status = 'cancelled'::procrastinate_job_status_v1
                     OR NEW.status = 'failed'::procrastinate_job_status_v1
                     OR NEW.status = 'succeeded'::procrastinate_job_status_v1
                 )
-                THEN 'cancelled'::procrastinate_job_event_type
+                THEN 'cancelled'::procrastinate_job_event_type_v1
             WHEN OLD.status = 'doing'::procrastinate_job_status_v1
                 AND NEW.status = 'aborted'::procrastinate_job_status_v1
-                THEN 'aborted'::procrastinate_job_event_type
+                THEN 'aborted'::procrastinate_job_event_type_v1
             ELSE NULL
         END as event_type
     )
@@ -146,8 +161,17 @@ CREATE TRIGGER procrastinate_trigger_status_events_update_v1
     FOR EACH ROW
     EXECUTE PROCEDURE procrastinate_trigger_function_status_events_update_v1();
 
-ALTER FUNCTION procrastinate_trigger_scheduled_events_procedure
-    RENAME TO procrastinate_trigger_function_scheduled_events_v1;
+CREATE FUNCTION procrastinate_trigger_function_scheduled_events_v1()
+    RETURNS trigger
+    LANGUAGE plpgsql
+AS $$
+BEGIN
+    INSERT INTO procrastinate_events(job_id, type, at)
+        VALUES (NEW.id, 'scheduled'::procrastinate_job_event_type_v1, NEW.scheduled_at);
+
+	RETURN NEW;
+END;
+$$;
 
 CREATE TRIGGER procrastinate_trigger_scheduled_events_v1
     AFTER UPDATE OR INSERT ON procrastinate_jobs
@@ -181,7 +205,7 @@ CREATE FUNCTION procrastinate_trigger_abort_requested_events_procedure_v1()
 AS $$
 BEGIN
     INSERT INTO procrastinate_events(job_id, type)
-        VALUES (NEW.id, 'abort_requested'::procrastinate_job_event_type);
+        VALUES (NEW.id, 'abort_requested'::procrastinate_job_event_type_v1);
     RETURN NEW;
 END;
 $$;
