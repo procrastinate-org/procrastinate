@@ -50,14 +50,22 @@ CREATE INDEX procrastinate_jobs_id_lock_idx ON procrastinate_jobs (id, lock) WHE
 DROP TYPE procrastinate_job_status;
 
 -- Recreate or rename the triggers & their associated functions
+CREATE FUNCTION procrastinate_trigger_status_events_procedure_insert_v1() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    INSERT INTO procrastinate_events(job_id, type)
+        VALUES (NEW.id, 'deferred'::procrastinate_job_event_type_v1);
+	RETURN NEW;
+END;
+$$;
 
-ALTER FUNCTION procrastinate_trigger_status_events_procedure_insert
-    RENAME TO procrastinate_trigger_function_status_events_insert_v1;
+DROP FUNCTION procrastinate_trigger_status_events_procedure_insert;
 
 CREATE TRIGGER procrastinate_trigger_status_events_insert_v1
     AFTER INSERT ON procrastinate_jobs
     FOR EACH ROW WHEN ((new.status = 'todo'::procrastinate_job_status_v1))
-    EXECUTE PROCEDURE procrastinate_trigger_function_status_events_insert_v1();
+    EXECUTE PROCEDURE procrastinate_trigger_status_events_procedure_insert_v1();
 
 CREATE FUNCTION procrastinate_trigger_function_status_events_update_v1()
     RETURNS trigger
