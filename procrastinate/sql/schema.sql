@@ -73,7 +73,7 @@ CREATE INDEX procrastinate_periodic_defers_job_id_fkey_v1 ON procrastinate_perio
 
 
 -- Functions
-CREATE FUNCTION procrastinate_defer_job(
+CREATE FUNCTION procrastinate_defer_job_v1(
     queue_name character varying,
     task_name character varying,
     priority integer,
@@ -125,7 +125,7 @@ BEGIN
     END IF;
 
     UPDATE procrastinate_periodic_defers
-        SET job_id = procrastinate_defer_job(
+        SET job_id = procrastinate_defer_job_v1(
                 _queue_name,
                 _task_name,
                 _priority,
