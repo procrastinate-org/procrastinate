@@ -316,3 +316,6 @@ ALTER FUNCTION procrastinate_defer_periodic_job(
 ) RENAME TO procrastinate_defer_periodic_job_v1;
 
 ALTER FUNCTION procrastinate_unlink_periodic_defers() RENAME TO procrastinate_unlink_periodic_defers_v1;
+
+-- Rename the triggers & types too
+ALTER TRIGGER procrastinate_trigger_delete_jobs ON procrastinate_jobs RENAME TO procrastinate_trigger_delete_jobs_v1;
