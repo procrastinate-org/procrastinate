@@ -292,3 +292,14 @@ DROP FUNCTION IF EXISTS procrastinate_retry_job(
     character varying,
     character varying
 );
+
+-- Rename the old functions to their new versions with _v1 suffix
+ALTER FUNCTION procrastinate_defer_job(
+    character varying,
+    character varying,
+    integer,
+    text,
+    text,
+    jsonb,
+    timestamp with time zone
+) RENAME TO procrastinate_defer_job_v1;
