@@ -314,3 +314,5 @@ ALTER FUNCTION procrastinate_defer_periodic_job(
     bigint,
     jsonb
 ) RENAME TO procrastinate_defer_periodic_job_v1;
+
+ALTER FUNCTION procrastinate_unlink_periodic_defers() RENAME TO procrastinate_unlink_periodic_defers_v1;
