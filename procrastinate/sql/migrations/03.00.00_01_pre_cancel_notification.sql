@@ -303,3 +303,14 @@ ALTER FUNCTION procrastinate_defer_job(
     jsonb,
     timestamp with time zone
 ) RENAME TO procrastinate_defer_job_v1;
+
+ALTER FUNCTION procrastinate_defer_periodic_job(
+    character varying,
+    character varying,
+    character varying,
+    character varying,
+    integer,
+    character varying,
+    bigint,
+    jsonb
+) RENAME TO procrastinate_defer_periodic_job_v1;
