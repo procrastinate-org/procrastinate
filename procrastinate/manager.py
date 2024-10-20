@@ -9,7 +9,7 @@ from procrastinate import connector, exceptions, jobs, sql, utils
 
 logger = logging.getLogger(__name__)
 
-QUEUEING_LOCK_CONSTRAINT = "procrastinate_jobs_queueing_lock_idx"
+QUEUEING_LOCK_CONSTRAINT = "procrastinate_jobs_queueing_lock_idx_v1"
 
 
 class NotificationCallback(Protocol):
