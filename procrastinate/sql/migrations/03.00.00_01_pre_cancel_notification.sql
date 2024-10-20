@@ -255,3 +255,40 @@ BEGIN
     END IF;
 END;
 $$;
+
+-- These are old versions of functions, that we needed to keep around for
+-- backwards compatibility. We can now safely drop them.
+DROP FUNCTION IF EXISTS procrastinate_finish_job(
+    integer,
+    procrastinate_job_status,
+    timestamp with time zone,
+    boolean
+);
+DROP FUNCTION IF EXISTS procrastinate_defer_job(
+    character varying,
+    character varying,
+    text,
+    text,
+    jsonb,
+    timestamp with time zone
+);
+DROP FUNCTION IF EXISTS procrastinate_defer_periodic_job(
+    character varying,
+    character varying,
+    character varying,
+    character varying,
+    character varying,
+    bigint,
+    jsonb
+);
+DROP FUNCTION IF EXISTS procrastinate_retry_job(
+    bigint,
+    timestamp with time zone
+);
+DROP FUNCTION IF EXISTS procrastinate_retry_job(
+    bigint,
+    timestamp with time zone,
+    integer,
+    character varying,
+    character varying
+);
