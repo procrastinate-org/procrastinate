@@ -396,7 +396,7 @@ async def test_defer_job_violate_queueing_lock(pg_job_manager, job_factory):
         )
     cause = excinfo.value.__cause__
     assert isinstance(cause, exceptions.UniqueViolation)
-    assert cause.constraint_name == "procrastinate_jobs_queueing_lock_idx"
+    assert cause.constraint_name == "procrastinate_jobs_queueing_lock_idx_v1"
 
 
 async def test_check_connection(pg_job_manager):

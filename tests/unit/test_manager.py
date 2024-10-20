@@ -62,7 +62,7 @@ async def test_manager_defer_job_unique_violation_exception(
 ):
     connector.execute_query_one_async = mocker.Mock(
         side_effect=exceptions.UniqueViolation(
-            constraint_name="procrastinate_jobs_queueing_lock_idx"
+            constraint_name="procrastinate_jobs_queueing_lock_idx_v1"
         )
     )
 
@@ -86,7 +86,7 @@ async def test_manager_defer_job_unique_violation_exception_sync(
 ):
     connector.execute_query_one = mocker.Mock(
         side_effect=exceptions.UniqueViolation(
-            constraint_name="procrastinate_jobs_queueing_lock_idx"
+            constraint_name="procrastinate_jobs_queueing_lock_idx_v1"
         )
     )
 

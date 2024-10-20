@@ -78,10 +78,15 @@ USING (
 -- Recreate the default
 ALTER TABLE procrastinate_jobs ALTER COLUMN status SET DEFAULT 'todo'::procrastinate_job_status_v1;
 
--- Recreate the indexes
-CREATE UNIQUE INDEX procrastinate_jobs_queueing_lock_idx ON procrastinate_jobs (queueing_lock) WHERE status = 'todo';
-CREATE UNIQUE INDEX procrastinate_jobs_lock_idx ON procrastinate_jobs (lock) WHERE status = 'doing';
-CREATE INDEX procrastinate_jobs_id_lock_idx ON procrastinate_jobs (id, lock) WHERE status = ANY (ARRAY['todo'::procrastinate_job_status_v1, 'doing'::procrastinate_job_status_v1]);
+-- Recreate the dropped indexes (with version suffix)
+CREATE UNIQUE INDEX procrastinate_jobs_queueing_lock_idx_v1 ON procrastinate_jobs (queueing_lock) WHERE status = 'todo';
+CREATE UNIQUE INDEX procrastinate_jobs_lock_idx_v1 ON procrastinate_jobs (lock) WHERE status = 'doing';
+CREATE INDEX procrastinate_jobs_id_lock_idx_v1 ON procrastinate_jobs (id, lock) WHERE status = ANY (ARRAY['todo'::procrastinate_job_status_v1, 'doing'::procrastinate_job_status_v1]);
+
+-- Rename existing indexes
+ALTER INDEX procrastinate_jobs_queue_name_idx RENAME TO procrastinate_jobs_queue_name_idx_v1;
+ALTER INDEX procrastinate_events_job_id_fkey  RENAME TO procrastinate_events_job_id_fkey_v1;
+ALTER INDEX procrastinate_periodic_defers_job_id_fkey RENAME TO procrastinate_periodic_defers_job_id_fkey_v1;
 
 -- Drop the old type
 DROP TYPE procrastinate_job_status;
