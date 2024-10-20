@@ -216,7 +216,7 @@ CREATE TRIGGER procrastinate_jobs_notify_queue_job_aborted_v1
 
 ALTER FUNCTION procrastinate_defer_job RENAME TO procrastinate_defer_job_v1;
 DROP FUNCTION IF EXISTS procrastinate_defer_periodic_job;
-CREATE FUNCTION procrastinate_defer_periodic_job(
+CREATE FUNCTION procrastinate_defer_periodic_job_v1(
     _queue_name character varying,
     _lock character varying,
     _queueing_lock character varying,

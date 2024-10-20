@@ -96,7 +96,7 @@ BEGIN
 END;
 $$;
 
-CREATE FUNCTION procrastinate_defer_periodic_job(
+CREATE FUNCTION procrastinate_defer_periodic_job_v1(
     _queue_name character varying,
     _lock character varying,
     _queueing_lock character varying,
