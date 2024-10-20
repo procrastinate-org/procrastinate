@@ -13,7 +13,7 @@ CREATE TYPE procrastinate_job_status_v1 AS ENUM (
     'aborted'  -- The job was aborted
 );
 
-CREATE TYPE procrastinate_job_event_type AS ENUM (
+CREATE TYPE procrastinate_job_event_type_v1 AS ENUM (
     'deferred',  -- Job created, in todo
     'started',  -- todo -> doing
     'deferred_for_retry',  -- doing -> todo
@@ -53,23 +53,23 @@ CREATE TABLE procrastinate_periodic_defers (
 CREATE TABLE procrastinate_events (
     id bigserial PRIMARY KEY,
     job_id bigint NOT NULL REFERENCES procrastinate_jobs ON DELETE CASCADE,
-    type procrastinate_job_event_type,
+    type procrastinate_job_event_type_v1,
     at timestamp with time zone DEFAULT NOW() NULL
 );
 
 -- Constraints & Indices
 
 -- this prevents from having several jobs with the same queueing lock in the "todo" state
-CREATE UNIQUE INDEX procrastinate_jobs_queueing_lock_idx ON procrastinate_jobs (queueing_lock) WHERE status = 'todo';
+CREATE UNIQUE INDEX procrastinate_jobs_queueing_lock_idx_v1 ON procrastinate_jobs (queueing_lock) WHERE status = 'todo';
 -- this prevents from having several jobs with the same lock in the "doing" state
-CREATE UNIQUE INDEX procrastinate_jobs_lock_idx ON procrastinate_jobs (lock) WHERE status = 'doing';
+CREATE UNIQUE INDEX procrastinate_jobs_lock_idx_v1 ON procrastinate_jobs (lock) WHERE status = 'doing';
 
-CREATE INDEX procrastinate_jobs_queue_name_idx ON procrastinate_jobs(queue_name);
-CREATE INDEX procrastinate_jobs_id_lock_idx ON procrastinate_jobs (id, lock) WHERE status = ANY (ARRAY['todo'::procrastinate_job_status_v1, 'doing'::procrastinate_job_status_v1]);
+CREATE INDEX procrastinate_jobs_queue_name_idx_v1 ON procrastinate_jobs(queue_name);
+CREATE INDEX procrastinate_jobs_id_lock_idx_v1 ON procrastinate_jobs (id, lock) WHERE status = ANY (ARRAY['todo'::procrastinate_job_status_v1, 'doing'::procrastinate_job_status_v1]);
 
-CREATE INDEX procrastinate_events_job_id_fkey ON procrastinate_events(job_id);
+CREATE INDEX procrastinate_events_job_id_fkey_v1 ON procrastinate_events(job_id);
 
-CREATE INDEX procrastinate_periodic_defers_job_id_fkey ON procrastinate_periodic_defers(job_id);
+CREATE INDEX procrastinate_periodic_defers_job_id_fkey_v1 ON procrastinate_periodic_defers(job_id);
 
 
 -- Functions
@@ -327,7 +327,7 @@ CREATE FUNCTION procrastinate_trigger_function_status_events_insert_v1()
 AS $$
 BEGIN
     INSERT INTO procrastinate_events(job_id, type)
-        VALUES (NEW.id, 'deferred'::procrastinate_job_event_type);
+        VALUES (NEW.id, 'deferred'::procrastinate_job_event_type_v1);
 	RETURN NEW;
 END;
 $$;
@@ -341,26 +341,26 @@ BEGIN
         SELECT CASE
             WHEN OLD.status = 'todo'::procrastinate_job_status_v1
                 AND NEW.status = 'doing'::procrastinate_job_status_v1
-                THEN 'started'::procrastinate_job_event_type
+                THEN 'started'::procrastinate_job_event_type_v1
             WHEN OLD.status = 'doing'::procrastinate_job_status_v1
                 AND NEW.status = 'todo'::procrastinate_job_status_v1
-                THEN 'deferred_for_retry'::procrastinate_job_event_type
+                THEN 'deferred_for_retry'::procrastinate_job_event_type_v1
             WHEN OLD.status = 'doing'::procrastinate_job_status_v1
                 AND NEW.status = 'failed'::procrastinate_job_status_v1
-                THEN 'failed'::procrastinate_job_event_type
+                THEN 'failed'::procrastinate_job_event_type_v1
             WHEN OLD.status = 'doing'::procrastinate_job_status_v1
                 AND NEW.status = 'succeeded'::procrastinate_job_status_v1
-                THEN 'succeeded'::procrastinate_job_event_type
+                THEN 'succeeded'::procrastinate_job_event_type_v1
             WHEN OLD.status = 'todo'::procrastinate_job_status_v1
                 AND (
                     NEW.status = 'cancelled'::procrastinate_job_status_v1
                     OR NEW.status = 'failed'::procrastinate_job_status_v1
                     OR NEW.status = 'succeeded'::procrastinate_job_status_v1
                 )
-                THEN 'cancelled'::procrastinate_job_event_type
+                THEN 'cancelled'::procrastinate_job_event_type_v1
             WHEN OLD.status = 'doing'::procrastinate_job_status_v1
                 AND NEW.status = 'aborted'::procrastinate_job_status_v1
-                THEN 'aborted'::procrastinate_job_event_type
+                THEN 'aborted'::procrastinate_job_event_type_v1
             ELSE NULL
         END as event_type
     )
@@ -378,7 +378,7 @@ CREATE FUNCTION procrastinate_trigger_function_scheduled_events_v1()
 AS $$
 BEGIN
     INSERT INTO procrastinate_events(job_id, type, at)
-        VALUES (NEW.id, 'scheduled'::procrastinate_job_event_type, NEW.scheduled_at);
+        VALUES (NEW.id, 'scheduled'::procrastinate_job_event_type_v1, NEW.scheduled_at);
 
 	RETURN NEW;
 END;
@@ -390,7 +390,7 @@ CREATE FUNCTION procrastinate_trigger_abort_requested_events_procedure_v1()
 AS $$
 BEGIN
     INSERT INTO procrastinate_events(job_id, type)
-        VALUES (NEW.id, 'abort_requested'::procrastinate_job_event_type);
+        VALUES (NEW.id, 'abort_requested'::procrastinate_job_event_type_v1);
     RETURN NEW;
 END;
 $$;
@@ -439,6 +439,6 @@ CREATE TRIGGER procrastinate_trigger_abort_requested_events_v1
     FOR EACH ROW WHEN ((new.abort_requested = true))
     EXECUTE PROCEDURE procrastinate_trigger_abort_requested_events_procedure_v1();
 
-CREATE TRIGGER procrastinate_trigger_delete_jobs
+CREATE TRIGGER procrastinate_trigger_delete_jobs_v1
     BEFORE DELETE ON procrastinate_jobs
     FOR EACH ROW EXECUTE PROCEDURE procrastinate_unlink_periodic_defers();
