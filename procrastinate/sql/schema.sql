@@ -395,7 +395,7 @@ BEGIN
 END;
 $$;
 
-CREATE FUNCTION procrastinate_unlink_periodic_defers()
+CREATE FUNCTION procrastinate_unlink_periodic_defers_v1()
     RETURNS trigger
     LANGUAGE plpgsql
 AS $$
@@ -439,6 +439,6 @@ CREATE TRIGGER procrastinate_trigger_abort_requested_events_v1
     FOR EACH ROW WHEN ((new.abort_requested = true))
     EXECUTE PROCEDURE procrastinate_trigger_abort_requested_events_procedure_v1();
 
-CREATE TRIGGER procrastinate_trigger_delete_jobs
+CREATE TRIGGER procrastinate_trigger_delete_jobs_v1
     BEFORE DELETE ON procrastinate_jobs
-    FOR EACH ROW EXECUTE PROCEDURE procrastinate_unlink_periodic_defers();
+    FOR EACH ROW EXECUTE PROCEDURE procrastinate_unlink_periodic_defers_v1();

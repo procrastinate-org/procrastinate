@@ -273,3 +273,6 @@ BEGIN
     RETURN _job_id;
 END;
 $$;
+
+ALTER FUNCTION procrastinate_unlink_periodic_defers RENAME TO procrastinate_unlink_periodic_defers_v1;
+ALTER TRIGGER procrastinate_trigger_delete_jobs ON procrastinate_jobs RENAME TO procrastinate_trigger_delete_jobs_v1;
