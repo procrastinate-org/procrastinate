@@ -19,9 +19,6 @@ CREATE TYPE procrastinate_job_status_v1 AS ENUM (
     'aborted'
 );
 
--- Set abort requested flag on all jobs with 'aborting' status
-UPDATE procrastinate_jobs SET abort_requested = true WHERE status = 'aborting';
-
 -- Add temporary triggers to sync the abort_requested flag with the status
 -- so that blue-green deployments can work
 CREATE OR REPLACE FUNCTION procrastinate_sync_abort_requested_with_status_v1()
@@ -42,6 +39,10 @@ CREATE TRIGGER procrastinate_trigger_sync_abort_requested_with_status_v1
     BEFORE UPDATE OF status ON procrastinate_jobs
     FOR EACH ROW
     EXECUTE FUNCTION procrastinate_sync_abort_requested_with_status_v1();
+
+-- Set abort requested flag on all jobs with 'aborting' status
+UPDATE procrastinate_jobs SET abort_requested = true WHERE status = 'aborting';
+
 
 DROP TRIGGER IF EXISTS procrastinate_trigger_status_events_update ON procrastinate_jobs;
 DROP FUNCTION IF EXISTS procrastinate_trigger_status_events_procedure_update;
