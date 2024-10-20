@@ -68,26 +68,26 @@ BEGIN
         SELECT CASE
             WHEN OLD.status = 'todo'::procrastinate_job_status_v1
                 AND NEW.status = 'doing'::procrastinate_job_status_v1
-                THEN 'started'::procrastinate_job_event_type
+                THEN 'started'::procrastinate_job_event_type_v1
             WHEN OLD.status = 'doing'::procrastinate_job_status_v1
                 AND NEW.status = 'todo'::procrastinate_job_status_v1
-                THEN 'deferred_for_retry'::procrastinate_job_event_type
+                THEN 'deferred_for_retry'::procrastinate_job_event_type_v1
             WHEN OLD.status = 'doing'::procrastinate_job_status_v1
                 AND NEW.status = 'failed'::procrastinate_job_status_v1
-                THEN 'failed'::procrastinate_job_event_type
+                THEN 'failed'::procrastinate_job_event_type_v1
             WHEN OLD.status = 'doing'::procrastinate_job_status_v1
                 AND NEW.status = 'succeeded'::procrastinate_job_status_v1
-                THEN 'succeeded'::procrastinate_job_event_type
+                THEN 'succeeded'::procrastinate_job_event_type_v1
             WHEN OLD.status = 'todo'::procrastinate_job_status_v1
                 AND (
                     NEW.status = 'cancelled'::procrastinate_job_status_v1
                     OR NEW.status = 'failed'::procrastinate_job_status_v1
                     OR NEW.status = 'succeeded'::procrastinate_job_status_v1
                 )
-                THEN 'cancelled'::procrastinate_job_event_type
+                THEN 'cancelled'::procrastinate_job_event_type_v1
             WHEN OLD.status = 'doing'::procrastinate_job_status_v1
                 AND NEW.status = 'aborted'::procrastinate_job_status_v1
-                THEN 'aborted'::procrastinate_job_event_type
+                THEN 'aborted'::procrastinate_job_event_type_v1
             ELSE NULL
         END as event_type
     )
@@ -139,7 +139,7 @@ CREATE FUNCTION procrastinate_trigger_abort_requested_events_procedure_v1()
 AS $$
 BEGIN
     INSERT INTO procrastinate_events(job_id, type)
-        VALUES (NEW.id, 'abort_requested'::procrastinate_job_event_type);
+        VALUES (NEW.id, 'abort_requested'::procrastinate_job_event_type_v1);
     RETURN NEW;
 END;
 $$;
