@@ -114,7 +114,6 @@ addopts = [
     "-vv",
     "--strict-markers",
     "-rfE",
-    "--reuse-db",
 ]
 testpaths = [
     "tests/unit",
