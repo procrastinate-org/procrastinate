@@ -319,3 +319,4 @@ ALTER FUNCTION procrastinate_unlink_periodic_defers() RENAME TO procrastinate_un
 
 -- Rename the triggers & types too
 ALTER TRIGGER procrastinate_trigger_delete_jobs ON procrastinate_jobs RENAME TO procrastinate_trigger_delete_jobs_v1;
+ALTER TYPE procrastinate_job_event_type RENAME TO procrastinate_job_event_type_v1;
