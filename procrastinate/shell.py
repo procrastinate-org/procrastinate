@@ -37,9 +37,6 @@ class ProcrastinateShell(cmd.Cmd):
         super().__init__()
         self.job_manager = job_manager
 
-    def async_to_sync(self, coro: Any, **kwargs) -> Any:
-        return asyncio.run(coro(**kwargs))
-
     def onecmd(self, line):
         try:
             return super().onecmd(line)
@@ -68,8 +65,12 @@ class ProcrastinateShell(cmd.Cmd):
         details = kwargs.pop("details", None) is not None
         if "id" in kwargs:
             kwargs["id"] = int(kwargs["id"])
-        for job in self.async_to_sync(self.job_manager.list_jobs_async, **kwargs):
-            print_job(job, details=details)
+
+        async def do_list_jobs_async():
+            for job in await self.job_manager.list_jobs_async(**kwargs):
+                print_job(job, details=details)
+
+        asyncio.run(do_list_jobs_async())
 
     def do_list_queues(self, arg: str) -> None:
         """
@@ -82,16 +83,20 @@ class ProcrastinateShell(cmd.Cmd):
         Example: list_queues task=sums status=failed
         """
         kwargs = parse_argument(arg)
-        for queue in self.async_to_sync(self.job_manager.list_queues_async, **kwargs):
-            print(
-                f"{queue['name']}: {queue['jobs_count']} jobs ("
-                f"todo: {queue['todo']}, "
-                f"doing: {queue['doing']}, "
-                f"succeeded: {queue['succeeded']}, "
-                f"failed: {queue['failed']}, "
-                f"cancelled: {queue['cancelled']}, "
-                f"aborted: {queue['aborted']})"
-            )
+
+        async def do_list_queues_async():
+            for queue in await self.job_manager.list_queues_async(**kwargs):
+                print(
+                    f"{queue['name']}: {queue['jobs_count']} jobs ("
+                    f"todo: {queue['todo']}, "
+                    f"doing: {queue['doing']}, "
+                    f"succeeded: {queue['succeeded']}, "
+                    f"failed: {queue['failed']}, "
+                    f"cancelled: {queue['cancelled']}, "
+                    f"aborted: {queue['aborted']})"
+                )
+
+        asyncio.run(do_list_queues_async())
 
     def do_list_tasks(self, arg: str) -> None:
         """
@@ -104,16 +109,20 @@ class ProcrastinateShell(cmd.Cmd):
         Example: list_tasks queue=default status=failed
         """
         kwargs = parse_argument(arg)
-        for task in self.async_to_sync(self.job_manager.list_tasks_async, **kwargs):
-            print(
-                f"{task['name']}: {task['jobs_count']} jobs ("
-                f"todo: {task['todo']}, "
-                f"doing: {task['doing']}, "
-                f"succeeded: {task['succeeded']}, "
-                f"failed: {task['failed']}, "
-                f"cancelled: {task['cancelled']}, "
-                f"aborted: {task['aborted']})"
-            )
+
+        async def do_list_tasks_async():
+            for task in await self.job_manager.list_tasks_async(**kwargs):
+                print(
+                    f"{task['name']}: {task['jobs_count']} jobs ("
+                    f"todo: {task['todo']}, "
+                    f"doing: {task['doing']}, "
+                    f"succeeded: {task['succeeded']}, "
+                    f"failed: {task['failed']}, "
+                    f"cancelled: {task['cancelled']}, "
+                    f"aborted: {task['aborted']})"
+                )
+
+        asyncio.run(do_list_tasks_async())
 
     def do_list_locks(self, arg: str) -> None:
         """
@@ -126,16 +135,20 @@ class ProcrastinateShell(cmd.Cmd):
         Example: list_locks queue=default status=todo
         """
         kwargs = parse_argument(arg)
-        for lock in self.async_to_sync(self.job_manager.list_locks_async, **kwargs):
-            print(
-                f"{lock['name']}: {lock['jobs_count']} jobs ("
-                f"todo: {lock['todo']}, "
-                f"doing: {lock['doing']}, "
-                f"succeeded: {lock['succeeded']}, "
-                f"failed: {lock['failed']}, "
-                f"cancelled: {lock['cancelled']}, "
-                f"aborted: {lock['aborted']})"
-            )
+
+        async def do_list_locks_async():
+            for lock in await self.job_manager.list_locks_async(**kwargs):
+                print(
+                    f"{lock['name']}: {lock['jobs_count']} jobs ("
+                    f"todo: {lock['todo']}, "
+                    f"doing: {lock['doing']}, "
+                    f"succeeded: {lock['succeeded']}, "
+                    f"failed: {lock['failed']}, "
+                    f"cancelled: {lock['cancelled']}, "
+                    f"aborted: {lock['aborted']})"
+                )
+
+        asyncio.run(do_list_locks_async())
 
     def do_retry(self, arg: str) -> None:
         """
@@ -147,14 +160,15 @@ class ProcrastinateShell(cmd.Cmd):
         Example: retry 2
         """
         job_id = int(arg)
-        self.async_to_sync(
-            self.job_manager.retry_job_by_id_async,
-            job_id=job_id,
-            retry_at=utils.utcnow().replace(microsecond=0),
-        )
 
-        (job,) = self.async_to_sync(self.job_manager.list_jobs_async, id=job_id)
-        print_job(job)
+        async def do_retry_async():
+            await self.job_manager.retry_job_by_id_async(
+                job_id=job_id, retry_at=utils.utcnow().replace(microsecond=0)
+            )
+            (job,) = await self.job_manager.list_jobs_async(id=job_id)
+            print_job(job)
+
+        asyncio.run(do_retry_async())
 
     def do_cancel(self, arg: str) -> None:
         """
@@ -168,5 +182,8 @@ class ProcrastinateShell(cmd.Cmd):
         job_id = int(arg)
         self.job_manager.cancel_job_by_id(job_id=job_id)
 
-        (job,) = self.async_to_sync(self.job_manager.list_jobs_async, id=job_id)
-        print_job(job)
+        async def do_cancel_async():
+            (job,) = await self.job_manager.list_jobs_async(id=job_id)
+            print_job(job)
+
+        asyncio.run(do_cancel_async())
