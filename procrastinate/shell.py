@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import cmd
 import traceback
 from typing import Any
@@ -37,7 +38,7 @@ class ProcrastinateShell(cmd.Cmd):
         self.job_manager = job_manager
 
     def async_to_sync(self, coro: Any, **kwargs) -> Any:
-        return utils.async_to_sync(coro, **kwargs)
+        return asyncio.run(coro(**kwargs))
 
     def onecmd(self, line):
         try:

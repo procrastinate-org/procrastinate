@@ -92,26 +92,6 @@ def caller_module_name(prefix: str = "procrastinate") -> str:
         raise exceptions.CallerModuleUnknown from exc
 
 
-def async_to_sync(awaitable: Callable[..., Awaitable[T]], *args, **kwargs) -> T:
-    """
-    Given a callable returning an awaitable, call the callable, await it
-    synchronously. Returns the result after it's done.
-    """
-
-    async def wrapper() -> T:
-        return await awaitable(*args, **kwargs)
-
-    return asyncio.run(wrapper())
-
-
-async def sync_to_async(func: Callable[..., T], *args, **kwargs) -> T:
-    """
-    Given a callable, return a callable that will call the original one in an
-    async context.
-    """
-    return await asyncio.to_thread(func, *args, **kwargs)
-
-
 def causes(exc: BaseException | None):
     """
     From a single exception with a chain of causes and contexts, make an iterable
