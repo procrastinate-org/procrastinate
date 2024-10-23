@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import cmd
 import traceback
 from typing import Any
@@ -36,9 +37,6 @@ class ProcrastinateShell(cmd.Cmd):
         super().__init__()
         self.job_manager = job_manager
 
-    def async_to_sync(self, coro: Any, **kwargs) -> Any:
-        return utils.async_to_sync(coro, **kwargs)
-
     def onecmd(self, line):
         try:
             return super().onecmd(line)
@@ -63,11 +61,15 @@ class ProcrastinateShell(cmd.Cmd):
 
         Example: list_jobs queue=default task=sums status=failed details
         """
+        asyncio.run(self.do_list_jobs_async(arg))
+
+    async def do_list_jobs_async(self, arg: str):
         kwargs: dict[str, Any] = parse_argument(arg)
         details = kwargs.pop("details", None) is not None
         if "id" in kwargs:
             kwargs["id"] = int(kwargs["id"])
-        for job in self.async_to_sync(self.job_manager.list_jobs_async, **kwargs):
+
+        for job in await self.job_manager.list_jobs_async(**kwargs):
             print_job(job, details=details)
 
     def do_list_queues(self, arg: str) -> None:
@@ -80,8 +82,11 @@ class ProcrastinateShell(cmd.Cmd):
 
         Example: list_queues task=sums status=failed
         """
+        asyncio.run(self.do_list_queues_async(arg))
+
+    async def do_list_queues_async(self, arg: str):
         kwargs = parse_argument(arg)
-        for queue in self.async_to_sync(self.job_manager.list_queues_async, **kwargs):
+        for queue in await self.job_manager.list_queues_async(**kwargs):
             print(
                 f"{queue['name']}: {queue['jobs_count']} jobs ("
                 f"todo: {queue['todo']}, "
@@ -102,8 +107,11 @@ class ProcrastinateShell(cmd.Cmd):
 
         Example: list_tasks queue=default status=failed
         """
+        asyncio.run(self.do_list_tasks_async(arg))
+
+    async def do_list_tasks_async(self, arg: str):
         kwargs = parse_argument(arg)
-        for task in self.async_to_sync(self.job_manager.list_tasks_async, **kwargs):
+        for task in await self.job_manager.list_tasks_async(**kwargs):
             print(
                 f"{task['name']}: {task['jobs_count']} jobs ("
                 f"todo: {task['todo']}, "
@@ -124,8 +132,11 @@ class ProcrastinateShell(cmd.Cmd):
 
         Example: list_locks queue=default status=todo
         """
+        asyncio.run(self.do_list_locks_async(arg))
+
+    async def do_list_locks_async(self, arg: str):
         kwargs = parse_argument(arg)
-        for lock in self.async_to_sync(self.job_manager.list_locks_async, **kwargs):
+        for lock in await self.job_manager.list_locks_async(**kwargs):
             print(
                 f"{lock['name']}: {lock['jobs_count']} jobs ("
                 f"todo: {lock['todo']}, "
@@ -145,14 +156,14 @@ class ProcrastinateShell(cmd.Cmd):
 
         Example: retry 2
         """
-        job_id = int(arg)
-        self.async_to_sync(
-            self.job_manager.retry_job_by_id_async,
-            job_id=job_id,
-            retry_at=utils.utcnow().replace(microsecond=0),
-        )
+        asyncio.run(self.do_retry_async(arg))
 
-        (job,) = self.async_to_sync(self.job_manager.list_jobs_async, id=job_id)
+    async def do_retry_async(self, arg: str):
+        job_id = int(arg)
+        await self.job_manager.retry_job_by_id_async(
+            job_id=job_id, retry_at=utils.utcnow().replace(microsecond=0)
+        )
+        (job,) = await self.job_manager.list_jobs_async(id=job_id)
         print_job(job)
 
     def do_cancel(self, arg: str) -> None:
@@ -164,8 +175,10 @@ class ProcrastinateShell(cmd.Cmd):
 
         Example: cancel 3
         """
-        job_id = int(arg)
-        self.job_manager.cancel_job_by_id(job_id=job_id)
+        asyncio.run(self.do_cancel_async(arg))
 
-        (job,) = self.async_to_sync(self.job_manager.list_jobs_async, id=job_id)
+    async def do_cancel_async(self, arg: str):
+        job_id = int(arg)
+        await self.job_manager.cancel_job_by_id_async(job_id=job_id)
+        (job,) = await self.job_manager.list_jobs_async(id=job_id)
         print_job(job)
