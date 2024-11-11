@@ -659,4 +659,6 @@ async def shell_(app: procrastinate.App, shell_command: list[str]):
 
 
 def main():
+    if os.name == "nt":
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
     asyncio.run(cli(sys.argv[1:]))

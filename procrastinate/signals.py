@@ -3,10 +3,10 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import logging
+import os
 import signal
 import threading
 from typing import Any, Callable
-
 logger = logging.getLogger(__name__)
 
 # A few things about signals and asyncio:
@@ -25,6 +25,13 @@ logger = logging.getLogger(__name__)
 
 @contextlib.contextmanager
 def on_stop(callback: Callable[[], None]):
+    if os.name == "nt":
+        logger.warning(
+            "Skipping signal handling, does not work on Windows",
+            extra={"action": "skip_signal_handlers"},
+        )
+        yield
+        return
     if threading.current_thread() is not threading.main_thread():
         logger.warning(
             "Skipping signal handling, because this is not the main thread",
