@@ -1,7 +1,7 @@
 # Running on Windows
 
-Procrastinate has been tested and is known to work on Windows. However, there are
-a few things to keep in mind:
+Procrastinate has been manually tested and is known to work on Windows. However,
+there are a few things to keep in mind:
 
 -  Due to the way signals are implemented on Windows (in short, they are not fully supported),
   the worker will not be able to gracefully stop when receiving a `SIGINT` or `SIGTERM` signal
