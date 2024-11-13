@@ -1,6 +1,6 @@
 # Django integration
 
-While we tries our best for Procrastinate to be easily integrated into diverse
+While we try our best for Procrastinate to be easily integrated into diverse
 kinds of applications, Django is special enough and widely used enough to have a
 special integration.
 
