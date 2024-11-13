@@ -11,5 +11,9 @@ there are a few things to keep in mind:
 - We do not use windows for running Procrastinate in production, so we may not
   be aware of all the issues that may arise.
 
+- There are no automated tests in place for windows, so it's possible you encounter
+  bugs. If you know what needs to be fixed, we accept
+  [pull requests](https://github.com/procrastinate-org/procrastinate/pulls).
+  Thank you!
 Given these limitations, we strongly advise using a Unix-like system for running Procrastinate
 in production. Windows should primarily be used for development purposes only.
