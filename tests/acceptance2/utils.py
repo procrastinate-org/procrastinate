@@ -23,12 +23,12 @@ class InterruptedSubprocess(SubprocessException):
 async def subprocess(
     *args: str | pathlib.Path, env: dict[str, str] | None = None
 ) -> tuple[str, str]:
-    env = env or {}
+    env_kwargs = {"env": env} if env else {}
     process = await asyncio.create_subprocess_exec(
         *args,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
-        env=env,
+        **env_kwargs,
     )
     task = asyncio.create_task(process.communicate())
     try:

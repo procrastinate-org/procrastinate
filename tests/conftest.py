@@ -50,30 +50,22 @@ def db_execute():
     return db_executor
 
 
-@pytest.fixture
-def db_create():
-    def _(dbname, template=None):
-        with db_executor("postgres") as execute:
-            execute("DROP DATABASE IF EXISTS {}", dbname)
-            if template:
-                execute("CREATE DATABASE {} TEMPLATE {}", dbname, template)
-            else:
-                execute("CREATE DATABASE {}", dbname)
-
-    return _
+def db_create(dbname, template=None):
+    with db_executor("postgres") as execute:
+        execute("DROP DATABASE IF EXISTS {}", dbname)
+        if template:
+            execute("CREATE DATABASE {} TEMPLATE {}", dbname, template)
+        else:
+            execute("CREATE DATABASE {}", dbname)
 
 
-@pytest.fixture
-def db_drop():
-    def _(dbname):
-        with db_executor("postgres") as execute:
-            execute("DROP DATABASE IF EXISTS {}", dbname)
-
-    return _
+def db_drop(dbname):
+    with db_executor("postgres") as execute:
+        execute("DROP DATABASE IF EXISTS {}", dbname)
 
 
 @pytest.fixture
-def db_factory(db_create, db_drop):
+def db_factory():
     dbs_to_drop = []
 
     def _(dbname, template=None):
@@ -87,7 +79,7 @@ def db_factory(db_create, db_drop):
 
 
 @pytest.fixture(scope="session")
-def setup_db(db_create, db_drop):
+def setup_db():
     dbname = "procrastinate_test_template"
     db_create(dbname=dbname)
     connector = testing.InMemoryConnector()

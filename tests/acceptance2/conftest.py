@@ -11,29 +11,34 @@ import psycopg
 import pytest
 from typing_extensions import LiteralString
 
+from .. import conftest as parent_conftest
 from . import utils
 
 
 @pytest.fixture
-def db(db_create, db_drop):
+def db():
     dbs_to_drop = []
 
     async def db_factory(dbname, template=None):
-        db_create(dbname=dbname, template=template)
+        parent_conftest.db_create(dbname=dbname, template=template)
         dbs_to_drop.append(dbname)
 
     yield db_factory
 
     for dbname in dbs_to_drop:
-        db_drop(dbname=dbname)
+        parent_conftest.db_drop(dbname=dbname)
 
 
-async def venv(*packages, location: pathlib.Path) -> dict[str, str]:
+async def venv(
+    package, location: pathlib.Path, extras: list[str] | None = None
+) -> dict[str, str]:
+    if extras:
+        package = f"{package}[{','.join(extras)}]"
     await utils.subprocess("python3", "-m", "venv", location)
     await utils.subprocess(
         location / "bin/pip",
         "install",
-        *packages,
+        package,
         env={"POETRY_DYNAMIC_VERSIONING_BYPASS": "0.0.0"},
     )
     return {"PATH": str(location / "bin")}
@@ -88,6 +93,7 @@ async def prepare_acceptance_test(db, monkeypatch, tmp_path, latest_tag):
         lib_version: Literal["current", "stable"],
         additional_env: dict[str, str] | None = None,
         operations,
+        extras: list[str] | None = None,
     ):
         # Setup the database
         db_name = "procrastinate_test"
@@ -122,7 +128,7 @@ async def prepare_acceptance_test(db, monkeypatch, tmp_path, latest_tag):
             package = "procrastinate"
         else:
             package = pathlib.Path(__file__).parents[2]
-        venv_envvars = await venv(package, location=tmp_path / "venv")
+        venv_envvars = await venv(package, location=tmp_path / "venv", extras=extras)
         env = merge_env(env, venv_envvars)
 
         # Configure the CLI calls

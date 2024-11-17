@@ -215,6 +215,29 @@ BEGIN
 END;
 $$;
 
+CREATE FUNCTION procrastinate_defer_job_v1(
+    queue_name character varying,
+    task_name character varying,
+    priority integer,
+    lock text,
+    queueing_lock text,
+    args jsonb,
+    scheduled_at timestamp with time zone
+)
+    RETURNS bigint
+    LANGUAGE plpgsql
+AS $$
+DECLARE
+	job_id bigint;
+BEGIN
+    INSERT INTO procrastinate_jobs (queue_name, task_name, priority, lock, queueing_lock, args, scheduled_at)
+    VALUES (queue_name, task_name, priority, lock, queueing_lock, args, scheduled_at)
+    RETURNING id INTO job_id;
+
+    RETURN job_id;
+END;
+$$;
+
 -- The retry_job function now has specific behaviour when a job is set to be
 -- retried while it's aborting: in that case it's marked as failed.
 CREATE FUNCTION procrastinate_retry_job_v1(

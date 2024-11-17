@@ -24,7 +24,7 @@ async def operations(cli, logs_path: pathlib.Path):
     await cli("defer", "app.t1", '{"a": 1}')
     # launch worker
     try:
-        await asyncio.wait_for(cli("worker"), timeout=0.5)
+        await asyncio.wait_for(cli("worker"), timeout=1)
     except utils.InterruptedSubprocess as exc:
         assert exc.exit_code == 0
         logs_worker = exc.stderr
@@ -38,26 +38,28 @@ async def operations(cli, logs_path: pathlib.Path):
 
 
 @pytest.mark.parametrize(
-    "include_post_migrations, lib_version, env",
+    "include_post_migrations, lib_version, env, extras",
     [
-        (True, "current", {}),
-        (False, "current", {}),
-        (False, "stable", {}),
+        (True, "current", {}, None),
+        (False, "current", {}, None),
+        (False, "stable", {}, None),
         (
             True,
             "current",
             {"TEST_CONNECTOR": "procrastinate.contrib.aiopg.AiopgConnector"},
+            ["aiopg"],
         ),
     ],
 )
 async def test_scenario(
-    prepare_acceptance_test, include_post_migrations, lib_version, env
+    prepare_acceptance_test, include_post_migrations, lib_version, env, extras
 ):
     run = await prepare_acceptance_test(
         include_post_migrations=include_post_migrations,
         lib_version=lib_version,
         additional_env=env,
         operations=operations,
+        extras=extras,
     )
 
     await run()
