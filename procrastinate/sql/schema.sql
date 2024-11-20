@@ -157,43 +157,47 @@ BEGIN
 END;
 $$;
 
-CREATE FUNCTION procrastinate_fetch_job(
-    target_queue_names character varying[]
-)
-    RETURNS procrastinate_jobs
-    LANGUAGE plpgsql
+CREATE OR REPLACE FUNCTION procrastinate_fetch_job(target_queue_names character varying[])
+ RETURNS procrastinate_jobs
+ LANGUAGE plpgsql
 AS $$
 DECLARE
-	found_jobs procrastinate_jobs;
+    found_jobs procrastinate_jobs;
 BEGIN
-    WITH candidate AS (
-        SELECT jobs.*
+    BEGIN
+        WITH candidate AS (
+            SELECT jobs.*
             FROM procrastinate_jobs AS jobs
             WHERE
-                -- reject the job if its lock has earlier jobs
-                NOT EXISTS (
+                (jobs.lock IS NULL OR
+                NOT EXISTS ( -- reject the job if its lock has current jobs
                     SELECT 1
-                        FROM procrastinate_jobs AS earlier_jobs
-                        WHERE
-                            jobs.lock IS NOT NULL
-                            AND earlier_jobs.lock = jobs.lock
-                            AND earlier_jobs.status IN ('todo', 'doing', 'aborting')
-                            AND earlier_jobs.id < jobs.id)
+                    FROM procrastinate_jobs AS jobs_with_locks
+                    WHERE
+                        jobs.lock IS NOT NULL
+                        AND jobs_with_locks.lock = jobs.lock
+                        AND jobs_with_locks.status = 'doing'
+                        LIMIT 1
+                ))
                 AND jobs.status = 'todo'
-                AND (target_queue_names IS NULL OR jobs.queue_name = ANY( target_queue_names ))
+                AND (target_queue_names IS NULL OR jobs.queue_name = ANY(target_queue_names))
                 AND (jobs.scheduled_at IS NULL OR jobs.scheduled_at <= now())
             ORDER BY jobs.priority DESC, jobs.id ASC LIMIT 1
             FOR UPDATE OF jobs SKIP LOCKED
-    )
-    UPDATE procrastinate_jobs
+        )
+        UPDATE procrastinate_jobs
         SET status = 'doing'
         FROM candidate
         WHERE procrastinate_jobs.id = candidate.id
         RETURNING procrastinate_jobs.* INTO found_jobs;
-
-	RETURN found_jobs;
+        RETURN found_jobs;
+    EXCEPTION
+        WHEN unique_violation THEN
+            RETURN NULL; -- Return empty result on conflict
+    END;
 END;
 $$;
+
 
 -- procrastinate_finish_job
 -- the next_scheduled_at argument is kept for compatibility reasons, it is to be
