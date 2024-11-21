@@ -86,7 +86,7 @@ async def latest_tag() -> packaging.version.Version:
 
 
 @pytest.fixture
-async def prepare_acceptance_test(db, monkeypatch, tmp_path, latest_tag):
+async def prepare_acceptance_test(db, monkeypatch, tmp_path, latest_tag, subtests):
     async def _(
         *,
         include_post_migrations: bool,
@@ -135,7 +135,12 @@ async def prepare_acceptance_test(db, monkeypatch, tmp_path, latest_tag):
         cli = functools.partial(procrastinate_cli, env=env)
 
         # Configure the test operations
-        return functools.partial(operations, cli=cli, logs_path=log_path)
+        return functools.partial(
+            operations,
+            cli=cli,
+            logs_path=log_path,
+            subtests=subtests,
+        )
 
     return _
 

@@ -19,6 +19,7 @@ class Settings:
     CONNECTOR: str = "procrastinate.PsycopgConnector"
     CONNECTOR_ARGS: str = "{}"
     DESTINATION: str = str(pathlib.Path(__file__).parent)
+    ADD_PERIODIC: str = "false"
 
     @classmethod
     def from_env(cls, prefix: str = "TEST_") -> Settings:
@@ -83,3 +84,12 @@ async def t4(a: int):
 async def sleep(a: float):
     log("t5", a)
     await asyncio.sleep(a)
+
+
+if settings.ADD_PERIODIC.lower()[0] in ["y", "t", "1"]:
+
+    @app.periodic(cron="* * * * * *")
+    @app.task
+    async def periodic(timestamp: int, a: float):
+        log("periodic", timestamp)
+        await asyncio.sleep(a)

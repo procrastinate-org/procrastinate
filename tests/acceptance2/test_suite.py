@@ -20,7 +20,48 @@ import pytest
 from . import utils
 
 
-async def operations(cli, logs_path: pathlib.Path):
+async def operations(cli, logs_path: pathlib.Path, subtests):
+    with subtests.test(msg="subtest_simple_defer_and_execute"):
+        await subtest_simple_defer_and_execute(cli, logs_path)
+
+    # Periodic: add a periodic task, launch a worker, check that the task is
+    # executed
+    # with subtests.test(msg="periodic"):
+    #     # TODO : put it in its own function
+    #     # Actually assert something
+    #     cli("worker", env={"TEST_ADD_PERIODIC": "1"})
+
+    # Defer 2 tasks without workers with the same queueing lock, and check the
+    # 2nd one can't be deferred
+
+    # Defer 1 "long" task & 1 "short" task with the same lock, and check that
+    # the long task is executed first even with concurrency=2
+
+    # Defer 20 jobs and launch a worker with concurrency=20 and check that all
+    # jobs are executed in parallel
+
+    # Call the shell and check that it works on listing jobs
+
+    # Also implement as acceptance test:
+    # test the 3 apis for deferring a job
+    # cancel_job_by_id_async (with /out delete)(async job cancels gracefully)
+    # concurrency
+    # fetch_job_polling_interval
+    # shutdown_timeout
+    # Traceback in logs
+    # periodic
+
+    # Maybe better as integration tests:
+    # queuing lock
+    # locks
+    # shell list
+    # Priority
+
+
+async def subtest_simple_defer_and_execute(cli, logs_path: pathlib.Path):
+    # Defer a task, launch a worker, interrupt the worker, check that the task
+    # was run
+
     await cli("defer", "app.t1", '{"a": 1}')
     # launch worker
     try:

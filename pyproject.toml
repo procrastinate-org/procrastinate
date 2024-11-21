@@ -87,6 +87,7 @@ pytest-asyncio = "*"
 pytest-cov = "*"
 pytest-django = "*"
 pytest-mock = "*"
+pytest-subtests = "*"
 migra = "*"
 # migra depends on schemainspect, which has an implicit dependency on setuptools
 # (pkg_resources).
