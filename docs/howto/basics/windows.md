@@ -15,5 +15,6 @@ there are a few things to keep in mind:
   bugs. If you know what needs to be fixed, we accept
   [pull requests](https://github.com/procrastinate-org/procrastinate/pulls).
   Thank you!
+
 Given these limitations, we strongly advise using a Unix-like system for running Procrastinate
 in production. Windows should primarily be used for development purposes only.
