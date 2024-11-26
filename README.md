@@ -9,7 +9,7 @@
 | procrastinate/app.py                                              |       94 |        0 |        2 |        0 |    100% |           |
 | procrastinate/blueprints.py                                       |       68 |        0 |       14 |        0 |    100% |           |
 | procrastinate/builtin\_tasks.py                                   |        7 |        0 |        0 |        0 |    100% |           |
-| procrastinate/cli.py                                              |      218 |        3 |       32 |        2 |     98% |49, 136, 140 |
+| procrastinate/cli.py                                              |      220 |        4 |       34 |        3 |     97% |49, 136, 140, 663 |
 | procrastinate/connector.py                                        |       42 |        0 |        0 |        0 |    100% |           |
 | procrastinate/contrib/\_\_init\_\_.py                             |        0 |        0 |        0 |        0 |    100% |           |
 | procrastinate/contrib/aiopg/\_\_init\_\_.py                       |        3 |        0 |        0 |        0 |    100% |           |
@@ -21,7 +21,7 @@
 | procrastinate/contrib/django/healthchecks.py                      |       32 |        0 |        2 |        0 |    100% |           |
 | procrastinate/contrib/django/management/\_\_init\_\_.py           |        0 |        0 |        0 |        0 |    100% |           |
 | procrastinate/contrib/django/management/commands/\_\_init\_\_.py  |        0 |        0 |        0 |        0 |    100% |           |
-| procrastinate/contrib/django/management/commands/procrastinate.py |       20 |        0 |        2 |        1 |     95% |    30->34 |
+| procrastinate/contrib/django/management/commands/procrastinate.py |       23 |        1 |        4 |        2 |     89% |29, 34->38 |
 | procrastinate/contrib/django/migrations\_utils.py                 |       12 |        0 |        0 |        0 |    100% |           |
 | procrastinate/contrib/django/models.py                            |       68 |        3 |        6 |        1 |     95% |33, 106, 134 |
 | procrastinate/contrib/django/procrastinate\_app.py                |       21 |        1 |        2 |        0 |     96% |        58 |
@@ -42,7 +42,7 @@
 | procrastinate/retry.py                                            |       65 |        0 |       18 |        0 |    100% |           |
 | procrastinate/schema.py                                           |       25 |        0 |        0 |        0 |    100% |           |
 | procrastinate/shell.py                                            |       61 |        3 |       12 |        0 |     96% |     45-47 |
-| procrastinate/signals.py                                          |       44 |        0 |        8 |        0 |    100% |           |
+| procrastinate/signals.py                                          |       49 |        3 |       10 |        1 |     93% |     30-35 |
 | procrastinate/sql/\_\_init\_\_.py                                 |       21 |        0 |        0 |        0 |    100% |           |
 | procrastinate/sql/migrations/\_\_init\_\_.py                      |        0 |        0 |        0 |        0 |    100% |           |
 | procrastinate/sync\_psycopg\_connector.py                         |       81 |        2 |       14 |        2 |     96% |  143, 168 |
@@ -51,7 +51,7 @@
 | procrastinate/types.py                                            |       13 |        0 |        0 |        0 |    100% |           |
 | procrastinate/utils.py                                            |      190 |        0 |       40 |        0 |    100% |           |
 | procrastinate/worker.py                                           |      184 |        0 |       38 |        0 |    100% |           |
-|                                                         **TOTAL** | **2558** |   **27** |  **396** |   **12** | **99%** |           |
+|                                                         **TOTAL** | **2568** |   **32** |  **402** |   **15** | **98%** |           |
 
 
 ## Setup coverage badge
