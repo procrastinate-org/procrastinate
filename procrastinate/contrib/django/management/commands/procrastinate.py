@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import os
 
 from django.core.management.base import BaseCommand
 
@@ -24,6 +25,9 @@ class Command(BaseCommand):
     suppressed_base_arguments = {"-v", "--version"}
 
     def handle(self, *args, **kwargs):
+        if os.name == "nt":
+            asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
         kwargs = {k: v for k, v in kwargs.items() if k not in self._django_options}
         context = contextlib.nullcontext()
 
