@@ -4,7 +4,8 @@ import asyncio
 import contextlib
 import functools
 import logging
-from typing import TYPE_CHECKING, Any, Iterable, Iterator
+from collections.abc import Iterable, Iterator
+from typing import TYPE_CHECKING, Any
 
 from procrastinate import blueprints, exceptions, jobs, manager, schema, utils
 from procrastinate import connector as connector_module

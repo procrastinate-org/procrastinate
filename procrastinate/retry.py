@@ -7,7 +7,8 @@ from __future__ import annotations
 
 import datetime
 import warnings
-from typing import Iterable, Union, overload
+from collections.abc import Iterable
+from typing import Union, overload
 
 import attr
 

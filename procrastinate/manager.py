@@ -3,7 +3,8 @@ from __future__ import annotations
 import asyncio
 import datetime
 import logging
-from typing import Any, Iterable, NoReturn
+from collections.abc import Iterable
+from typing import Any, NoReturn
 
 from procrastinate import connector, exceptions, jobs, sql, utils
 

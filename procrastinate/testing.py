@@ -3,13 +3,14 @@ from __future__ import annotations
 import asyncio
 import datetime
 from collections import Counter
+from collections.abc import Iterable
 from itertools import count
-from typing import Any, Dict, Iterable
+from typing import Any
 
 from procrastinate import connector, exceptions, schema, sql, types, utils
 
-JobRow = Dict[str, Any]
-EventRow = Dict[str, Any]
+JobRow = dict[str, Any]
+EventRow = dict[str, Any]
 
 
 class InMemoryConnector(connector.BaseAsyncConnector):

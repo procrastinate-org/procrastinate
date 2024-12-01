@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import contextlib
 import logging
-from typing import Any, Callable, Generator, Iterator
+from collections.abc import Generator, Iterator
+from typing import Any, Callable
 
 import psycopg
 import psycopg.rows
