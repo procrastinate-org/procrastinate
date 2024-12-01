@@ -98,7 +98,7 @@ async def test_worker_run_wait_listen(worker):
     await start_worker(worker)
     connector = cast(InMemoryConnector, worker.app.connector)
 
-    assert connector.notify_channels == ["procrastinate_any_queue"]
+    assert connector.notify_channels == ["procrastinate_any_queue_v1"]
 
 
 @pytest.mark.parametrize(

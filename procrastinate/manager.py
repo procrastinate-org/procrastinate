@@ -10,7 +10,11 @@ from procrastinate import connector, exceptions, jobs, sql, utils
 
 logger = logging.getLogger(__name__)
 
-QUEUEING_LOCK_CONSTRAINT = "procrastinate_jobs_queueing_lock_idx"
+QUEUEING_LOCK_CONSTRAINT = "procrastinate_jobs_queueing_lock_idx_v1"
+
+# TODO: Only necessary to make it work with the pre-migration of v3.0.0.
+# We can remove this in the next minor version.
+QUEUEING_LOCK_CONSTRAINT_LEGACY = "procrastinate_jobs_queueing_lock_idx"
 
 
 class NotificationCallback(Protocol):
@@ -21,9 +25,9 @@ class NotificationCallback(Protocol):
 
 def get_channel_for_queues(queues: Iterable[str] | None = None) -> Iterable[str]:
     if queues is None:
-        return ["procrastinate_any_queue"]
+        return ["procrastinate_any_queue_v1"]
     else:
-        return ["procrastinate_queue#" + queue for queue in queues]
+        return ["procrastinate_queue_v1#" + queue for queue in queues]
 
 
 class JobManager:
@@ -82,7 +86,10 @@ class JobManager:
     def _raise_already_enqueued(
         self, exc: exceptions.UniqueViolation, queueing_lock: str | None
     ) -> NoReturn:
-        if exc.constraint_name == QUEUEING_LOCK_CONSTRAINT:
+        if exc.constraint_name in [
+            QUEUEING_LOCK_CONSTRAINT,
+            QUEUEING_LOCK_CONSTRAINT_LEGACY,
+        ]:
             raise exceptions.AlreadyEnqueued(
                 "Job cannot be enqueued: there is already a job in the queue "
                 f"with the queueing lock {queueing_lock}"

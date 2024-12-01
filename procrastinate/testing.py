@@ -187,8 +187,8 @@ class InMemoryConnector(connector.BaseAsyncConnector):
             return
 
         destination_channels = {
-            "procrastinate_any_queue",
-            f"procrastinate_queue#{queue_name}",
+            "procrastinate_any_queue_v1",
+            f"procrastinate_queue_v1#{queue_name}",
         }
 
         for channel in set(self.notify_channels).intersection(destination_channels):

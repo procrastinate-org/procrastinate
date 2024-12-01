@@ -1,79 +1,38 @@
--- Procrastinate Schema
+-- Note: starting with v3, there are 2 changes in the migration system:
+-- - We now have pre- and post-migration scripts. pre-migrations are safe to
+--   apply before upgrading the code. post-migrations are safe to apply after
+--   upgrading he code.
+--   This is a pre-migration script.
+-- - Whenever we recreate an immutable object (function, trigger, indexes), we
+--   will suffix its name with a version number.
 
-CREATE EXTENSION IF NOT EXISTS plpgsql WITH SCHEMA pg_catalog;
+-- Add an 'abort_requested' column to the procrastinate_jobs table
+ALTER TABLE procrastinate_jobs ADD COLUMN abort_requested boolean DEFAULT false NOT NULL;
 
--- Enums
+-- Set abort requested flag on all jobs with 'aborting' status
+UPDATE procrastinate_jobs SET abort_requested = true WHERE status = 'aborting';
 
-CREATE TYPE procrastinate_job_status AS ENUM (
-    'todo',  -- The job is queued
-    'doing',  -- The job has been fetched by a worker
-    'succeeded',  -- The job ended successfully
-    'failed',  -- The job ended with an error
-    'cancelled', -- The job was cancelled
-    'aborting',  -- legacy, not used anymore since v3.0.0
-    'aborted'  -- The job was aborted
-);
+-- Add temporary triggers to sync the abort_requested flag with the status
+-- so that blue-green deployments can work
+CREATE OR REPLACE FUNCTION procrastinate_sync_abort_requested_with_status_temp()
+    RETURNS trigger
+    LANGUAGE plpgsql
+AS $$
+BEGIN
+    IF NEW.status = 'aborting' THEN
+        NEW.abort_requested = true;
+    END IF;
+    RETURN NEW;
+END;
+$$;
 
-CREATE TYPE procrastinate_job_event_type AS ENUM (
-    'deferred',  -- Job created, in todo
-    'started',  -- todo -> doing
-    'deferred_for_retry',  -- doing -> todo
-    'failed',  -- doing -> failed
-    'succeeded',  -- doing -> succeeded
-    'cancelled', -- todo -> cancelled
-    'abort_requested', -- not a state transition, but set in a separate field
-    'aborted', -- doing -> aborted (only allowed when abort_requested field is set)
-    'scheduled' -- not a state transition, but recording when a task is scheduled for
-);
+CREATE TRIGGER procrastinate_trigger_sync_abort_requested_with_status_temp
+    BEFORE UPDATE OF status ON procrastinate_jobs
+    FOR EACH ROW
+    EXECUTE FUNCTION procrastinate_sync_abort_requested_with_status_temp();
 
--- Tables
+-- Create the new versioned functions
 
-CREATE TABLE procrastinate_jobs (
-    id bigserial PRIMARY KEY,
-    queue_name character varying(128) NOT NULL,
-    task_name character varying(128) NOT NULL,
-    priority integer DEFAULT 0 NOT NULL,
-    lock text,
-    queueing_lock text,
-    args jsonb DEFAULT '{}' NOT NULL,
-    status procrastinate_job_status DEFAULT 'todo'::procrastinate_job_status NOT NULL,
-    scheduled_at timestamp with time zone NULL,
-    attempts integer DEFAULT 0 NOT NULL,
-    abort_requested boolean DEFAULT false NOT NULL
-);
-
-CREATE TABLE procrastinate_periodic_defers (
-    id bigserial PRIMARY KEY,
-    task_name character varying(128) NOT NULL,
-    defer_timestamp bigint,
-    job_id bigint REFERENCES procrastinate_jobs(id) NULL,
-    periodic_id character varying(128) NOT NULL DEFAULT '',
-    CONSTRAINT procrastinate_periodic_defers_unique UNIQUE (task_name, periodic_id, defer_timestamp)
-);
-
-CREATE TABLE procrastinate_events (
-    id bigserial PRIMARY KEY,
-    job_id bigint NOT NULL REFERENCES procrastinate_jobs ON DELETE CASCADE,
-    type procrastinate_job_event_type,
-    at timestamp with time zone DEFAULT NOW() NULL
-);
-
--- Constraints & Indices
-
--- this prevents from having several jobs with the same queueing lock in the "todo" state
-CREATE UNIQUE INDEX procrastinate_jobs_queueing_lock_idx_v1 ON procrastinate_jobs (queueing_lock) WHERE status = 'todo';
--- this prevents from having several jobs with the same lock in the "doing" state
-CREATE UNIQUE INDEX procrastinate_jobs_lock_idx_v1 ON procrastinate_jobs (lock) WHERE status = 'doing';
-
-CREATE INDEX procrastinate_jobs_queue_name_idx_v1 ON procrastinate_jobs(queue_name);
-CREATE INDEX procrastinate_jobs_id_lock_idx_v1 ON procrastinate_jobs (id, lock) WHERE status = ANY (ARRAY['todo'::procrastinate_job_status, 'doing'::procrastinate_job_status]);
-
-CREATE INDEX procrastinate_events_job_id_fkey_v1 ON procrastinate_events(job_id);
-
-CREATE INDEX procrastinate_periodic_defers_job_id_fkey_v1 ON procrastinate_periodic_defers(job_id);
-
-
--- Functions
 CREATE FUNCTION procrastinate_defer_job_v1(
     queue_name character varying,
     task_name character varying,
@@ -255,6 +214,8 @@ BEGIN
 END;
 $$;
 
+-- The retry_job function now has specific behaviour when a job is set to be
+-- retried while it's aborting: in that case it's marked as failed.
 CREATE FUNCTION procrastinate_retry_job_v1(
     job_id bigint,
     retry_at timestamp with time zone,
@@ -293,6 +254,8 @@ BEGIN
 END;
 $$;
 
+-- Create new versioned trigger functions and triggers
+
 CREATE FUNCTION procrastinate_notify_queue_job_inserted_v1()
     RETURNS trigger
     LANGUAGE plpgsql
@@ -306,6 +269,11 @@ BEGIN
 	RETURN NEW;
 END;
 $$;
+
+CREATE TRIGGER procrastinate_jobs_notify_queue_job_inserted_temp
+    AFTER INSERT ON procrastinate_jobs
+    FOR EACH ROW WHEN ((new.status = 'todo'::procrastinate_job_status))
+    EXECUTE PROCEDURE procrastinate_notify_queue_job_inserted_v1();
 
 CREATE FUNCTION procrastinate_notify_queue_abort_job_v1()
 RETURNS trigger
@@ -321,124 +289,7 @@ BEGIN
 END;
 $$;
 
-CREATE FUNCTION procrastinate_trigger_function_status_events_insert_v1()
-    RETURNS trigger
-    LANGUAGE plpgsql
-AS $$
-BEGIN
-    INSERT INTO procrastinate_events(job_id, type)
-        VALUES (NEW.id, 'deferred'::procrastinate_job_event_type);
-	RETURN NEW;
-END;
-$$;
-
-CREATE FUNCTION procrastinate_trigger_function_status_events_update_v1()
-    RETURNS trigger
-    LANGUAGE plpgsql
-AS $$
-BEGIN
-    WITH t AS (
-        SELECT CASE
-            WHEN OLD.status = 'todo'::procrastinate_job_status
-                AND NEW.status = 'doing'::procrastinate_job_status
-                THEN 'started'::procrastinate_job_event_type
-            WHEN OLD.status = 'doing'::procrastinate_job_status
-                AND NEW.status = 'todo'::procrastinate_job_status
-                THEN 'deferred_for_retry'::procrastinate_job_event_type
-            WHEN OLD.status = 'doing'::procrastinate_job_status
-                AND NEW.status = 'failed'::procrastinate_job_status
-                THEN 'failed'::procrastinate_job_event_type
-            WHEN OLD.status = 'doing'::procrastinate_job_status
-                AND NEW.status = 'succeeded'::procrastinate_job_status
-                THEN 'succeeded'::procrastinate_job_event_type
-            WHEN OLD.status = 'todo'::procrastinate_job_status
-                AND (
-                    NEW.status = 'cancelled'::procrastinate_job_status
-                    OR NEW.status = 'failed'::procrastinate_job_status
-                    OR NEW.status = 'succeeded'::procrastinate_job_status
-                )
-                THEN 'cancelled'::procrastinate_job_event_type
-            WHEN OLD.status = 'doing'::procrastinate_job_status
-                AND NEW.status = 'aborted'::procrastinate_job_status
-                THEN 'aborted'::procrastinate_job_event_type
-            ELSE NULL
-        END as event_type
-    )
-    INSERT INTO procrastinate_events(job_id, type)
-        SELECT NEW.id, t.event_type
-        FROM t
-        WHERE t.event_type IS NOT NULL;
-	RETURN NEW;
-END;
-$$;
-
-CREATE FUNCTION procrastinate_trigger_function_scheduled_events_v1()
-    RETURNS trigger
-    LANGUAGE plpgsql
-AS $$
-BEGIN
-    INSERT INTO procrastinate_events(job_id, type, at)
-        VALUES (NEW.id, 'scheduled'::procrastinate_job_event_type, NEW.scheduled_at);
-
-	RETURN NEW;
-END;
-$$;
-
-CREATE FUNCTION procrastinate_trigger_abort_requested_events_procedure_v1()
-    RETURNS trigger
-    LANGUAGE plpgsql
-AS $$
-BEGIN
-    INSERT INTO procrastinate_events(job_id, type)
-        VALUES (NEW.id, 'abort_requested'::procrastinate_job_event_type);
-    RETURN NEW;
-END;
-$$;
-
-CREATE FUNCTION procrastinate_unlink_periodic_defers_v1()
-    RETURNS trigger
-    LANGUAGE plpgsql
-AS $$
-BEGIN
-    UPDATE procrastinate_periodic_defers
-    SET job_id = NULL
-    WHERE job_id = OLD.id;
-    RETURN OLD;
-END;
-$$;
-
--- Triggers
-
-CREATE TRIGGER procrastinate_jobs_notify_queue_job_inserted_v1
-    AFTER INSERT ON procrastinate_jobs
-    FOR EACH ROW WHEN ((new.status = 'todo'::procrastinate_job_status))
-    EXECUTE PROCEDURE procrastinate_notify_queue_job_inserted_v1();
-
-CREATE TRIGGER procrastinate_jobs_notify_queue_job_aborted_v1
+CREATE TRIGGER procrastinate_jobs_notify_queue_job_aborted_temp
     AFTER UPDATE OF abort_requested ON procrastinate_jobs
     FOR EACH ROW WHEN ((old.abort_requested = false AND new.abort_requested = true AND new.status = 'doing'::procrastinate_job_status))
     EXECUTE PROCEDURE procrastinate_notify_queue_abort_job_v1();
-
-CREATE TRIGGER procrastinate_trigger_status_events_update_v1
-    AFTER UPDATE OF status ON procrastinate_jobs
-    FOR EACH ROW
-    EXECUTE PROCEDURE procrastinate_trigger_function_status_events_update_v1();
-
-CREATE TRIGGER procrastinate_trigger_status_events_insert_v1
-    AFTER INSERT ON procrastinate_jobs
-    FOR EACH ROW WHEN ((new.status = 'todo'::procrastinate_job_status))
-    EXECUTE PROCEDURE procrastinate_trigger_function_status_events_insert_v1();
-
-CREATE TRIGGER procrastinate_trigger_scheduled_events_v1
-    AFTER UPDATE OR INSERT ON procrastinate_jobs
-    FOR EACH ROW WHEN ((new.scheduled_at IS NOT NULL AND new.status = 'todo'::procrastinate_job_status))
-    EXECUTE PROCEDURE procrastinate_trigger_function_scheduled_events_v1();
-
-CREATE TRIGGER procrastinate_trigger_abort_requested_events_v1
-    AFTER UPDATE OF abort_requested ON procrastinate_jobs
-    FOR EACH ROW WHEN ((new.abort_requested = true))
-    EXECUTE PROCEDURE procrastinate_trigger_abort_requested_events_procedure_v1();
-
-CREATE TRIGGER procrastinate_trigger_delete_jobs_v1
-    BEFORE DELETE ON procrastinate_jobs
-    FOR EACH ROW EXECUTE PROCEDURE procrastinate_unlink_periodic_defers_v1();

@@ -62,7 +62,7 @@ async def test_manager_defer_job_unique_violation_exception(
 ):
     connector.execute_query_one_async = mocker.Mock(
         side_effect=exceptions.UniqueViolation(
-            constraint_name="procrastinate_jobs_queueing_lock_idx"
+            constraint_name="procrastinate_jobs_queueing_lock_idx_v1"
         )
     )
 
@@ -86,7 +86,7 @@ async def test_manager_defer_job_unique_violation_exception_sync(
 ):
     connector.execute_query_one = mocker.Mock(
         side_effect=exceptions.UniqueViolation(
-            constraint_name="procrastinate_jobs_queueing_lock_idx"
+            constraint_name="procrastinate_jobs_queueing_lock_idx_v1"
         )
     )
 
@@ -295,8 +295,8 @@ async def test_retry_job(job_manager, job_factory, connector):
 @pytest.mark.parametrize(
     "queues, channels",
     [
-        (None, ["procrastinate_any_queue"]),
-        (["a", "b"], ["procrastinate_queue#a", "procrastinate_queue#b"]),
+        (None, ["procrastinate_any_queue_v1"]),
+        (["a", "b"], ["procrastinate_queue_v1#a", "procrastinate_queue_v1#b"]),
     ],
 )
 async def test_listen_for_jobs(job_manager, connector, mocker, queues, channels):
