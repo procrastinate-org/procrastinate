@@ -1,19 +1,10 @@
 from __future__ import annotations
 
+import importlib.resources as importlib_resources
 import pathlib
-import sys
-from typing import TYPE_CHECKING, cast
+from typing import cast
 
 from typing_extensions import LiteralString
-
-if TYPE_CHECKING:
-    import importlib_resources
-else:
-    # https://github.com/pypa/twine/pull/551
-    if sys.version_info[:2] < (3, 9):  # coverage: exclude
-        import importlib_resources
-    else:  # coverage: exclude
-        import importlib.resources as importlib_resources
 
 from procrastinate import connector as connector_module
 

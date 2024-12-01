@@ -3,7 +3,8 @@ from __future__ import annotations
 import asyncio
 import functools
 import logging
-from typing import Any, AsyncGenerator, Callable, Coroutine, Iterable
+from collections.abc import AsyncGenerator, Coroutine, Iterable
+from typing import Any, Callable
 
 import aiopg
 import psycopg2
