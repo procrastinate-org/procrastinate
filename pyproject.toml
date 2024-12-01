@@ -106,16 +106,7 @@ enable = true
 pattern = '(?P<base>\d+(\.\d+)*)([-._]?((?P<stage>[a-zA-Z]+)[-._]?(?P<revision>\d+)?))?$'
 
 [tool.pytest.ini_options]
-addopts = [
-    "--cov-report=term-missing",
-    "--cov-report=html",
-    "--cov-branch",
-    "--cov=procrastinate",
-    "-vv",
-    "--strict-markers",
-    "-rfE",
-    "--reuse-db",
-]
+addopts = ["-vv", "--strict-markers", "-rfE", "--reuse-db"]
 testpaths = [
     "tests/unit",
     "tests/integration",

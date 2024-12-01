@@ -49,7 +49,7 @@ jobs:
       - run: poetry install --all-extras
 
       - name: Run tests
-        run: scripts/tests
+        run: scripts/tests --cov=procrastinate --cov-branch
         env:
           COVERAGE_FILE: ".coverage.${{ matrix.python-version }}"
           PGHOST: localhost
