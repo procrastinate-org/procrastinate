@@ -23,7 +23,7 @@ documentation = "https://procrastinate.readthedocs.io/"
 procrastinate = 'procrastinate.cli:main'
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = "^3.9"
 aiopg = { version = "*", optional = true }
 anyio = "*"
 asgiref = "*"
@@ -31,12 +31,10 @@ attrs = "*"
 contextlib2 = { version = "*", python = "<3.10" }
 croniter = "*"
 django = { version = ">=2.2", optional = true }
-importlib-resources = { version = ">=1.4", python = "<3.9" }
 psycopg = { extras = ["pool"], version = "*" }
 psycopg2-binary = { version = "*", optional = true }
 python-dateutil = "*"
 sqlalchemy = { version = "^2.0", optional = true }
-typing-extensions = { version = "*", python = "<3.8" }
 sphinx = { version = "*", optional = true }
 
 [tool.poetry.extras]
@@ -79,7 +77,7 @@ psycopg = [
 [tool.poetry.group.django.dependencies]
 django = [
     { version = "4.2.*", python = "<3.10" },
-    { version = "*", python = "^3.10" },
+    { version = "*", python = ">=3.10" },
 ]
 
 [tool.poetry.group.test.dependencies]

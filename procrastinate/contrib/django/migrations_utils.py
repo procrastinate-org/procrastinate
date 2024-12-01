@@ -1,15 +1,9 @@
 from __future__ import annotations
 
 import functools
-from typing import TYPE_CHECKING
+import importlib.resources as importlib_resources
 
 from django.db import migrations
-
-if TYPE_CHECKING:
-    import importlib_resources
-else:
-    # https://github.com/pypa/twine/pull/551
-    import importlib.resources as importlib_resources
 
 
 @functools.cache
