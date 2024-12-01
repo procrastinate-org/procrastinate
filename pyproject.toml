@@ -150,6 +150,7 @@ exclude_lines = [
 exclude = ["tests", ".venv"]
 
 [tool.ruff]
+target-version = "py39"
 extend-exclude = [".venv"]
 
 [tool.ruff.lint]
