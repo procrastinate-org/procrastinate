@@ -50,7 +50,7 @@ class FutureApp(blueprints.Blueprint):
         ]
     )
     for method in _shadowed_methods:
-        locals()[method] = functools.partial(_not_ready, method)
+        locals()[method] = staticmethod(functools.partial(_not_ready, method))
 
 
 class ProxyApp:

@@ -125,6 +125,7 @@ filterwarnings = """
     ignore:unclosed.+:ResourceWarning
 """
 asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
 DJANGO_SETTINGS_MODULE = "tests.acceptance.django_settings"
 
 
