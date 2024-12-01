@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+import pathlib
+
 import pytest
-from sphinx.testing.path import path
 
 
 @pytest.fixture
 def rootdir():
-    return path(__file__).parent
+    return pathlib.Path(__file__).parent
 
 
 @pytest.fixture

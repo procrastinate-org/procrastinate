@@ -3,13 +3,14 @@ from __future__ import annotations
 import datetime
 import json
 from collections import Counter
+from collections.abc import Iterable
 from itertools import count
-from typing import Any, Dict, Iterable
+from typing import Any
 
 from procrastinate import connector, exceptions, jobs, schema, sql, types, utils
 
-JobRow = Dict[str, Any]
-EventRow = Dict[str, Any]
+JobRow = dict[str, Any]
+EventRow = dict[str, Any]
 
 
 class InMemoryConnector(connector.BaseAsyncConnector):
@@ -186,8 +187,8 @@ class InMemoryConnector(connector.BaseAsyncConnector):
             return
 
         destination_channels = {
-            "procrastinate_any_queue",
-            f"procrastinate_queue#{queue_name}",
+            "procrastinate_any_queue_v1",
+            f"procrastinate_queue_v1#{queue_name}",
         }
 
         for channel in set(self.notify_channels).intersection(destination_channels):

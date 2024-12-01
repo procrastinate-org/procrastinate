@@ -396,7 +396,13 @@ async def test_defer_job_violate_queueing_lock(pg_job_manager, job_factory):
         )
     cause = excinfo.value.__cause__
     assert isinstance(cause, exceptions.UniqueViolation)
-    assert cause.constraint_name == "procrastinate_jobs_queueing_lock_idx"
+
+    # TODO: When QUEUEING_LOCK_CONSTRAINT_LEGACY in manager.py is removed, we can
+    # also remove the check for the old constraint name "procrastinate_jobs_queueing_lock_idx"
+    assert cause.constraint_name in [
+        "procrastinate_jobs_queueing_lock_idx",
+        "procrastinate_jobs_queueing_lock_idx_v1",
+    ]
 
 
 async def test_check_connection(pg_job_manager):

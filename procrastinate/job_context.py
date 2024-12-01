@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import time
+from collections.abc import Iterable
 from enum import Enum
-from typing import Any, Callable, Iterable
+from typing import Any, Callable
 
 import attr
 

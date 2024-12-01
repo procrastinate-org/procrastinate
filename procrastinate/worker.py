@@ -6,7 +6,8 @@ import functools
 import inspect
 import logging
 import time
-from typing import Any, Awaitable, Callable, Iterable
+from collections.abc import Awaitable, Iterable
+from typing import Any, Callable
 
 from procrastinate import (
     app,
