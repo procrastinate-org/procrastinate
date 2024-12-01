@@ -3,7 +3,7 @@ from __future__ import annotations
 import signal
 import subprocess
 import time
-from typing import Protocol, Tuple, cast
+from typing import Protocol, cast
 
 import pytest
 
@@ -211,7 +211,7 @@ def test_periodic_deferrer(worker: Worker):
 
     # We're making a dict from the output
     results = dict(
-        cast(Tuple[int, int], (int(a) for a in e[5:].split()))
+        cast(tuple[int, int], (int(a) for a in e[5:].split()))
         for e in stdout.splitlines()
         if e.startswith("tick ")
     )

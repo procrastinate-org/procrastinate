@@ -1,11 +1,10 @@
 from __future__ import annotations
 
 import contextlib
+from collections.abc import Generator, Iterable
 from typing import (
     TYPE_CHECKING,
     Any,
-    Generator,
-    Iterable,
 )
 
 import asgiref.sync

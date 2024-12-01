@@ -4,7 +4,8 @@ import asyncio
 import functools
 import logging
 import time
-from typing import Callable, Generic, Iterable, Tuple, cast
+from collections.abc import Iterable
+from typing import Callable, Generic, cast
 
 import attr
 import croniter
@@ -40,7 +41,7 @@ class PeriodicTask(Generic[P, R, Args]):
         return croniter.croniter(self.cron)
 
 
-TaskAtTime = Tuple[PeriodicTask, int]
+TaskAtTime = tuple[PeriodicTask, int]
 
 
 class PeriodicRegistry:

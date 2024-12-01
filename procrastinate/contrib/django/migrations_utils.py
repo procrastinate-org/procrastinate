@@ -6,7 +6,7 @@ from importlib import resources
 from django.db import migrations
 
 
-@functools.lru_cache(maxsize=None)
+@functools.cache
 def list_migration_files() -> dict[str, str]:
     """
     Returns a list of filenames and file contents for all migration files

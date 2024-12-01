@@ -4,8 +4,8 @@ import typing as t
 
 from typing_extensions import NotRequired
 
-JSONValue = t.Union[str, int, float, bool, None, t.Dict[str, t.Any], t.List[t.Any]]
-JSONDict = t.Dict[str, JSONValue]
+JSONValue = t.Union[str, int, float, bool, None, dict[str, t.Any], list[t.Any]]
+JSONDict = dict[str, JSONValue]
 
 
 class TimeDeltaParams(t.TypedDict):

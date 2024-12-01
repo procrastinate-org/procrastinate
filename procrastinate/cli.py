@@ -8,7 +8,8 @@ import logging
 import os
 import shlex
 import sys
-from typing import Any, Awaitable, Callable, Literal, Union
+from collections.abc import Awaitable
+from typing import Any, Callable, Literal, Union
 
 import procrastinate
 from procrastinate import connector, exceptions, jobs, shell, types, utils

@@ -4,11 +4,10 @@ import asyncio
 import contextlib
 import functools
 import logging
+from collections.abc import Iterable, Iterator
 from typing import (
     TYPE_CHECKING,
     Any,
-    Iterable,
-    Iterator,
     TypedDict,
 )
 

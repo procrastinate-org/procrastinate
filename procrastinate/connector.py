@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Awaitable, Callable, Iterable, Protocol
+from collections.abc import Awaitable, Iterable
+from typing import Any, Callable, Protocol
 
 from typing_extensions import LiteralString
 

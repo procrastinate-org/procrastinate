@@ -9,15 +9,17 @@ import logging
 import pathlib
 import sys
 import types
-from typing import (
-    Any,
+from collections.abc import (
     AsyncGenerator,
     AsyncIterator,
     Awaitable,
-    Callable,
     Coroutine,
-    Generic,
     Iterable,
+)
+from typing import (
+    Any,
+    Callable,
+    Generic,
     TypeVar,
 )
 

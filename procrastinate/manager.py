@@ -3,7 +3,8 @@ from __future__ import annotations
 import datetime
 import json
 import logging
-from typing import Any, Awaitable, Iterable, NoReturn, Protocol
+from collections.abc import Awaitable, Iterable
+from typing import Any, NoReturn, Protocol
 
 from procrastinate import connector, exceptions, jobs, sql, utils
 
