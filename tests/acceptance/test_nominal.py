@@ -77,7 +77,7 @@ def test_nominal(defer, worker, app):
     assert stdout.strip() == "20"
 
     defer("two_fails")
-    stdout, stderr = worker(app=app)
+    stdout, stderr = worker(app=app, sleep=1.5)
     print(stdout, stderr)
     assert "Print something to stdout" in stdout
     assert stderr.count("Exception: This should fail") == 2
