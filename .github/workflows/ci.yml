@@ -97,9 +97,9 @@ jobs:
           python-version: "3.12"
           cache: "poetry"
 
-      - name: Get latest version
-        id: get-latest-version
-        run: gh release list --limit 1 --json tagName --jq '"checkout_ref="+.[0].tagName' >> $GITHUB_OUTPUT
+      - name: Get latest tag
+        id: get-latest-tag
+        run: gh release list --limit 1 --json tagName --jq '"latest_tag="+.[0].tagName' >> $GITHUB_OUTPUT
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -109,7 +109,7 @@ jobs:
           PGHOST: localhost
           PGUSER: postgres
           PGPASSWORD: postgres
-          LATEST_VERSION: ${{ steps.get-latest-version.outputs.checkout_ref }}
+          LATEST_TAG: ${{ steps.get-latest-tag.outputs.latest_tag }}
 
   static-typing:
     name: Run Pyright
