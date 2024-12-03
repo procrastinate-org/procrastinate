@@ -41,8 +41,7 @@ BEGIN
                 PERFORM pg_sleep(random() * 0.01); -- fuzzy retry with upto 10ms sleep
                 retry_count := retry_count + 1;
                 IF retry_count >= 3 THEN
-                    --RAISE NOTICE 'Maximum retry attempts reached, returning empty result.';
-                    RETURN unique_violation;
+                    RAISE; --reraise
                 END IF;
         END;
     END LOOP;
