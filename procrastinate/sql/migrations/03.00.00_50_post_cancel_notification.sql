@@ -200,3 +200,6 @@ CREATE TRIGGER procrastinate_trigger_abort_requested_events_v1
 -- Rename remaining functions to use version suffix
 ALTER FUNCTION procrastinate_unlink_periodic_defers RENAME TO procrastinate_unlink_periodic_defers_v1;
 ALTER TRIGGER procrastinate_trigger_delete_jobs ON procrastinate_jobs RENAME TO procrastinate_trigger_delete_jobs_v1;
+
+-- New constraints
+ALTER TABLE procrastinate_jobs ADD CONSTRAINT check_not_todo_abort_requested CHECK (NOT (status = 'todo' AND abort_requested = true));
