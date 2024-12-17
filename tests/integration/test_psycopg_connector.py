@@ -4,7 +4,6 @@ import asyncio
 import functools
 import json
 
-import asgiref.sync
 import attr
 import pytest
 
@@ -112,7 +111,6 @@ async def test_wrap_exceptions(psycopg_connector):
 
 
 async def test_execute_query_sync(psycopg_connector):
-    @asgiref.sync.sync_to_async()
     def sync():
         assert (
             psycopg_connector.execute_query(
@@ -130,7 +128,7 @@ async def test_execute_query_sync(psycopg_connector):
         )
         assert result == [{"obj_description": "foo"}]
 
-    await sync()
+    await asyncio.to_thread(sync)
 
 
 async def test_execute_query_interpolate(psycopg_connector):

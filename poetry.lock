@@ -1893,7 +1893,7 @@ type = ["pytest-mypy"]
 
 [extras]
 aiopg = ["aiopg", "psycopg2-binary"]
-django = ["django"]
+django = ["asgiref", "django"]
 psycopg2 = ["psycopg2-binary"]
 sphinx = ["sphinx"]
 sqlalchemy = ["sqlalchemy"]
@@ -1901,4 +1901,4 @@ sqlalchemy = ["sqlalchemy"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "8d4350e830593b495e8caa03a3be60037cdcd221d240b26adf75199a2eb02ff1"
+content-hash = "3624f62ad4cec7f623dcf8341125f75543d37981010008f738f2c4b437fc549d"

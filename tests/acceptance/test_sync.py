@@ -4,7 +4,6 @@ import asyncio
 import time
 
 import pytest
-from asgiref.sync import sync_to_async
 
 import procrastinate
 from procrastinate.contrib import psycopg2
@@ -70,7 +69,7 @@ async def test_nested_sync_to_async(
                 sum_results.append(a + b)
 
             # Only works if the worker runs the sync task in a separate thread
-            await sync_to_async(_inner_sum_task_sync)(a, b)
+            await asyncio.to_thread(_inner_sum_task_sync, a, b)
 
         asyncio.run(_sum_task_async(a, b))
 

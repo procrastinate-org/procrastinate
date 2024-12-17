@@ -198,7 +198,7 @@ class AiopgConnector(connector.BaseAsyncConnector):
     @wrap_exceptions()
     async def _create_pool(self, pool_args: dict[str, Any]) -> aiopg.Pool:
         if self._sync_connector is not None:
-            await utils.sync_to_async(self._sync_connector.close)
+            await asyncio.to_thread(self._sync_connector.close)
             self._sync_connector = None
 
         return await aiopg.create_pool(**pool_args)

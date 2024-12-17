@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Awaitable, Iterable
 from typing import Any, Callable, Protocol
 
 from typing_extensions import LiteralString
 
-from procrastinate import exceptions, utils
+from procrastinate import exceptions
 
 Pool = Any
 Engine = Any
@@ -91,17 +92,17 @@ class BaseAsyncConnector(BaseConnector):
         raise NotImplementedError
 
     def execute_query(self, query: LiteralString, **arguments: Any) -> None:
-        return utils.async_to_sync(self.execute_query_async, query, **arguments)
+        return asyncio.run(self.execute_query_async(query, **arguments))
 
     def execute_query_one(
         self, query: LiteralString, **arguments: Any
     ) -> dict[str, Any]:
-        return utils.async_to_sync(self.execute_query_one_async, query, **arguments)
+        return asyncio.run(self.execute_query_one_async(query, **arguments))
 
     def execute_query_all(
         self, query: LiteralString, **arguments: Any
     ) -> list[dict[str, Any]]:
-        return utils.async_to_sync(self.execute_query_all_async, query, **arguments)
+        return asyncio.run(self.execute_query_all_async(query, **arguments))
 
     async def listen_notify(
         self, on_notification: Notify, channels: Iterable[str]
