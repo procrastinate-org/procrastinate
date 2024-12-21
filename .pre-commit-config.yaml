@@ -38,7 +38,7 @@ repos:
           - asgiref==3.8.1
           - attrs==24.2.0
           - contextlib2==21.6.0
-          - croniter==5.0.1
+          - croniter==6.0.0
           - django-stubs==5.1.1
           - django==5.1.4
           - psycopg2-binary==2.9.10
