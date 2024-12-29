@@ -71,7 +71,7 @@ be using a synchronous connector.
 
 If you request the synchronous connector after opening the app, you will get
 the asynchronous connector, with a compatibility layer to make synchronous
-operations. This will only work if you call it inside a function decorated
-with `asgiref.sync.sync_to_async` (such as inside a sync job). Otherwise,
-you will likely get a `RuntimeError`.
+operations. This will only work if you call it inside a function that runs
+in its own thread (such as inside a sync job). Otherwise, you will likely
+get a `RuntimeError`.
 :::

@@ -24,7 +24,6 @@ from typing import (
 )
 
 import dateutil.parser
-from asgiref import sync
 
 from procrastinate import exceptions
 from procrastinate.types import TimeDeltaParams
@@ -91,22 +90,6 @@ def caller_module_name(prefix: str = "procrastinate") -> str:
         return name
     except Exception as exc:
         raise exceptions.CallerModuleUnknown from exc
-
-
-def async_to_sync(awaitable: Callable[..., Awaitable[T]], *args, **kwargs) -> T:
-    """
-    Given a callable returning an awaitable, call the callable, await it
-    synchronously. Returns the result after it's done.
-    """
-    return sync.async_to_sync(awaitable)(*args, **kwargs)
-
-
-async def sync_to_async(func: Callable[..., T], *args, **kwargs) -> T:
-    """
-    Given a callable, return a callable that will call the original one in an
-    async context.
-    """
-    return await sync.sync_to_async(func, thread_sensitive=False)(*args, **kwargs)
 
 
 def causes(exc: BaseException | None):

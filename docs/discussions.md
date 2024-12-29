@@ -193,11 +193,11 @@ When you define an asynchronous connector, Procrastinate will try to
 seamlessly give you the right connector for your context. When you call
 the synchronous API, it will either create a sync connector based on your
 async connector, or let you use the async connector directly with
-`asgiref.sync.async_to_sync`.
+`asyncio.run`.
 :::
 
 For running jobs, support of synchronous task functions is through
-`asgiref.sync.sync_to_async`. This means your synchronous function will be
+`asyncio.to_thread`. This means your synchronous function will be
 executed by an asynchronous worker in a thread. Because of the [Global
 Interpreter Lock][global interpreter lock], you will not benefit from parallelism, but you will still be able
 to parallelize (thread-safe) I/Os.
@@ -290,7 +290,7 @@ Procrastinate:
   driver. Under the hood, we have factored as much as possible the non-I/O
   parts of the code, so that the synchronous and asynchronous versions are
   only separate in the way they handle I/Os.
-- For executing a synchronous task: we use `asgiref.sync.sync_to_async` to run the
+- For executing a synchronous task: we use `asyncio.to_thread` to run the
   synchronous code in a thread.
 - There are a few case where we facilitate calling Procrastinate from
   synchronous codebases, by providing a synchronous API, where we'll create an

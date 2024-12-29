@@ -234,7 +234,7 @@ class Worker:
                 if inspect.iscoroutinefunction(task.func):
                     await_func = task
                 else:
-                    await_func = functools.partial(utils.sync_to_async, task)
+                    await_func = functools.partial(asyncio.to_thread, task)
 
                 job_args = [context] if task.pass_context else []
                 task_result = await await_func(*job_args, **job.task_kwargs)

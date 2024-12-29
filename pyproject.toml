@@ -26,7 +26,7 @@ procrastinate = 'procrastinate.cli:main'
 python = "^3.9"
 aiopg = { version = "*", optional = true }
 anyio = "*"
-asgiref = "*"
+asgiref = { version = "*", optional = true }
 attrs = "*"
 contextlib2 = { version = "*", python = "<3.10" }
 croniter = "*"
@@ -39,7 +39,7 @@ typing-extensions = "*"
 sphinx = { version = "*", optional = true }
 
 [tool.poetry.extras]
-django = ["django"]
+django = ["asgiref", "django"]
 sqlalchemy = ["sqlalchemy"]
 aiopg = ["aiopg", "psycopg2-binary"]
 psycopg2 = ["psycopg2-binary"]

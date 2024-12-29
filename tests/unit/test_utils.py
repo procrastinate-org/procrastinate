@@ -40,17 +40,6 @@ def test_import_all():
     assert module in sys.modules
 
 
-def test_sync_await():
-    result = []
-
-    async def coro():
-        result.append(1)
-
-    utils.async_to_sync(coro)
-
-    assert result == [1]
-
-
 def test_causes():
     e1, e2, e3 = AttributeError("foo"), KeyError("bar"), IndexError("baz")
 

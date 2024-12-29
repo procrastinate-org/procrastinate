@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import contextlib
 import logging
 from collections.abc import AsyncGenerator, AsyncIterator, Iterable
@@ -133,7 +134,7 @@ class PsycopgConnector(connector.BaseAsyncConnector):
 
         if self._sync_connector is not None:
             logger.debug("Closing automatically created SyncPsycopgConnector.")
-            await utils.sync_to_async(self._sync_connector.close)
+            await asyncio.to_thread(self._sync_connector.close)
             self._sync_connector = None
 
         if pool:
