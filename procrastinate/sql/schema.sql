@@ -39,7 +39,8 @@ CREATE TABLE procrastinate_jobs (
     status procrastinate_job_status DEFAULT 'todo'::procrastinate_job_status NOT NULL,
     scheduled_at timestamp with time zone NULL,
     attempts integer DEFAULT 0 NOT NULL,
-    abort_requested boolean DEFAULT false NOT NULL
+    abort_requested boolean DEFAULT false NOT NULL,
+    CONSTRAINT check_not_todo_abort_requested CHECK (NOT (status = 'todo' AND abort_requested = true))
 );
 
 CREATE TABLE procrastinate_periodic_defers (
