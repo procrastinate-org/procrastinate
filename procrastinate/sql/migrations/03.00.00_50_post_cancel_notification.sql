@@ -100,6 +100,7 @@ CREATE INDEX procrastinate_jobs_id_lock_idx_v1 ON procrastinate_jobs (id, lock) 
 ALTER INDEX procrastinate_jobs_queue_name_idx RENAME TO procrastinate_jobs_queue_name_idx_v1;
 ALTER INDEX procrastinate_events_job_id_fkey  RENAME TO procrastinate_events_job_id_fkey_v1;
 ALTER INDEX procrastinate_periodic_defers_job_id_fkey RENAME TO procrastinate_periodic_defers_job_id_fkey_v1;
+ALTER INDEX procrastinate_jobs_priority_idx RENAME TO procrastinate_jobs_priority_idx_v1;
 
 -- Recreate or rename the other triggers & their associated functions
 

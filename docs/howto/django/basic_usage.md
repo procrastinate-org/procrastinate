@@ -33,7 +33,7 @@ Run the worker with the following command.
 
 `./manage.py procrastinate` mostly behaves like the `procrastinate` command
 itself. The subcommand `schema` is not available, as Procrastinate will use
-Django migrations. The `--app` option is also not available, as Procrastinate
+Django migrations. The `--app` option is also not available, as Procrastinate will use
 the automatically provided app (see {doc}`configuration`).
 
 :::{note}
