@@ -13,5 +13,7 @@ RUN sudo apt-get update \
 
 USER vscode
 
+ENV POETRY_VIRTUALENVS_IN_PROJECT=true
+
 RUN pipx install poetry \
   && poetry completions bash >> ~/.bash_completion
