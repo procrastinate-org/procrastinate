@@ -2,10 +2,20 @@
   "build": {
     "dockerfile": "Dockerfile"
   },
+  "containerEnv": {
+    "PGDATABASE": "procrastinate",
+    "PGHOST": "127.0.0.1",
+    "PGPASSWORD": "password",
+    "PGUSER": "postgres",
+    "PROCRASTINATE_APP": "procrastinate_demos.demo_async.app.app"
+  },
   "features": {
     "ghcr.io/devcontainers/features/docker-in-docker:2": {
       "moby": false
     }
   },
-  "postStartCommand": "/bin/bash -c 'source ./dev-env'"
+  "postStartCommand": "/bin/bash -c 'source ./dev-env'",
+  "remoteEnv": {
+    "PATH": "${containerWorkspaceFolder}/scripts:${containerEnv:PATH}"
+  }
 }
