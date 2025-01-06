@@ -182,7 +182,8 @@ class Worker:
         else:
             log_action, log_title = "job_error", "Error"
 
-        text = f"Job {context.job.call_string} ended with status: {log_title}, "
+        text = f"Job {context.job.call_string} ended with status: {
+            log_title}, "
         # in practice we should always have a start and end timestamp here
         # but in theory the JobResult class allows it to be None
         if job_result and job_result.start_timestamp and job_result.end_timestamp:
@@ -383,7 +384,8 @@ class Worker:
     async def _poll_jobs_to_abort(self):
         while True:
             logger.debug(
-                f"waiting for {self.abort_job_polling_interval}s before querying jobs to abort"
+                f"waiting for {
+                    self.abort_job_polling_interval}s before querying jobs to abort"
             )
             await asyncio.sleep(self.abort_job_polling_interval)
             if not self._running_jobs:
@@ -449,7 +451,8 @@ class Worker:
         for context in self._running_jobs.values():
             duration = now - context.start_timestamp
             self.logger.info(
-                f"Waiting for job to finish: worker: {context.job.call_string} (started {duration:.3f} s ago)",
+                f"Waiting for job to finish: worker: {
+                    context.job.call_string} (started {duration:.3f} s ago)",
                 extra=self._log_extra(
                     context=None, action="ending_job", job_result=None
                 ),
@@ -465,7 +468,8 @@ class Worker:
         # so as the tasks stop, this dict will shrink.
         if self._running_jobs:
             self.logger.info(
-                f"{len(self._running_jobs)} jobs still running after graceful timeout. Aborting them",
+                f"{len(self._running_jobs)
+                   } jobs still running after graceful timeout. Aborting them",
                 extra=self._log_extra(
                     action="stop_worker",
                     queues=self.queues,
