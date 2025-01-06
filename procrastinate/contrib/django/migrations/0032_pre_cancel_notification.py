@@ -16,5 +16,5 @@ class Migration(migrations.Migration):
             models.BooleanField(),
         ),
     ]
-    name = "0031_pre_cancel_notification"
-    dependencies = [("procrastinate", "0030_alter_procrastinateevent_options")]
+    name = "0032_pre_cancel_notification"
+    dependencies = [("procrastinate", "0031_add_indexes_for_fetch_job")]

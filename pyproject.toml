@@ -78,7 +78,7 @@ psycopg = [
 [tool.poetry.group.django.dependencies]
 django = [
     { version = "4.2.*", python = "<3.10" },
-    { version = "*", python = "^3.10" },
+    { version = "*", python = ">=3.10" },
 ]
 
 [tool.poetry.group.test.dependencies]
@@ -118,6 +118,7 @@ filterwarnings = """
     ignore:unclosed.+:ResourceWarning
 """
 asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
 DJANGO_SETTINGS_MODULE = "tests.acceptance.django_settings"
 
 
@@ -143,6 +144,7 @@ exclude_lines = [
 exclude = ["tests", ".venv"]
 
 [tool.ruff]
+target-version = "py39"
 extend-exclude = [".venv"]
 
 [tool.ruff.lint]
