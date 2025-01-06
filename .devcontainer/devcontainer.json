@@ -1,11 +1,16 @@
 {
-  "build": {
-    "dockerfile": "Dockerfile"
+  "dockerComposeFile": "docker-compose.yml",
+  "postCreateCommand": ".devcontainer/post-create.sh",
+  "remoteEnv": {
+    "PATH": "${containerWorkspaceFolder}/.venv/bin:${containerWorkspaceFolder}/scripts:${containerEnv:PATH}",
+    "PGDATABASE": "procrastinate",
+    "PGHOST": "127.0.0.1",
+    "PGPASSWORD": "password",
+    "PGUSER": "postgres",
+    "POETRY_VIRTUALENVS_IN_PROJECT": "true",
+    "PROCRASTINATE_APP": "procrastinate_demos.demo_async.app.app",
+    "VIRTUAL_ENV": "${containerWorkspaceFolder}/.venv"
   },
-  "features": {
-    "ghcr.io/devcontainers/features/docker-in-docker:2": {
-      "moby": false
-    }
-  },
-  "postStartCommand": "/bin/bash -c 'source ./dev-env'"
+  "service": "app",
+  "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}"
 }

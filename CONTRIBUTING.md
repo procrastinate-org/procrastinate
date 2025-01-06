@@ -25,6 +25,13 @@ The `dev-env` script will add the `scripts` folder to your `$PATH` for the curre
 shell, so in the following documentation, if you see `scripts/foo`, you're welcome
 to call `foo` directly.
 
+### Development Container
+
+Alternatively, you can utilize our development container setup. In VSCode, select
+`Dev Containers: Reopen in Container` from the command palette. This action sets up a
+container preconfigured with all required dependencies and automatically provisions a
+database. The virtual environment is created and activated seamlessly within the container.
+
 ## Instructions for contribution
 
 ### Environment variables
