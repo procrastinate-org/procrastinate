@@ -1,15 +1,6 @@
 #!/usr/bin/env bash
 
-if ! pg_isready ; then
-    echo "Starting database"
-    export PGDATABASE=procrastinate PGHOST=127.0.0.1 PGUSER=postgres PGPASSWORD=password
-    docker-compose up -d postgres || return
-    sleep 3
-fi
-
-echo ""
-echo "Database is ready!"
-echo ""
+scripts/bootstrap
 
 if ! pg_dump --schema-only --table=procrastinate_jobs 1>/dev/null 2>&1; then
     echo "Applying migrations"
