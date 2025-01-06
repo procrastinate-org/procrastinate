@@ -26,5 +26,5 @@ class Migration(migrations.Migration):
             ),
         ),
     ]
-    name = "0032_post_cancel_notification"
-    dependencies = [("procrastinate", "0031_pre_cancel_notification")]
+    name = "0033_post_cancel_notification"
+    dependencies = [("procrastinate", "0032_pre_cancel_notification")]
