@@ -43,6 +43,7 @@ UPDATE procrastinate_jobs SET abort_requested = true WHERE status = 'aborting';
 DROP INDEX IF EXISTS procrastinate_jobs_queueing_lock_idx;
 DROP INDEX IF EXISTS procrastinate_jobs_lock_idx;
 DROP INDEX IF EXISTS procrastinate_jobs_id_lock_idx;
+DROP INDEX IF EXISTS procrastinate_jobs_priority_idx;
 
 -- Delete the unversioned triggers
 DROP TRIGGER IF EXISTS procrastinate_trigger_status_events_update ON procrastinate_jobs;
@@ -95,6 +96,7 @@ CREATE TRIGGER procrastinate_jobs_notify_queue_job_aborted_v1
 CREATE UNIQUE INDEX procrastinate_jobs_queueing_lock_idx_v1 ON procrastinate_jobs (queueing_lock) WHERE status = 'todo';
 CREATE UNIQUE INDEX procrastinate_jobs_lock_idx_v1 ON procrastinate_jobs (lock) WHERE status = 'doing';
 CREATE INDEX procrastinate_jobs_id_lock_idx_v1 ON procrastinate_jobs (id, lock) WHERE status = ANY (ARRAY['todo'::procrastinate_job_status, 'doing'::procrastinate_job_status]);
+CREATE INDEX procrastinate_jobs_priority_idx_v1 ON procrastinate_jobs(priority desc, id asc) WHERE (status = 'todo'::procrastinate_job_status);
 
 -- Rename existing indexes
 ALTER INDEX procrastinate_jobs_queue_name_idx RENAME TO procrastinate_jobs_queue_name_idx_v1;

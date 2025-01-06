@@ -12,4 +12,5 @@ basics/tasks
 basics/defer
 basics/worker
 basics/command_line
+basics/windows
 :::

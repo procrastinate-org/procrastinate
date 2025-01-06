@@ -122,6 +122,6 @@ counter = itertools.count()
 
 
 @cron_app.periodic(cron="* * * * * *")
-@cron_app.task()
-def tick(timestamp):
-    print("tick", next(counter), timestamp)
+@cron_app.task(priority=7, pass_context=True)
+def tick(context, timestamp):
+    print("tick", next(counter), context.job.priority, timestamp)
