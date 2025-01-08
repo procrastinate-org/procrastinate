@@ -34,7 +34,7 @@ repos:
       - id: pyright
         additional_dependencies:
           - aiopg==1.4.0
-          - anyio==4.7.0
+          - anyio==4.8.0
           - asgiref==3.8.1
           - attrs==24.3.0
           - contextlib2==21.6.0
@@ -47,7 +47,7 @@ repos:
           - sphinx==7.4.7
           - sqlalchemy==2.0.36
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.8.4
+    rev: v0.8.6
     hooks:
       - id: ruff
         args: [--fix, --unsafe-fixes]
