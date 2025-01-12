@@ -48,7 +48,7 @@ jobs:
       - run: poetry install --all-extras
 
       - name: Run tests
-        run: scripts/tests
+        run: scripts/tests --cov=procrastinate --cov-branch
         env:
           COVERAGE_FILE: ".coverage.${{ matrix.python-version }}"
           PGHOST: localhost
@@ -61,6 +61,54 @@ jobs:
           name: coverage-${{ matrix.python-version }}
           path: .coverage.${{ matrix.python-version }}
           include-hidden-files: true
+
+  acceptance:
+    strategy:
+      matrix:
+        mode:
+          - "current_version_without_post_migration"
+          - "stable_version_without_post_migration"
+
+    name: "acceptance-test"
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        # Set health checks to wait until postgres has started
+        env:
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+        ports:
+          - 5432:5432
+
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+
+      - name: Install poetry
+        run: pipx install poetry
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "poetry"
+
+      - name: Get latest tag
+        id: get-latest-tag
+        run: gh release list --limit 1 --json tagName --jq '"latest_tag="+.[0].tagName' >> $GITHUB_OUTPUT
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run tests
+        run: pipx run nox -s ${{ matrix.mode }}
+        env:
+          PGHOST: localhost
+          PGUSER: postgres
+          PGPASSWORD: postgres
+          LATEST_TAG: ${{ steps.get-latest-tag.outputs.latest_tag }}
 
   static-typing:
     name: Run Pyright

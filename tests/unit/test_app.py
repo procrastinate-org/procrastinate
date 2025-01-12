@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import collections
+from typing import cast
 
 import pytest
 
@@ -28,7 +29,7 @@ def test_app_task_dont_read_function_attributes(app: app_module.App):
     def wrapped():
         return "foo"
 
-    wrapped.pass_context = True
+    wrapped.pass_context = True  # type: ignore
     task = app.task(wrapped)
     assert task.pass_context is False
 
@@ -47,14 +48,14 @@ def test_app_register(app: app_module.App):
     assert app.tasks["bla"] == task
 
 
-def test_app_worker(app, mocker):
+def test_app_worker(app: app_module.App, mocker):
     Worker = mocker.patch("procrastinate.worker.Worker")
 
-    app.worker_defaults["timeout"] = 12
+    app.worker_defaults["fetch_job_polling_interval"] = 12
     app._worker(queues=["yay"], name="w1", wait=False)
 
     Worker.assert_called_once_with(
-        queues=["yay"], app=app, name="w1", timeout=12, wait=False
+        queues=["yay"], app=app, name="w1", fetch_job_polling_interval=12, wait=False
     )
 
 
@@ -95,6 +96,7 @@ async def test_app_run_worker_async_cancel(app: app_module.App):
         result.append(a)
 
     task = asyncio.create_task(app.run_worker_async())
+    await asyncio.sleep(0.01)
     await my_task.defer_async(a=1)
     await asyncio.sleep(0.01)
     task.cancel()
@@ -102,6 +104,26 @@ async def test_app_run_worker_async_cancel(app: app_module.App):
         await asyncio.wait_for(task, timeout=0.1)
 
     assert result == [1]
+
+
+async def test_app_run_worker_async_abort(app: app_module.App):
+    result = []
+
+    @app.task
+    async def my_task(a):
+        await asyncio.sleep(3)
+        result.append(a)
+
+    task = asyncio.create_task(app.run_worker_async(shutdown_graceful_timeout=0.1))
+    await my_task.defer_async(a=1)
+    await asyncio.sleep(0.01)
+    task.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        # this wait_for is just here to fail the test faster
+        await asyncio.wait_for(task, timeout=1)
+        pytest.fail("Expected the worker to be force stopped")
+
+    assert result == []
 
 
 def test_from_path(mocker):
@@ -253,7 +275,7 @@ def test_check_stack_is_called(mocker, connector):
     called = []
 
     class MyApp(app_module.App):
-        def _check_stack(self):
+        def _check_stack(self):  # pyright: ignore reportIncompatibleMethodOverride
             called.append(True)
             return "foo"
 
@@ -286,16 +308,16 @@ def test_with_connector(app, connector):
     assert app.periodic_registry is new_app.periodic_registry
 
 
-def test_replace_connector(app):
+def test_replace_connector(app: app_module.App):
     @app.task(name="foo")
     def foo():
         pass
 
     foo.defer()
-    assert len(app.connector.jobs) == 1
+    assert len(cast(testing.InMemoryConnector, app.connector).jobs) == 1
 
     new_connector = testing.InMemoryConnector()
     with app.replace_connector(new_connector):
-        assert len(app.connector.jobs) == 0
+        assert len(cast(testing.InMemoryConnector, app.connector).jobs) == 0
 
-    assert len(app.connector.jobs) == 1
+    assert len(cast(testing.InMemoryConnector, app.connector).jobs) == 1

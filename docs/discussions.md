@@ -134,6 +134,41 @@ For a more practical approach, see {doc}`howto/advanced/locks`.
 
 (discussion-async)=
 
+## What are the different states of a Job and how do they go from one to another?
+
+A job can be in one of the following states:
+
+```{mermaid}
+flowchart LR
+    START:::hidden
+    todo[TODO]
+    doing[DOING]
+    succeeded[SUCCEEDED]
+    failed[FAILED]
+    cancelled[CANCELLED]
+    aborted[ABORTED]
+    START -- a --> todo
+    todo -- b --> doing
+    doing -- c --> succeeded
+    doing -- d --> todo
+    doing -- e --> failed
+    todo -- f --> cancelled
+    doing -- g --> aborted
+    classDef hidden display: none;
+```
+
+- **a**: The job was deferred by `my_task.defer()` (or the async equivalent)
+- **b**: A worker fetched the job from the database and started processing it
+- **c**: A worker finished processing a job successfully
+- **d**: The job failed by raising an error but will be retried
+- **e**: The job failed by raising an error and won't be retried
+- **f**: The job was cancelled by calling `job_manager.cancel_job_by_id(job_id)` (or the async equivalent) before its processing was started
+- **g**: The job was aborted during being processed by calling
+  `job_manager.cancel_job_by_id(job_id, abort=True)` (or the async equivalent). A sync job must also
+  handle the abort request by checking `context.should_abort()` and raising a
+  `JobAborted` exception. An async job handles it automatically by internally raising a
+  `CancelledError` exception.
+
 ## Asynchronous operations & concurrency
 
 Here, asynchronous (or async) means "using the Python `async/await` keywords, to
@@ -199,28 +234,30 @@ Having sub-workers wait for an available connection in the pool is suboptimal. Y
 resources will be better used with fewer sub-workers or a larger pool, but there are
 many factors to take into account when [sizing your pool](https://wiki.postgresql.org/wiki/Number_Of_Database_Connections).
 
-### Mind the `worker_timeout`
+### How polling works
 
-Even when the database doesn't notify workers regarding newly deferred jobs, idle
-workers still poll the database every now and then, just in case.
+#### `fetch_job_polling_interval`
+
+Even when the database doesn't notify workers regarding newly deferred jobs, each worker still poll the database every now and then, just in case.
 There could be previously locked jobs that are now free, or scheduled jobs that have
-reached the ETA. `worker_timeout` is the {py:meth}`App.run_worker` parameter (or the
+reached the ETA. `fetch_job_polling_interval` is the {py:meth}`App.run_worker` parameter (or the
 equivalent CLI flag) that sizes this "every now and then".
 
-On a non-concurrent idle worker, a database poll is run every `<worker_timeout>`
-seconds. On a concurrent worker, sub-workers poll the database every
-`<worker_timeout>*<concurrency>` seconds. This ensures that, on average, the time
-between each database poll is still `<worker_timeout>` seconds.
+A worker will keep fetching new jobs as long as they have capacity to process them.
+The polling interval starts from the moment the last attempt to fetch a new job yields no result.
 
-The initial timeout for the first loop of each sub-worker is modified so that the
-workers are initially spread across all the total length of the timeout, but the
-randomness in job duration could create a situation where there is a long gap between
-polls. If you find this to happen in reality, please open an issue, and lower your
-`worker_timeout`.
+:::{note}
+The polling interval was previously called `timeout` in pre-v3 versions of Procrastinate. It was renamed to `fetch_job_polling_interval` for clarity.
+:::
 
-Note that as long as jobs are regularly deferred, or there are enqueued jobs,
-sub-workers will not wait and this will not be an issue. This is only about idle
-workers taking time to notice that a previously unavailable job has become available.
+#### `abort_job_polling_interval`
+
+Another polling interval is the `abort_job_polling_interval`. It defines how often the worker will poll the database for jobs to abort.
+When `listen_notify=True`, the worker will likely be notified "instantly" of each abort request prior to polling the database.
+
+However, when `listen_notify=False` or the abort notification was missed, `abort_job_polling_interval` will represent the maximum delay before the worker reacts to an abort request.
+
+Note that the worker will only poll the database for abort requests when at least one job is running.
 
 ## Procrastinate's usage of PostgreSQL functions and procedures
 

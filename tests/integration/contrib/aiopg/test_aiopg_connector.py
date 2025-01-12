@@ -156,15 +156,26 @@ async def test_get_connection_no_psycopg2_adapter_registration(
 async def test_listen_notify(aiopg_connector):
     channel = "somechannel"
     event = asyncio.Event()
+    received_args: list[dict] = []
+
+    async def handle_notification(*, channel: str, payload: str):
+        event.set()
+        received_args.append({"channel": channel, "payload": payload})
 
     task = asyncio.ensure_future(
-        aiopg_connector.listen_notify(channels=[channel], event=event)
+        aiopg_connector.listen_notify(
+            channels=[channel], on_notification=handle_notification
+        )
     )
     try:
-        await event.wait()
-        event.clear()
-        await aiopg_connector.execute_query_async(f"""NOTIFY "{channel}" """)
+        await asyncio.sleep(0.1)
+        await aiopg_connector.execute_query_async(
+            f"""NOTIFY "{channel}", 'somepayload' """
+        )
         await asyncio.wait_for(event.wait(), timeout=1)
+        args = received_args.pop()
+        assert args["channel"] == "somechannel"
+        assert args["payload"] == "somepayload"
     except asyncio.TimeoutError:
         pytest.fail("Notify not received within 1 sec")
     finally:
@@ -174,9 +185,15 @@ async def test_listen_notify(aiopg_connector):
 async def test_loop_notify_stop_when_connection_closed_old_aiopg(aiopg_connector):
     # We want to make sure that the when the connection is closed, the loop end.
     event = asyncio.Event()
+
+    async def handle_notification(channel: str, payload: str):
+        event.set()
+
     await aiopg_connector.open_async()
     async with aiopg_connector._pool.acquire() as connection:
-        coro = aiopg_connector._loop_notify(event=event, connection=connection)
+        coro = aiopg_connector._loop_notify(
+            on_notification=handle_notification, connection=connection
+        )
         await asyncio.sleep(0.1)
         # Currently, the the connection closes, the notifies queue is not
         # awaken. This test validates the "normal" stopping condition, there is
@@ -192,9 +209,15 @@ async def test_loop_notify_stop_when_connection_closed_old_aiopg(aiopg_connector
 async def test_loop_notify_stop_when_connection_closed(aiopg_connector):
     # We want to make sure that the when the connection is closed, the loop end.
     event = asyncio.Event()
+
+    async def handle_notification(channel: str, payload: str):
+        event.set()
+
     await aiopg_connector.open_async()
     async with aiopg_connector._pool.acquire() as connection:
-        coro = aiopg_connector._loop_notify(event=event, connection=connection)
+        coro = aiopg_connector._loop_notify(
+            on_notification=handle_notification, connection=connection
+        )
         await asyncio.sleep(0.1)
         # Currently, the the connection closes, the notifies queue is not
         # awaken. This test validates the "normal" stopping condition, there is
@@ -211,11 +234,15 @@ async def test_loop_notify_timeout(aiopg_connector):
     # We want to make sure that when the listen starts, we don't listen forever. If the
     # connection closes, we eventually finish the coroutine.
     event = asyncio.Event()
+
+    async def handle_notification(channel: str, payload: str):
+        event.set()
+
     await aiopg_connector.open_async()
     async with aiopg_connector._pool.acquire() as connection:
         task = asyncio.ensure_future(
             aiopg_connector._loop_notify(
-                event=event, connection=connection, timeout=0.01
+                on_notification=handle_notification, connection=connection, timeout=0.01
             )
         )
         await asyncio.sleep(0.1)
@@ -234,6 +261,7 @@ async def test_destructor(connection_params, capsys):
     await connector.open_async()
     await connector.execute_query_async("SELECT 1")
 
+    assert connector._pool
     assert len(connector._pool._free) == 1
 
     # "del connector" causes a ResourceWarning from aiopg.Pool if the

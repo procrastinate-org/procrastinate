@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import datetime
 import functools
+import logging
 import sys
 import time
 import types
@@ -164,161 +165,6 @@ def callback(launched):
     return _
 
 
-async def test_run_tasks(finished, coro, short, caplog):
-    caplog.set_level("ERROR")
-    # Two functions in main coros, both go through their ends
-    await utils.run_tasks(main_coros=[coro(1), coro(2, sleep=0.01)])
-    assert finished == {1, 2}
-
-    assert caplog.records == []
-
-
-async def test_run_tasks_graceful_stop_callback_not_called(
-    launched, coro, callback, short
-):
-    # A graceful_stop_callback is provided but isn't used because the main
-    # coros return on their own.
-    await utils.run_tasks(main_coros=[coro(1)], graceful_stop_callback=callback(2))
-    assert launched == {1}
-
-
-async def test_run_tasks_graceful_stop_callback_called(launched, coro, callback, short):
-    # A main function is provided, but it crashes. This time, the graceful callback
-    # is called.
-    with pytest.raises(exceptions.RunTaskError):
-        await utils.run_tasks(
-            main_coros=[coro(1, exc=ZeroDivisionError)],
-            graceful_stop_callback=callback(2),
-        )
-    assert launched == {1, 2}
-
-
-async def test_run_tasks_graceful_stop_callback_called_side(
-    launched, finished, coro, callback, short
-):
-    # Two main coros provided, one crashes and one succeeds. The
-    # graceful_stop_callback is called and the coro that succeeds is awaited
-    # until it returns
-    with pytest.raises(exceptions.RunTaskError):
-        await utils.run_tasks(
-            main_coros=[coro(1, sleep=0.01), coro(2, exc=ZeroDivisionError)],
-            graceful_stop_callback=callback(3),
-        )
-    assert launched == {1, 2, 3}
-    assert finished == {1, 2}
-
-
-async def test_run_tasks_side_coro(launched, finished, coro, short):
-    # When all the main coros have returned, the remaining side coros are
-    # cancelled
-    await utils.run_tasks(main_coros=[coro(1), coro(2)], side_coros=[coro(3, sleep=1)])
-    assert launched == {1, 2, 3}
-    assert finished == {1, 2}
-
-
-async def test_run_tasks_side_coro_crash(launched, finished, coro, short):
-    # There's a main and a side. The side crashes. Main is still awaited and
-    # the unction raises
-    with pytest.raises(exceptions.RunTaskError) as exc_info:
-        await utils.run_tasks(
-            main_coros=[coro(1, sleep=0.01)],
-            side_coros=[coro(2, exc=ZeroDivisionError)],
-        )
-    assert launched == {1, 2}
-    assert finished == {1, 2}
-    assert isinstance(exc_info.value.__cause__, ZeroDivisionError)
-
-
-async def test_run_tasks_main_coro_crash(launched, finished, coro, short):
-    # There's a main and a side. The main crashes. Side is cancelled, and the
-    # function raises
-    with pytest.raises(exceptions.RunTaskError) as exc_info:
-        await utils.run_tasks(
-            main_coros=[coro(1, exc=ZeroDivisionError)],
-            side_coros=[coro(2, sleep=1)],
-        )
-    assert launched == {1, 2}
-    assert finished == {1}
-    assert isinstance(exc_info.value.__cause__, ZeroDivisionError)
-
-
-async def test_run_tasks_main_coro_one_crashes(launched, finished, coro, short):
-    # 2 mains. One main crashes. The other finishes, and then the function fails.
-    with pytest.raises(exceptions.RunTaskError) as exc_info:
-        await utils.run_tasks(
-            main_coros=[coro(1, exc=ZeroDivisionError), coro(2, sleep=0.001)],
-        )
-    assert launched == {1, 2}
-    assert finished == {1, 2}
-    assert isinstance(exc_info.value.__cause__, ZeroDivisionError)
-
-
-async def test_run_tasks_main_coro_both_crash(launched, finished, coro, short):
-    # 2 mains. The 2 crash. The reported error is for the first one.
-    with pytest.raises(exceptions.RunTaskError) as exc_info:
-        await utils.run_tasks(
-            main_coros=[
-                coro(1, sleep=0.001, exc=ValueError),
-                coro(2, exc=ZeroDivisionError),
-            ],
-        )
-    assert launched == {1, 2}
-    assert finished == {1, 2}
-    assert isinstance(exc_info.value.__cause__, ValueError)
-
-
-@pytest.fixture
-def count_logs(caplog):
-    """Count how many logs match all the arguments"""
-    caplog.set_level("DEBUG")
-
-    def _(**kwargs):
-        return sum(
-            all((getattr(record, key, None) == value) for key, value in kwargs.items())
-            for record in caplog.records
-        )
-
-    return _
-
-
-async def test_run_tasks_logs(coro, short, count_logs):
-    # 2 mains. The 2 crash. The reported error is for the first one.
-    with pytest.raises(exceptions.RunTaskError):
-        await utils.run_tasks(
-            main_coros=[
-                coro(1, exc=ZeroDivisionError("foo")),
-                coro(2),
-            ],
-            side_coros=[
-                coro(3, exc=RuntimeError("bar")),
-                coro(4),
-            ],
-        )
-    assert 4 == count_logs(
-        levelname="DEBUG",
-        message="Started func",
-        action="func_start",
-    )
-
-    assert 1 == count_logs(
-        levelname="DEBUG",
-        message="func finished execution",
-        action="func_stop",
-    )
-
-    assert 1 == count_logs(
-        levelname="ERROR",
-        message="func error: ZeroDivisionError('foo')",
-        action="func_error",
-    )
-
-    assert 1 == count_logs(
-        levelname="ERROR",
-        message="func error: RuntimeError('bar')",
-        action="func_error",
-    )
-
-
 def test_utcnow(mocker):
     dt = mocker.patch("datetime.datetime")
     assert utils.utcnow() == dt.now.return_value
@@ -380,7 +226,7 @@ def awaitable_context():
         awaited.append("closed")
 
     context = utils.AwaitableContext(open_coro=open, close_coro=close, return_value=1)
-    context.awaited = awaited
+    context.awaited = awaited  # type: ignore
     return context
 
 
@@ -504,3 +350,43 @@ async def test_async_context_decorator():
     assert await func2() == 4
 
     assert result == [1, 2, 3]
+
+
+@pytest.mark.parametrize(
+    "task_1_error, task_2_error",
+    [
+        (None, None),
+        (ValueError("Nope from task_1"), None),
+        (None, ValueError("Nope from task_2")),
+        (ValueError("Nope from task_1"), ValueError("Nope from task_2")),
+    ],
+)
+async def test_cancel_and_capture_errors(task_1_error, task_2_error, caplog):
+    caplog.set_level(logging.ERROR)
+
+    async def task_1():
+        if task_1_error:
+            raise task_1_error
+        else:
+            await asyncio.sleep(0.5)
+
+    async def task_2():
+        if task_2_error:
+            raise task_2_error
+        else:
+            await asyncio.sleep(0.5)
+
+    tasks = [asyncio.create_task(task_1()), asyncio.create_task(task_2())]
+    await asyncio.sleep(0.01)
+    await asyncio.wait_for(utils.cancel_and_capture_errors(tasks), timeout=100)
+
+    expected_error_count = sum(1 for error in (task_1_error, task_2_error) if error)
+
+    assert len(caplog.records) == expected_error_count
+
+
+@pytest.mark.parametrize(
+    "queues, result", [(None, "all queues"), (["foo", "bar"], "queues foo, bar")]
+)
+def test_queues_display(queues, result):
+    assert utils.queues_display(queues) == result

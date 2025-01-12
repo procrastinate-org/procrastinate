@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import importlib.resources as importlib_resources
 import re
+from importlib import resources
 from typing import cast
 
 from typing_extensions import LiteralString
@@ -28,7 +28,7 @@ def parse_query_file(query_file: str) -> dict[str, LiteralString]:
 
 def get_queries() -> dict[str, LiteralString]:
     return parse_query_file(
-        (importlib_resources.files("procrastinate.sql") / "queries.sql").read_text(
+        (resources.files("procrastinate.sql") / "queries.sql").read_text(
             encoding="utf-8"
         )
     )

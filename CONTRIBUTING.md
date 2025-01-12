@@ -13,13 +13,19 @@ Of course, feel free to read the script before launching it.
 This script is intended to be a one-liner that sets up everything you need. It makes
 the following assumptions:
 
-- You're using `MacOS` or `Linux`, and `bash` or `zsh`.
-- You already have `python3` available
-- You have `poetry` [installed](https://python-poetry.org/docs/#installation)
-- Either you've already setup a PostgreSQL database and environment variables (`PG*`)
-  are set or you have `docker-compose` available and port 5432 is free.
-- Either `psql` and other `libpq` executables are available in the `PATH` or they
-  are located in `usr/local/opt/libpq/bin` (`Homebrew`).
+-   You're using `MacOS` or `Linux`, and `bash` or `zsh`.
+-   You already have `python3` available
+-   Either:
+    -   you already have `poetry`, `pre-commit` and `nox` installed
+    -   or you have `pipx` installed and you're ok installing those 3 tools with `pipx`
+    -   or you don't have `pipx` installed but it's ok if we install it for you
+-   Either:
+    -   you've already setup a PostgreSQL database and environment variables (`PG*`)
+        are set
+    -   or you have `docker compose` available and port 5432 is free.
+-   Either:
+    -   `psql` and other `libpq` executables are available in the `PATH`
+    -   or they are located in `usr/local/opt/libpq/bin` (`Homebrew`).
 
 The `dev-env` script will add the `scripts` folder to your `$PATH` for the current
 shell, so in the following documentation, if you see `scripts/foo`, you're welcome
@@ -53,7 +59,7 @@ The PostgreSQL database we used is a fresh standard out-of-the-box database
 on the latest stable version.
 
 ```console
-$ docker-compose up -d postgres
+$ docker compose up -d postgres
 ```
 
 If you want to try out the project locally, it's useful to have `postgresql-client`
@@ -136,7 +142,6 @@ In addition, an [editorconfig] file will help your favorite editor to respect
 procrastinate coding style. It is automatically used by most famous IDEs, such as
 Pycharm and VS Code.
 
-
 ### Write the documentation
 
 The documentation is written in `Markdown` and built with `Sphinx` and `MyST`.
@@ -180,26 +185,30 @@ ALTER TABLE procrastinate_jobs ADD COLUMN extra TEXT;
 The name of migration scripts must follow a specific pattern:
 
 ```
-xx.yy.zz_ab_very_short_description_of_your_changes.sql
+xx.yy.zz_ab_{pre|post}_very_short_description_of_your_changes.sql
 ```
 
-`xx.yy.zz` is the number of the latest released version of Procrastinate. (The latest
-release is the one marked `Latest release` on the [Procrastinate releases] page.)
-`xx`, `yy` and `zz` must be 2-digit numbers, with leading zeros if necessary.
-`ab` is the 2-digit migration script's serial number, `01` being the first number in
-the series. And, finally, `very_short_description_of_your_changes` is a very short
-description of the changes (wow). It is important to use underscores between the
-different parts, and between words in the short description.
+`xx.yy.zz` is the number of the latest released version of Procrastinate. (The
+latest release is the one marked `Latest release` on the [Procrastinate
+releases] page.) `xx`, `yy` and `zz` must be 2-digit numbers, with leading
+zeros if necessary. `ab` is the 2-digit migration script's serial number, the
+first number for each release being `01` for pre-migrations and `50` for
+post-migrations. `pre` is if the migration should be applied before upgrading
+the code, `post` is if the migration should be applied after upgrading the
+code. And, finally, `very_short_description_of_your_changes` is a very short
+description of the changes (wow). It is important to use underscores between
+the different parts, and between words in the short description.
 
-For example, let's say the latest released version of Procrastinate is `1.0.1`, and
-that the `migrations` directory already includes a migration script whose serial
-number is `01` for that release number. In that case, if you need to add a migration
-script, its name will start with `01.00.01_02_`.
+For example, let's say the latest released version of Procrastinate is `1.0.1`,
+that the `migrations` directory already includes a post-migration script whose
+serial number for that release number and your migration should be
+applied after deploying the corresponding python code. In that case, if you
+need to add a migration script, its name will start with `01.00.01_51_post_`.
 
 ### Backward-compatibility
 
-As a Procrastinate developer, the changes that you make to the Procrastinate database
-schema must be compatible with the Python code of previous Procrastinate versions.
+As a Procrastinate developer, you must ensure you use pre-migrations and post-migrations
+to maintain backward compatibility with previous versions of Procrastinate.
 
 For example, let's say that the current Procrastinate database schema includes an SQL
 function
@@ -219,8 +228,8 @@ replace the old function by the new one, and add a migration script that removes
 function and adds the new one:
 
 ```sql
-DROP FUNCTION procrastinate_func(integer, text, timestamp);
-CREATE FUNCTION procrastinate_func(arg1 integer, arg2 text)
+DROP FUNCTION procrastinate_func_v3(integer, text, timestamp);
+CREATE FUNCTION procrastinate_func_v3(arg1 integer, arg2 text)
 RETURNS INT
 ...
 ```
@@ -234,57 +243,20 @@ So when you make changes to the Procrastinate database schema you must ensure th
 new schema still works with old versions of the Procrastinate Python code.
 
 Going back to our `procrastinate_func` example. Instead of replacing the old function
-by the new one in `schema.sql`, you will leave the old function, and just add the new
-one. And your migration script will just involve adding the new version of the function:
+by the new one in `schema.sql`, you add a new function in pre-migrations and remove the
+old function in post-migrations:
 
 ```sql
-CREATE FUNCTION procrastinate_func(arg1 integer, arg2 text)
+-- xx_xx_xx_01_pre_add_new_version_procrastinate_func.sql
+CREATE FUNCTION procrastinate_func_v4(arg1 integer, arg2 text)
 RETURNS INT
 ...
-```
 
-The question that comes next is: when can the old version of `procrastinate_func` be
-removed? Or more generally, when can the SQL compatibility layer be removed?
-
-The answer is some time after the next major version of Procrastinate!
-
-For example, if the current Procrastinate version is 1.5.0, the SQL compatibility layer
-will be removed after 2.0.0 is released. The 2.0.0 release will be a pivot release, in
-the sense that Procrastinate users who want to upgrade from, say, 1.5.0 to 2.5.0, will
-need to upgrade from 1.5.0 to 2.0.0 first, and then from 2.0.0 to 2.5.0. And they will
-always migrate the database schema before updating the code.
-
-The task of removing the SQL compatibility layer after the release of a major version
-(e.g. 2.0.0) is the responsibility of Procrastinate maintainers. More specifically, for
-the 2.1.0 release, Procrastinate maintainers will need to edit `schema.sql` and remove
-the SQL compatibility layer.
-
-But, as a standard developer, when you make changes to the Procrastinate database schema
-that involves leaving or adding SQL statements for compatibility reasons, it's a good
-idea to add a migration script for the removal of the SQL compatibility layer. This will
-greatly help the Procrastinate maintainers.
-
-For example, let's say the current released version of Procrastinate is 1.5.0, and you
-want to change the signature of `procrastinate_func` as described above. You will add
-a `1.5.0` migration script (e.g.
-`01.05.00_01_add_new_version_procrastinate_func.sql`) that adds the new version of
-the function, as already described above. And you will also add a `2.0.0` migration
-script (e.g. `02.00.00_01_remove_old_version_procrastinate_func.sql`) that takes
-care of removing the old version of the function:
-
-```sql
+-- xx_xx_xx_50_post_remove_old_version_procrastinate_func.sql
 DROP FUNCTION procrastinate_func(integer, text, timestamp);
+...
+
 ```
-
-In this way, you provide the new SQL code, the compatibility layer, and the migration
-for the removal of the compatibility layer.
-
-:::{note}
-The migration scripts that remove the SQL compatibility code are to be added to the
-`future_migrations` directory instead of the `migrations` directory. And it will
-be the responsibility of Procrastinate maintainers to move them to the
-`migrations` directory after the next major release.
-:::
 
 ### Migration tests
 
@@ -295,6 +267,29 @@ included in the normal test suite, but you can run them specifically with:
 ```console
 (venv) $ pytest tests/migration
 ```
+
+We run the `acceptance` tests on 3 different configurations:
+
+-   Without the post-migrations applied and with the last released version of
+    Procrastinate
+-   Without the post-migrations applied and with the current checked out code
+-   With all migrations applied and with the current checked out code (this is
+    just part of the normal test suite)
+
+This is to ensure that the migrations are backward-compatible and that the database
+schema can be upgraded without downtime. We simulate all stages of the upgrade process:
+
+-   (the initial situation being that Procrastinate is running with the last
+    released version of the code and all migrations of the last released
+    version have been applied)
+-   First, the user would apply pre-migrations while the old version of the
+    code is still running.
+-   Then, the user would upgrade the code to the new version.
+-   Finally, the user would apply post-migrations.
+
+There are cases where new acceptance tests cannot work on the last released version.
+In that case, the tests can be skipped by adding `@pytest.mark.skip_before_version("x.y.z")`,
+where `x.y.z` is the version of Procrastinate where the test would start running.
 
 ## Try our demos
 
@@ -308,23 +303,23 @@ Python environment on the host system. Alternatively, they can be installed in a
 image, and Procrastinate and all the development tools can be run in Docker containers.
 Docker is useful when you can't, or don't want to, install system requirements.
 
-This section shows, through `docker-compose` command examples, how to test and run
+This section shows, through `docker compose` command examples, how to test and run
 Procrastinate in Docker.
 
 Build the `procrastinate` Docker image:
 
 ```console
 $ export UID GID
-$ docker-compose build procrastinate
+$ docker compose build procrastinate
 ```
 
 Run the automated tests:
 
 ```console
-$ docker-compose run --rm procrastinate pytest
+$ docker compose run --rm procrastinate pytest
 ```
 
-Docker Compose is configured (in `docker-compose.yml`) to mount the local directory on
+Docker Compose is configured (in `docker compose.yml`) to mount the local directory on
 the host system onto `/src` in the container. This means that local
 changes made to the Procrastinate code are visible in Procrastinate containers.
 
@@ -333,7 +328,7 @@ container to be run with the current user id and group id. If not set or exporte
 Procrastinate container will run as root, and files owned by root may be created in the
 developer's working directory.
 
-In the definition of the `procrastinate` service in `docker-compose.yml` the
+In the definition of the `procrastinate` service in `docker compose.yml` the
 `PROCRASTINATE_APP` variable is set to `procrastinate_demo.app.app` (the
 Procrastinate demo application). So `procrastinate` commands run in Procrastinate
 containers are always run as if they were passed `--app procrastinate_demo.app.app`.
@@ -341,55 +336,55 @@ containers are always run as if they were passed `--app procrastinate_demo.app.a
 Run the `procrastinate` command :
 
 ```console
-$ docker-compose run --rm procrastinate procrastinate -h
+$ docker compose run --rm procrastinate procrastinate -h
 ```
 
 Apply the Procrastinate database schema:
 
 ```console
-$ docker-compose run --rm procrastinate procrastinate schema --apply
+$ docker compose run --rm procrastinate procrastinate schema --apply
 ```
 
 Run the Procrastinate healthchecks:
 
 ```console
-$ docker-compose run --rm procrastinate procrastinate healthchecks
+$ docker compose run --rm procrastinate procrastinate healthchecks
 ```
 
 Start a Procrastinate worker (`-d` used to start the container in detached mode):
 
 ```console
-$ docker-compose up -d procrastinate
+$ docker compose up -d procrastinate
 ```
 
 Run a command (`bash` here) in the Procrastinate worker container just started:
 
 ```console
-$ docker-compose exec procrastinate bash
+$ docker compose exec procrastinate bash
 ```
 
 Watch the Procrastinate worker logs:
 
 ```console
-$ docker-compose logs -ft procrastinate
+$ docker compose logs -ft procrastinate
 ```
 
 Use the `procrastinate defer` command to create a job:
 
 ```console
-$ docker-compose run --rm procrastinate procrastinate defer procrastinate_demo.tasks.sum '{"a":3, "b": 5}'
+$ docker compose run --rm procrastinate procrastinate defer procrastinate_demo.tasks.sum '{"a":3, "b": 5}'
 ```
 
 Or run the demo main file:
 
 ```console
-$ docker-compose run --rm procrastinate python -m procrastinate_demo
+$ docker compose run --rm procrastinate python -m procrastinate_demo
 ```
 
 Stop and remove all the containers (including the `postgres` container):
 
 ```console
-$ docker-compose down
+$ docker compose down
 ```
 
 ## Wait, there are `async` and `await` keywords everywhere!?

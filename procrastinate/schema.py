@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import importlib.resources as importlib_resources
 import pathlib
+from importlib import resources
 from typing import cast
 
 from typing_extensions import LiteralString
@@ -20,9 +20,9 @@ class SchemaManager:
         # procrastinate takes full responsibility for the queries, we
         # can safely vouch for them being as safe as if they were
         # defined in the code itself.
-        schema_sql = (
-            importlib_resources.files("procrastinate.sql") / "schema.sql"
-        ).read_text(encoding="utf-8")
+        schema_sql = (resources.files("procrastinate.sql") / "schema.sql").read_text(
+            encoding="utf-8"
+        )
         return cast(LiteralString, schema_sql)
 
     @staticmethod

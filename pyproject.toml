@@ -35,6 +35,7 @@ psycopg = { extras = ["pool"], version = "*" }
 psycopg2-binary = { version = "*", optional = true }
 python-dateutil = "*"
 sqlalchemy = { version = "^2.0", optional = true }
+typing-extensions = "*"
 sphinx = { version = "*", optional = true }
 
 [tool.poetry.extras]
@@ -97,6 +98,7 @@ Sphinx = "*"
 sphinx-copybutton = "*"
 sphinx-github-changelog = "*"
 sphinxcontrib-programoutput = "*"
+sphinxcontrib-mermaid = "*"
 myst-parser = "*"
 
 [tool.poetry-dynamic-versioning]
@@ -104,16 +106,7 @@ enable = true
 pattern = '(?P<base>\d+(\.\d+)*)([-._]?((?P<stage>[a-zA-Z]+)[-._]?(?P<revision>\d+)?))?$'
 
 [tool.pytest.ini_options]
-addopts = [
-    "--cov-report=term-missing",
-    "--cov-report=html",
-    "--cov-branch",
-    "--cov=procrastinate",
-    "-vv",
-    "--strict-markers",
-    "-rfE",
-    "--reuse-db",
-]
+addopts = ["-vv", "--strict-markers", "-rfE", "--reuse-db"]
 testpaths = [
     "tests/unit",
     "tests/integration",

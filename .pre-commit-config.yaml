@@ -46,11 +46,12 @@ repos:
           - python-dateutil==2.9.0.post0
           - sphinx==7.4.7
           - sqlalchemy==2.0.36
+          - typing-extensions==4.12.2
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.8.4
     hooks:
       - id: ruff
-        args: [--fix, --unsafe-fixes]
+        args: [--fix, --unsafe-fixes, --show-fixes]
       - id: ruff-format
   - repo: https://github.com/PyCQA/doc8
     rev: v1.1.2

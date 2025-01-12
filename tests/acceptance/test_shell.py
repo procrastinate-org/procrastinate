@@ -57,6 +57,7 @@ def read(shell):
     return _
 
 
+@pytest.mark.skip_before_version("3.0.0")
 async def test_shell(read, write, defer):
     assert await read() == [
         "Welcome to the procrastinate shell.   Type help or ? to list commands."
@@ -96,19 +97,19 @@ async def test_shell(read, write, defer):
 
     await write("list_queues")
     assert await read() == [
-        "default: 3 jobs (todo: 1, doing: 0, succeeded: 0, failed: 0, cancelled: 2, aborting: 0, aborted: 0)",
-        "other: 1 jobs (todo: 0, doing: 0, succeeded: 0, failed: 0, cancelled: 1, aborting: 0, aborted: 0)",
+        "default: 3 jobs (todo: 1, doing: 0, succeeded: 0, failed: 0, cancelled: 2, aborted: 0)",
+        "other: 1 jobs (todo: 0, doing: 0, succeeded: 0, failed: 0, cancelled: 1, aborted: 0)",
     ]
 
     await write("list_tasks")
     assert await read() == [
-        "ns:tests.acceptance.app.sum_task: 3 jobs (todo: 1, doing: 0, succeeded: 0, failed: 0, cancelled: 2, aborting: 0, aborted: 0)",
-        "tests.acceptance.app.increment_task: 1 jobs (todo: 0, doing: 0, succeeded: 0, failed: 0, cancelled: 1, aborting: 0, aborted: 0)",
+        "ns:tests.acceptance.app.sum_task: 3 jobs (todo: 1, doing: 0, succeeded: 0, failed: 0, cancelled: 2, aborted: 0)",
+        "tests.acceptance.app.increment_task: 1 jobs (todo: 0, doing: 0, succeeded: 0, failed: 0, cancelled: 1, aborted: 0)",
     ]
 
     await write("list_locks")
     assert await read() == [
-        "a: 1 jobs (todo: 1, doing: 0, succeeded: 0, failed: 0, cancelled: 0, aborting: 0, aborted: 0)",
-        "b: 1 jobs (todo: 0, doing: 0, succeeded: 0, failed: 0, cancelled: 1, aborting: 0, aborted: 0)",
-        "lock: 2 jobs (todo: 0, doing: 0, succeeded: 0, failed: 0, cancelled: 2, aborting: 0, aborted: 0)",
+        "a: 1 jobs (todo: 1, doing: 0, succeeded: 0, failed: 0, cancelled: 0, aborted: 0)",
+        "b: 1 jobs (todo: 0, doing: 0, succeeded: 0, failed: 0, cancelled: 1, aborted: 0)",
+        "lock: 2 jobs (todo: 0, doing: 0, succeeded: 0, failed: 0, cancelled: 2, aborted: 0)",
     ]

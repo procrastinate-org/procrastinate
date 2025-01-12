@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 import contextlib
 import logging
 from collections.abc import AsyncGenerator, AsyncIterator, Iterable
@@ -247,7 +246,7 @@ class PsycopgConnector(connector.BaseAsyncConnector):
 
     @wrap_exceptions()
     async def listen_notify(
-        self, event: asyncio.Event, channels: Iterable[str]
+        self, on_notification: connector.Notify, channels: Iterable[str]
     ) -> None:
         while True:
             async with self._get_standalone_connection() as connection:
@@ -258,14 +257,14 @@ class PsycopgConnector(connector.BaseAsyncConnector):
                             channel_name=channel_name,
                         ),
                     )
-                # Initial set() lets caller know that we're ready to listen
-                event.set()
-                await self._loop_notify(event=event, connection=connection)
+                await self._loop_notify(
+                    on_notification=on_notification, connection=connection
+                )
 
     @wrap_exceptions()
     async def _loop_notify(
         self,
-        event: asyncio.Event,
+        on_notification: connector.Notify,
         connection: psycopg.AsyncConnection,
         timeout: float = connector.LISTEN_TIMEOUT,
     ) -> None:
@@ -273,12 +272,14 @@ class PsycopgConnector(connector.BaseAsyncConnector):
 
         while True:
             try:
-                async for _ in utils.gen_with_timeout(
+                async for notification in utils.gen_with_timeout(
                     aiterable=connection.notifies(),
                     timeout=timeout,
                     raise_timeout=False,
                 ):
-                    event.set()
+                    await on_notification(
+                        channel=notification.channel, payload=notification.payload
+                    )
 
                 await connection.execute("SELECT 1")
             except psycopg.OperationalError:

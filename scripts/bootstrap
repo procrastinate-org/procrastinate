@@ -8,7 +8,7 @@ set -eu
 # between projects.
 
 
-if ! which pre-commit || ! which poetry; then
+if ! which pre-commit || ! which poetry || ! which nox; then
     if ! which pipx; then
         python3 -m pip install --user pipx
         python3 -m pipx ensurepath
@@ -18,6 +18,9 @@ if ! which pre-commit || ! which poetry; then
     fi
     if ! which poetry; then
         pipx install poetry
+    fi
+    if ! which nox; then
+        pipx install nox
     fi
 fi
 

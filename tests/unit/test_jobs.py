@@ -42,6 +42,7 @@ def test_job_get_context(job_factory, scheduled_at, context_scheduled_at):
         "scheduled_at": context_scheduled_at,
         "attempts": 42,
         "call_string": "mytask[12](a='b')",
+        "abort_requested": False,
     }
 
 
@@ -79,6 +80,7 @@ async def test_job_deferrer_defer_async(job_factory, job_manager, connector):
             "scheduled_at": None,
             "status": "todo",
             "task_name": "mytask",
+            "abort_requested": False,
         }
     }
 

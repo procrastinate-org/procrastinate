@@ -9,7 +9,9 @@ import random
 import signal as stdlib_signal
 import string
 import uuid
+from pathlib import Path
 
+import packaging.version
 import psycopg
 import psycopg.conninfo
 import psycopg.sql
@@ -28,6 +30,49 @@ for key in os.environ:
 # Unfortunately, we need the sphinx fixtures even though they generate an "app" fixture
 # that conflicts with our own "app" fixture
 pytest_plugins = ["sphinx.testing.fixtures"]
+
+
+def pytest_addoption(parser: pytest.Parser) -> None:
+    parser.addoption(
+        "--migrate-until",
+        action="store",
+        help="Migrate until a specific migration (including it), "
+        "otherwise the full schema is applied",
+    )
+
+    parser.addoption(
+        "--latest-version",
+        action="store",
+        help="Tells pytest what the latest version is so that "
+        "@pytest.mark.skip_before_version works",
+    )
+
+
+def pytest_configure(config):
+    # register an additional marker
+    config.addinivalue_line(
+        "markers",
+        "skip_before_version(version: str): mark test to run only on versions "
+        "strictly higher than param. Useful for acceptance tests running on the "
+        "stable version",
+    )
+
+
+def pytest_runtest_setup(item):
+    required_version = next(
+        (mark.args[0] for mark in item.iter_markers(name="skip_before_version")), None
+    )
+    latest_version_str = item.config.getoption("--latest-version")
+    if required_version is None or latest_version_str is None:
+        return
+
+    latest_version = packaging.version.Version(latest_version_str)
+    required_version = packaging.version.Version(required_version)
+
+    if latest_version < required_version:
+        pytest.skip(
+            f"Skipping test on version {latest_version}, requires {required_version}"
+        )
 
 
 def cursor_execute(cursor, query, *identifiers):
@@ -79,13 +124,27 @@ def db_factory():
 
 
 @pytest.fixture(scope="session")
-def setup_db():
+def setup_db(request: pytest.FixtureRequest):
     dbname = "procrastinate_test_template"
     db_create(dbname=dbname)
     connector = testing.InMemoryConnector()
 
-    with db_executor(dbname) as execute:
-        execute(schema.SchemaManager(connector=connector).get_schema())
+    migrate_until = request.config.getoption("--migrate-until")
+    if migrate_until is None:
+        with db_executor(dbname) as execute:
+            execute(schema.SchemaManager(connector=connector).get_schema())
+    else:
+        assert isinstance(migrate_until, str)
+        schema_manager = schema.SchemaManager(connector=connector)
+        migrations_path = Path(schema_manager.get_migrations_path())
+        migrations = sorted(migrations_path.glob("*.sql"))
+        for migration in migrations:
+            with migration.open() as f:
+                with db_executor(dbname) as execute:
+                    execute(f.read())
+
+            if migration.name == migrate_until:
+                break
 
     yield dbname
 
@@ -126,7 +185,9 @@ def not_opened_sync_psycopg_connector(psycopg_connection_params):
 
 
 @pytest.fixture
-async def psycopg_connector(not_opened_psycopg_connector):
+async def psycopg_connector(
+    not_opened_psycopg_connector: async_psycopg_connector_module.PsycopgConnector,
+):
     await not_opened_psycopg_connector.open_async()
     yield not_opened_psycopg_connector
     await not_opened_psycopg_connector.close_async()
@@ -168,12 +229,12 @@ def reset_builtin_task_names():
 
 
 @pytest.fixture
-def not_opened_app(connector, reset_builtin_task_names):
+def not_opened_app(connector, reset_builtin_task_names) -> app_module.App:
     return app_module.App(connector=connector)
 
 
 @pytest.fixture
-def app(not_opened_app):
+def app(not_opened_app: app_module.App):
     with not_opened_app.open() as app:
         yield app
 
@@ -184,7 +245,7 @@ def blueprint():
 
 
 @pytest.fixture
-def job_manager(app):
+def job_manager(app: app_module.App):
     return app.job_manager
 
 
