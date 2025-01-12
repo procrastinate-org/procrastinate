@@ -55,3 +55,19 @@ def test_evolve(app: App, job_factory):
         abort_reason=lambda: None,
     )
     assert context.evolve(worker_name="b").worker_name == "b"
+
+
+def test_task(app: App, job_factory):
+    @app.task(name="my_task")
+    def my_task(a, b):
+        return a + b
+
+    job = job_factory(task_name="my_task")
+    context = job_context.JobContext(
+        start_timestamp=time.time(),
+        app=app,
+        job=job,
+        worker_name="a",
+        abort_reason=lambda: None,
+    )
+    assert context.task == my_task

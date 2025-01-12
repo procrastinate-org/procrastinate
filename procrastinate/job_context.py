@@ -8,7 +8,7 @@ from typing import Any, Callable
 import attr
 
 from procrastinate import app as app_module
-from procrastinate import jobs, utils
+from procrastinate import jobs, tasks, utils
 
 
 @attr.dataclass(kw_only=True)
@@ -64,9 +64,16 @@ class JobContext:
 
     additional_context: dict = attr.ib(factory=dict)
 
+    #: Callable returning the reason the job should be aborted (or None if it
+    #: should not be aborted)
     abort_reason: Callable[[], AbortReason | None]
 
     def should_abort(self) -> bool:
+        """
+        Returns True if the job should be aborted: in that case, the job should
+        stop processing as soon as possible and raise raise
+        :py:class:`~exceptions.JobAborted`
+        """
         return bool(self.abort_reason())
 
     def evolve(self, **update: Any) -> JobContext:
@@ -75,3 +82,10 @@ class JobContext:
     @property
     def queues_display(self) -> str:
         return utils.queues_display(self.worker_queues)
+
+    @property
+    def task(self) -> tasks.Task:
+        """
+        The :py:class:`~tasks.Task` associated to the job
+        """
+        return self.app.tasks[self.job.task_name]

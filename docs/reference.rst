@@ -32,7 +32,7 @@ When tasks are created with argument ``pass_context``, they are provided a
 `JobContext` argument:
 
 .. autoclass:: procrastinate.JobContext
-    :members: app, worker_name, worker_queues, job
+    :members: app, worker_name, worker_queues, job, task, should_abort
 
 Blueprints
 ----------
@@ -80,7 +80,7 @@ Exceptions
 .. automodule:: procrastinate.exceptions
     :members: ProcrastinateException, LoadFromPathError,
               ConnectorException, AlreadyEnqueued, AppNotOpen, TaskNotFound,
-              UnboundTaskError
+              UnboundTaskError, JobAborted
 
 Job statuses
 ------------
