@@ -67,7 +67,7 @@
             <a id="nextFileLink" class="nav" href="z_c09aad739bad58cd_models_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.6.4">coverage.py v7.6.4</a>,
-            created at 2025-01-08 19:59 +0000
+            created at 2025-01-12 15:43 +0000
         </p>
         <aside class="hidden">
             <button type="button" class="button_next_chunk" data-shortcut="j"></button>
@@ -85,7 +85,7 @@
     <p class="run"><span class="n"><a id="t1" href="#t1">1</a></span><span class="t"><span class="key">from</span> <span class="nam">__future__</span> <span class="key">import</span> <span class="nam">annotations</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t2" href="#t2">2</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t3" href="#t3">3</a></span><span class="t"><span class="key">import</span> <span class="nam">functools</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t4" href="#t4">4</a></span><span class="t"><span class="key">import</span> <span class="nam">importlib</span><span class="op">.</span><span class="nam">resources</span> <span class="key">as</span> <span class="nam">importlib_resources</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t4" href="#t4">4</a></span><span class="t"><span class="key">from</span> <span class="nam">importlib</span> <span class="key">import</span> <span class="nam">resources</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t5" href="#t5">5</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t6" href="#t6">6</a></span><span class="t"><span class="key">from</span> <span class="nam">django</span><span class="op">.</span><span class="nam">db</span> <span class="key">import</span> <span class="nam">migrations</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t7" href="#t7">7</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
@@ -97,7 +97,7 @@
     <p class="pln"><span class="n"><a id="t13" href="#t13">13</a></span><span class="t"><span class="str">    """</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t14" href="#t14">14</a></span><span class="t">    <span class="key">return</span> <span class="op">{</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t15" href="#t15">15</a></span><span class="t">        <span class="nam">p</span><span class="op">.</span><span class="nam">name</span><span class="op">:</span> <span class="nam">p</span><span class="op">.</span><span class="nam">read_text</span><span class="op">(</span><span class="nam">encoding</span><span class="op">=</span><span class="str">"utf-8"</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t16" href="#t16">16</a></span><span class="t">        <span class="key">for</span> <span class="nam">p</span> <span class="key">in</span> <span class="nam">importlib_resources</span><span class="op">.</span><span class="nam">files</span><span class="op">(</span><span class="str">"procrastinate.sql.migrations"</span><span class="op">)</span><span class="op">.</span><span class="nam">iterdir</span><span class="op">(</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t16" href="#t16">16</a></span><span class="t">        <span class="key">for</span> <span class="nam">p</span> <span class="key">in</span> <span class="nam">resources</span><span class="op">.</span><span class="nam">files</span><span class="op">(</span><span class="str">"procrastinate.sql.migrations"</span><span class="op">)</span><span class="op">.</span><span class="nam">iterdir</span><span class="op">(</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t17" href="#t17">17</a></span><span class="t">        <span class="key">if</span> <span class="nam">p</span><span class="op">.</span><span class="nam">name</span><span class="op">.</span><span class="nam">endswith</span><span class="op">(</span><span class="str">".sql"</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t18" href="#t18">18</a></span><span class="t">    <span class="op">}</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t19" href="#t19">19</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
@@ -119,7 +119,7 @@
             <a class="nav" href="z_c09aad739bad58cd_models_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.6.4">coverage.py v7.6.4</a>,
-            created at 2025-01-08 19:59 +0000
+            created at 2025-01-12 15:43 +0000
         </p>
     </div>
 </footer>

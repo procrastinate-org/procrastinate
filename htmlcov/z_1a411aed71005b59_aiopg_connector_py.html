@@ -55,8 +55,8 @@
             </div>
         </aside>
         <h2>
-            <span class="text">149 statements &nbsp;</span>
-            <button type="button" class="run button_toggle_run" value="run" data-shortcut="r" title="Toggle lines run">147<span class="text"> run</span></button>
+            <span class="text">148 statements &nbsp;</span>
+            <button type="button" class="run button_toggle_run" value="run" data-shortcut="r" title="Toggle lines run">146<span class="text"> run</span></button>
             <button type="button" class="mis show_mis button_toggle_mis" value="mis" data-shortcut="m" title="Toggle lines missing">2<span class="text"> missing</span></button>
             <button type="button" class="exc show_exc button_toggle_exc" value="exc" data-shortcut="x" title="Toggle lines excluded">0<span class="text"> excluded</span></button>
             <button type="button" class="par run show_par button_toggle_par" value="par" data-shortcut="p" title="Toggle lines partially run">1<span class="text"> partial</span></button>
@@ -67,7 +67,7 @@
             <a id="nextFileLink" class="nav" href="z_c09aad739bad58cd___init___py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.6.4">coverage.py v7.6.4</a>,
-            created at 2025-01-08 19:59 +0000
+            created at 2025-01-12 15:43 +0000
         </p>
         <aside class="hidden">
             <button type="button" class="button_next_chunk" data-shortcut="j"></button>
@@ -368,7 +368,7 @@
     <p class="pln"><span class="n"><a id="t284" href="#t284">284</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t285" href="#t285">285</a></span><span class="t">    <span class="op">@</span><span class="nam">wrap_exceptions</span><span class="op">(</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t286" href="#t286">286</a></span><span class="t">    <span class="key">async</span> <span class="key">def</span> <span class="nam">listen_notify</span><span class="op">(</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t287" href="#t287">287</a></span><span class="t">        <span class="nam">self</span><span class="op">,</span> <span class="nam">event</span><span class="op">:</span> <span class="nam">asyncio</span><span class="op">.</span><span class="nam">Event</span><span class="op">,</span> <span class="nam">channels</span><span class="op">:</span> <span class="nam">Iterable</span><span class="op">[</span><span class="nam">str</span><span class="op">]</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t287" href="#t287">287</a></span><span class="t">        <span class="nam">self</span><span class="op">,</span> <span class="nam">on_notification</span><span class="op">:</span> <span class="nam">connector</span><span class="op">.</span><span class="nam">Notify</span><span class="op">,</span> <span class="nam">channels</span><span class="op">:</span> <span class="nam">Iterable</span><span class="op">[</span><span class="nam">str</span><span class="op">]</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t288" href="#t288">288</a></span><span class="t">    <span class="op">)</span> <span class="op">-></span> <span class="key">None</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t289" href="#t289">289</a></span><span class="t">        <span class="com"># We need to acquire a dedicated connection, and use the listen</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t290" href="#t290">290</a></span><span class="t">        <span class="com"># query</span>&nbsp;</span><span class="r"></span></p>
@@ -389,14 +389,14 @@
     <p class="pln"><span class="n"><a id="t305" href="#t305">305</a></span><span class="t">                            <span class="nam">query</span><span class="op">=</span><span class="nam">sql</span><span class="op">.</span><span class="nam">queries</span><span class="op">[</span><span class="str">"listen_queue"</span><span class="op">]</span><span class="op">,</span> <span class="nam">channel_name</span><span class="op">=</span><span class="nam">channel_name</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t306" href="#t306">306</a></span><span class="t">                        <span class="op">)</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t307" href="#t307">307</a></span><span class="t">                    <span class="op">)</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t308" href="#t308">308</a></span><span class="t">                <span class="com"># Initial set() lets caller know that we're ready to listen</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t309" href="#t309">309</a></span><span class="t">                <span class="nam">event</span><span class="op">.</span><span class="nam">set</span><span class="op">(</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t310" href="#t310">310</a></span><span class="t">                <span class="key">await</span> <span class="nam">self</span><span class="op">.</span><span class="nam">_loop_notify</span><span class="op">(</span><span class="nam">event</span><span class="op">=</span><span class="nam">event</span><span class="op">,</span> <span class="nam">connection</span><span class="op">=</span><span class="nam">connection</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t308" href="#t308">308</a></span><span class="t">                <span class="key">await</span> <span class="nam">self</span><span class="op">.</span><span class="nam">_loop_notify</span><span class="op">(</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t309" href="#t309">309</a></span><span class="t">                    <span class="nam">on_notification</span><span class="op">=</span><span class="nam">on_notification</span><span class="op">,</span> <span class="nam">connection</span><span class="op">=</span><span class="nam">connection</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t310" href="#t310">310</a></span><span class="t">                <span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t311" href="#t311">311</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t312" href="#t312">312</a></span><span class="t">    <span class="op">@</span><span class="nam">wrap_exceptions</span><span class="op">(</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t313" href="#t313">313</a></span><span class="t">    <span class="key">async</span> <span class="key">def</span> <span class="nam">_loop_notify</span><span class="op">(</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t314" href="#t314">314</a></span><span class="t">        <span class="nam">self</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t315" href="#t315">315</a></span><span class="t">        <span class="nam">event</span><span class="op">:</span> <span class="nam">asyncio</span><span class="op">.</span><span class="nam">Event</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t315" href="#t315">315</a></span><span class="t">        <span class="nam">on_notification</span><span class="op">:</span> <span class="nam">connector</span><span class="op">.</span><span class="nam">Notify</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t316" href="#t316">316</a></span><span class="t">        <span class="nam">connection</span><span class="op">:</span> <span class="nam">aiopg</span><span class="op">.</span><span class="nam">Connection</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t317" href="#t317">317</a></span><span class="t">        <span class="nam">timeout</span><span class="op">:</span> <span class="nam">float</span> <span class="op">=</span> <span class="nam">connector</span><span class="op">.</span><span class="nam">LISTEN_TIMEOUT</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t318" href="#t318">318</a></span><span class="t">    <span class="op">)</span> <span class="op">-></span> <span class="key">None</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
@@ -409,15 +409,18 @@
     <p class="run"><span class="n"><a id="t325" href="#t325">325</a></span><span class="t">            <span class="key">if</span> <span class="nam">connection</span><span class="op">.</span><span class="nam">closed</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t326" href="#t326">326</a></span><span class="t">                <span class="key">return</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t327" href="#t327">327</a></span><span class="t">            <span class="key">try</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t328" href="#t328">328</a></span><span class="t">                <span class="key">await</span> <span class="nam">asyncio</span><span class="op">.</span><span class="nam">wait_for</span><span class="op">(</span><span class="nam">connection</span><span class="op">.</span><span class="nam">notifies</span><span class="op">.</span><span class="nam">get</span><span class="op">(</span><span class="op">)</span><span class="op">,</span> <span class="nam">timeout</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t329" href="#t329">329</a></span><span class="t">            <span class="key">except</span> <span class="nam">asyncio</span><span class="op">.</span><span class="nam">TimeoutError</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t330" href="#t330">330</a></span><span class="t">                <span class="key">continue</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t331" href="#t331">331</a></span><span class="t">            <span class="key">except</span> <span class="nam">psycopg2</span><span class="op">.</span><span class="nam">Error</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t332" href="#t332">332</a></span><span class="t">                <span class="com"># aiopg>=1.3.1 will raise if the connection is closed while</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t333" href="#t333">333</a></span><span class="t">                <span class="com"># we wait</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t334" href="#t334">334</a></span><span class="t">                <span class="key">continue</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t335" href="#t335">335</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t336" href="#t336">336</a></span><span class="t">            <span class="nam">event</span><span class="op">.</span><span class="nam">set</span><span class="op">(</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t328" href="#t328">328</a></span><span class="t">                <span class="nam">notification</span> <span class="op">=</span> <span class="key">await</span> <span class="nam">asyncio</span><span class="op">.</span><span class="nam">wait_for</span><span class="op">(</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t329" href="#t329">329</a></span><span class="t">                    <span class="nam">connection</span><span class="op">.</span><span class="nam">notifies</span><span class="op">.</span><span class="nam">get</span><span class="op">(</span><span class="op">)</span><span class="op">,</span> <span class="nam">timeout</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t330" href="#t330">330</a></span><span class="t">                <span class="op">)</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t331" href="#t331">331</a></span><span class="t">                <span class="key">await</span> <span class="nam">on_notification</span><span class="op">(</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t332" href="#t332">332</a></span><span class="t">                    <span class="nam">channel</span><span class="op">=</span><span class="nam">notification</span><span class="op">.</span><span class="nam">channel</span><span class="op">,</span> <span class="nam">payload</span><span class="op">=</span><span class="nam">notification</span><span class="op">.</span><span class="nam">payload</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t333" href="#t333">333</a></span><span class="t">                <span class="op">)</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t334" href="#t334">334</a></span><span class="t">            <span class="key">except</span> <span class="nam">asyncio</span><span class="op">.</span><span class="nam">TimeoutError</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t335" href="#t335">335</a></span><span class="t">                <span class="key">continue</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t336" href="#t336">336</a></span><span class="t">            <span class="key">except</span> <span class="nam">psycopg2</span><span class="op">.</span><span class="nam">Error</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t337" href="#t337">337</a></span><span class="t">                <span class="com"># aiopg>=1.3.1 will raise if the connection is closed while</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t338" href="#t338">338</a></span><span class="t">                <span class="com"># we wait</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t339" href="#t339">339</a></span><span class="t">                <span class="key">continue</span>&nbsp;</span><span class="r"></span></p>
 </main>
 <footer>
     <div class="content">
@@ -427,7 +430,7 @@
             <a class="nav" href="z_c09aad739bad58cd___init___py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.6.4">coverage.py v7.6.4</a>,
-            created at 2025-01-08 19:59 +0000
+            created at 2025-01-12 15:43 +0000
         </p>
     </div>
 </footer>
