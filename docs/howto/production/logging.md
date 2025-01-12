@@ -53,7 +53,6 @@ shared_processors = [
     structlog.stdlib.add_log_level,
     structlog.processors.StackInfoRenderer(),
     structlog.dev.set_exc_info,
-    structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
 ]
 
 structlog.configure(
