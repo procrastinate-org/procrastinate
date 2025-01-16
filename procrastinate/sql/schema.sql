@@ -180,7 +180,7 @@ BEGIN
                         WHERE
                             jobs.lock IS NOT NULL
                             AND jobs_with_locks.lock = jobs.lock
-                            AND jobs_with_locks.status = 'doing'
+                            AND jobs_with_locks.status in ('doing', 'aborting')
                             LIMIT 1
                     ))
                     AND jobs.status = 'todo'
