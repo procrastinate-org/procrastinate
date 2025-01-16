@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import asyncio
-from typing import Any, Callable, Iterable
+from collections.abc import Awaitable, Iterable
+from typing import Any, Callable, Protocol
 
 from typing_extensions import LiteralString
 
@@ -11,6 +11,10 @@ Pool = Any
 Engine = Any
 
 LISTEN_TIMEOUT = 30.0
+
+
+class Notify(Protocol):
+    def __call__(self, *, channel: str, payload: str) -> Awaitable[None]: ...
 
 
 class BaseConnector:
@@ -59,7 +63,9 @@ class BaseConnector:
         raise exceptions.SyncConnectorConfigurationError
 
     async def listen_notify(
-        self, event: asyncio.Event, channels: Iterable[str]
+        self,
+        on_notification: Notify,
+        channels: Iterable[str],
     ) -> None:
         raise exceptions.SyncConnectorConfigurationError
 
@@ -98,6 +104,6 @@ class BaseAsyncConnector(BaseConnector):
         return utils.async_to_sync(self.execute_query_all_async, query, **arguments)
 
     async def listen_notify(
-        self, event: asyncio.Event, channels: Iterable[str]
+        self, on_notification: Notify, channels: Iterable[str]
     ) -> None:
         raise NotImplementedError

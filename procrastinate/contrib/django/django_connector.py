@@ -1,12 +1,10 @@
 from __future__ import annotations
 
-import asyncio
 import contextlib
+from collections.abc import Generator, Iterable
 from typing import (
     TYPE_CHECKING,
     Any,
-    Generator,
-    Iterable,
 )
 
 import asgiref.sync
@@ -141,7 +139,7 @@ class DjangoConnector(connector.BaseAsyncConnector):
             return list(self._dictfetch(cursor))
 
     async def listen_notify(
-        self, event: asyncio.Event, channels: Iterable[str]
+        self, on_notification: connector.Notify, channels: Iterable[str]
     ) -> None:
         raise NotImplementedError(
             "listen/notify is not supported with Django connector"

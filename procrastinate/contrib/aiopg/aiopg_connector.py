@@ -3,7 +3,8 @@ from __future__ import annotations
 import asyncio
 import functools
 import logging
-from typing import Any, AsyncGenerator, Callable, Coroutine, Iterable
+from collections.abc import AsyncGenerator, Coroutine, Iterable
+from typing import Any, Callable
 
 import aiopg
 import psycopg2
@@ -283,7 +284,7 @@ class AiopgConnector(connector.BaseAsyncConnector):
 
     @wrap_exceptions()
     async def listen_notify(
-        self, event: asyncio.Event, channels: Iterable[str]
+        self, on_notification: connector.Notify, channels: Iterable[str]
     ) -> None:
         # We need to acquire a dedicated connection, and use the listen
         # query
@@ -304,14 +305,14 @@ class AiopgConnector(connector.BaseAsyncConnector):
                             query=sql.queries["listen_queue"], channel_name=channel_name
                         ),
                     )
-                # Initial set() lets caller know that we're ready to listen
-                event.set()
-                await self._loop_notify(event=event, connection=connection)
+                await self._loop_notify(
+                    on_notification=on_notification, connection=connection
+                )
 
     @wrap_exceptions()
     async def _loop_notify(
         self,
-        event: asyncio.Event,
+        on_notification: connector.Notify,
         connection: aiopg.Connection,
         timeout: float = connector.LISTEN_TIMEOUT,
     ) -> None:
@@ -324,12 +325,15 @@ class AiopgConnector(connector.BaseAsyncConnector):
             if connection.closed:
                 return
             try:
-                await asyncio.wait_for(connection.notifies.get(), timeout)
+                notification = await asyncio.wait_for(
+                    connection.notifies.get(), timeout
+                )
+                await on_notification(
+                    channel=notification.channel, payload=notification.payload
+                )
             except asyncio.TimeoutError:
                 continue
             except psycopg2.Error:
                 # aiopg>=1.3.1 will raise if the connection is closed while
                 # we wait
                 continue
-
-            event.set()

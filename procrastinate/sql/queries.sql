@@ -5,17 +5,17 @@
 
 -- defer_job --
 -- Create and enqueue a job
-SELECT procrastinate_defer_job(%(queue)s, %(task_name)s, %(priority)s, %(lock)s, %(queueing_lock)s, %(args)s, %(scheduled_at)s) AS id;
+SELECT procrastinate_defer_job_v1(%(queue)s, %(task_name)s, %(priority)s, %(lock)s, %(queueing_lock)s, %(args)s, %(scheduled_at)s) AS id;
 
 -- defer_periodic_job --
 -- Create a periodic job if it doesn't already exist, and delete periodic metadata
 -- for previous jobs in the same task.
-SELECT procrastinate_defer_periodic_job(%(queue)s, %(lock)s, %(queueing_lock)s, %(task_name)s, %(priority)s, %(periodic_id)s, %(defer_timestamp)s, %(args)s) AS id;
+SELECT procrastinate_defer_periodic_job_v1(%(queue)s, %(lock)s, %(queueing_lock)s, %(task_name)s, %(priority)s, %(periodic_id)s, %(defer_timestamp)s, %(args)s) AS id;
 
 -- fetch_job --
 -- Get the first awaiting job
 SELECT id, status, task_name, priority, lock, queueing_lock, args, scheduled_at, queue_name, attempts
-    FROM procrastinate_fetch_job(%(queues)s);
+    FROM procrastinate_fetch_job_v1(%(queues)s::varchar[]);
 
 -- fetch_job_without_lock --
 -- Get the first awaiting job
@@ -53,11 +53,11 @@ WHERE id IN (
 
 -- finish_job --
 -- Finish a job, changing it from "doing" to "succeeded" or "failed"
-SELECT procrastinate_finish_job(%(job_id)s, %(status)s, %(delete_job)s);
+SELECT procrastinate_finish_job_v1(%(job_id)s, %(status)s, %(delete_job)s);
 
 -- cancel_job --
--- Cancel a job, changing it from "todo" to "cancelled" or from "doing" to "aborting"
-SELECT procrastinate_cancel_job(%(job_id)s, %(abort)s, %(delete_job)s) AS id;
+-- Cancel a job, changing it from "todo" to "cancelled" or mark for abortion
+SELECT procrastinate_cancel_job_v1(%(job_id)s, %(abort)s, %(delete_job)s) AS id;
 
 -- get_job_status --
 -- Get the status of a job
@@ -65,7 +65,7 @@ SELECT status FROM procrastinate_jobs WHERE id = %(job_id)s;
 
 -- retry_job --
 -- Retry a job, changing it from "doing" to "todo"
-SELECT procrastinate_retry_job(%(job_id)s, %(retry_at)s, %(new_priority)s, %(new_queue_name)s, %(new_lock)s);
+SELECT procrastinate_retry_job_v1(%(job_id)s, %(retry_at)s, %(new_priority)s, %(new_queue_name)s, %(new_lock)s);
 
 -- listen_queue --
 -- In this one, the argument is an identifier, shoud not be escaped the same way
@@ -90,7 +90,8 @@ SELECT id,
        args,
        status,
        scheduled_at,
-       attempts
+       attempts,
+       abort_requested
   FROM procrastinate_jobs
  WHERE (%(id)s::bigint IS NULL OR id = %(id)s)
    AND (%(queue_name)s::varchar IS NULL OR queue_name = %(queue_name)s)
@@ -192,3 +193,10 @@ SELECT
 FROM locks
 GROUP BY name
 ORDER BY name;
+
+-- list_jobs_to_abort --
+-- Get list of running jobs that are requested to be aborted
+SELECT id from procrastinate_jobs
+WHERE status = 'doing'
+AND abort_requested = true
+AND (%(queue_name)s::varchar IS NULL OR queue_name = %(queue_name)s)

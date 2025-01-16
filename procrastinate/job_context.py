@@ -1,112 +1,91 @@
 from __future__ import annotations
 
 import time
-from typing import Any, Iterable
+from collections.abc import Iterable
+from enum import Enum
+from typing import Any, Callable
 
 import attr
 
 from procrastinate import app as app_module
-from procrastinate import jobs, tasks, types
+from procrastinate import jobs, tasks, utils
 
 
 @attr.dataclass(kw_only=True)
 class JobResult:
-    start_timestamp: float | None = None
+    start_timestamp: float
     end_timestamp: float | None = None
     result: Any = None
 
     def duration(self, current_timestamp: float) -> float | None:
-        if self.start_timestamp is None:
-            return None
         return (self.end_timestamp or current_timestamp) - self.start_timestamp
 
     def as_dict(self):
         result = {}
-        if self.start_timestamp:
-            result.update(
-                {
-                    "start_timestamp": self.start_timestamp,
-                    "duration": self.duration(current_timestamp=time.time()),
-                }
-            )
+        result.update(
+            {
+                "start_timestamp": self.start_timestamp,
+                "duration": self.duration(current_timestamp=time.time()),
+            }
+        )
+
         if self.end_timestamp:
             result.update({"end_timestamp": self.end_timestamp, "result": self.result})
         return result
+
+
+class AbortReason(Enum):
+    """
+    An enumeration of reasons a job is being aborted
+    """
+
+    USER_REQUEST = "user_request"  #: The user requested to abort the job
+    SHUTDOWN = (
+        "shutdown"  #: The job is being aborted as part of shutting down the worker
+    )
 
 
 @attr.dataclass(frozen=True, kw_only=True)
 class JobContext:
     """
     Execution context of a running job.
-    In theory, all attributes are optional. In practice, in a task, they will
-    always be set to their proper value.
     """
 
     #: Procrastinate `App` running this job
-    app: app_module.App | None = None
+    app: app_module.App
     #: Name of the worker (may be useful for logging)
     worker_name: str | None = None
     #: Queues listened by this worker
     worker_queues: Iterable[str] | None = None
-    #: In case there are multiple async sub-workers, this is the id of the sub-worker.
-    worker_id: int | None = None
     #: Corresponding :py:class:`~jobs.Job`
-    job: jobs.Job | None = None
-    #: Corresponding :py:class:`~tasks.Task`
-    task: tasks.Task[Any, Any, Any] | None = None
-    job_result: JobResult = attr.ib(factory=JobResult)
+    job: jobs.Job
+    #: Time the job started to be processed
+    start_timestamp: float
+
     additional_context: dict = attr.ib(factory=dict)
 
-    def log_extra(self, action: str, **kwargs: Any) -> types.JSONDict:
-        extra: types.JSONDict = {
-            "action": action,
-            "worker": {
-                "name": self.worker_name,
-                "id": self.worker_id,
-                "queues": self.worker_queues,
-            },
-        }
-        if self.job:
-            extra["job"] = self.job.log_context()
+    #: Callable returning the reason the job should be aborted (or None if it
+    #: should not be aborted)
+    abort_reason: Callable[[], AbortReason | None]
 
-        return {**extra, **self.job_result.as_dict(), **kwargs}
+    def should_abort(self) -> bool:
+        """
+        Returns True if the job should be aborted: in that case, the job should
+        stop processing as soon as possible and raise raise
+        :py:class:`~exceptions.JobAborted`
+        """
+        return bool(self.abort_reason())
 
     def evolve(self, **update: Any) -> JobContext:
         return attr.evolve(self, **update)
 
     @property
     def queues_display(self) -> str:
-        if self.worker_queues:
-            return f"queues {', '.join(self.worker_queues)}"
-        else:
-            return "all queues"
+        return utils.queues_display(self.worker_queues)
 
-    def job_description(self, current_timestamp: float) -> str:
-        message = f"worker {self.worker_id}: "
-        if self.job:
-            message += self.job.call_string
-            duration = self.job_result.duration(current_timestamp)
-            if duration is not None:
-                message += f" (started {duration:.3f} s ago)"
-        else:
-            message += "no current job"
-
-        return message
-
-    def should_abort(self) -> bool:
-        assert self.app
-        assert self.job
-        assert self.job.id
-
-        job_id = self.job.id
-        status = self.app.job_manager.get_job_status(job_id)
-        return status == jobs.Status.ABORTING
-
-    async def should_abort_async(self) -> bool:
-        assert self.app
-        assert self.job
-        assert self.job.id
-
-        job_id = self.job.id
-        status = await self.app.job_manager.get_job_status_async(job_id)
-        return status == jobs.Status.ABORTING
+    @property
+    def task(self) -> tasks.Task:
+        """
+        The :py:class:`~tasks.Task` associated to the job
+        """
+        return self.app.tasks[self.job.task_name]

@@ -27,5 +27,5 @@ async def aiopg_connector_factory(connection_params):
 
 
 @pytest.fixture
-async def aiopg_connector(aiopg_connector_factory):
+async def aiopg_connector(aiopg_connector_factory) -> aiopg.AiopgConnector:
     return await aiopg_connector_factory()

@@ -1,22 +1,33 @@
 from __future__ import annotations
 
-import asyncio
 import datetime
+import json
 import logging
-from typing import Any, Iterable, NoReturn
+from collections.abc import Awaitable, Iterable
+from typing import Any, NoReturn, Protocol
 
 from procrastinate import connector, exceptions, jobs, sql, utils
 
 logger = logging.getLogger(__name__)
 
-QUEUEING_LOCK_CONSTRAINT = "procrastinate_jobs_queueing_lock_idx"
+QUEUEING_LOCK_CONSTRAINT = "procrastinate_jobs_queueing_lock_idx_v1"
+
+# TODO: Only necessary to make it work with the pre-migration of v3.0.0.
+# We can remove this in the next minor version.
+QUEUEING_LOCK_CONSTRAINT_LEGACY = "procrastinate_jobs_queueing_lock_idx"
+
+
+class NotificationCallback(Protocol):
+    def __call__(
+        self, *, channel: str, notification: jobs.Notification
+    ) -> Awaitable[None]: ...
 
 
 def get_channel_for_queues(queues: Iterable[str] | None = None) -> Iterable[str]:
     if queues is None:
-        return ["procrastinate_any_queue"]
+        return ["procrastinate_any_queue_v1"]
     else:
-        return ["procrastinate_queue#" + queue for queue in queues]
+        return ["procrastinate_queue_v1#" + queue for queue in queues]
 
 
 class JobManager:
@@ -75,7 +86,10 @@ class JobManager:
     def _raise_already_enqueued(
         self, exc: exceptions.UniqueViolation, queueing_lock: str | None
     ) -> NoReturn:
-        if exc.constraint_name == QUEUEING_LOCK_CONSTRAINT:
+        if exc.constraint_name in [
+            QUEUEING_LOCK_CONSTRAINT,
+            QUEUEING_LOCK_CONSTRAINT_LEGACY,
+        ]:
             raise exceptions.AlreadyEnqueued(
                 "Job cannot be enqueued: there is already a job in the queue "
                 f"with the queueing lock {queueing_lock}"
@@ -183,7 +197,7 @@ class JobManager:
         self,
         nb_hours: int,
         queue: str | None = None,
-        include_error: bool | None = False,
+        include_failed: bool | None = False,
         include_cancelled: bool | None = False,
         include_aborted: bool | None = False,
     ) -> None:
@@ -198,7 +212,7 @@ class JobManager:
             Consider jobs that been in a final state for more than ``nb_hours``
         queue:
             Filter by job queue name
-        include_error:
+        include_failed:
             If ``True``, also consider errored jobs. ``False`` by default
         include_cancelled:
             If ``True``, also consider cancelled jobs. ``False`` by default.
@@ -207,7 +221,7 @@ class JobManager:
         """
         # We only consider finished jobs by default
         statuses = [jobs.Status.SUCCEEDED.value]
-        if include_error:
+        if include_failed:
             statuses.append(jobs.Status.FAILED.value)
         if include_cancelled:
             statuses.append(jobs.Status.CANCELLED.value)
@@ -265,9 +279,9 @@ class JobManager:
         job_id:
             The id of the job to cancel
         abort:
-            If True, a job in ``doing`` state will be marked as ``aborting``, but the task
-            itself has to respect the abortion request. If False, only jobs in ``todo``
-            state will be set to ``cancelled`` and won't be processed by a worker anymore.
+            If True, a job will be marked for abortion, but the task itself has to
+            respect the abortion request. If False, only jobs in ``todo`` state will
+            be set to ``cancelled`` and won't be processed by a worker anymore.
         delete_job:
             If True, the job will be deleted from the database after being cancelled. Does
             not affect the jobs that should be aborted.
@@ -303,9 +317,9 @@ class JobManager:
         job_id:
             The id of the job to cancel
         abort:
-            If True, a job in ``doing`` state will be marked as ``aborting``, but the task
-            itself has to respect the abortion request. If False, only jobs in ``todo``
-            state will be set to ``cancelled`` and won't be processed by a worker anymore.
+            If True, a job will be marked for abortion, but the task itself has to
+            respect the abortion request. If False, only jobs in ``todo`` state will
+            be set to ``cancelled`` and won't be processed by a worker anymore.
         delete_job:
             If True, the job will be deleted from the database after being cancelled. Does
             not affect the jobs that should be aborted.
@@ -461,26 +475,39 @@ class JobManager:
         )
 
     async def listen_for_jobs(
-        self, *, event: asyncio.Event, queues: Iterable[str] | None = None
+        self,
+        *,
+        on_notification: NotificationCallback,
+        queues: Iterable[str] | None = None,
     ) -> None:
         """
-        Listens to defer operation in the database, and raises the event each time an
-        defer operation is seen.
+        Listens to job notifications from the database, and invokes the callback each time an
+        notification is received.
 
         This coroutine either returns ``None`` upon calling if it cannot start
         listening or does not return and needs to be cancelled to end.
 
         Parameters
         ----------
-        event:
-            This event will be set each time a defer operation occurs
-        queues:
-            If ``None``, all defer operations will be considered. If an iterable of
+        on_notification : ``connector.Notify``
+            A coroutine that will be called and awaited every time a notification is received
+        queues : ``Optional[Iterable[str]]``
+            If ``None``, all notification will be considered. If an iterable of
             queue names is passed, only defer operations on those queues will be
             considered. Defaults to ``None``
         """
+
+        async def handle_notification(channel: str, payload: str):
+            notification: jobs.Notification = json.loads(payload)
+            logger.debug(
+                f"Received {notification['type']} notification from channel",
+                extra={channel: channel, payload: payload},
+            )
+            await on_notification(channel=channel, notification=notification)
+
         await self.connector.listen_notify(
-            event=event, channels=get_channel_for_queues(queues=queues)
+            on_notification=handle_notification,
+            channels=get_channel_for_queues(queues=queues),
         )
 
     async def check_connection_async(self) -> bool:
@@ -557,7 +584,7 @@ class JobManager:
         status: str | None = None,
         lock: str | None = None,
         queueing_lock: str | None = None,
-    ) -> Iterable[jobs.Job]:
+    ) -> list[jobs.Job]:
         """
         Sync version of `list_jobs_async`
         """
@@ -597,8 +624,7 @@ class JobManager:
         -------
         :
             A list of dictionaries representing queues stats (``name``, ``jobs_count``,
-            ``todo``, ``doing``, ``succeeded``, ``failed``, ``cancelled``, ``aborting``,
-            ``aborted``).
+            ``todo``, ``doing``, ``succeeded``, ``failed``, ``cancelled``, ``aborted``).
         """
         return [
             {
@@ -609,7 +635,6 @@ class JobManager:
                 "succeeded": row["stats"].get("succeeded", 0),
                 "failed": row["stats"].get("failed", 0),
                 "cancelled": row["stats"].get("cancelled", 0),
-                "aborting": row["stats"].get("aborting", 0),
                 "aborted": row["stats"].get("aborted", 0),
             }
             for row in await self.connector.execute_query_all_async(
@@ -640,7 +665,6 @@ class JobManager:
                 "succeeded": row["stats"].get("succeeded", 0),
                 "failed": row["stats"].get("failed", 0),
                 "cancelled": row["stats"].get("cancelled", 0),
-                "aborting": row["stats"].get("aborting", 0),
                 "aborted": row["stats"].get("aborted", 0),
             }
             for row in self.connector.get_sync_connector().execute_query_all(
@@ -677,8 +701,7 @@ class JobManager:
         -------
         :
             A list of dictionaries representing tasks stats (``name``, ``jobs_count``,
-            ``todo``, ``doing``, ``succeeded``, ``failed``, ``cancelled``, ``aborting``,
-            ``aborted``).
+            ``todo``, ``doing``, ``succeeded``, ``failed``, ``cancelled``, ``aborted``).
         """
         return [
             {
@@ -689,7 +712,6 @@ class JobManager:
                 "succeeded": row["stats"].get("succeeded", 0),
                 "failed": row["stats"].get("failed", 0),
                 "cancelled": row["stats"].get("cancelled", 0),
-                "aborting": row["stats"].get("aborting", 0),
                 "aborted": row["stats"].get("aborted", 0),
             }
             for row in await self.connector.execute_query_all_async(
@@ -720,7 +742,6 @@ class JobManager:
                 "succeeded": row["stats"].get("succeeded", 0),
                 "failed": row["stats"].get("failed", 0),
                 "cancelled": row["stats"].get("cancelled", 0),
-                "aborting": row["stats"].get("aborting", 0),
                 "aborted": row["stats"].get("aborted", 0),
             }
             for row in self.connector.get_sync_connector().execute_query_all(
@@ -757,8 +778,7 @@ class JobManager:
         -------
         :
             A list of dictionaries representing locks stats (``name``, ``jobs_count``,
-            ``todo``, ``doing``, ``succeeded``, ``failed``, ``cancelled``, ``aborting``,
-            ``aborted``).
+            ``todo``, ``doing``, ``succeeded``, ``failed``, ``cancelled``, ``aborted``).
         """
         result = []
         for row in await self.connector.execute_query_all_async(
@@ -777,7 +797,6 @@ class JobManager:
                     "succeeded": row["stats"].get("succeeded", 0),
                     "failed": row["stats"].get("failed", 0),
                     "cancelled": row["stats"].get("cancelled", 0),
-                    "aborting": row["stats"].get("aborting", 0),
                     "aborted": row["stats"].get("aborted", 0),
                 }
             )
@@ -810,8 +829,16 @@ class JobManager:
                     "succeeded": row["stats"].get("succeeded", 0),
                     "failed": row["stats"].get("failed", 0),
                     "cancelled": row["stats"].get("cancelled", 0),
-                    "aborting": row["stats"].get("aborting", 0),
                     "aborted": row["stats"].get("aborted", 0),
                 }
             )
         return result
+
+    async def list_jobs_to_abort_async(self, queue: str | None = None) -> Iterable[int]:
+        """
+        List ids of running jobs to abort
+        """
+        rows = await self.connector.execute_query_all_async(
+            query=sql.queries["list_jobs_to_abort"], queue_name=queue
+        )
+        return [row["id"] for row in rows]

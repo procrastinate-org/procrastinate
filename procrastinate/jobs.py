@@ -4,9 +4,10 @@ import datetime
 import functools
 import logging
 from enum import Enum
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, TypedDict, Union
 
 import attr
+from typing_extensions import Literal
 
 from procrastinate import types
 
@@ -20,6 +21,19 @@ DEFAULT_QUEUE = "default"
 DEFAULT_PRIORITY = 0
 
 cached_property = getattr(functools, "cached_property", property)
+
+
+class JobInserted(TypedDict):
+    type: Literal["job_inserted"]
+    job_id: int
+
+
+class AbortJobRequested(TypedDict):
+    type: Literal["abort_job_requested"]
+    job_id: int
+
+
+Notification = Union[JobInserted, AbortJobRequested]
 
 
 def check_aware(
@@ -39,8 +53,18 @@ class Status(Enum):
     SUCCEEDED = "succeeded"  #: The job ended successfully
     FAILED = "failed"  #: The job ended with an error
     CANCELLED = "cancelled"  #: The job was cancelled
-    ABORTING = "aborting"  #: The job is requested to be aborted
+    ABORTING = "aborting"  #: legacy, not used anymore
     ABORTED = "aborted"  #: The job was aborted
+
+
+class DeleteJobCondition(Enum):
+    """
+    An enumeration with all the possible conditions to delete a job
+    """
+
+    NEVER = "never"  #: Keep jobs in database after completion
+    SUCCESSFUL = "successful"  #: Delete only successful jobs
+    ALWAYS = "always"  #: Always delete jobs at completion
 
 
 @attr.dataclass(frozen=True, kw_only=True)
@@ -73,6 +97,9 @@ class Job:
     #: Number of times the job has been tried.
     attempts: int = 0
 
+    # True if the job is requested to abort
+    abort_requested: bool = False
+
     @classmethod
     def from_row(cls, row: dict[str, Any]) -> Job:
         return cls(
@@ -86,6 +113,7 @@ class Job:
             scheduled_at=row["scheduled_at"],
             queue=row["queue_name"],
             attempts=row["attempts"],
+            abort_requested=row.get("abort_requested", False),
         )
 
     def asdict(self) -> dict[str, Any]:

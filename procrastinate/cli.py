@@ -8,10 +8,11 @@ import logging
 import os
 import shlex
 import sys
-from typing import Any, Awaitable, Callable, Literal, Union
+from collections.abc import Awaitable
+from typing import Any, Callable, Literal, Union
 
 import procrastinate
-from procrastinate import connector, exceptions, jobs, shell, types, utils, worker
+from procrastinate import connector, exceptions, jobs, shell, types, utils
 
 logger = logging.getLogger(__name__)
 
@@ -291,11 +292,26 @@ def configure_worker_parser(subparsers: argparse._SubParsersAction):
     )
     add_argument(
         worker_parser,
-        "-t",
-        "--timeout",
+        "-p",
+        "--fetch-job-polling-interval",
         type=float,
         help="How long to wait for database event push before polling",
-        envvar="WORKER_TIMEOUT",
+        envvar="WORKER_FETCH_JOB_POLLING_INTERVAL",
+    )
+    add_argument(
+        worker_parser,
+        "-a",
+        "--abort-job-polling-interval",
+        type=float,
+        help="How often to polling for abort requests",
+        envvar="WORKER_ABORT_JOB_POLLING_INTERVAL",
+    )
+    add_argument(
+        worker_parser,
+        "--shutdown-graceful-timeout",
+        type=float,
+        help="How long to wait for jobs to complete when shutting down before aborting them",
+        envvar="WORKER_SHUTDOWN_GRACEFUL_TIMEOUT",
     )
     add_argument(
         worker_parser,
@@ -323,8 +339,8 @@ def configure_worker_parser(subparsers: argparse._SubParsersAction):
     add_argument(
         worker_parser,
         "--delete-jobs",
-        choices=worker.DeleteJobCondition,
-        type=worker.DeleteJobCondition,
+        choices=jobs.DeleteJobCondition,
+        type=jobs.DeleteJobCondition,
         help="If set, delete jobs on completion",
         envvar="WORKER_DELETE_JOBS",
     )
@@ -659,4 +675,6 @@ async def shell_(app: procrastinate.App, shell_command: list[str]):
 
 
 def main():
+    if os.name == "nt":
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
     asyncio.run(cli(sys.argv[1:]))

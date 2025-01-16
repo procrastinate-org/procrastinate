@@ -8,7 +8,7 @@ import os
 
 import pytest
 
-from procrastinate import __version__, cli, exceptions, worker
+from procrastinate import __version__, cli, exceptions, jobs
 
 
 @dataclasses.dataclass
@@ -69,7 +69,7 @@ async def test_worker(entrypoint, cli_app, mocker):
     cli_app.run_worker_async = mocker.AsyncMock()
     result = await entrypoint(
         "worker "
-        "--queues a,b --name=w1 --timeout=8.3 "
+        "--queues a,b --name=w1 --fetch-job-polling-interval=8.3 --abort-job-polling-interval=20 "
         "--one-shot --concurrency=10 --no-listen-notify --delete-jobs=always"
     )
 
@@ -79,10 +79,11 @@ async def test_worker(entrypoint, cli_app, mocker):
         concurrency=10,
         name="w1",
         queues=["a", "b"],
-        timeout=8.3,
+        fetch_job_polling_interval=8.3,
+        abort_job_polling_interval=20,
         wait=False,
         listen_notify=False,
-        delete_jobs=worker.DeleteJobCondition.ALWAYS,
+        delete_jobs=jobs.DeleteJobCondition.ALWAYS,
     )
 
 
@@ -167,6 +168,7 @@ async def test_defer(entrypoint, cli_app, connector):
             "status": "todo",
             "task_name": "hello",
             "priority": 0,
+            "abort_requested": False,
         }
     }
 
@@ -192,6 +194,7 @@ async def test_defer_priority(entrypoint, cli_app, connector):
             "status": "todo",
             "task_name": "hello",
             "priority": 5,
+            "abort_requested": False,
         }
     }
 
@@ -222,6 +225,7 @@ async def test_defer_at(entrypoint, cli_app, connector):
             "status": "todo",
             "task_name": "hello",
             "priority": 0,
+            "abort_requested": False,
         }
     }
 
@@ -251,6 +255,7 @@ async def test_defer_in(entrypoint, cli_app, connector):
         "status": "todo",
         "task_name": "hello",
         "priority": 0,
+        "abort_requested": False,
     }
     assert (
         now + datetime.timedelta(seconds=9)
@@ -281,7 +286,7 @@ async def test_defer_queueing_lock_ignore(entrypoint, cli_app, connector):
     def mytask(a):
         pass
 
-    cli_app.configure_task(name="hello", queueing_lock="houba").defer(a=1)
+    await cli_app.configure_task(name="hello", queueing_lock="houba").defer_async(a=1)
 
     result = await entrypoint(
         """defer --queueing-lock=houba --ignore-already-enqueued hello {"a":2}"""
@@ -315,6 +320,7 @@ async def test_defer_unknown(entrypoint, cli_app, connector):
             "status": "todo",
             "task_name": "hello",
             "priority": 0,
+            "abort_requested": False,
         }
     }
 

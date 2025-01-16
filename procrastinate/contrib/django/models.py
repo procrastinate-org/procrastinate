@@ -67,7 +67,6 @@ class ProcrastinateJob(ProcrastinateReadOnlyModelMixin, models.Model):
         "succeeded",
         "failed",
         "cancelled",
-        "aborting",
         "aborted",
     )
     id = models.BigAutoField(primary_key=True)
@@ -80,6 +79,7 @@ class ProcrastinateJob(ProcrastinateReadOnlyModelMixin, models.Model):
     scheduled_at = models.DateTimeField(blank=True, null=True)
     attempts = models.IntegerField()
     queueing_lock = models.TextField(unique=True, blank=True, null=True)
+    abort_requested = models.BooleanField()
 
     objects = ProcrastinateReadOnlyManager()
 
@@ -99,6 +99,7 @@ class ProcrastinateJob(ProcrastinateReadOnlyModelMixin, models.Model):
             status=self.status,
             scheduled_at=self.scheduled_at,
             attempts=self.attempts,
+            abort_requested=self.abort_requested,
             queueing_lock=self.queueing_lock,
         )
 

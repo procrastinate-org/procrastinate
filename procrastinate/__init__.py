@@ -21,14 +21,14 @@ Psycopg2Connector = _MovedElsewhere(
 
 __all__ = [
     "App",
-    "Blueprint",
-    "JobContext",
     "BaseConnector",
     "BaseRetryStrategy",
+    "Blueprint",
+    "JobContext",
     "PsycopgConnector",
-    "SyncPsycopgConnector",
     "RetryDecision",
     "RetryStrategy",
+    "SyncPsycopgConnector",
 ]
 
 

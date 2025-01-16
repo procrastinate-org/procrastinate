@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import importlib.metadata as importlib_metadata
-from typing import Mapping
+from collections.abc import Mapping
 
 
 def extract_metadata() -> Mapping[str, str]:

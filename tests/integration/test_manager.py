@@ -198,7 +198,7 @@ async def test_delete_old_jobs_job_doing(
 
 
 @pytest.mark.parametrize(
-    "status, nb_hours, queue, include_error, expected_job_count",
+    "status, nb_hours, queue, include_failed, expected_job_count",
     [
         # nb_hours
         (jobs.Status.SUCCEEDED, 1, None, False, 0),
@@ -208,7 +208,7 @@ async def test_delete_old_jobs_job_doing(
         (jobs.Status.SUCCEEDED, 3, "queue_a", False, 1),
         (jobs.Status.SUCCEEDED, 1, "queue_b", False, 1),
         (jobs.Status.SUCCEEDED, 1, "queue_b", False, 1),
-        # include_error
+        # include_failed
         (jobs.Status.FAILED, 1, None, False, 1),
         (jobs.Status.FAILED, 1, None, True, 0),
     ],
@@ -220,7 +220,7 @@ async def test_delete_old_jobs_parameters(
     status,
     nb_hours,
     queue,
-    include_error,
+    include_failed,
     expected_job_count,
     fetched_job_factory,
 ):
@@ -236,7 +236,7 @@ async def test_delete_old_jobs_parameters(
     )
 
     await pg_job_manager.delete_old_jobs(
-        nb_hours=nb_hours, queue=queue, include_error=include_error
+        nb_hours=nb_hours, queue=queue, include_failed=include_failed
     )
     jobs_count = len(await get_all("procrastinate_jobs", "id"))
     assert jobs_count == expected_job_count
@@ -271,7 +271,7 @@ async def test_finish_job_wrong_initial_status(
         await pg_job_manager.finish_job(
             job=job, status=jobs.Status.FAILED, delete_job=delete_job
         )
-    assert 'Job was not found or not in "doing", "todo" or "aborting" status' in str(
+    assert 'Job was not found or not in "doing" or "todo" status' in str(
         excinfo.value.__cause__
     )
 
@@ -396,7 +396,13 @@ async def test_defer_job_violate_queueing_lock(pg_job_manager, job_factory):
         )
     cause = excinfo.value.__cause__
     assert isinstance(cause, exceptions.UniqueViolation)
-    assert cause.constraint_name == "procrastinate_jobs_queueing_lock_idx"
+
+    # TODO: When QUEUEING_LOCK_CONSTRAINT_LEGACY in manager.py is removed, we can
+    # also remove the check for the old constraint name "procrastinate_jobs_queueing_lock_idx"
+    assert cause.constraint_name in [
+        "procrastinate_jobs_queueing_lock_idx",
+        "procrastinate_jobs_queueing_lock_idx_v1",
+    ]
 
 
 async def test_check_connection(pg_job_manager):
@@ -484,7 +490,6 @@ async def test_list_queues_dict(fixture_jobs, pg_job_manager):
         "succeeded": 0,
         "failed": 1,
         "cancelled": 0,
-        "aborting": 0,
         "aborted": 0,
     }
 
@@ -514,7 +519,6 @@ async def test_list_tasks_dict(fixture_jobs, pg_job_manager):
         "succeeded": 0,
         "failed": 1,
         "cancelled": 0,
-        "aborting": 0,
         "aborted": 0,
     }
 

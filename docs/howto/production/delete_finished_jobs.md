@@ -13,9 +13,9 @@ app.run_worker(delete_jobs="always")
 
 With `always`, every finished job will be deleted on completion. Other options are:
 
-- `successful` to only delete successful jobs and keep failed jobs in the database
-  until explicit deletion.
-- `never` to keep every job in the database, this is the default.
+-   `successful` to only delete successful jobs and keep failed jobs in the database
+    until explicit deletion.
+-   `never` to keep every job in the database, this is the default.
 
 You can also do this from the CLI:
 
@@ -87,7 +87,7 @@ async def remove_old_jobs(context, timestamp):
     return await builtin_tasks.remove_old_jobs(
         context,
         max_hours=72,
-        remove_error=True,
+        remove_failed=True,
         remove_cancelled=True,
         remove_aborted=True,
     )

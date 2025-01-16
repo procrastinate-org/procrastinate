@@ -28,6 +28,7 @@ def test_procrastinate_job(db):
         "scheduled_at": None,
         "attempts": 0,
         "queueing_lock": None,
+        "abort_requested": False,
     }
 
 
@@ -43,6 +44,7 @@ def test_procrastinate_job__property(db):
         scheduled_at=datetime.datetime(2021, 1, 1, tzinfo=datetime.timezone.utc),
         attempts=0,
         queueing_lock="baz",
+        abort_requested=False,
     )
     assert job.procrastinate_job == jobs_module.Job(
         id=1,
@@ -75,6 +77,7 @@ def test_procrastinate_job__create__with_setting(db, settings):
         scheduled_at=datetime.datetime.now(datetime.timezone.utc),
         attempts=0,
         queueing_lock="baz",
+        abort_requested=False,
     )
 
 

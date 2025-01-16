@@ -24,11 +24,10 @@ app.job_manager.cancel_job_by_id(33, delete_job=True)
 await app.job_manager.cancel_job_by_id_async(33, delete_job=True)
 ```
 
-## Mark a currently being processed job for abortion
+## Mark a running job for abortion
 
 If a worker has not picked up the job yet, the below command behaves like the
-command without the `abort` option. But if a job is already in the middle of
-being processed, the `abort` option marks this job for abortion (see below
+command without the `abort` option. But if a job is already running, the `abort` option marks this job for abortion (see below
 how to handle this request).
 
 ```python
@@ -38,10 +37,20 @@ app.job_manager.cancel_job_by_id(33, abort=True)
 await app.job_manager.cancel_job_by_id_async(33, abort=True)
 ```
 
-## Handle a abortion request inside the task
+Behind the scenes, the worker receives a Postgres notification every time a job is requested to abort, (unless `listen_notify=False`).
 
-In our task, we can check (for example, periodically) if the task should be
-aborted. If we want to respect that request (we don't have to), we raise a
+The worker also polls (respecting `fetch_job_polling_interval`) the database for abortion requests, as long as the worker is running at least one job (in the absence of running job, there is nothing to abort).
+
+:::{note}
+When a job is requested to abort and that job fails, it will not be retried (regardless of the retry strategy).
+:::
+
+## Handle an abortion request inside the task
+
+### Sync tasks
+
+In a sync task, we can check (for example, periodically) if the task should be
+aborted. If we want to respect that abortion request (we don't have to), we raise a
 `JobAborted` error. Any message passed to `JobAborted` (e.g.
 `raise JobAborted("custom message")`) will end up in the logs.
 
@@ -54,24 +63,31 @@ def my_task(context):
     do_something_expensive()
 ```
 
-There is also an async API
+### Async tasks
+
+For async tasks (coroutines), they are cancelled via the [asyncio cancellation](https://docs.python.org/3/library/asyncio-task.html#task-cancellation) mechasnism.
 
 ```python
-@app.task(pass_context=True)
-async def my_task(context):
-  for i in range(100):
-    if await context.should_abort_async():
-      raise exceptions.JobAborted
-    do_something_expensive()
+@app.task()
+async def my_task():
+  do_something_synchronous()
+  # if the job is aborted while it waits for do_something to complete, asyncio.CancelledError will be raised here
+  await do_something()
 ```
 
-:::{warning}
-`context.should_abort()` and `context.should_abort_async()` does poll the
-database and might flood the database. Ensure you do it only sometimes and
-not from too many parallel tasks.
-:::
+If you want to have some custom behavior at cancellation time, use a combination of [shielding](https://docs.python.org/3/library/asyncio-task.html#shielding-from-cancellation) and capturing `except asyncio.CancelledError`.
 
-:::{note}
-When a task of a job that was requested to be aborted raises an error, the job
-is marked as failed (regardless of the retry strategy).
-:::
+```python
+@app.task()
+async def my_task():
+    try:
+      important_task = asyncio.create_task(something_important())
+      # shield something_important from being cancelled
+      await asyncio.shield(important_task)
+    except asyncio.CancelledError:
+      # capture the error and waits for something important to complete
+      await important_task
+      # raise if the job should be marked as aborted, or swallow CancelledError if the job should be
+      # marked as suceeeded
+      raise
+```

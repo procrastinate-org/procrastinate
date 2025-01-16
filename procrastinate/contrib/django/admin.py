@@ -16,7 +16,7 @@ JOB_STATUS_EMOJI_MAPPING = {
     "failed": "❌",
     "succeeded": "✅",
     "cancelled": "🤚",
-    "aborting": "🔌🕑️",
+    "aborting": "🔌🕑️",  # legacy, not used anymore
     "aborted": "🔌",
 }
 
