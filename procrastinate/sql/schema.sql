@@ -208,7 +208,7 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION procrastinate.procrastinate_fetch_job_without_lock(target_queue_names character varying[])
+CREATE FUNCTION procrastinate_fetch_job_without_lock_v1(target_queue_names character varying[])
  RETURNS procrastinate.procrastinate_jobs
  LANGUAGE plpgsql
 AS $$

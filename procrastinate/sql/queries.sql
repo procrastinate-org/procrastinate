@@ -20,7 +20,7 @@ SELECT id, status, task_name, priority, lock, queueing_lock, args, scheduled_at,
 -- fetch_job_without_lock --
 -- Get the first awaiting job
 SELECT id, status, task_name, priority, lock, queueing_lock, args, scheduled_at, queue_name, attempts
-    FROM procrastinate_fetch_job_without_lock(%(queues)s);
+    FROM procrastinate_fetch_job_without_lock_v1(%(queues)s);
 
 -- select_stalled_jobs --
 -- Get running jobs that started more than a given time ago

@@ -1,5 +1,5 @@
 -- new fetch job. Only checks for doing. On update conflict return NULL
-CREATE OR REPLACE FUNCTION procrastinate.procrastinate_fetch_job(target_queue_names character varying[])
+CREATE OR REPLACE FUNCTION procrastinate_fetch_job_v1(target_queue_names character varying[])
  RETURNS procrastinate.procrastinate_jobs
  LANGUAGE plpgsql
 AS $function$
@@ -49,7 +49,7 @@ END;
 $function$
 ;
 
-CREATE OR REPLACE FUNCTION procrastinate.procrastinate_fetch_job_without_lock(target_queue_names character varying[])
+CREATE OR REPLACE FUNCTION procrastinate_fetch_job_without_lock_v1(target_queue_names character varying[])
  RETURNS procrastinate.procrastinate_jobs
  LANGUAGE plpgsql
 AS $$
