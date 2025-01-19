@@ -354,6 +354,22 @@ wheels = [
 ]
 
 [[package]]
+name = "doc8"
+version = "1.1.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "docutils" },
+    { name = "pygments" },
+    { name = "restructuredtext-lint" },
+    { name = "stevedore" },
+    { name = "tomli", marker = "python_full_version < '3.11'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/11/28/b0a576233730b756ca1ebb422bc6199a761b826b86e93e5196dfa85331ea/doc8-1.1.2.tar.gz", hash = "sha256:1225f30144e1cc97e388dbaf7fe3e996d2897473a53a6dae268ddde21c354b98", size = 27030 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/0c/f1/6ffd5d76578e98a8f21ae7216b88a7212c778f665f1a8f4f8ce6f9605da4/doc8-1.1.2-py3-none-any.whl", hash = "sha256:e787b3076b391b8b49400da5d018bacafe592dfc0a04f35a9be22d0122b82b59", size = 25794 },
+]
+
+[[package]]
 name = "docutils"
 version = "0.21.2"
 source = { registry = "https://pypi.org/simple" }
@@ -669,12 +685,30 @@ wheels = [
 ]
 
 [[package]]
+name = "nodeenv"
+version = "1.9.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/43/16/fc88b08840de0e0a72a2f9d8c6bae36be573e475a6326ae854bcc549fc45/nodeenv-1.9.1.tar.gz", hash = "sha256:6ec12890a2dab7946721edbfbcd91f3319c6ccc9aec47be7c7e6b7011ee6645f", size = 47437 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d2/1d/1b658dbd2b9fa9c4c9f32accbfc0205d532c8c6194dc0f2a4c0428e7128a/nodeenv-1.9.1-py2.py3-none-any.whl", hash = "sha256:ba11c9782d29c27c70ffbdda2d7415098754709be8a7056d79a737cd901155c9", size = 22314 },
+]
+
+[[package]]
 name = "packaging"
 version = "24.2"
 source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/d0/63/68dbb6eb2de9cb10ee4c9c14a0148804425e13c4fb20d61cce69f53106da/packaging-24.2.tar.gz", hash = "sha256:c228a6dc5e932d346bc5739379109d49e8853dd8223571c7c5b55260edc0b97f", size = 163950 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/88/ef/eb23f262cca3c0c4eb7ab1933c3b1f03d021f2c48f54763065b6f0e321be/packaging-24.2-py3-none-any.whl", hash = "sha256:09abb1bccd265c01f4a3aa3f7a7db064b36514d2cba19a2f694fe6150451a759", size = 65451 },
+]
+
+[[package]]
+name = "pbr"
+version = "6.1.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/b2/35/80cf8f6a4f34017a7fe28242dc45161a1baa55c41563c354d8147e8358b2/pbr-6.1.0.tar.gz", hash = "sha256:788183e382e3d1d7707db08978239965e8b9e4e5ed42669bf4758186734d5f24", size = 124032 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/1d/44/6a65ecd630393d47ad3e7d5354768cb7f9a10b3a0eb2cd8c6f52b28211ee/pbr-6.1.0-py2.py3-none-any.whl", hash = "sha256:a776ae228892d8013649c0aeccbb3d5f99ee15e005a4cbb7e61d55a067b28a2a", size = 108529 },
 ]
 
 [[package]]
@@ -688,7 +722,7 @@ wheels = [
 
 [[package]]
 name = "procrastinate"
-version = "3.0.0b1.post7+g73e21b9e.d20250119"
+version = "3.0.0b1.post12+g0f42bc28"
 source = { editable = "." }
 dependencies = [
     { name = "asgiref" },
@@ -721,6 +755,11 @@ sqlalchemy = [
 ]
 
 [package.dev-dependencies]
+dev = [
+    { name = "doc8" },
+    { name = "pyright" },
+    { name = "ruff" },
+]
 django = [
     { name = "django", version = "4.2.18", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
     { name = "django", version = "5.1.5", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
@@ -781,6 +820,11 @@ requires-dist = [
 ]
 
 [package.metadata.requires-dev]
+dev = [
+    { name = "doc8" },
+    { name = "pyright" },
+    { name = "ruff" },
+]
 django = [
     { name = "django", marker = "python_full_version < '3.10'", specifier = "~=4.2.0" },
     { name = "django", marker = "python_full_version >= '3.10'" },
@@ -986,6 +1030,19 @@ wheels = [
 ]
 
 [[package]]
+name = "pyright"
+version = "1.1.392.post0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "nodeenv" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/66/df/3c6f6b08fba7ccf49b114dfc4bb33e25c299883fd763f93fad47ef8bc58d/pyright-1.1.392.post0.tar.gz", hash = "sha256:3b7f88de74a28dcfa90c7d90c782b6569a48c2be5f9d4add38472bdaac247ebd", size = 3789911 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/e7/b1/a18de17f40e4f61ca58856b9ef9b0febf74ff88978c3f7776f910071f567/pyright-1.1.392.post0-py3-none-any.whl", hash = "sha256:252f84458a46fa2f0fd4e2f91fc74f50b9ca52c757062e93f6c250c0d8329eb2", size = 5595487 },
+]
+
+[[package]]
 name = "pytest"
 version = "8.3.4"
 source = { registry = "https://pypi.org/simple" }
@@ -1139,6 +1196,15 @@ sdist = { url = "https://files.pythonhosted.org/packages/63/70/2bf7780ad2d390a8d
 wheels = [
     { url = "https://files.pythonhosted.org/packages/f9/9b/335f9764261e915ed497fcdeb11df5dfd6f7bf257d4a6a2a686d80da4d54/requests-2.32.3-py3-none-any.whl", hash = "sha256:70761cfe03c773ceb22aa2f671b4757976145175cdfca038c02654d061d6dcc6", size = 64928 },
 ]
+
+[[package]]
+name = "restructuredtext-lint"
+version = "1.4.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "docutils" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/48/9c/6d8035cafa2d2d314f34e6cd9313a299de095b26e96f1c7312878f988eec/restructuredtext_lint-1.4.0.tar.gz", hash = "sha256:1b235c0c922341ab6c530390892eb9e92f90b9b75046063e047cacfb0f050c45", size = 16723 }
 
 [[package]]
 name = "ruff"
@@ -1474,6 +1540,18 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/e5/40/edede8dd6977b0d3da179a342c198ed100dd2aba4be081861ee5911e4da4/sqlparse-0.5.3.tar.gz", hash = "sha256:09f67787f56a0b16ecdbde1bfc7f5d9c3371ca683cfeaa8e6ff60b4807ec9272", size = 84999 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/a9/5c/bfd6bd0bf979426d405cc6e71eceb8701b148b16c21d2dc3c261efc61c7b/sqlparse-0.5.3-py3-none-any.whl", hash = "sha256:cf2196ed3418f3ba5de6af7e82c694a9fbdbfecccdfc72e281548517081f16ca", size = 44415 },
+]
+
+[[package]]
+name = "stevedore"
+version = "5.4.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pbr" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/4a/e9/4eedccff8332cc40cc60ddd3b28d4c3e255ee7e9c65679fa4533ab98f598/stevedore-5.4.0.tar.gz", hash = "sha256:79e92235ecb828fe952b6b8b0c6c87863248631922c8e8e0fa5b17b232c4514d", size = 513899 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/8f/73/d0091d22a65b55e8fb6aca7b3b6713b5a261dd01cec4cfd28ed127ac0cfc/stevedore-5.4.0-py3-none-any.whl", hash = "sha256:b0be3c4748b3ea7b854b265dcb4caa891015e442416422be16f8b31756107857", size = 49534 },
 ]
 
 [[package]]

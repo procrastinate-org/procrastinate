@@ -99,6 +99,7 @@ docs = [
     "sphinxcontrib-mermaid",
     "myst-parser",
 ]
+dev = ["ruff", "pyright", "doc8"]
 
 [tool.pytest.ini_options]
 addopts = ["-vv", "--strict-markers", "-rfE", "--reuse-db"]
@@ -134,9 +135,8 @@ exclude_lines = [
     "[ ]+\\.\\.\\.$",
 ]
 
-
 [tool.pyright]
-exclude = ["tests", ".venv"]
+exclude = ["tests", ".venv", "scripts"]
 
 [tool.ruff]
 target-version = "py39"
