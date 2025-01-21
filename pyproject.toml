@@ -4,6 +4,10 @@ build-backend = "setuptools.build_meta"
 
 [tool.versioningit]
 
+[tool.versioningit.vcs]
+method = "git"
+default-tag = "0.0.0"
+
 [project]
 name = "procrastinate"
 dynamic = ["version"]
