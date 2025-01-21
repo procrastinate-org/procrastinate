@@ -7,7 +7,7 @@
     "PGHOST": "127.0.0.1",
     "PGPASSWORD": "password",
     "PGUSER": "postgres",
-    "PROCRASTINATE_APP": "procrastinate_demos.demo_async.app.app",
+    "PROCRASTINATE_APP": "procrastinate.demos.demo_async.app.app",
     "VIRTUAL_ENV": "${containerWorkspaceFolder}/.venv"
   },
   "service": "app",

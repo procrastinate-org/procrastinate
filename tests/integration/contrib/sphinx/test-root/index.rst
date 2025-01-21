@@ -1,5 +1,5 @@
 Tasks
 =====
 
-.. automodule:: procrastinate_demos.demo_async.tasks
+.. automodule:: procrastinate.demos.demo_async.tasks
     :members:

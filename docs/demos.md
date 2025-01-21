@@ -1,2 +1,2 @@
-:::{include} ../procrastinate_demos/README.md
+:::{include} ../procrastinate/demos/README.md
 :::

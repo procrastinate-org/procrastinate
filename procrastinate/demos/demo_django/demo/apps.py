@@ -4,4 +4,4 @@ from django.apps import AppConfig
 
 
 class DemoConfig(AppConfig):
-    name = "procrastinate_demos.demo_django.demo"
+    name = "procrastinate.demos.demo_django.demo"

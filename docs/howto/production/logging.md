@@ -79,4 +79,4 @@ root.setLevel(log_level)
 
 [extra]: https://timber.io/blog/the-pythonic-guide-to-logging/#adding-context
 [`structlog`]: https://www.structlog.org/en/stable/
-[Django demo]: https://github.com/procrastinate-org/procrastinate/blob/main/procrastinate_demos/demo_django/project/settings.py#L151
+[Django demo]: https://github.com/procrastinate-org/procrastinate/blob/main/procrastinate/demos/demo_django/project/settings.py#L151

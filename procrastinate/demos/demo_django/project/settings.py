@@ -40,7 +40,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "procrastinate_demos.demo_django.demo",
+    "procrastinate.demos.demo_django.demo",
     "procrastinate.contrib.django",
 ]
 
@@ -54,7 +54,7 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-ROOT_URLCONF = "procrastinate_demos.demo_django.project.urls"
+ROOT_URLCONF = "procrastinate.demos.demo_django.project.urls"
 
 TEMPLATES = [
     {
@@ -72,7 +72,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = "procrastinate_demos.demo_django.project.wsgi.application"
+WSGI_APPLICATION = "procrastinate.demos.demo_django.project.wsgi.application"
 
 
 # Database
@@ -165,7 +165,7 @@ LOGGING = {
     },
     "filters": {
         "procrastinate": {
-            "()": "procrastinate_demos.demo_django.project.settings.ProcrastinateFilter",
+            "()": "procrastinate.demos.demo_django.project.settings.ProcrastinateFilter",
             "name": "procrastinate",
         },
     },
@@ -178,4 +178,4 @@ LOGGING = {
     },
 }
 
-PROCRASTINATE_ON_APP_READY = "procrastinate_demos.demo_django.demo.tasks.on_app_ready"
+PROCRASTINATE_ON_APP_READY = "procrastinate.demos.demo_django.demo.tasks.on_app_ready"
