@@ -722,7 +722,6 @@ wheels = [
 
 [[package]]
 name = "procrastinate"
-version = "3.0.0b1.post12+g9807a35c.d20250121"
 source = { editable = "." }
 dependencies = [
     { name = "asgiref" },
