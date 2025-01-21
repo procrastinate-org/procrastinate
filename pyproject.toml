@@ -55,6 +55,7 @@ include = ["procrastinate"]
 
 [tool.uv]
 cache-keys = [{ git = { commit = true, tags = true } }]
+required-version = ">=0.5.21"
 default-groups = [
     "release",
     "lint_format",
