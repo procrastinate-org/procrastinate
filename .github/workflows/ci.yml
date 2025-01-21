@@ -117,7 +117,7 @@ jobs:
           python-version: "3.9"
 
       - name: Install dependencies
-        run: uv sync --all-extras --with-group=types
+        run: uv sync --all-extras --group=types
 
       - name: Activate virtualenv
         run: echo ".venv/bin" >> $GITHUB_PATH
