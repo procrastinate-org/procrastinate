@@ -5,6 +5,12 @@ build-backend = "hatchling.build"
 [tool.hatch.version]
 source = "uv-dynamic-versioning"
 
+[tool.hatch.build.targets.sdist]
+exclude = ["procrastinate/demos"]
+
+[tool.hatch.build.targets.wheel]
+exclude = ["procrastinate/demos"]
+
 [project]
 name = "procrastinate"
 dynamic = ["version"]
