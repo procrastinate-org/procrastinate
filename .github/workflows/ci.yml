@@ -98,7 +98,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run tests
-        run: uvx run nox -s ${{ matrix.mode }}
+        run: uvx nox -s ${{ matrix.mode }}
         env:
           PGHOST: localhost
           PGUSER: postgres
