@@ -32,10 +32,6 @@ dependencies = [
     "typing-extensions",
 ]
 
-[tool.setuptools.packages.find]
-include = ["procrastinate"]
-
-
 [project.optional-dependencies]
 django = ["django>=2.2"]
 sqlalchemy = ["sqlalchemy~=2.0"]
@@ -53,7 +49,12 @@ changelog = "https://github.com/procrastinate-org/procrastinate/releases"
 [project.scripts]
 procrastinate = 'procrastinate.cli:main'
 
+
+[tool.setuptools.packages.find]
+include = ["procrastinate"]
+
 [tool.uv]
+cache-keys = [{ git = { commit = true, tags = true } }]
 default-groups = [
     "release",
     "lint_format",
