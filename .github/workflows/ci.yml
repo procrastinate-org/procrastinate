@@ -127,7 +127,7 @@ jobs:
         run: >
           yq '.repos
           | filter(.repo == "https://github.com/RobertCraigie/pyright-python").0.rev
-          | "pyright-version="+sub("^v", "")'
+          | "pyright-version="+sub("^v", "") | sub(".post\d+$"; "")'
           .pre-commit-config.yaml >> $GITHUB_OUTPUT
 
       - uses: jakebailey/pyright-action@v2
