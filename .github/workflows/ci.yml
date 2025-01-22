@@ -67,7 +67,7 @@ jobs:
           - "current_version_without_post_migration"
           - "stable_version_without_post_migration"
 
-    name: "acceptance-test"
+    name: "e2e ${{ matrix.mode }}"
     runs-on: ubuntu-latest
 
     services:
@@ -139,6 +139,7 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - build
+      - acceptance
       - static-typing
     steps:
       - name: Report success
