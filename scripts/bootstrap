@@ -22,4 +22,4 @@ if ! which uv || ! which pre-commit || ! which nox; then
 fi
 
 pre-commit install
-uv sync --all-extras
+uv sync --all-extras --all-groups
