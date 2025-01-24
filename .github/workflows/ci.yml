@@ -8,6 +8,9 @@ on:
     tags:
       - "*"
 
+env:
+  UV_FROZEN: "true"
+
 jobs:
   build:
     strategy:
@@ -37,18 +40,13 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
-      - name: Install poetry
-        run: pipx install poetry
-
-      - uses: actions/setup-python@v5
+      - name: Install the latest version of uv
+        uses: astral-sh/setup-uv@b5f58b2abc5763ade55e4e9d0fe52cd1ff7979ca # v5
         with:
-          python-version: "${{ matrix.python-version }}"
-          cache: "poetry"
-
-      - run: poetry install --all-extras
+          python-version: ${{ matrix.python-version }}
 
       - name: Run tests
-        run: scripts/tests --cov=procrastinate --cov-branch
+        run: uv run pytest --cov=procrastinate --cov-branch
         env:
           COVERAGE_FILE: ".coverage.${{ matrix.python-version }}"
           PGHOST: localhost
@@ -69,7 +67,7 @@ jobs:
           - "current_version_without_post_migration"
           - "stable_version_without_post_migration"
 
-    name: "acceptance-test"
+    name: "e2e ${{ matrix.mode }}"
     runs-on: ubuntu-latest
 
     services:
@@ -88,13 +86,10 @@ jobs:
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
 
-      - name: Install poetry
-        run: pipx install poetry
-
-      - uses: actions/setup-python@v5
+      - name: Install the latest version of uv
+        uses: astral-sh/setup-uv@b5f58b2abc5763ade55e4e9d0fe52cd1ff7979ca # v5
         with:
           python-version: "3.12"
-          cache: "poetry"
 
       - name: Get latest tag
         id: get-latest-tag
@@ -103,7 +98,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run tests
-        run: pipx run nox -s ${{ matrix.mode }}
+        run: uvx nox -s ${{ matrix.mode }}
         env:
           PGHOST: localhost
           PGUSER: postgres
@@ -116,26 +111,23 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
-      - name: Install poetry
-        run: pipx install poetry
-
-      - uses: actions/setup-python@v5
+      - name: Install the latest version of uv
+        uses: astral-sh/setup-uv@b5f58b2abc5763ade55e4e9d0fe52cd1ff7979ca # v5
         with:
           python-version: "3.9"
-          cache: "poetry"
 
       - name: Install dependencies
-        run: poetry install --all-extras --with=types
+        run: uv sync --all-extras --group=types
 
       - name: Activate virtualenv
-        run: echo "$(poetry env info --path)/bin" >> $GITHUB_PATH
+        run: echo ".venv/bin" >> $GITHUB_PATH
 
       - name: Extract pyright version from pre-commit
         id: pre-commit-pyright-version
         run: >
           yq '.repos
           | filter(.repo == "https://github.com/RobertCraigie/pyright-python").0.rev
-          | "pyright-version="+sub("^v", "")'
+          | "pyright-version="+sub("^v", "") | sub(".post\d+$"; "")'
           .pre-commit-config.yaml >> $GITHUB_OUTPUT
 
       - uses: jakebailey/pyright-action@v2
@@ -147,6 +139,7 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - build
+      - acceptance
       - static-typing
     steps:
       - name: Report success
@@ -187,15 +180,7 @@ jobs:
       - build
       - static-typing
     steps:
-      - name: Install poetry
-        run: |
-          pipx install poetry
-          pipx inject poetry 'poetry-dynamic-versioning[plugin]'
-
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
-
-      - name: Build wheel and sdist
-        run: poetry build
 
       - name: Publish package distributions to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1

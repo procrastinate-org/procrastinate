@@ -3,12 +3,12 @@
 This modules contains 3 mini-applications that showcase using
 procrastinate in difference contexts:
 
-- [demo_django]: a Django application,
-- [demo_async]: an async application, it could be a
-  FastAPI application, but to make things simpler, it's just a plain
-  asyncio application.
-- [demo_sync]: a synchronous application, similarily, it
-  could be representative of a Flask application.
+-   [demo_django]: a Django application,
+-   [demo_async]: an async application, it could be a
+    FastAPI application, but to make things simpler, it's just a plain
+    asyncio application.
+-   [demo_sync]: a synchronous application, similarily, it
+    could be representative of a Flask application.
 
 The demos are there both to showcase the code and as a way to easily
 recreate the issues that are reported in the issues. They are not
@@ -17,8 +17,8 @@ up the Procrastinate development environment (see
 [contributing doc](contributing))
 
 To run the demos, set PROCRASTINATE_APP to
-`procrastinate_demos.<demo_name>.app.app`, then run the
-`procrastinate` CLI or `python -m procrastinate_demos.<demo_name>`
+`procrastinate.demos.<demo_name>.app.app`, then run the
+`procrastinate` CLI or `python -m procrastinate.demos.<demo_name>`
 for the application main entrypoint.
 
 For all apps, you'll need to have a PostgreSQL database running, and set
@@ -34,13 +34,13 @@ baclground processes).
 Launch the worker in the first terminal:
 
 ```console
-$ PROCRASTINATE_APP=procrastinate_demos.demo_async.app.app procrastinate worker
+$ PROCRASTINATE_APP=procrastinate.demos.demo_async.app.app procrastinate worker
 ```
 
 In the second terminal, run the application:
 
 ```console
-$ python -m procrastinate_demos.demo_async
+$ python -m procrastinate.demos.demo_async
 ```
 
 Defer a job by sending commands, as indicated by the application.
@@ -50,11 +50,11 @@ Defer a job by sending commands, as indicated by the application.
 Same with `sync`:
 
 ```console
-$ PROCRASTINATE_APP=procrastinate_demos.demo_sync.app.app procrastinate worker
+$ PROCRASTINATE_APP=procrastinate.demos.demo_sync.app.app procrastinate worker
 ```
 
 ```console
-$ python -m procrastinate_demos.demo_sync
+$ python -m procrastinate.demos.demo_sync
 ```
 
 ## Django demo
@@ -62,14 +62,14 @@ $ python -m procrastinate_demos.demo_sync
 In the first terminal, run the migrations, and then the Django server:
 
 ```console
-$ procrastinate_demos/demo_django/manage.py migrate
-$ procrastinate_demos/demo_django/manage.py runserver
+$ procrastinate/demos/demo_django/manage.py migrate
+$ procrastinate/demos/demo_django/manage.py runserver
 ```
 
 In the second terminal, run the procrastinate worker:
 
 ```console
-$ procrastinate_demos/demo_django/manage.py procrastinate worker
+$ procrastinate/demos/demo_django/manage.py procrastinate worker
 ```
 
 In your browser (`http://localhost:8000/`), you can now: - Create a
@@ -86,7 +86,7 @@ deferring a job from another job.)
 You can visit the admin, too. You'll need to create a superuser first:
 
 ```console
-$ procrastinate_demos/demo_django/manage.py createsuperuser
+$ procrastinate/demos/demo_django/manage.py createsuperuser
 ```
 
 Then lauch the server, head to `http://localhost:8000/admin/` and see the jobs,
@@ -94,6 +94,6 @@ the events and the periodic defers.
 
 (…Yes I’m not a frontend dev :) )
 
-[demo_async]: https://github.com/procrastinate-org/procrastinate/tree/main/procrastinate_demos/demo_async/
-[demo_django]: https://github.com/procrastinate-org/procrastinate/tree/main/procrastinate_demos/demo_django/
-[demo_sync]: https://github.com/procrastinate-org/procrastinate/tree/main/procrastinate_demos/demo_sync/
+[demo_async]: https://github.com/procrastinate-org/procrastinate/tree/main/procrastinate/demos/demo_async/
+[demo_django]: https://github.com/procrastinate-org/procrastinate/tree/main/procrastinate/demos/demo_django/
+[demo_sync]: https://github.com/procrastinate-org/procrastinate/tree/main/procrastinate/demos/demo_sync/

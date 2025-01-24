@@ -10,11 +10,11 @@ how.
 For each Python version supported by Procrastinate, Procastinate is tested with
 the latest Django version supported by that Python version.
 
-As of September 2024, this means Procrastinate is tested with Django 4.2 for
+As of January 2025, this means Procrastinate is tested with Django 4.2 for
 Python 3.8 and 3.9, and Django 5.1 for Python 3.10+. This paragraph is likely
 to be outdated in the future, the best way to get up-to-date info is to have a
-look at the `tool.poetry.group.django.dependencies` section of the [package
-configuration](https://github.com/procrastinate-org/procrastinate/blob/pydjver/pyproject.toml#L79-L83)
+look at the `django` dependency group section of the [package
+configuration](https://github.com/procrastinate-org/procrastinate/blob/main/pyproject.toml#L78-81)
 
 ## Installation & configuration
 

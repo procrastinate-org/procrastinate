@@ -21,7 +21,7 @@ from django.contrib import admin
 from django.contrib.staticfiles import views
 from django.urls import path, re_path
 
-from procrastinate_demos.demo_django.demo.views import CreateBookView, ListBooksView
+from procrastinate.demos.demo_django.demo.views import CreateBookView, ListBooksView
 
 urlpatterns = [
     path("admin/", admin.site.urls),

@@ -13,5 +13,5 @@ RUN sudo apt-get update \
 
 USER vscode
 
-RUN pipx install poetry \
-  && poetry completions bash >> ~/.bash_completion
+RUN pipx install uv \
+  && uv generate-shell-completion bash >> ~/.bash_completion

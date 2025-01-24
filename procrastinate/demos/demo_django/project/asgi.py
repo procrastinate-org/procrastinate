@@ -14,7 +14,7 @@ import os
 from django.core.asgi import get_asgi_application
 
 os.environ.setdefault(
-    "DJANGO_SETTINGS_MODULE", "procrastinate_demos.demo_django.project.settings"
+    "DJANGO_SETTINGS_MODULE", "procrastinate.demos.demo_django.project.settings"
 )
 
 application = get_asgi_application()

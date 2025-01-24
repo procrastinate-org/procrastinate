@@ -1,6 +1,6 @@
 FROM python:3
 
-RUN pip install poetry
+RUN pip install uv
 
 ARG UID=1000
 ARG GID=1000
@@ -10,7 +10,7 @@ USER $UID:$GID
 ENV HOME="/src"
 
 COPY pyproject.toml ./
-COPY poetry.lock ./
-RUN poetry install
-ENTRYPOINT ["poetry", "run"]
+COPY uv.lock ./
+RUN uv sync
+ENTRYPOINT ["uv", "run"]
 CMD ["procrastinate", "worker"]

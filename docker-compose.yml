@@ -1,4 +1,3 @@
-version: '2.1'
 services:
   procrastinate:
     build:
@@ -23,5 +22,5 @@ services:
     image: postgres:17
     ports: ["5432:5432"]
     environment:
-        POSTGRES_DB: procrastinate
-        POSTGRES_PASSWORD: password
+      POSTGRES_DB: procrastinate
+      POSTGRES_PASSWORD: password

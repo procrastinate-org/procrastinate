@@ -1,109 +1,110 @@
 [build-system]
-requires = ["poetry-core", "poetry-dynamic-versioning"]
-build-backend = "poetry_dynamic_versioning.backend"
+requires = ["hatchling", "uv-dynamic-versioning"]
+build-backend = "hatchling.build"
 
-[tool.poetry]
+[tool.hatch.version]
+source = "uv-dynamic-versioning"
+
+[tool.hatch.build.targets.sdist]
+exclude = ["procrastinate/demos"]
+
+[tool.hatch.build.targets.wheel]
+exclude = ["procrastinate/demos"]
+
+[project]
 name = "procrastinate"
-version = "0.0.0"
+dynamic = ["version"]
 description = "Postgres-based distributed task processing library"
-authors = ["Joachim Jablon", "Eric Lemoine", "Kai Schlamp"]
-license = "MIT License"
+license = { file = "LICENSE.md" }
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
 ]
+authors = [
+    { name = "Joachim Jablon", email = "ewjoachim@gmail.com" },
+    { name = "Eric Lemoine" },
+    { name = "Kai Schlamp" },
+]
 readme = "README.md"
 keywords = ["postgres", "task-queue"]
-homepage = "https://procrastinate.readthedocs.io/"
-repository = "https://github.com/procrastinate-org/procrastinate/"
-documentation = "https://procrastinate.readthedocs.io/"
+requires-python = ">=3.9"
+dependencies = [
+    "psycopg[pool]",
+    "asgiref",
+    "attrs",
+    "contextlib2; python_version < '3.10'",
+    "croniter",
+    "python-dateutil",
+    "typing-extensions",
+]
 
-[tool.poetry.scripts]
-procrastinate = 'procrastinate.cli:main'
-
-[tool.poetry.dependencies]
-python = "^3.9"
-aiopg = { version = "*", optional = true }
-anyio = "*"
-asgiref = "*"
-attrs = "*"
-contextlib2 = { version = "*", python = "<3.10" }
-croniter = "*"
-django = { version = ">=2.2", optional = true }
-psycopg = { extras = ["pool"], version = "*" }
-psycopg2-binary = { version = "*", optional = true }
-python-dateutil = "*"
-sqlalchemy = { version = "^2.0", optional = true }
-typing-extensions = "*"
-sphinx = { version = "*", optional = true }
-
-[tool.poetry.extras]
-django = ["django"]
-sqlalchemy = ["sqlalchemy"]
+[project.optional-dependencies]
+django = ["django>=2.2"]
+sqlalchemy = ["sqlalchemy~=2.0"]
 aiopg = ["aiopg", "psycopg2-binary"]
 psycopg2 = ["psycopg2-binary"]
 sphinx = ["sphinx"]
 
-[tool.poetry.group.types]
-optional = true
+[project.urls]
+homepage = "https://procrastinate.readthedocs.io/"
+source = "https://github.com/procrastinate-org/procrastinate/"
+documentation = "https://procrastinate.readthedocs.io/"
+issues = "https://github.com/procrastinate-org/procrastinate/issues"
+changelog = "https://github.com/procrastinate-org/procrastinate/releases"
 
-[tool.poetry.group.types.dependencies]
-django-stubs = "*"
+[project.scripts]
+procrastinate = 'procrastinate.cli:main'
 
-[tool.poetry.group.release.dependencies]
-dunamai = "*"
-
-[tool.poetry.group.lint_format.dependencies]
-ruff = "*"
-
-[tool.poetry.group.pg_implem.dependencies]
-aiopg = "*"
-sqlalchemy = { extras = ["mypy"], version = "*" }
-psycopg2-binary = "*"
-psycopg = [
-    { version = "*", extras = [
-        "binary",
-        "pool",
-    ], markers = "sys_platform != 'darwin' or platform_machine != 'arm64'" },
-    { version = "*", extras = [
-        "binary",
-        "pool",
-    ], markers = "sys_platform == 'darwin' and platform_machine == 'arm64'", python = ">=3.10" },
-    { version = "*", extras = [
-        "pool",
-    ], markers = "sys_platform == 'darwin' and platform_machine == 'arm64'", python = "<3.10" },
+[tool.uv]
+cache-keys = [{ git = { commit = true, tags = true } }]
+required-version = ">=0.5.21"
+default-groups = [
+    "release",
+    "lint_format",
+    "pg_implem",
+    "django",
+    "test",
+    "docs",
 ]
 
-[tool.poetry.group.django.dependencies]
+[dependency-groups]
+types = ["django-stubs"]
+release = ["dunamai"]
+lint_format = ["ruff"]
+pg_implem = [
+    "aiopg",
+    "sqlalchemy",
+    "psycopg2-binary",
+    "psycopg[binary,pool]; sys_platform != 'darwin' or platform_machine != 'arm64'",
+    "psycopg[binary,pool]; sys_platform == 'darwin' and platform_machine == 'arm64' and python_version >= '3.10'",
+    "psycopg[pool]; sys_platform == 'darwin' and platform_machine == 'arm64' and python_version < '3.10'",
+]
 django = [
-    { version = "4.2.*", python = "<3.10" },
-    { version = "*", python = ">=3.10" },
+    "django~=4.2.0; python_version < '3.10'",
+    "django; python_version >= '3.10'",
 ]
-
-[tool.poetry.group.test.dependencies]
-pytest-asyncio = "*"
-pytest-cov = "*"
-pytest-django = "*"
-pytest-mock = "*"
-migra = "*"
-# migra depends on schemainspect, which has an implicit dependency on setuptools
-# (pkg_resources).
-setuptools = { version = "*" }
-
-[tool.poetry.group.docs.dependencies]
-django = ">=2.2"
-furo = "*"
-Sphinx = "*"
-sphinx-copybutton = "*"
-sphinx-github-changelog = "*"
-sphinxcontrib-programoutput = "*"
-sphinxcontrib-mermaid = "*"
-myst-parser = "*"
-
-[tool.poetry-dynamic-versioning]
-enable = true
-pattern = '(?P<base>\d+(\.\d+)*)([-._]?((?P<stage>[a-zA-Z]+)[-._]?(?P<revision>\d+)?))?$'
+test = [
+    "pytest-asyncio",
+    "pytest-cov",
+    "pytest-django",
+    "pytest-mock",
+    "migra",
+    # migra depends on schemainspect, which has an implicit dependency on setuptools
+    # (pkg_resources).
+    "setuptools",
+]
+docs = [
+    "django>=2.2",
+    "furo",
+    "Sphinx",
+    "sphinx-copybutton",
+    "sphinx-github-changelog",
+    "sphinxcontrib-programoutput",
+    "sphinxcontrib-mermaid",
+    "myst-parser",
+]
+dev = ["ruff", "pyright", "doc8"]
 
 [tool.pytest.ini_options]
 addopts = ["-vv", "--strict-markers", "-rfE", "--reuse-db"]
@@ -119,8 +120,9 @@ filterwarnings = """
 """
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
+django_find_project = false
 DJANGO_SETTINGS_MODULE = "tests.acceptance.django_settings"
-
+pythonpath = ["."]
 
 [tool.coverage.run]
 relative_files = true
@@ -139,9 +141,8 @@ exclude_lines = [
     "[ ]+\\.\\.\\.$",
 ]
 
-
 [tool.pyright]
-exclude = ["tests", ".venv"]
+exclude = ["tests", ".venv", "scripts"]
 
 [tool.ruff]
 target-version = "py39"

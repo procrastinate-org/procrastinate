@@ -16,9 +16,9 @@ the following assumptions:
 -   You're using `MacOS` or `Linux`, and `bash` or `zsh`.
 -   You already have `python3` available
 -   Either:
-    -   you already have `poetry`, `pre-commit` and `nox` installed
-    -   or you have `pipx` installed and you're ok installing those 3 tools with `pipx`
-    -   or you don't have `pipx` installed but it's ok if we install it for you
+    -   you already have `uv`, `pre-commit` and `nox` installed
+    -   or you have `uv` installed and you're ok installing the 2 other tools with `uv`
+    -   or you don't have `uv` installed but it's ok if we install it for you
 -   Either:
     -   you've already setup a PostgreSQL database and environment variables (`PG*`)
         are set
@@ -80,26 +80,27 @@ $ /usr/local/opt/libpq/bin/createdb
 
 ### Set up your development environment
 
-The development environment is managed by [poetry]. It's a tool that manages
+The development environment is managed by [uv]. It's a tool that manages
 dependencies and virtual environments. We also use [pre-commit] to keep the code
-clean.
+clean and [nox] to run some tests.
 
-If you don't already have `poetry` or `pre-commit` installed, you can
+If you don't already have `uv`, `pre-commit` or `nox` installed, you can
 install them with:
 
 ```console
 $ scripts/bootstrap
 ```
 
-This will install [pipx] if necessary and use it to install `poetry` and
+This will install [uv] if necessary and use it to install `nox` and
 `pre-commit`.
 
 Then, install Procrastinate with development dependencies in a virtual environment:
 
 ```console
-$ poetry env use 3.{x}  # Select the Python version you want to use (replace {x})
-$ poetry install
-$ poetry shell  # Activate the virtual environment
+$ uv venv --python=3.{x}  # Select the Python version you want to use (replace {x})
+$ uv sync  # Install the project and its dependencies
+$ uv run $SHELL  # Activate the virtual environment
+$ exit # Quit the virtual environment
 ```
 
 You can check that your Python environment is properly activated:
@@ -397,8 +398,8 @@ When possible, we're trying to avoid duplicating code, with designs such as
 
 ## Dependencies management
 
-Dependencies for the package are handled by Poetry in
-[`pyproject.toml`](https://github.com/procrastinate-org/procrastinate/blob/main/pyproject.toml#L25).
+Dependencies for the package are handled by uv in
+[`pyproject.toml`](https://github.com/procrastinate-org/procrastinate/blob/main/pyproject.toml).
 Whenever possible, we avoid pinning or putting any kind of limits on the
 requirements. We'll typically only do that if we know that there's a
 known conflict with specific versions. Typically, even if we support a subset of
@@ -407,28 +408,17 @@ and if users use procrastinate with unsupported Django version and it works for
 them, everyone is happy.
 
 Dependencies for the development environment are kept in
-[`poetry.lock`](https://github.com/procrastinate-org/procrastinate/blob/main/poetry.lock).
+[`uv.lock`](https://github.com/procrastinate-org/procrastinate/blob/main/uv.lock).
 Those are updated regularily by [Renovate](https://docs.renovatebot.com/) which
 merges their own PRs.
-The versions in `pre-commit-config.yaml` are kept in sync with `poetry.lock`
-by the `pre-commit` hook
-[poetry-to-pre-commit](https://github.com/procrastinate-org/procrastinate/blob/main/.pre-commit-config.yaml#L61).
+The versions in `pre-commit-config.yaml` are kept in sync with `uv.lock`
+by a local `pre-commit` hook
+[script](https://github.com/procrastinate-org/procrastinate/blob/main/scripts/sync-pre-commit.py).
 
 If you need to recompute the lockfile in your PR, you can use:
 
 ```console
-$ # Update all the pinned dependencies in pyproject.toml & all versions in poetry.lock
-$ # (there are actually no pinned dependencies in pyproject.toml, so this only updates the
-$ # lockfile).
-$ poetry update
-
-$ # Similarly, update dependencies in the lockfile. In procrastinate, it's equivalent
-$ # to the command above
-$ poetry lock
-
-$ # Recompute the lockfile (e.g. after the pyproject.toml was updated) without trying
-$ # to update anything
-$ poetry lock --no-update
+$ uv lock
 ```
 
 ## Core contributor additional documentation
@@ -451,7 +441,7 @@ automated. This works with pre-release too.
 When creating the release, GitHub will save the release info and create a tag
 with the provided version. The new tag will be seen by GitHub Actions, which
 will then create a wheel (using the tag as version number, thanks to
-`poetry-dynamic-versioning`), and push it to PyPI (using Trusted publishing).
+`versioningit`), and push it to PyPI (using Trusted publishing).
 That tag should also trigger a ReadTheDocs build, which will read GitHub
 releases (thanks to our `changelog` extension) which will write the changelog
 in the published documentation (transformed from `Markdown` to
@@ -469,8 +459,8 @@ also rebuild the stable and latest doc on [readthedocs](https://readthedocs.org/
 
 [editorconfig]: https://editorconfig.org/
 [libpq environment variables]: https://www.postgresql.org/docs/current/libpq-envars.html
-[pipx]: https://pipx.pypa.io/stable/
-[poetry]: https://python-poetry.org/
+[uv]: https://docs.astral.sh/uv
 [pre-commit]: https://pre-commit.com/
 [Procrastinate releases]: https://github.com/procrastinate-org/procrastinate/releases
 [Pytest]: https://docs.pytest.org/en/latest/
+[nox]: https://nox.thea.codes/en/stable/

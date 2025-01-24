@@ -38,9 +38,8 @@ def get_pre_migration(latest_tag: packaging.version.Version) -> str:
 
 @nox.session
 def current_version_with_post_migration(session: nox.Session):
-    session.install("poetry")
-    session.run("poetry", "install", "--all-extras", external=True)
-    session.run("poetry", "run", "pytest", *session.posargs, external=True)
+    session.run("uv", "sync", "--all-extras", external=True)
+    session.run("uv", "run", "pytest", *session.posargs, external=True)
 
 
 @nox.session
@@ -48,10 +47,16 @@ def current_version_without_post_migration(session: nox.Session):
     latest_tag = fetch_latest_tag(session)
     pre_migration = get_pre_migration(latest_tag)
 
-    session.run("poetry", "install", "--all-extras")
     session.run(
-        "poetry",
-        "run",
+        "uv",
+        "sync",
+        "--all-extras",
+        "--group",
+        "test",
+        external=True,
+        env={"UV_PROJECT_ENVIRONMENT": session.virtualenv.location},
+    )
+    session.run(
         "pytest",
         f"--migrate-until={pre_migration}",
         "./tests/acceptance",
@@ -74,8 +79,19 @@ def stable_version_without_post_migration(session: nox.Session):
         # Install test dependencies and copy tests
         shutil.copytree(base_path / "tests", temp_path / "tests")
         shutil.copy(base_path / "pyproject.toml", temp_path / "pyproject.toml")
-        shutil.copy(base_path / "poetry.lock", temp_path / "poetry.lock")
-        session.run("poetry", "install", "--with", "test", "--no-root", external=True)
+        shutil.copy(base_path / "uv.lock", temp_path / "uv.lock")
+        session.run(
+            "uv",
+            "sync",
+            "--all-extras",
+            "--group",
+            "test",
+            "--no-install-project",
+            external=True,
+            env={
+                "UV_PROJECT_ENVIRONMENT": session.virtualenv.location,
+            },
+        )
 
         # Install latest procrastinate from GitHub
         # During a tag release, we have not yet published the new version to PyPI
