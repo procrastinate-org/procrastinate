@@ -77,8 +77,12 @@ def stable_version_without_post_migration(session: nox.Session):
         shutil.copy(base_path / "poetry.lock", temp_path / "poetry.lock")
         session.run("poetry", "install", "--with", "test", "--no-root", external=True)
 
-        # Install latest procrastinate from PyPI
-        session.install("procrastinate")
+        # Install latest procrastinate from GitHub
+        # During a tag release, we have not yet published the new version to PyPI
+        # so we need to install it from GitHub
+        session.install(
+            f"procrastinate @ git+https://github.com/procrastinate-org/procrastinate.git@{latest_tag}"
+        )
 
         session.run(
             "pytest",
