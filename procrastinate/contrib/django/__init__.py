@@ -7,4 +7,3 @@ __all__ = [
     "app",
     "connector_params",
 ]
-default_app_config = "procrastinate.contrib.django.apps.ProcrastinateConfig"

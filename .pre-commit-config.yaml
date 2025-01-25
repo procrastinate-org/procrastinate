@@ -99,6 +99,12 @@ repos:
     hooks:
       - id: doc8
 
+  - repo: https://github.com/adamchainz/django-upgrade
+    rev: "1.22.2"
+    hooks:
+    -   id: django-upgrade
+        args: [--target-version, "4.2"]   # Replace with Django version
+
   - repo: local
     hooks:
       - id: sync-pre-commit

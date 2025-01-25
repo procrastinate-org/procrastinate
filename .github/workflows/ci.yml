@@ -20,6 +20,7 @@ jobs:
           - "3.10"
           - "3.11"
           - "3.12"
+          - "3.13"
 
     name: "py${{ matrix.python-version }}"
     runs-on: ubuntu-latest
@@ -89,7 +90,7 @@ jobs:
       - name: Install the latest version of uv
         uses: astral-sh/setup-uv@b5f58b2abc5763ade55e4e9d0fe52cd1ff7979ca # v5
         with:
-          python-version: "3.12"
+          python-version: "3.13"
 
       - name: Get latest tag
         id: get-latest-tag

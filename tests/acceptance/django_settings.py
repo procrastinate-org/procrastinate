@@ -5,7 +5,7 @@ import os
 SECRET_KEY = "test"
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.postgresql_psycopg2",
+        "ENGINE": "django.db.backends.postgresql",
         "NAME": os.environ.get("PGDATABASE", "procrastinate"),
         "TEST": {"NAME": "procrastinate_django_test"},
     },
