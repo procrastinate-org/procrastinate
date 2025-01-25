@@ -114,8 +114,11 @@ testpaths = [
     "tests/acceptance",
     "tests/migration",
 ]
+# https://adamj.eu/tech/2025/01/08/django-silence-exception-ignored-outputwrapper/
+# https://code.djangoproject.com/ticket/36056
 filterwarnings = """
     error
+    ignore:.+django.core.management.base.OutputWrapper:pytest.PytestUnraisableExceptionWarning
     ignore:unclosed.+:ResourceWarning
 """
 asyncio_mode = "auto"

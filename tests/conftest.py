@@ -8,14 +8,17 @@ import os
 import random
 import signal as stdlib_signal
 import string
+import sys
 import uuid
 from pathlib import Path
 
+import django
 import packaging.version
 import psycopg
 import psycopg.conninfo
 import psycopg.sql
 import pytest
+from django.core.management.base import OutputWrapper
 
 from procrastinate import app as app_module
 from procrastinate import blueprints, builtin_tasks, jobs, schema, testing
@@ -30,6 +33,27 @@ for key in os.environ:
 # Unfortunately, we need the sphinx fixtures even though they generate an "app" fixture
 # that conflicts with our own "app" fixture
 pytest_plugins = ["sphinx.testing.fixtures"]
+
+# Silence “Exception ignored in ... OutputWrapper”:
+# ValueError: I/O operation on closed file.
+# https://adamj.eu/tech/2025/01/08/django-silence-exception-ignored-outputwrapper/
+# https://code.djangoproject.com/ticket/36056
+if django.VERSION < (5, 2):
+    orig_unraisablehook = sys.unraisablehook
+
+    def unraisablehook(unraisable):
+        print("A" * 30, unraisable)
+        if (
+            unraisable.exc_type is ValueError
+            and unraisable.exc_value is not None
+            and unraisable.exc_value.args == ("I/O operation on closed file.",)
+            and isinstance(unraisable.object, OutputWrapper)
+        ):
+            print("B" * 30, "ignored")
+            return
+        orig_unraisablehook(unraisable)
+
+    sys.unraisablehook = unraisablehook
 
 
 def pytest_addoption(parser: pytest.Parser) -> None:
