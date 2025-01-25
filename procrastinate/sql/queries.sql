@@ -27,10 +27,10 @@ SELECT job.id, status, task_name, priority, lock, queueing_lock,
       ON event.job_id = job.id
 WHERE event.type = 'started'
   AND job.status = 'doing'
-  AND event.at < NOW() - (%(nb_seconds)s || 'SECOND')::INTERVAL
   AND (%(queue)s::varchar IS NULL OR job.queue_name = %(queue)s)
   AND (%(task_name)s::varchar IS NULL OR job.task_name = %(task_name)s)
 GROUP BY job.id
+  HAVING MAX(event.at) < NOW() - (%(nb_seconds)s || 'SECOND')::INTERVAL
 
 -- delete_old_jobs --
 -- Delete jobs that have been in a final state for longer than nb_hours

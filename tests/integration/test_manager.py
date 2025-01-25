@@ -161,7 +161,7 @@ async def test_get_stalled_jobs__no(
     assert result == []
 
 
-async def test_get_stalled_jobs__retries(
+async def test_get_stalled_jobs__retries__no(
     pg_job_manager, fetched_job_factory, psycopg_connector
 ):
     job = await fetched_job_factory(queue="queue_a", task_name="task_1")
@@ -183,6 +183,7 @@ async def test_get_stalled_jobs__retries(
         f"SELECT at, type FROM procrastinate_events "
         f"WHERE job_id={job.id} ORDER BY at ASC"
     )
+
     # Sanity checks: We're in the situation where 1h ago, the job has been deferred,
     # started, it failed so it was retried, and it just started again now.
     assert [e["type"] for e in events] == [
@@ -195,6 +196,47 @@ async def test_get_stalled_jobs__retries(
     # It should not be considered stalled
     result = await pg_job_manager.get_stalled_jobs(nb_seconds=1800)
     assert result == []
+
+
+async def test_get_stalled_jobs__retries__yes(
+    pg_job_manager, fetched_job_factory, psycopg_connector
+):
+    job = await fetched_job_factory(queue="queue_a", task_name="task_1")
+
+    # We fake previous tries
+    await psycopg_connector.execute_query_async(
+        f"UPDATE procrastinate_events SET at=now() - INTERVAL '1 hour'"
+        f"WHERE job_id={job.id} AND type='deferred'"
+    )
+    await psycopg_connector.execute_query_async(
+        f"UPDATE procrastinate_events SET at=now() - INTERVAL '40 minutes'"
+        f"WHERE job_id={job.id} AND type='started'"
+    )
+    await psycopg_connector.execute_query_async(
+        f"INSERT INTO procrastinate_events (job_id, type, at) VALUES"
+        f"({job.id}, 'started', now() - INTERVAL '1 hour')"
+    )
+    await psycopg_connector.execute_query_async(
+        f"INSERT INTO procrastinate_events (job_id, type, at) VALUES"
+        f"({job.id}, 'deferred_for_retry', now() - INTERVAL '59 minutes')"
+    )
+    events = await psycopg_connector.execute_query_all_async(
+        f"SELECT at, type FROM procrastinate_events "
+        f"WHERE job_id={job.id} ORDER BY at ASC"
+    )
+
+    # Sanity checks: We're in the situation where 1h ago, the job has been deferred,
+    # started, it failed so it was retried, and it started again 40 minutes ago.
+    assert [e["type"] for e in events] == [
+        "deferred",
+        "started",
+        "deferred_for_retry",
+        "started",
+    ]
+
+    # It should not be considered stalled
+    result = await pg_job_manager.get_stalled_jobs(nb_seconds=1800)
+    assert result == [job]
 
 
 async def test_delete_old_jobs_job_todo(
