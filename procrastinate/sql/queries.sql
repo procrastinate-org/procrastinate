@@ -19,7 +19,9 @@ SELECT id, status, task_name, priority, lock, queueing_lock, args, scheduled_at,
 
 -- select_stalled_jobs --
 -- Get running jobs that started more than a given time ago
-SELECT job.id, status, task_name, priority, lock, queueing_lock, args, scheduled_at, queue_name, attempts, max(event.at) started_at
+SELECT job.id, status, task_name, priority, lock, queueing_lock,
+       args, scheduled_at, queue_name, attempts,
+       MAX(event.at) AS started_at
     FROM procrastinate_jobs job
     JOIN procrastinate_events event
       ON event.job_id = job.id
