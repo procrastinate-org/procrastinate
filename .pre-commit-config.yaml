@@ -38,7 +38,7 @@ repos:
           - alabaster==1.0.0 ; python_full_version >= '3.10'
           - asgiref==3.8.1
           - async-timeout==4.0.3
-          - attrs==24.3.0
+          - attrs==25.1.0
           - babel==2.16.0
           - certifi==2024.12.14
           - charset-normalizer==3.4.1
@@ -59,7 +59,7 @@ repos:
             and platform_machine == 'x86_64')
           - idna==3.10
           - imagesize==1.4.1
-          - importlib-metadata==8.5.0 ; python_full_version < '3.10'
+          - importlib-metadata==8.6.1 ; python_full_version < '3.10'
           - jinja2==3.1.5
           - markupsafe==3.0.2
           - packaging==24.2
@@ -85,7 +85,7 @@ repos:
           - tomli==2.2.1 ; python_full_version < '3.11'
           - types-pyyaml==6.0.12.20241230
           - typing-extensions==4.12.2
-          - tzdata==2024.2 ; sys_platform == 'win32'
+          - tzdata==2025.1 ; sys_platform == 'win32'
           - urllib3==2.3.0
           - zipp==3.21.0 ; python_full_version < '3.10'
   - repo: https://github.com/astral-sh/ruff-pre-commit
