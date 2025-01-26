@@ -1,26 +1,26 @@
 {
-  "extends": [
-    "config:recommended",
-    ":enablePreCommit",
+  extends: [
+    'config:recommended',
+    ':enablePreCommit',
   ],
-  "schedule": [
-    "before 4am on Saturday"
+  schedule: [
+    'before 4am on Saturday',
   ],
-  "labels": [
-    "PR type: dependencies 🤖",
+  labels: [
+    'PR type: dependencies 🤖',
   ],
-  "lockFileMaintenance": {
-    "enabled": true,
-    "automerge": true,
+  lockFileMaintenance: {
+    enabled: true,
+    automerge: true,
   },
-  "packageRules": [
+  packageRules: [
     {
-      "groupName": "all dependencies",
-      "groupSlug": "all",
-      "matchPackagePatterns": [
-        "*"
-      ]
-    }
+      groupName: 'all dependencies',
+      groupSlug: 'all',
+      matchPackageNames: [
+        '*',
+      ],
+    },
   ],
-  "automerge": true,
+  automerge: true,
 }
