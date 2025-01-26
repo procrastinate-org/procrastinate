@@ -759,10 +759,6 @@ dev = [
     { name = "pyright" },
     { name = "ruff" },
 ]
-django = [
-    { name = "django", version = "4.2.18", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
-    { name = "django", version = "5.1.5", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
-]
 docs = [
     { name = "django", version = "4.2.18", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
     { name = "django", version = "5.1.5", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
@@ -823,10 +819,6 @@ dev = [
     { name = "doc8" },
     { name = "pyright" },
     { name = "ruff" },
-]
-django = [
-    { name = "django", marker = "python_full_version < '3.10'", specifier = "<6" },
-    { name = "django", marker = "python_full_version >= '3.10'" },
 ]
 docs = [
     { name = "django", specifier = ">=2.2" },

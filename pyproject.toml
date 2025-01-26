@@ -59,14 +59,7 @@ procrastinate = 'procrastinate.cli:main'
 [tool.uv]
 cache-keys = [{ git = { commit = true, tags = true } }]
 required-version = ">=0.5.21"
-default-groups = [
-    "release",
-    "lint_format",
-    "pg_implem",
-    "django",
-    "test",
-    "docs",
-]
+default-groups = ["release", "lint_format", "pg_implem", "test", "docs"]
 
 [dependency-groups]
 types = ["django-stubs"]
@@ -79,10 +72,6 @@ pg_implem = [
     "psycopg[binary,pool]; sys_platform != 'darwin' or platform_machine != 'arm64'",
     "psycopg[binary,pool]; sys_platform == 'darwin' and platform_machine == 'arm64' and python_version >= '3.10'",
     "psycopg[pool]; sys_platform == 'darwin' and platform_machine == 'arm64' and python_version < '3.10'",
-]
-django = [
-    "django<6; python_version < '3.10'",
-    "django; python_version >= '3.10'",
 ]
 test = [
     "pytest-asyncio",
