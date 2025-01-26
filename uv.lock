@@ -825,7 +825,7 @@ dev = [
     { name = "ruff" },
 ]
 django = [
-    { name = "django", marker = "python_full_version < '3.10'", specifier = "~=4.2.0" },
+    { name = "django", marker = "python_full_version < '3.10'", specifier = "<5" },
     { name = "django", marker = "python_full_version >= '3.10'" },
 ]
 docs = [
