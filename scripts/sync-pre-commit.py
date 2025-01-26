@@ -66,7 +66,6 @@ def main():
         "--no-group=release",
         "--no-group=lint_format",
         "--no-group=pg_implem",
-        "--no-group=django",
         "--no-group=test",
         "--no-group=docs",
     ]
