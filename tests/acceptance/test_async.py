@@ -206,9 +206,9 @@ async def test_concurrency(async_app: app_module.App):
         )
     duration = time.time() - start_time
 
-    assert (
-        duration >= 0.5
-    ), "processing jobs faster than expected. Is the concurrency respected?"
+    assert duration >= 0.5, (
+        "processing jobs faster than expected. Is the concurrency respected?"
+    )
 
     assert len(results) == 100, "Unexpected number of job executions"
 

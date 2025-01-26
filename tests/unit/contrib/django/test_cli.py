@@ -26,9 +26,9 @@ def test_procrastinate_command():
 
     def assert_no_action_named_args(parser):
         for action in parser._actions:
-            assert getattr(action, "dest", "") != (
-                "args"
-            ), f"'args' found in {parser.prog}\n{error}"
+            assert getattr(action, "dest", "") != ("args"), (
+                f"'args' found in {parser.prog}\n{error}"
+            )
             if isinstance(action, argparse._SubParsersAction):
                 for subparser in action.choices.values():
                     assert_no_action_named_args(subparser)

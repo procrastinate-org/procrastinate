@@ -624,9 +624,9 @@ async def test_run_job_abort(app: App, worker: Worker):
 
     status = await app.job_manager.get_job_status_async(job_id)
     assert status == Status.ABORTED
-    assert (
-        worker._job_ids_to_abort == {}
-    ), "Expected cancelled job id to be removed from set"
+    assert worker._job_ids_to_abort == {}, (
+        "Expected cancelled job id to be removed from set"
+    )
 
 
 @pytest.mark.parametrize(
