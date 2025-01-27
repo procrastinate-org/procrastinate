@@ -61,6 +61,43 @@ jobs:
           path: .coverage.${{ matrix.python-version }}
           include-hidden-files: true
 
+  older-db-versions:
+    strategy:
+      matrix:
+        postgres-version:
+          - "16"
+
+    name: "postgres-${{ matrix.postgres-version }}"
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:${{ matrix.postgres-version }}
+        # Set health checks to wait until postgres has started
+        env:
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+        ports:
+          - 5432:5432
+
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+
+      - name: Install the latest version of uv
+        uses: astral-sh/setup-uv@b5f58b2abc5763ade55e4e9d0fe52cd1ff7979ca # v5
+        with:
+          python-version: "3.13"
+
+      - name: Run tests
+        run: uv run pytest
+        env:
+          PGHOST: localhost
+          PGUSER: postgres
+          PGPASSWORD: postgres
+
   acceptance:
     strategy:
       matrix:
