@@ -65,6 +65,9 @@ jobs:
     strategy:
       matrix:
         postgres-version:
+          - "13"
+          - "14"
+          - "15"
           - "16"
 
     name: "postgres-${{ matrix.postgres-version }}"
