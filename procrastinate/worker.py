@@ -12,6 +12,7 @@ from typing import Any, Callable
 from procrastinate import (
     app,
     exceptions,
+    hooks,
     job_context,
     jobs,
     periodic,
@@ -45,6 +46,9 @@ class Worker:
         delete_jobs: str | jobs.DeleteJobCondition | None = None,
         additional_context: dict[str, Any] | None = None,
         install_signal_handlers: bool = True,
+        before_fetching_job_hook: hooks.BeforeFetchingJobHook | None = None,
+        job_processing_started_hook: hooks.JobProcessingStartedHook | None = None,
+        job_processing_ended_hook: hooks.JobProcessingEndedHook | None = None,
     ):
         self.app = app
         self.queues = queues
@@ -61,6 +65,9 @@ class Worker:
         ) or jobs.DeleteJobCondition.NEVER
         self.additional_context = additional_context
         self.install_signal_handlers = install_signal_handlers
+        self.before_fetching_job_hook = before_fetching_job_hook
+        self.job_processing_started_hook = job_processing_started_hook
+        self.job_processing_ended_hook = job_processing_ended_hook
 
         if self.worker_name:
             self.logger = logger.getChild(self.worker_name)
@@ -201,6 +208,9 @@ class Worker:
         """
         Processes a given job and persists its status
         """
+        if self.job_processing_started_hook:
+            await self.job_processing_started_hook(context)
+
         task = self.app.tasks.get(context.job.task_name)
         job_retry = None
         exc_info = False
@@ -308,6 +318,9 @@ class Worker:
             except asyncio.CancelledError:
                 await persist_job_status_task
                 raise
+            finally:
+                if self.job_processing_ended_hook:
+                    await self.job_processing_ended_hook(context, job_result)
 
     async def _fetch_and_process_jobs(self):
         """Fetch and process jobs until there is no job left or asked to stop"""
@@ -318,6 +331,10 @@ class Worker:
                 await utils.wait_any(acquire_sem_task, self._stop_event.wait())
                 if self._stop_event.is_set():
                     break
+
+                if self.before_fetching_job_hook:
+                    await self.before_fetching_job_hook()
+
                 job = await self.app.job_manager.fetch_job(queues=self.queues)
             finally:
                 if (not job or self._stop_event.is_set()) and acquire_sem_task.done():
