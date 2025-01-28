@@ -263,7 +263,7 @@ AS $$
 DECLARE
     payload TEXT;
 BEGIN
-    SELECT json_object('type': 'job_inserted', 'job_id': NEW.id)::text INTO payload;
+    SELECT json_build_object('type', 'job_inserted', 'job_id', NEW.id)::text INTO payload;
 	PERFORM pg_notify('procrastinate_queue_v1#' || NEW.queue_name, payload);
 	PERFORM pg_notify('procrastinate_any_queue_v1', payload);
 	RETURN NEW;
@@ -282,7 +282,7 @@ AS $$
 DECLARE
     payload TEXT;
 BEGIN
-    SELECT json_object('type': 'abort_job_requested', 'job_id': NEW.id)::text INTO payload;
+    SELECT json_build_object('type', 'abort_job_requested', 'job_id', NEW.id)::text INTO payload;
 	PERFORM pg_notify('procrastinate_queue_v1#' || NEW.queue_name, payload);
 	PERFORM pg_notify('procrastinate_any_queue_v1', payload);
 	RETURN NEW;
