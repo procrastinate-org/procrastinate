@@ -29,7 +29,7 @@ repos:
       - id: trailing-whitespace
       - id: mixed-line-ending
   - repo: https://github.com/RobertCraigie/pyright-python
-    rev: v1.1.393
+    rev: v1.1.392.post0
     hooks:
       - id: pyright
         additional_dependencies:
@@ -100,10 +100,10 @@ repos:
       - id: doc8
 
   - repo: https://github.com/adamchainz/django-upgrade
-    rev: "1.22.2"
+    rev: 1.22.2
     hooks:
-    -   id: django-upgrade
-        args: [--target-version, "4.2"]   # Replace with Django version
+      - id: django-upgrade
+        args: [--target-version, '4.2']   # Replace with Django version
 
   - repo: local
     hooks:
