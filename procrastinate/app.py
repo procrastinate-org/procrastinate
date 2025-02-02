@@ -13,7 +13,15 @@ from typing import (
 
 from typing_extensions import NotRequired, Unpack
 
-from procrastinate import blueprints, exceptions, jobs, manager, schema, utils
+from procrastinate import (
+    blueprints,
+    exceptions,
+    jobs,
+    manager,
+    middleware,
+    schema,
+    utils,
+)
 from procrastinate import connector as connector_module
 
 if TYPE_CHECKING:
@@ -34,6 +42,7 @@ class WorkerOptions(TypedDict):
     delete_jobs: NotRequired[str | jobs.DeleteJobCondition]
     additional_context: NotRequired[dict[str, Any]]
     install_signal_handlers: NotRequired[bool]
+    middleware: NotRequired[middleware.Middleware]
 
 
 class App(blueprints.Blueprint):
