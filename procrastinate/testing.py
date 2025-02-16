@@ -3,11 +3,12 @@ from __future__ import annotations
 import asyncio
 import datetime
 import json
+import threading
 from collections import Counter
 from collections.abc import Iterable
 from itertools import count
-import threading
 from typing import Any
+
 from procrastinate import connector, exceptions, jobs, schema, sql, types, utils
 
 JobRow = dict[str, Any]
@@ -83,9 +84,7 @@ class InMemoryConnector(connector.BaseAsyncConnector):
     def open(self, pool: connector.Pool | None = None) -> None:
         self.states.append("open")
 
-    async def open_async(
-        self, pool: connector.Pool | None = None
-    ) -> None:
+    async def open_async(self, pool: connector.Pool | None = None) -> None:
         """
         Save the current event loop and its thread id so that later notifications
         can be scheduled on this loop.
@@ -191,12 +190,10 @@ class InMemoryConnector(connector.BaseAsyncConnector):
             if job["status"] in {"failed", "succeeded"}
         ]
 
-    async def _notify(
-        self, queue_name: str, notification: jobs.Notification
-    ) -> None:
+    async def _notify(self, queue_name: str, notification: jobs.Notification) -> None:
         """
         Instead of directly awaiting on_notification, we check the current thread.
-        If we’re not on the same thread as the one where the loop was saved,
+        If we are not on the same thread as the one where the loop was saved,
         we schedule the notification on the correct loop.
         """
         if not self.on_notification:
