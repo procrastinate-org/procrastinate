@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 
 from django.contrib import admin
+from django.db.models import Prefetch
 from django.template.loader import render_to_string
 from django.utils import timezone
 from django.utils.html import format_html
@@ -77,6 +78,18 @@ class ProcrastinateJobAdmin(admin.ModelAdmin):
     def has_delete_permission(self, request, obj=None):
         return False
 
+    def get_queryset(self, request):
+        return (
+            super()
+            .get_queryset(request)
+            .prefetch_related(
+                Prefetch(
+                    "procrastinateevent_set",
+                    queryset=models.ProcrastinateEvent.objects.order_by("-at"),
+                )
+            )
+        )
+
     @admin.display(description="Status")
     def pretty_status(self, instance: models.ProcrastinateJob) -> str:
         emoji = JOB_STATUS_EMOJI_MAPPING.get(instance.status, "")
@@ -103,7 +116,7 @@ class ProcrastinateJobAdmin(admin.ModelAdmin):
 
     @admin.display(description="Summary")
     def summary(self, instance: models.ProcrastinateJob) -> str:
-        if last_event := instance.procrastinateevent_set.latest():  # type: ignore[attr-defined]
+        if last_event := instance.procrastinateevent_set.first():  # type: ignore[attr-defined]
             return mark_safe(
                 render_to_string(
                     "procrastinate/admin/summary.html",
