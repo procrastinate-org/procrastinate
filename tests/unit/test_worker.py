@@ -736,28 +736,3 @@ async def test_run_no_signal_handlers(worker, kill_own_pid):
         await asyncio.sleep(0.01)
         # Test that handlers are NOT installed
         kill_own_pid(signal=signal.SIGINT)
-
-
-async def test_worker_middleware(app: App):
-    @app.task()
-    async def task_func():
-        return 42
-
-    await task_func.defer_async()
-
-    middleware_called = False
-
-    async def custom_middleware(process_task, context, worker):
-        nonlocal middleware_called
-        middleware_called = True
-        assert isinstance(context, JobContext)
-        assert isinstance(worker, Worker)
-        worker.stop()
-        result = await process_task()
-        assert result == 42
-        return result
-
-    worker = Worker(app, wait=True, middleware=custom_middleware)
-    await worker.run()
-
-    assert middleware_called

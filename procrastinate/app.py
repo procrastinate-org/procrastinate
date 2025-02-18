@@ -42,7 +42,7 @@ class WorkerOptions(TypedDict):
     delete_jobs: NotRequired[str | jobs.DeleteJobCondition]
     additional_context: NotRequired[dict[str, Any]]
     install_signal_handlers: NotRequired[bool]
-    middleware: NotRequired[middleware.Middleware]
+    middleware: NotRequired[middleware.WorkerMiddleware]
 
 
 class App(blueprints.Blueprint):
