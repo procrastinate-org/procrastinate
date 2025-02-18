@@ -3,9 +3,9 @@ from __future__ import annotations
 import datetime
 import inspect
 import logging
-from typing import Callable, Generic, TypedDict, cast
+from typing import Callable, Generic, cast
 
-from typing_extensions import NotRequired, ParamSpec, TypeVar, Unpack
+from typing_extensions import NotRequired, ParamSpec, TypedDict, TypeVar, Unpack
 
 from procrastinate import app as app_module
 from procrastinate import blueprints, exceptions, jobs, manager, types, utils
