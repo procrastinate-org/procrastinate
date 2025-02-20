@@ -10,7 +10,7 @@ R = TypeVar("R")
 if TYPE_CHECKING:
     from procrastinate import worker
 
-ProcessTask = Callable[..., R]
+ProcessTask = Callable[[], R]
 WorkerMiddleware = Callable[
     [ProcessTask[Awaitable], job_context.JobContext, "worker.Worker"], Awaitable
 ]

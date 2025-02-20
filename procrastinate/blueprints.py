@@ -252,8 +252,9 @@ class Blueprint:
             Passes the task execution context in the task as first
         middleware :
             A function that can be used to wrap the task execution. The default middleware
-            just calls the task function and returns its result. If the task is a coroutine,
-            the middleware should also be a coroutine.
+            just calls the task function and returns its result. If the task is synchronous,
+            the middleware must also be a sync function. If the task is async, the middleware
+            must be async, too.
         """
         ...
 
