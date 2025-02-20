@@ -211,7 +211,7 @@ class Blueprint:
         priority: int = jobs.DEFAULT_PRIORITY,
         lock: str | None = None,
         queueing_lock: str | None = None,
-        middleware: middleware.ProcessTask[R] | None = None,
+        middleware: middleware.TaskMiddleware[R] | None = None,
     ) -> Callable[[Callable[P, R]], Task[P, R, P]]:
         """Declare a function as a task. This method is meant to be used as a decorator
         Parameters
@@ -252,8 +252,8 @@ class Blueprint:
             Passes the task execution context in the task as first
         middleware :
             A function that can be used to wrap the task execution. The default middleware
-            just calls the task function and returns its result. If the task is async,
-            the middleware should be async too and return an awaitable.
+            just calls the task function and returns its result. If the task is a coroutine,
+            the middleware should also be a coroutine.
         """
         ...
 
@@ -270,7 +270,7 @@ class Blueprint:
         priority: int = jobs.DEFAULT_PRIORITY,
         lock: str | None = None,
         queueing_lock: str | None = None,
-        middleware: middleware.ProcessTask[R] | None = None,
+        middleware: middleware.TaskMiddleware[R] | None = None,
     ) -> Callable[
         [Callable[Concatenate[JobContext, P], R]],
         Task[Concatenate[JobContext, P], R, P],
@@ -305,7 +305,7 @@ class Blueprint:
         priority: int = jobs.DEFAULT_PRIORITY,
         lock: str | None = None,
         queueing_lock: str | None = None,
-        middleware: middleware.ProcessTask[R] | None = None,
+        middleware: middleware.TaskMiddleware[R] | None = None,
     ):
         from procrastinate.tasks import Task
 

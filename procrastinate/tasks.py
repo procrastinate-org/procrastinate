@@ -3,9 +3,9 @@ from __future__ import annotations
 import datetime
 import inspect
 import logging
-from typing import Callable, Generic, cast
+from typing import Callable, Generic, TypedDict, cast
 
-from typing_extensions import NotRequired, ParamSpec, TypedDict, TypeVar, Unpack
+from typing_extensions import NotRequired, ParamSpec, TypeVar, Unpack
 
 from procrastinate import app as app_module
 from procrastinate import blueprints, exceptions, jobs, manager, types, utils
@@ -20,7 +20,7 @@ P = ParamSpec("P")
 R = TypeVar("R")
 
 
-class ConfigureTaskOptions(TypedDict, Generic[R]):
+class ConfigureTaskOptions(TypedDict):
     lock: NotRequired[str | None]
     queueing_lock: NotRequired[str | None]
     task_kwargs: NotRequired[types.JSONDict | None]
@@ -28,7 +28,6 @@ class ConfigureTaskOptions(TypedDict, Generic[R]):
     schedule_in: NotRequired[types.TimeDeltaParams | None]
     queue: NotRequired[str | None]
     priority: NotRequired[int | None]
-    middleware: NotRequired[middleware_module.TaskMiddleware[R] | None]
 
 
 def configure_task(
