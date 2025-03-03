@@ -145,4 +145,20 @@ class ProcrastinateJobAdmin(admin.ModelAdmin):
                 p_job.id, p_job.priority, p_job.queue, p_job.lock
             )
 
-    actions = [retry]
+    @admin.action(description="Cancel Job (only 'todo' jobs)")
+    def cancel(self, request: HttpRequest, queryset: QuerySet[models.ProcrastinateJob]):
+        app_config: ProcrastinateConfig = apps.get_app_config("procrastinate")
+        p_app: App = app_config.app
+        for job in queryset.filter(status=Status.TODO.value):
+            p_job = job.procrastinate_job
+            p_app.job_manager.cancel_job_by_id(p_job.id, abort=False)
+
+    @admin.action(description="Abort Job (includes 'todo' & 'doing' jobs)")
+    def abort(self, request: HttpRequest, queryset: QuerySet[models.ProcrastinateJob]):
+        app_config: ProcrastinateConfig = apps.get_app_config("procrastinate")
+        p_app: App = app_config.app
+        for job in queryset.filter(status__in=(Status.TODO.value, Status.DOING.value)):
+            p_job = job.procrastinate_job
+            p_app.job_manager.cancel_job_by_id(p_job.id, abort=True)
+
+    actions = [retry, cancel, abort]
