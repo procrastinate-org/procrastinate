@@ -12,6 +12,7 @@ advanced/cancellation
 advanced/queueing_locks
 advanced/cron
 advanced/retry
+advanced/retry_failed
 advanced/middleware
 advanced/events
 advanced/sync_defer
