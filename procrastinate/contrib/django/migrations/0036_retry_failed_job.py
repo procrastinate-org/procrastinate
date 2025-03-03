@@ -8,7 +8,7 @@ from .. import migrations_utils
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("procrastinate", "0033_post_cancel_notification"),
+        ("procrastinate", "0035_post_add_heartbeat"),
     ]
 
     operations = [

@@ -137,7 +137,7 @@ class ProcrastinateJobAdmin(admin.ModelAdmin):
 
     @admin.action(description="Retry Failed Job")
     def retry(self, request: HttpRequest, queryset: QuerySet[models.ProcrastinateJob]):
-        app_config: ProcrastinateConfig = apps.get_app_config("procrastinate")
+        app_config: ProcrastinateConfig = apps.get_app_config("procrastinate")  # pyright: ignore [reportAssignmentType]
         p_app: App = app_config.app
         for job in queryset.filter(status=Status.FAILED.value):
             p_app.job_manager.retry_failed_job_by_id(
@@ -146,14 +146,14 @@ class ProcrastinateJobAdmin(admin.ModelAdmin):
 
     @admin.action(description="Cancel Job (only 'todo' jobs)")
     def cancel(self, request: HttpRequest, queryset: QuerySet[models.ProcrastinateJob]):
-        app_config: ProcrastinateConfig = apps.get_app_config("procrastinate")
+        app_config: ProcrastinateConfig = apps.get_app_config("procrastinate")  # pyright: ignore [reportAssignmentType]
         p_app: App = app_config.app
         for job in queryset.filter(status=Status.TODO.value):
             p_app.job_manager.cancel_job_by_id(job.id, abort=False)
 
     @admin.action(description="Abort Job (includes 'todo' & 'doing' jobs)")
     def abort(self, request: HttpRequest, queryset: QuerySet[models.ProcrastinateJob]):
-        app_config: ProcrastinateConfig = apps.get_app_config("procrastinate")
+        app_config: ProcrastinateConfig = apps.get_app_config("procrastinate")  # pyright: ignore [reportAssignmentType]
         p_app: App = app_config.app
         for job in queryset.filter(status__in=(Status.TODO.value, Status.DOING.value)):
             p_app.job_manager.cancel_job_by_id(job.id, abort=True)
