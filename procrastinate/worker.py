@@ -45,6 +45,7 @@ class Worker:
         delete_jobs: str | jobs.DeleteJobCondition | None = None,
         additional_context: dict[str, Any] | None = None,
         install_signal_handlers: bool = True,
+        update_heartbeat_interval: float = 5.0,
     ):
         self.app = app
         self.queues = queues
@@ -61,6 +62,7 @@ class Worker:
         ) or jobs.DeleteJobCondition.NEVER
         self.additional_context = additional_context
         self.install_signal_handlers = install_signal_handlers
+        self.update_heartbeat_interval = update_heartbeat_interval
 
         if self.worker_name:
             self.logger = logger.getChild(self.worker_name)
@@ -402,6 +404,17 @@ class Worker:
                 )
                 # recover from errors and continue polling
 
+    async def _update_heartbeats(self):
+        while True:
+            logger.debug(
+                f"waiting for {self.update_heartbeat_interval}s before updating heartbeats"
+            )
+            await asyncio.sleep(self.update_heartbeat_interval)
+
+            logger.debug("Updating heartbeats of running jobs")
+            jobs = [context.job for context in self._running_jobs.values()]
+            await self.app.job_manager.update_heartbeats(jobs)
+
     def _handle_abort_jobs_requested(self, job_ids: Iterable[int]):
         running_job_ids = {c.job.id for c in self._running_jobs.values() if c.job.id}
         new_job_ids_to_abort = (running_job_ids & set(job_ids)) - set(
@@ -493,6 +506,7 @@ class Worker:
         side_tasks = [
             asyncio.create_task(self._periodic_deferrer(), name="deferrer"),
             asyncio.create_task(self._poll_jobs_to_abort(), name="poll_jobs_to_abort"),
+            asyncio.create_task(self._update_heartbeats(), name="update_heartbeats"),
         ]
         if self.listen_notify:
             listener_coro = self.app.job_manager.listen_for_jobs(

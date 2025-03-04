@@ -736,3 +736,33 @@ async def test_run_no_signal_handlers(worker, kill_own_pid):
         await asyncio.sleep(0.01)
         # Test that handlers are NOT installed
         kill_own_pid(signal=signal.SIGINT)
+
+
+async def test_heartbeat_updated(app: App):
+    @app.task(queue="some_queue")
+    async def t():
+        await asyncio.sleep(0.03)
+
+    job_id = await t.defer_async()
+
+    connector = cast(InMemoryConnector, app.connector)
+    job_row = connector.jobs[job_id]
+
+    assert job_row["heartbeat_updated_at"] is None
+
+    worker = Worker(app, update_heartbeat_interval=0.01, wait=False)
+    run_task = await start_worker(worker)
+
+    heartbeat1 = job_row["heartbeat_updated_at"]
+    assert heartbeat1 is not None
+
+    await asyncio.sleep(0.01)
+
+    heartbeat2 = job_row["heartbeat_updated_at"]
+    assert heartbeat2 > heartbeat1
+
+    await asyncio.sleep(0.01)
+
+    assert job_row["heartbeat_updated_at"] > heartbeat2
+
+    await run_task
