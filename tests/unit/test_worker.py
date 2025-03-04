@@ -741,7 +741,7 @@ async def test_heartbeat_updated(app: App):
     assert job_row["heartbeat_updated_at"] is None
 
     worker = Worker(app, update_heartbeat_interval=0.01, wait=False)
-    await start_worker(worker)
+    run_task = await start_worker(worker)
 
     heartbeat1 = job_row["heartbeat_updated_at"]
     assert heartbeat1 is not None
@@ -754,3 +754,5 @@ async def test_heartbeat_updated(app: App):
     await asyncio.sleep(0.01)
 
     assert job_row["heartbeat_updated_at"] > heartbeat2
+
+    await run_task
