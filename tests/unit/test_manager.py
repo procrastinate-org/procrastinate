@@ -36,6 +36,7 @@ async def test_manager_defer_job(job_manager, job_factory, connector):
             "status": "todo",
             "task_name": "bla",
             "abort_requested": False,
+            "heartbeat_updated_at": None,
         }
     }
 
@@ -116,19 +117,62 @@ async def test_fetch_job(job_manager, job_factory):
     assert await job_manager.fetch_job(queues=None) == expected_job
 
 
-async def test_get_stalled_jobs_not_stalled(job_manager, job_factory):
+async def test_depreciated_get_stalled_jobs(job_manager, mocker):
+    get_stalled_jobs_by_started_mock = mocker.patch(
+        "procrastinate.manager.JobManager.get_stalled_jobs_by_started"
+    )
+    get_stalled_jobs_by_started_mock.return_value = [1, 2]
+
+    assert await job_manager.get_stalled_jobs(
+        nb_seconds=1000, queue="foo", task_name="bar"
+    ) == [1, 2]
+    assert get_stalled_jobs_by_started_mock.call_args == mocker.call(
+        max_seconds_since_started=1000, queue="foo", task_name="bar"
+    )
+
+
+async def test_get_stalled_jobs_by_started_not_stalled(job_manager, job_factory):
     job = job_factory(id=1)
     await job_manager.defer_job_async(job=job)
-    assert await job_manager.get_stalled_jobs(nb_seconds=1000) == []
+    assert (
+        await job_manager.get_stalled_jobs_by_started(max_seconds_since_started=1000)
+        == []
+    )
 
 
-async def test_get_stalled_jobs_stalled(job_manager, job_factory, connector):
+async def test_get_stalled_jobs_by_started_stalled(job_manager, job_factory, connector):
     job = job_factory()
     await job_manager.defer_job_async(job=job)
     await job_manager.fetch_job(queues=None)
     connector.events[1][-1]["at"] = conftest.aware_datetime(2000, 1, 1)
     expected_job = job.evolve(id=1, status="doing")
-    assert await job_manager.get_stalled_jobs(nb_seconds=1000) == [expected_job]
+    assert await job_manager.get_stalled_jobs_by_started(
+        max_seconds_since_started=1000
+    ) == [expected_job]
+
+
+async def test_get_stalled_jobs_by_hearbeat_not_stalled(job_manager, job_factory):
+    job = job_factory(id=1)
+    await job_manager.defer_job_async(job=job)
+    assert (
+        await job_manager.get_stalled_jobs_by_heartbeat(
+            max_seconds_since_heartbeat=1000
+        )
+        == []
+    )
+
+
+async def test_get_stalled_jobs_by_heartbeat_stalled(
+    job_manager, job_factory, connector
+):
+    job = job_factory()
+    await job_manager.defer_job_async(job=job)
+    await job_manager.fetch_job(queues=None)
+    expected_job = job.evolve(id=1, status="doing")
+    connector.jobs[1]["heartbeat_updated_at"] = conftest.aware_datetime(2000, 1, 1)
+    assert await job_manager.get_stalled_jobs_by_heartbeat(
+        max_seconds_since_heartbeat=1000
+    ) == [expected_job]
 
 
 @pytest.mark.parametrize(

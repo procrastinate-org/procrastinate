@@ -127,6 +127,7 @@ class InMemoryConnector(connector.BaseAsyncConnector):
             "scheduled_at": scheduled_at,
             "attempts": 0,
             "abort_requested": False,
+            "heartbeat_updated_at": None,
         }
         self.events[id] = []
         if scheduled_at:
@@ -218,6 +219,7 @@ class InMemoryConnector(connector.BaseAsyncConnector):
 
         job = filtered_jobs[0]
         job["status"] = "doing"
+        job["heartbeat_updated_at"] = utils.utcnow()
         self.events[job["id"]].append({"type": "started", "at": utils.utcnow()})
         return job
 
@@ -281,15 +283,35 @@ class InMemoryConnector(connector.BaseAsyncConnector):
         self.events[job_id].append({"type": "scheduled", "at": retry_at})
         self.events[job_id].append({"type": "deferred_for_retry", "at": utils.utcnow()})
 
-    async def select_stalled_jobs_all(self, nb_seconds, queue, task_name):
+    async def update_heartbeats_run(self, job_ids: list[int]) -> None:
+        now = utils.utcnow()
+        for job_id in job_ids:
+            self.jobs[job_id]["heartbeat_updated_at"] = now
+
+    async def select_stalled_jobs_by_heartbeat_all(
+        self, max_seconds_since_heartbeat, queue, task_name
+    ):
         return (
             job
             for job in self.jobs.values()
             if job["status"] == "doing"
-            and self.events[job["id"]][-1]["at"]
-            < utils.utcnow() - datetime.timedelta(seconds=nb_seconds)
             and queue in (job["queue_name"], None)
             and task_name in (job["task_name"], None)
+            and job["heartbeat_updated_at"]
+            < utils.utcnow() - datetime.timedelta(seconds=max_seconds_since_heartbeat)
+        )
+
+    async def select_stalled_jobs_by_started_all(
+        self, max_seconds_since_started, queue, task_name
+    ):
+        return (
+            job
+            for job in self.jobs.values()
+            if job["status"] == "doing"
+            and queue in (job["queue_name"], None)
+            and task_name in (job["task_name"], None)
+            and self.events[job["id"]][-1]["at"]
+            < utils.utcnow() - datetime.timedelta(seconds=max_seconds_since_started)
         )
 
     async def delete_old_jobs_run(self, nb_hours, queue, statuses):

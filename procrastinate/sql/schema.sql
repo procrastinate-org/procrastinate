@@ -40,6 +40,7 @@ CREATE TABLE procrastinate_jobs (
     scheduled_at timestamp with time zone NULL,
     attempts integer DEFAULT 0 NOT NULL,
     abort_requested boolean DEFAULT false NOT NULL,
+    heartbeat_updated_at timestamp with time zone NULL,
     CONSTRAINT check_not_todo_abort_requested CHECK (NOT (status = 'todo' AND abort_requested = true))
 );
 
@@ -157,7 +158,7 @@ BEGIN
 END;
 $$;
 
-CREATE FUNCTION procrastinate_fetch_job_v1(
+CREATE FUNCTION procrastinate_fetch_job_v2(
     target_queue_names character varying[]
 )
     RETURNS procrastinate_jobs
@@ -186,12 +187,24 @@ BEGIN
             FOR UPDATE OF jobs SKIP LOCKED
     )
     UPDATE procrastinate_jobs
-        SET status = 'doing'
+        SET status = 'doing',
+            heartbeat_updated_at = NOW()
         FROM candidate
         WHERE procrastinate_jobs.id = candidate.id
         RETURNING procrastinate_jobs.* INTO found_jobs;
 
 	RETURN found_jobs;
+END;
+$$;
+
+CREATE FUNCTION procrastinate_update_heartbeats_v1(job_ids bigint[])
+    RETURNS void
+    LANGUAGE plpgsql
+AS $$
+BEGIN
+    UPDATE procrastinate_jobs
+    SET heartbeat_updated_at = NOW()
+    WHERE id = ANY (job_ids);
 END;
 $$;
 

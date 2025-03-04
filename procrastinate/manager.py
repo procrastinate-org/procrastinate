@@ -160,9 +160,18 @@ class JobManager:
 
         return jobs.Job.from_row(row)
 
-    async def get_stalled_jobs(
+    async def update_heartbeats(self, jobs: list[jobs.Job]) -> None:
+        """
+        Update the heartbeats of the given jobs.
+        """
+        await self.connector.execute_query_async(
+            query=sql.queries["update_heartbeats"],
+            job_ids=[job.id for job in jobs],
+        )
+
+    async def get_stalled_jobs_by_heartbeat(
         self,
-        nb_seconds: int,
+        max_seconds_since_heartbeat: int,
         queue: str | None = None,
         task_name: str | None = None,
     ) -> Iterable[jobs.Job]:
@@ -171,21 +180,63 @@ class JobManager:
 
         Parameters
         ----------
-        nb_seconds:
-            Only jobs that have been in ``doing`` state for longer than this will be
-            returned
+        max_seconds_since_heartbeat:
+            Only jobs which heartbeat is older than this will be returned.
         queue:
             Filter by job queue name
         task_name:
             Filter by job task name
         """
         rows = await self.connector.execute_query_all_async(
-            query=sql.queries["select_stalled_jobs"],
-            nb_seconds=nb_seconds,
+            query=sql.queries["select_stalled_jobs_by_heartbeat"],
+            max_seconds_since_heartbeat=max_seconds_since_heartbeat,
             queue=queue,
             task_name=task_name,
         )
         return [jobs.Job.from_row(row) for row in rows]
+
+    async def get_stalled_jobs_by_started(
+        self,
+        max_seconds_since_started: int,
+        queue: str | None = None,
+        task_name: str | None = None,
+    ) -> Iterable[jobs.Job]:
+        """
+        Return all jobs that have been in ``doing`` state for more than a given time.
+
+        Parameters
+        ----------
+        max_seconds_since_started:
+            Only jobs that have been in ``doing`` state for longer than this will be
+            returned.
+        queue:
+            Filter by job queue name
+        task_name:
+            Filter by job task name
+        """
+        rows = await self.connector.execute_query_all_async(
+            query=sql.queries["select_stalled_jobs_by_started"],
+            max_seconds_since_started=max_seconds_since_started,
+            queue=queue,
+            task_name=task_name,
+        )
+        return [jobs.Job.from_row(row) for row in rows]
+
+    async def get_stalled_jobs(
+        self,
+        nb_seconds: int,
+        queue: str | None = None,
+        task_name: str | None = None,
+    ) -> Iterable[jobs.Job]:
+        """
+        This method is deprecated, use ``get_stalled_jobs_by_started`` or
+        ``get_stalled_jobs_by_heartbeat`` instead.
+        """
+        return await self.get_stalled_jobs_by_started(
+            max_seconds_since_started=nb_seconds,
+            queue=queue,
+            task_name=task_name,
+        )
 
     async def delete_old_jobs(
         self,
