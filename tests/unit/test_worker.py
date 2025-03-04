@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import signal
 from typing import cast
 
 import pytest
@@ -726,6 +727,15 @@ async def test_run_log_current_job_when_stopping(app: App, worker, caplog):
         f"Waiting for job to finish: worker: tests.unit.test_worker.t[{job_id}]()"
         in logs
     )
+
+
+async def test_run_no_signal_handlers(worker, kill_own_pid):
+    worker.install_signal_handlers = False
+    await start_worker(worker)
+    with pytest.raises(KeyboardInterrupt):
+        await asyncio.sleep(0.01)
+        # Test that handlers are NOT installed
+        kill_own_pid(signal=signal.SIGINT)
 
 
 async def test_heartbeat_updated(app: App):
