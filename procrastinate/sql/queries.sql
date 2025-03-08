@@ -15,12 +15,16 @@ SELECT procrastinate_defer_periodic_job_v1(%(queue)s, %(lock)s, %(queueing_lock)
 -- fetch_job --
 -- Get the first awaiting job
 SELECT id, status, task_name, priority, lock, queueing_lock, args, scheduled_at, queue_name, attempts
-    FROM procrastinate_fetch_job_v1(%(queues)s::varchar[]);
+    FROM procrastinate_fetch_job_v2(%(queues)s::varchar[]);
 
--- select_stalled_jobs --
+-- update_heartbeats --
+-- Update the heartbeats of the given jobs
+SELECT procrastinate_update_heartbeats_v1(%(job_ids)s::bigint[]);
+
+-- select_stalled_jobs_by_started --
 -- Get running jobs that started more than a given time ago
 SELECT job.id, status, task_name, priority, lock, queueing_lock,
-       args, scheduled_at, queue_name, attempts,
+       args, scheduled_at, queue_name, attempts, heartbeat_updated_at,
        MAX(event.at) AS started_at
     FROM procrastinate_jobs job
     JOIN procrastinate_events event
@@ -30,7 +34,17 @@ WHERE event.type = 'started'
   AND (%(queue)s::varchar IS NULL OR job.queue_name = %(queue)s)
   AND (%(task_name)s::varchar IS NULL OR job.task_name = %(task_name)s)
 GROUP BY job.id
-  HAVING MAX(event.at) < NOW() - (%(nb_seconds)s || 'SECOND')::INTERVAL
+  HAVING MAX(event.at) < NOW() - (%(max_seconds_since_started)s || 'SECOND')::INTERVAL
+
+-- select_stalled_jobs_by_heartbeat --
+-- Get running jobs which heartbeat have not been updated for a given time
+SELECT job.id, status, task_name, priority, lock, queueing_lock,
+       args, scheduled_at, queue_name, attempts, heartbeat_updated_at
+    FROM procrastinate_jobs job
+WHERE job.status = 'doing'
+  AND (%(queue)s::varchar IS NULL OR job.queue_name = %(queue)s)
+  AND (%(task_name)s::varchar IS NULL OR job.task_name = %(task_name)s)
+  AND heartbeat_updated_at < NOW() - (%(max_seconds_since_heartbeat)s || 'SECOND')::INTERVAL
 
 -- delete_old_jobs --
 -- Delete jobs that have been in a final state for longer than nb_hours

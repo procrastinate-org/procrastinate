@@ -118,12 +118,12 @@ async def test_fetch_job_no_result(
 @pytest.mark.parametrize(
     "filter_args",
     [
-        {"nb_seconds": 1800},
-        {"nb_seconds": 1800, "queue": "queue_a"},
-        {"nb_seconds": 1800, "task_name": "task_1"},
+        {"max_seconds_since_started": 1800},
+        {"max_seconds_since_started": 1800, "queue": "queue_a"},
+        {"max_seconds_since_started": 1800, "task_name": "task_1"},
     ],
 )
-async def test_get_stalled_jobs__yes(
+async def test_get_stalled_jobs_by_started__yes(
     pg_job_manager, fetched_job_factory, psycopg_connector, filter_args
 ):
     job = await fetched_job_factory(queue="queue_a", task_name="task_1")
@@ -134,19 +134,42 @@ async def test_get_stalled_jobs__yes(
         f"WHERE job_id={job.id}"
     )
 
-    result = await pg_job_manager.get_stalled_jobs(**filter_args)
+    result = await pg_job_manager.get_stalled_jobs_by_started(**filter_args)
     assert result == [job]
 
 
 @pytest.mark.parametrize(
     "filter_args",
     [
-        {"nb_seconds": 3600},
-        {"nb_seconds": 1800, "queue": "queue_b"},
-        {"nb_seconds": 1800, "task_name": "task_2"},
+        {"max_seconds_since_heartbeat": 1800},
+        {"max_seconds_since_heartbeat": 1800, "queue": "queue_a"},
+        {"max_seconds_since_heartbeat": 1800, "task_name": "task_1"},
     ],
 )
-async def test_get_stalled_jobs__no(
+async def test_get_stalled_jobs_by_heartbeat__yes(
+    pg_job_manager, fetched_job_factory, psycopg_connector, filter_args
+):
+    job = await fetched_job_factory(queue="queue_a", task_name="task_1")
+
+    # We fake the heartbeat update
+    await psycopg_connector.execute_query_async(
+        f"UPDATE procrastinate_jobs SET heartbeat_updated_at=heartbeat_updated_at - INTERVAL '35 minutes'"
+        f"WHERE id={job.id}"
+    )
+
+    result = await pg_job_manager.get_stalled_jobs_by_heartbeat(**filter_args)
+    assert result == [job]
+
+
+@pytest.mark.parametrize(
+    "filter_args",
+    [
+        {"max_seconds_since_started": 3600},
+        {"max_seconds_since_started": 1800, "queue": "queue_b"},
+        {"max_seconds_since_started": 1800, "task_name": "task_2"},
+    ],
+)
+async def test_get_stalled_jobs_by_started__no(
     pg_job_manager, fetched_job_factory, psycopg_connector, filter_args
 ):
     job = await fetched_job_factory(queue="queue_a", task_name="task_1")
@@ -157,11 +180,34 @@ async def test_get_stalled_jobs__no(
         f"WHERE job_id={job.id}"
     )
 
-    result = await pg_job_manager.get_stalled_jobs(**filter_args)
+    result = await pg_job_manager.get_stalled_jobs_by_started(**filter_args)
     assert result == []
 
 
-async def test_get_stalled_jobs__retries__no(
+@pytest.mark.parametrize(
+    "filter_args",
+    [
+        {"max_seconds_since_heartbeat": 3600},
+        {"max_seconds_since_heartbeat": 1800, "queue": "queue_b"},
+        {"max_seconds_since_heartbeat": 1800, "task_name": "task_2"},
+    ],
+)
+async def test_get_stalled_jobs_by_heartbeat__no(
+    pg_job_manager, fetched_job_factory, psycopg_connector, filter_args
+):
+    job = await fetched_job_factory(queue="queue_a", task_name="task_1")
+
+    # We fake the heartbeat update
+    await psycopg_connector.execute_query_async(
+        f"UPDATE procrastinate_jobs SET heartbeat_updated_at=heartbeat_updated_at - INTERVAL '35 minutes'"
+        f"WHERE id={job.id}"
+    )
+
+    result = await pg_job_manager.get_stalled_jobs_by_heartbeat(**filter_args)
+    assert result == []
+
+
+async def test_get_stalled_jobs_by_started__retries__no(
     pg_job_manager, fetched_job_factory, psycopg_connector
 ):
     job = await fetched_job_factory(queue="queue_a", task_name="task_1")
@@ -194,11 +240,13 @@ async def test_get_stalled_jobs__retries__no(
     ]
 
     # It should not be considered stalled
-    result = await pg_job_manager.get_stalled_jobs(nb_seconds=1800)
+    result = await pg_job_manager.get_stalled_jobs_by_started(
+        max_seconds_since_started=1800
+    )
     assert result == []
 
 
-async def test_get_stalled_jobs__retries__yes(
+async def test_get_stalled_jobs_by_started__retries__yes(
     pg_job_manager, fetched_job_factory, psycopg_connector
 ):
     job = await fetched_job_factory(queue="queue_a", task_name="task_1")
@@ -235,7 +283,9 @@ async def test_get_stalled_jobs__retries__yes(
     ]
 
     # It should not be considered stalled
-    result = await pg_job_manager.get_stalled_jobs(nb_seconds=1800)
+    result = await pg_job_manager.get_stalled_jobs_by_started(
+        max_seconds_since_started=1800
+    )
     assert result == [job]
 
 
