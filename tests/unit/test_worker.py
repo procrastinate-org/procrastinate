@@ -645,7 +645,10 @@ async def test_run_job_retry_failed_job(
     recover_on_attempt_number,
     expected_status,
     expected_attempts,
+    caplog,
 ):
+    caplog.set_level("INFO")
+
     worker.wait = False
 
     attempt = 0
@@ -667,6 +670,28 @@ async def test_run_job_retry_failed_job(
     job_row = connector.jobs[job_id]
     assert job_row["status"] == expected_status
     assert job_row["attempts"] == expected_attempts
+
+    assert (
+        len(
+            [
+                record
+                for record in caplog.records
+                if record.levelname == "INFO" and "to retry" in record.message
+            ]
+        )
+        == 1
+    )
+
+    if job_row["status"] == "failed":
+        assert (
+            len([record for record in caplog.records if record.levelname == "ERROR"])
+            == 1
+        )
+    else:
+        assert (
+            len([record for record in caplog.records if record.levelname == "ERROR"])
+            == 0
+        )
 
 
 async def test_run_log_actions(app: App, caplog, worker):
