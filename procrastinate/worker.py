@@ -194,7 +194,11 @@ class Worker:
         extra = self._log_extra(
             context=context, action=log_action, job_result=job_result
         )
-        log_level = logging.ERROR if status == jobs.Status.FAILED else logging.INFO
+        log_level = (
+            logging.ERROR
+            if status == jobs.Status.FAILED and not job_retry
+            else logging.INFO
+        )
         logger.log(log_level, text, extra=extra, exc_info=exc_info)
 
     async def _process_job(self, context: job_context.JobContext):
