@@ -776,3 +776,31 @@ async def test_heartbeat_updated_and_finally_deleted(app: App):
     await run_task
 
     assert connector.heartbeats == {}
+
+
+async def test_job_receives_worker_id(app: App):
+    @app.task(queue="some_queue")
+    async def t():
+        await asyncio.sleep(0.08)
+
+    job_id = await t.defer_async()
+
+    connector = cast(InMemoryConnector, app.connector)
+    job_row = connector.jobs[job_id]
+
+    assert job_row["worker_id"] is None
+
+    worker = Worker(app, wait=False)
+    run_task = await start_worker(worker)
+
+    await asyncio.sleep(0.05)
+
+    assert job_row["status"] == "doing"
+    assert job_row["worker_id"] == worker.worker_id
+
+    await asyncio.sleep(0.05)
+
+    assert job_row["status"] == "succeeded"
+    assert job_row["worker_id"] == worker.worker_id
+
+    await run_task

@@ -82,6 +82,7 @@ async def test_defer_job_one(connector):
             "scheduled_at": None,
             "attempts": 0,
             "abort_requested": False,
+            "worker_id": None,
         }
     }
     assert connector.jobs[1] == job
@@ -245,7 +246,7 @@ async def test_delete_old_jobs_run(connector):
     assert 4 not in connector.jobs
 
 
-async def test_fetch_job_one(connector):
+async def test_fetch_job_one(connector, worker_id):
     # This one will be selected, then skipped the second time because it's processing
     await connector.defer_job_one(
         task_name="mytask",
@@ -298,11 +299,15 @@ async def test_fetch_job_one(connector):
         queueing_lock="e",
     )
 
-    assert (await connector.fetch_job_one(queues=["marsupilami"]))["id"] == 1
-    assert (await connector.fetch_job_one(queues=["marsupilami"]))["id"] == 5
+    assert (await connector.fetch_job_one(queues=["marsupilami"], worker_id=worker_id))[
+        "id"
+    ] == 1
+    assert (await connector.fetch_job_one(queues=["marsupilami"], worker_id=worker_id))[
+        "id"
+    ] == 5
 
 
-async def test_fetch_job_one_prioritized(connector):
+async def test_fetch_job_one_prioritized(connector, worker_id):
     # This one will be selected second as it has a lower priority
     await connector.defer_job_one(
         task_name="mytask",
@@ -325,11 +330,11 @@ async def test_fetch_job_one_prioritized(connector):
         queueing_lock=None,
     )
 
-    assert (await connector.fetch_job_one(queues=None))["id"] == 2
-    assert (await connector.fetch_job_one(queues=None))["id"] == 1
+    assert (await connector.fetch_job_one(queues=None, worker_id=worker_id))["id"] == 2
+    assert (await connector.fetch_job_one(queues=None, worker_id=worker_id))["id"] == 1
 
 
-async def test_fetch_job_one_none_lock(connector):
+async def test_fetch_job_one_none_lock(connector, worker_id):
     """Testing that 2 jobs with locks "None" don't block one another"""
     await connector.defer_job_one(
         task_name="mytask",
@@ -350,11 +355,11 @@ async def test_fetch_job_one_none_lock(connector):
         queueing_lock=None,
     )
 
-    assert (await connector.fetch_job_one(queues=None))["id"] == 1
-    assert (await connector.fetch_job_one(queues=None))["id"] == 2
+    assert (await connector.fetch_job_one(queues=None, worker_id=worker_id))["id"] == 1
+    assert (await connector.fetch_job_one(queues=None, worker_id=worker_id))["id"] == 2
 
 
-async def test_finish_job_run(connector):
+async def test_finish_job_run(connector, worker_id):
     await connector.defer_job_one(
         task_name="mytask",
         priority=0,
@@ -364,7 +369,7 @@ async def test_finish_job_run(connector):
         lock="sher",
         queueing_lock="houba",
     )
-    job_row = await connector.fetch_job_one(queues=None)
+    job_row = await connector.fetch_job_one(queues=None, worker_id=worker_id)
     id = job_row["id"]
 
     await connector.finish_job_run(job_id=id, status="finished", delete_job=False)
@@ -373,7 +378,7 @@ async def test_finish_job_run(connector):
     assert connector.jobs[id]["status"] == "finished"
 
 
-async def test_retry_job_run(connector):
+async def test_retry_job_run(connector, worker_id):
     await connector.defer_job_one(
         task_name="mytask",
         priority=0,
@@ -383,7 +388,7 @@ async def test_retry_job_run(connector):
         lock="sher",
         queueing_lock="houba",
     )
-    job_row = await connector.fetch_job_one(queues=None)
+    job_row = await connector.fetch_job_one(queues=None, worker_id=worker_id)
     id = job_row["id"]
 
     retry_at = conftest.aware_datetime(2000, 1, 1)

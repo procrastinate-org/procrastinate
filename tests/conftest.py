@@ -313,6 +313,11 @@ def deferred_job_factory(job_factory, job_manager):
     return factory
 
 
+@pytest.fixture
+def worker_id():
+    return str(uuid.uuid4())
+
+
 def aware_datetime(
     year, month, day, hour=0, minute=0, second=0, microsecond=0, tz_offset=None
 ):

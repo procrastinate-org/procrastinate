@@ -34,7 +34,7 @@ def deferred_job_factory(deferred_job_factory, pg_job_manager):
 def fetched_job_factory(deferred_job_factory, pg_job_manager):
     async def factory(**kwargs):
         job = await deferred_job_factory(**kwargs)
-        fetched_job = await pg_job_manager.fetch_job(queues=None)
+        fetched_job = await pg_job_manager.fetch_job(queues=None, worker_id="1")
         # to make sure we do fetch the job we just deferred
         assert fetched_job.id == job.id
         return fetched_job
@@ -55,47 +55,55 @@ async def test_fetch_job(
     deferred_job_factory,
     job_kwargs,
     fetch_queues,
+    worker_id,
 ):
     # Now add the job we're testing
     job = await deferred_job_factory(**job_kwargs)
 
-    expected_job = job.evolve(status="doing")
-    assert await pg_job_manager.fetch_job(queues=fetch_queues) == expected_job
+    expected_job = job.evolve(status="doing", worker_id=worker_id)
+    assert (
+        await pg_job_manager.fetch_job(queues=fetch_queues, worker_id=worker_id)
+        == expected_job
+    )
 
 
-async def test_fetch_job_not_fetching_started_job(pg_job_manager, fetched_job_factory):
+async def test_fetch_job_not_fetching_started_job(
+    pg_job_manager, fetched_job_factory, worker_id
+):
     # Add a first started job
     await fetched_job_factory()
 
-    assert await pg_job_manager.fetch_job(queues=None) is None
+    assert await pg_job_manager.fetch_job(queues=None, worker_id=worker_id) is None
 
 
 async def test_fetch_job_not_fetching_locked_job(
-    pg_job_manager, deferred_job_factory, fetched_job_factory
+    pg_job_manager, deferred_job_factory, fetched_job_factory, worker_id
 ):
     await fetched_job_factory(lock="lock_1")
     await deferred_job_factory(lock="lock_1")
 
-    assert await pg_job_manager.fetch_job(queues=None) is None
+    assert await pg_job_manager.fetch_job(queues=None, worker_id=worker_id) is None
 
 
 async def test_fetch_job_respect_lock_aborting_job(
-    pg_job_manager, deferred_job_factory, fetched_job_factory
+    pg_job_manager, deferred_job_factory, fetched_job_factory, worker_id
 ):
     job = await fetched_job_factory(lock="lock_1")
     await deferred_job_factory(lock="lock_1")
 
     await pg_job_manager.cancel_job_by_id_async(job.id, abort=True)
-    assert await pg_job_manager.fetch_job(queues=None) is None
+    assert await pg_job_manager.fetch_job(queues=None, worker_id=worker_id) is None
 
 
 async def test_fetch_job_spacial_case_none_lock(
-    pg_job_manager, deferred_job_factory, fetched_job_factory
+    pg_job_manager, deferred_job_factory, fetched_job_factory, worker_id
 ):
     await fetched_job_factory(lock=None)
     job = await deferred_job_factory(lock=None)
 
-    assert (await pg_job_manager.fetch_job(queues=None)).id == job.id
+    assert (
+        await pg_job_manager.fetch_job(queues=None, worker_id=worker_id)
+    ).id == job.id
 
 
 @pytest.mark.parametrize(
@@ -108,11 +116,13 @@ async def test_fetch_job_spacial_case_none_lock(
     ],
 )
 async def test_fetch_job_no_result(
-    pg_job_manager, deferred_job_factory, job_kwargs, fetch_queues
+    pg_job_manager, deferred_job_factory, job_kwargs, fetch_queues, worker_id
 ):
     await deferred_job_factory(**job_kwargs)
 
-    assert await pg_job_manager.fetch_job(queues=fetch_queues) is None
+    assert (
+        await pg_job_manager.fetch_job(queues=fetch_queues, worker_id=worker_id) is None
+    )
 
 
 @pytest.mark.parametrize(
@@ -369,21 +379,23 @@ async def test_finish_job_wrong_end_status(
     )
 
 
-async def test_retry_job(pg_job_manager, fetched_job_factory):
+async def test_retry_job(pg_job_manager, fetched_job_factory, worker_id):
     job1 = await fetched_job_factory(queue="queue_a")
 
     await pg_job_manager.retry_job(
         job=job1, retry_at=datetime.datetime.now(datetime.timezone.utc)
     )
 
-    job2 = await pg_job_manager.fetch_job(queues=None)
+    job2 = await pg_job_manager.fetch_job(queues=None, worker_id=worker_id)
 
     assert job2.id == job1.id
     assert job2.attempts == job1.attempts + 1
     assert job2.priority == job1.priority == 0
 
 
-async def test_retry_job_with_additional_params(pg_job_manager, fetched_job_factory):
+async def test_retry_job_with_additional_params(
+    pg_job_manager, fetched_job_factory, worker_id
+):
     job1 = await fetched_job_factory(queue="queue_a")
 
     await pg_job_manager.retry_job(
@@ -394,7 +406,7 @@ async def test_retry_job_with_additional_params(pg_job_manager, fetched_job_fact
         lock="some_lock",
     )
 
-    job2 = await pg_job_manager.fetch_job(queues=None)
+    job2 = await pg_job_manager.fetch_job(queues=None, worker_id=worker_id)
 
     assert job2.id == job1.id
     assert job2.attempts == 1
@@ -492,7 +504,7 @@ def test_check_connection_sync(pg_job_manager):
 
 
 @pytest.fixture
-async def fixture_jobs(pg_job_manager, job_factory):
+async def fixture_jobs(pg_job_manager, job_factory, worker_id):
     j1 = job_factory(
         queue="q1",
         lock="lock1",
@@ -532,7 +544,7 @@ async def fixture_jobs(pg_job_manager, job_factory):
         task_kwargs={"key": "d"},
     )
     j4 = await pg_job_manager.defer_job_async(job=j4)
-    await pg_job_manager.fetch_job(queues=["q3"])
+    await pg_job_manager.fetch_job(queues=["q3"], worker_id=worker_id)
 
     return [j1, j2, j3, j4]
 

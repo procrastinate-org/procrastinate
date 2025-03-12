@@ -129,6 +129,7 @@ class InMemoryConnector(connector.BaseAsyncConnector):
             "scheduled_at": scheduled_at,
             "attempts": 0,
             "abort_requested": False,
+            "worker_id": None,
         }
         self.events[id] = []
         if scheduled_at:
@@ -199,7 +200,7 @@ class InMemoryConnector(connector.BaseAsyncConnector):
                 payload=json.dumps(notification),
             )
 
-    async def fetch_job_one(self, queues: Iterable[str] | None) -> dict:
+    async def fetch_job_one(self, queues: Iterable[str] | None, worker_id: str) -> dict:
         # Creating a copy of the iterable so that we can modify it while we iterate
 
         filtered_jobs = [
@@ -220,6 +221,7 @@ class InMemoryConnector(connector.BaseAsyncConnector):
 
         job = filtered_jobs[0]
         job["status"] = "doing"
+        job["worker_id"] = worker_id
         self.events[job["id"]].append({"type": "started", "at": utils.utcnow()})
         return job
 

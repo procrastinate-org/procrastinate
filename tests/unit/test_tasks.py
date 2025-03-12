@@ -39,6 +39,7 @@ async def test_task_defer_async(app: App, connector):
             "scheduled_at": None,
             "attempts": 0,
             "abort_requested": False,
+            "worker_id": None,
         }
     }
 

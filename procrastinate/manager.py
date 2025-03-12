@@ -132,7 +132,9 @@ class JobManager:
 
         return result["id"]
 
-    async def fetch_job(self, queues: Iterable[str] | None) -> jobs.Job | None:
+    async def fetch_job(
+        self, queues: Iterable[str] | None, worker_id: str
+    ) -> jobs.Job | None:
         """
         Select a job in the queue, and mark it as doing.
         The worker selecting a job is then responsible for running it, and then
@@ -150,7 +152,7 @@ class JobManager:
         """
 
         row = await self.connector.execute_query_one_async(
-            query=sql.queries["fetch_job"], queues=queues
+            query=sql.queries["fetch_job"], queues=queues, worker_id=worker_id
         )
 
         # fetch_tasks will always return a row, but is there's no relevant

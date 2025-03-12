@@ -327,7 +327,9 @@ class Worker:
                 await utils.wait_any(acquire_sem_task, self._stop_event.wait())
                 if self._stop_event.is_set():
                     break
-                job = await self.app.job_manager.fetch_job(queues=self.queues)
+                job = await self.app.job_manager.fetch_job(
+                    queues=self.queues, worker_id=self.worker_id
+                )
             finally:
                 if (not job or self._stop_event.is_set()) and acquire_sem_task.done():
                     self._job_semaphore.release()
