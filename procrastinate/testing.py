@@ -296,6 +296,14 @@ class InMemoryConnector(connector.BaseAsyncConnector):
             and task_name in (job["task_name"], None)
         )
 
+    async def select_stalled_workers_all(self, seconds_since_heartbeat: float):
+        return [
+            {"worker_id": worker_id}
+            for worker_id, heartbeat in self.heartbeats.items()
+            if heartbeat
+            < utils.utcnow() - datetime.timedelta(seconds=seconds_since_heartbeat)
+        ]
+
     async def delete_old_jobs_run(self, nb_hours, queue, statuses):
         for id, job in list(self.jobs.items()):
             if (

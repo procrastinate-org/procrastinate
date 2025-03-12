@@ -222,6 +222,24 @@ async def test_select_stalled_jobs_all(connector):
     assert [job["id"] for job in results] == [5, 6]
 
 
+async def test_select_stalled_workers_all(connector):
+    worker_id1 = utils.create_worker_id()
+    worker_id2 = utils.create_worker_id()
+    worker_id3 = utils.create_worker_id()
+
+    connector.heartbeats = {
+        worker_id1: conftest.aware_datetime(2000, 1, 1),
+        worker_id2: conftest.aware_datetime(2000, 1, 1),
+        worker_id3: conftest.aware_datetime(2100, 1, 1),
+    }
+
+    results = await connector.select_stalled_workers_all(seconds_since_heartbeat=0)
+    assert results == [
+        {"worker_id": worker_id1},
+        {"worker_id": worker_id2},
+    ]
+
+
 async def test_delete_old_jobs_run(connector):
     connector.jobs = {
         # We're not deleting this job because it's "doing"

@@ -189,6 +189,21 @@ class JobManager:
         )
         return [jobs.Job.from_row(row) for row in rows]
 
+    async def get_stalled_workers(self, seconds_since_heartbeat: float) -> list[str]:
+        """
+        Return all IDs or workers that have not sent a heartbeat for more than a given time.
+
+        Parameters
+        ----------
+        seconds_since_heartbeat:
+            Only workers that have not sent a heartbeat for longer than this will be returned
+        """
+        rows = await self.connector.execute_query_all_async(
+            query=sql.queries["select_stalled_workers"],
+            seconds_since_heartbeat=seconds_since_heartbeat,
+        )
+        return [row["worker_id"] for row in rows]
+
     async def delete_old_jobs(
         self,
         nb_hours: int,

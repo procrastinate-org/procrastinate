@@ -32,6 +32,12 @@ WHERE event.type = 'started'
 GROUP BY job.id
   HAVING MAX(event.at) < NOW() - (%(nb_seconds)s || 'SECOND')::INTERVAL
 
+-- select_stalled_workers --
+-- Get IDs of workers that haven't sent a heartbeat in a while
+SELECT worker_id
+    FROM procrastinate_worker_heartbeats
+WHERE last_heartbeat < NOW() - (%(seconds_since_heartbeat)s || 'SECOND')::INTERVAL
+
 -- delete_old_jobs --
 -- Delete jobs that have been in a final state for longer than nb_hours
 DELETE FROM procrastinate_jobs
