@@ -442,3 +442,15 @@ async def test_defer_no_notify(connector):
     )
 
     assert not event.is_set()
+
+
+async def test_update_heartbeat_run(connector, worker_id):
+    connector.heartbeats = {}
+    await connector.update_heartbeat_run(worker_id=worker_id)
+    assert connector.heartbeats[worker_id] is not None
+
+
+async def test_delete_heartbeat(connector, worker_id):
+    connector.heartbeats = {worker_id: conftest.aware_datetime(2000, 1, 1)}
+    await connector.delete_heartbeat_run(worker_id=worker_id)
+    assert connector.heartbeats == {}
