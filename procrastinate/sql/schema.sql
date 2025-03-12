@@ -59,6 +59,12 @@ CREATE TABLE procrastinate_events (
     at timestamp with time zone DEFAULT NOW() NULL
 );
 
+CREATE TABLE procrastinate_worker_heartbeats(
+    id bigserial PRIMARY KEY,
+    worker_id character varying(36) NOT NULL UNIQUE,
+    last_heartbeat timestamp with time zone NOT NULL DEFAULT NOW()
+);
+
 -- Constraints & Indices
 
 -- this prevents from having several jobs with the same queueing lock in the "todo" state
@@ -406,6 +412,28 @@ BEGIN
     SET job_id = NULL
     WHERE job_id = OLD.id;
     RETURN OLD;
+END;
+$$;
+
+CREATE FUNCTION procrastinate_update_heartbeat_v1(p_worker_id character varying)
+    RETURNS void
+    LANGUAGE plpgsql
+AS $$
+BEGIN
+    INSERT INTO procrastinate_worker_heartbeats(worker_id)
+    VALUES (p_worker_id)
+    ON CONFLICT (worker_id)
+    DO UPDATE SET last_heartbeat = NOW();
+END;
+$$;
+
+CREATE FUNCTION procrastinate_delete_heartbeat_v1(p_worker_id character varying)
+    RETURNS void
+    LANGUAGE plpgsql
+AS $$
+BEGIN
+    DELETE FROM procrastinate_worker_heartbeats
+    WHERE worker_id = p_worker_id;
 END;
 $$;
 

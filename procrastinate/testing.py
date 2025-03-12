@@ -28,6 +28,7 @@ class InMemoryConnector(connector.BaseAsyncConnector):
         self.reverse_queries[schema.SchemaManager.get_schema()] = "apply_schema"
         #: Mapping of ``{<job id>: <Job database row as a dictionary>}``
         self.jobs: dict[int, JobRow] = {}
+        self.heartbeats: dict[str, datetime.datetime] = {}
 
     def reset(self) -> None:
         """
@@ -36,6 +37,7 @@ class InMemoryConnector(connector.BaseAsyncConnector):
         """
         self.jobs: dict[int, JobRow] = {}
         self.events: dict[int, list[EventRow]] = {}
+        self.heartbeats: dict[str, datetime.datetime] = {}
         self.job_counter = count(1)
         self.queries: list[tuple[str, dict[str, Any]]] = []
         self.on_notification: connector.Notify | None = None
@@ -365,3 +367,9 @@ class InMemoryConnector(connector.BaseAsyncConnector):
 
     async def check_connection_one(self):
         return {"check": self.table_exists or None}
+
+    async def update_heartbeat_run(self, worker_id):
+        self.heartbeats[worker_id] = utils.utcnow()
+
+    async def delete_heartbeat_run(self, worker_id):
+        self.heartbeats.pop(worker_id)

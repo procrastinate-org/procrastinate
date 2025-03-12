@@ -836,3 +836,31 @@ class JobManager:
             query=sql.queries["list_jobs_to_abort"], queue_name=queue
         )
         return [row["id"] for row in rows]
+
+    async def update_heartbeat(self, worker_id: str) -> None:
+        """
+        Update the heartbeat of a worker.
+
+        Parameters
+        ----------
+        worker_id:
+            The ID of the worker to update the heartbeat
+        """
+        await self.connector.execute_query_async(
+            query=sql.queries["update_heartbeat"],
+            worker_id=worker_id,
+        )
+
+    async def delete_heartbeat(self, worker_id: str) -> None:
+        """
+        Delete the heartbeat of a worker.
+
+        Parameters
+        ----------
+        worker_id:
+            The ID of the worker to delete the heartbeat
+        """
+        await self.connector.execute_query_async(
+            query=sql.queries["delete_heartbeat"],
+            worker_id=worker_id,
+        )

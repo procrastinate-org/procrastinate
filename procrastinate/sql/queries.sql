@@ -197,3 +197,11 @@ SELECT id from procrastinate_jobs
 WHERE status = 'doing'
 AND abort_requested = true
 AND (%(queue_name)s::varchar IS NULL OR queue_name = %(queue_name)s)
+
+-- update_heartbeat --
+-- Update the heartbeat of a worker
+SELECT procrastinate_update_heartbeat_v1(%(worker_id)s)
+
+-- delete_heartbeat --
+-- Delete the heartbeat of a worker
+SELECT procrastinate_delete_heartbeat_v1(%(worker_id)s)

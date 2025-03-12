@@ -6,6 +6,7 @@ import functools
 import inspect
 import logging
 import time
+import uuid
 from collections.abc import Awaitable, Iterable
 from typing import Any, Callable
 
@@ -45,6 +46,7 @@ class Worker:
         delete_jobs: str | jobs.DeleteJobCondition | None = None,
         additional_context: dict[str, Any] | None = None,
         install_signal_handlers: bool = True,
+        update_heartbeat_interval: float = 5.0,
     ):
         self.app = app
         self.queues = queues
@@ -61,11 +63,14 @@ class Worker:
         ) or jobs.DeleteJobCondition.NEVER
         self.additional_context = additional_context
         self.install_signal_handlers = install_signal_handlers
+        self.update_heartbeat_interval = update_heartbeat_interval
 
         if self.worker_name:
             self.logger = logger.getChild(self.worker_name)
         else:
             self.logger = logger
+
+        self.worker_id: str = str(uuid.uuid4())
 
         self._loop_task: asyncio.Future | None = None
         self._new_job_event = asyncio.Event()
@@ -363,6 +368,9 @@ class Worker:
         Run the worker
         This will run forever until asked to stop/cancelled, or until no more job is available is configured not to wait
         """
+        logger.debug(f"Start heartbeat of worker {self.worker_id}")
+        await self.app.job_manager.update_heartbeat(self.worker_id)
+
         self.run_task = asyncio.current_task()
         loop_task = asyncio.create_task(self._run_loop(), name="worker loop")
 
@@ -383,6 +391,16 @@ class Worker:
             self._new_job_event.set()
         elif notification["type"] == "abort_job_requested":
             self._handle_abort_jobs_requested([notification["job_id"]])
+
+    async def _update_heartbeat(self):
+        while True:
+            logger.debug(
+                f"Waiting for {self.update_heartbeat_interval}s before updating worker heartbeat"
+            )
+            await asyncio.sleep(self.update_heartbeat_interval)
+
+            logger.debug(f"Updating heartbeat of worker {self.worker_id}")
+            await self.app.job_manager.update_heartbeat(self.worker_id)
 
     async def _poll_jobs_to_abort(self):
         while True:
@@ -479,6 +497,9 @@ class Worker:
             )
             await self._abort_running_jobs()
 
+        logger.debug(f"Delete heartbeat of worker {self.worker_id}")
+        await self.app.job_manager.delete_heartbeat(self.worker_id)
+
         self.logger.info(
             f"Stopped worker on {utils.queues_display(self.queues)}",
             extra=self._log_extra(
@@ -495,6 +516,7 @@ class Worker:
     def _start_side_tasks(self) -> list[asyncio.Task]:
         """Start side tasks such as periodic deferrer and notification listener"""
         side_tasks = [
+            asyncio.create_task(self._update_heartbeat(), name="update_heartbeats"),
             asyncio.create_task(self._periodic_deferrer(), name="deferrer"),
             asyncio.create_task(self._poll_jobs_to_abort(), name="poll_jobs_to_abort"),
         ]

@@ -702,6 +702,7 @@ async def test_run_log_actions(app: App, caplog, worker):
     connector = cast(InMemoryConnector, app.connector)
     assert [q[0] for q in connector.queries] == [
         "defer_job",
+        "update_heartbeat",
         "fetch_job",
         "finish_job",
         "fetch_job",
@@ -751,3 +752,27 @@ async def test_run_no_signal_handlers(worker, kill_own_pid):
         await asyncio.sleep(0.01)
         # Test that handlers are NOT installed
         kill_own_pid(signal=signal.SIGINT)
+
+
+async def test_heartbeat_updated_and_finally_deleted(app: App):
+    connector = cast(InMemoryConnector, app.connector)
+
+    assert connector.heartbeats == {}
+
+    worker = Worker(app, update_heartbeat_interval=0.05)
+    run_task = await start_worker(worker)
+
+    await asyncio.sleep(0.01)
+
+    heartbeat1 = connector.heartbeats[worker.worker_id]
+    assert heartbeat1 is not None
+
+    await asyncio.sleep(0.05)
+
+    heartbeat2 = connector.heartbeats[worker.worker_id]
+    assert heartbeat2 > heartbeat1
+
+    worker.stop()
+    await run_task
+
+    assert connector.heartbeats == {}
