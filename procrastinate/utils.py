@@ -9,6 +9,7 @@ import logging
 import pathlib
 import sys
 import types
+import uuid
 from collections.abc import (
     AsyncGenerator,
     AsyncIterator,
@@ -329,3 +330,7 @@ def queues_display(queues: Iterable[str] | None) -> str:
         return f"queues {', '.join(queues)}"
     else:
         return "all queues"
+
+
+def create_worker_id() -> str:
+    return str(uuid.uuid4())

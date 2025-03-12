@@ -6,7 +6,6 @@ import functools
 import inspect
 import logging
 import time
-import uuid
 from collections.abc import Awaitable, Iterable
 from typing import Any, Callable
 
@@ -70,7 +69,7 @@ class Worker:
         else:
             self.logger = logger
 
-        self.worker_id: str = str(uuid.uuid4())
+        self.worker_id: str = utils.create_worker_id()
 
         self._loop_task: asyncio.Future | None = None
         self._new_job_event = asyncio.Event()

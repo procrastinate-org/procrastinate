@@ -21,7 +21,7 @@ import pytest
 from django.core.management.base import OutputWrapper
 
 from procrastinate import app as app_module
-from procrastinate import blueprints, builtin_tasks, jobs, schema, testing
+from procrastinate import blueprints, builtin_tasks, jobs, schema, testing, utils
 from procrastinate import psycopg_connector as async_psycopg_connector_module
 from procrastinate import sync_psycopg_connector as sync_psycopg_connector_module
 
@@ -315,7 +315,7 @@ def deferred_job_factory(job_factory, job_manager):
 
 @pytest.fixture
 def worker_id():
-    return str(uuid.uuid4())
+    return utils.create_worker_id()
 
 
 def aware_datetime(
