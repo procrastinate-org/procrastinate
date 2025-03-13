@@ -60,7 +60,7 @@ CREATE TABLE procrastinate_events (
     at timestamp with time zone DEFAULT NOW() NULL
 );
 
-CREATE TABLE procrastinate_worker_heartbeats(
+CREATE TABLE procrastinate_workers(
     id bigserial PRIMARY KEY,
     worker_id character varying(36) NOT NULL UNIQUE,
     last_heartbeat timestamp with time zone NOT NULL DEFAULT NOW()
@@ -422,7 +422,7 @@ CREATE FUNCTION procrastinate_update_heartbeat_v1(p_worker_id character varying)
     LANGUAGE plpgsql
 AS $$
 BEGIN
-    INSERT INTO procrastinate_worker_heartbeats(worker_id)
+    INSERT INTO procrastinate_workers(worker_id)
     VALUES (p_worker_id)
     ON CONFLICT (worker_id)
     DO UPDATE SET last_heartbeat = NOW();
@@ -434,7 +434,7 @@ CREATE FUNCTION procrastinate_delete_heartbeat_v1(p_worker_id character varying)
     LANGUAGE plpgsql
 AS $$
 BEGIN
-    DELETE FROM procrastinate_worker_heartbeats
+    DELETE FROM procrastinate_workers
     WHERE worker_id = p_worker_id;
 END;
 $$;

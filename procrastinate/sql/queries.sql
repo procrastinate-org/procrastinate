@@ -35,7 +35,7 @@ GROUP BY job.id
 -- select_stalled_workers --
 -- Get IDs of workers that haven't sent a heartbeat in a while
 SELECT worker_id
-    FROM procrastinate_worker_heartbeats
+    FROM procrastinate_workers
 WHERE last_heartbeat < NOW() - (%(seconds_since_heartbeat)s || 'SECOND')::INTERVAL
 
 -- delete_old_jobs --

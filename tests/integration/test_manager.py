@@ -257,7 +257,7 @@ async def test_heartbeat_and_stalled_workers(
 
     # We fake the heartbeat to be 35 minutes old
     await psycopg_connector.execute_query_async(
-        "UPDATE procrastinate_worker_heartbeats "
+        "UPDATE procrastinate_workers "
         "SET last_heartbeat=last_heartbeat - INTERVAL '35 minutes' "
         f"WHERE worker_id='{worker_id}'"
     )
