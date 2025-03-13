@@ -103,6 +103,7 @@ SELECT id,
    AND (%(status)s::procrastinate_job_status IS NULL OR status = %(status)s)
    AND (%(lock)s::varchar IS NULL OR lock = %(lock)s)
    AND (%(queueing_lock)s::varchar IS NULL OR queueing_lock = %(queueing_lock)s)
+   AND (%(worker_id)s::varchar IS NULL OR worker_id = %(worker_id)s)
  ORDER BY id ASC;
 
 -- list_queues --

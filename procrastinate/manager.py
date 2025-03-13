@@ -553,6 +553,7 @@ class JobManager:
         status: str | None = None,
         lock: str | None = None,
         queueing_lock: str | None = None,
+        worker_id: str | None = None,
     ) -> Iterable[jobs.Job]:
         """
         List all procrastinate jobs given query filters.
@@ -571,6 +572,8 @@ class JobManager:
             Filter by job lock
         queueing_lock:
             Filter by job queueing_lock
+        worker_id:
+            Filter by worker ID
 
         Returns
         -------
@@ -584,6 +587,7 @@ class JobManager:
             status=status,
             lock=lock,
             queueing_lock=queueing_lock,
+            worker_id=worker_id,
         )
         return [jobs.Job.from_row(row) for row in rows]
 
@@ -595,6 +599,7 @@ class JobManager:
         status: str | None = None,
         lock: str | None = None,
         queueing_lock: str | None = None,
+        worker_id: str | None = None,
     ) -> list[jobs.Job]:
         """
         Sync version of `list_jobs_async`
@@ -607,6 +612,7 @@ class JobManager:
             status=status,
             lock=lock,
             queueing_lock=queueing_lock,
+            worker_id=worker_id,
         )
         return [jobs.Job.from_row(row) for row in rows]
 
