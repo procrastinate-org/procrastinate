@@ -115,6 +115,7 @@ class Worker:
             "action": action,
             "worker": {
                 "name": self.worker_name,
+                "worker_id": self.worker_id,
                 "job_id": context.job.id if context else None,
                 "queues": self.queues,
             },
