@@ -35,6 +35,7 @@ class WorkerOptions(TypedDict):
     additional_context: NotRequired[dict[str, Any]]
     install_signal_handlers: NotRequired[bool]
     update_heartbeat_interval: NotRequired[float]
+    stalled_worker_timeout: NotRequired[float]
 
 
 class App(blueprints.Blueprint):
@@ -320,6 +321,10 @@ class App(blueprints.Blueprint):
         update_heartbeat_interval: ``float``
             Time in seconds between heartbeat updates of the worker. If set to 0, the worker
             will not send heartbeats (defaults to 10).
+        stalled_worker_timeout: ``float``
+            Time in seconds after which a worker is considered stalled if no heartbeat has
+            been received. A worker prunes stalled workers from the database at startup.
+            If set to 0, the worker will not prune stalled workers (defaults to 30).
         """
         self.perform_import_paths()
         worker = self._worker(**kwargs)

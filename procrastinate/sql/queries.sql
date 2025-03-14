@@ -213,3 +213,7 @@ SELECT procrastinate_update_heartbeat_v1(%(worker_id)s)
 -- delete_heartbeat --
 -- Delete the heartbeat of a worker
 SELECT procrastinate_delete_heartbeat_v1(%(worker_id)s)
+
+-- prune_stalled_workers --
+-- Delete stalled workers that haven't sent a heartbeat in a while
+SELECT procrastinate_prune_stalled_workers_v1(%(seconds_since_heartbeat)s)

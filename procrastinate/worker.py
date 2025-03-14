@@ -45,7 +45,8 @@ class Worker:
         delete_jobs: str | jobs.DeleteJobCondition | None = None,
         additional_context: dict[str, Any] | None = None,
         install_signal_handlers: bool = True,
-        update_heartbeat_interval: float = 5.0,
+        update_heartbeat_interval: float = 10.0,
+        stalled_worker_timeout: float = 30.0,
     ):
         self.app = app
         self.queues = queues
@@ -63,6 +64,7 @@ class Worker:
         self.additional_context = additional_context
         self.install_signal_handlers = install_signal_handlers
         self.update_heartbeat_interval = update_heartbeat_interval
+        self.stalled_worker_timeout = stalled_worker_timeout
 
         if self.worker_name:
             self.logger = logger.getChild(self.worker_name)
@@ -370,6 +372,9 @@ class Worker:
         Run the worker
         This will run forever until asked to stop/cancelled, or until no more job is available is configured not to wait
         """
+        logger.debug("Prune stalled workers with old heartbeats")
+        await self.app.job_manager.prune_stalled_workers(self.stalled_worker_timeout)
+
         logger.debug(f"Start heartbeat of worker {self.worker_id}")
         await self.app.job_manager.update_heartbeat(self.worker_id)
 

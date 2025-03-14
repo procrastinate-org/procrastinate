@@ -147,6 +147,21 @@ async def test_heartbeat_and_stalled_workers(job_manager, connector, worker_id):
     assert await job_manager.get_stalled_workers(seconds_since_heartbeat=1800) == []
 
 
+async def test_prune_stalled_workers(job_manager, connector, worker_id):
+    await job_manager.update_heartbeat(worker_id=worker_id)
+    assert await job_manager.get_stalled_workers(seconds_since_heartbeat=1800) == []
+
+    # We fake the heartbeat to be 35 minutes old
+    heartbeat = connector.heartbeats[worker_id]
+    connector.heartbeats[worker_id] = heartbeat - datetime.timedelta(minutes=35)
+    assert await job_manager.get_stalled_workers(seconds_since_heartbeat=1800) == [
+        worker_id
+    ]
+
+    await job_manager.prune_stalled_workers(seconds_since_heartbeat=1800)
+    assert await job_manager.get_stalled_workers(seconds_since_heartbeat=1800) == []
+
+
 @pytest.mark.parametrize(
     "include_failed, statuses",
     [(False, ["succeeded"]), (True, ["succeeded", "failed"])],

@@ -269,6 +269,24 @@ async def test_heartbeat_and_stalled_workers(
     assert await pg_job_manager.get_stalled_workers(seconds_since_heartbeat=1800) == []
 
 
+async def test_prune_stalled_workers(pg_job_manager, psycopg_connector, worker_id):
+    await pg_job_manager.update_heartbeat(worker_id=worker_id)
+    assert await pg_job_manager.get_stalled_workers(seconds_since_heartbeat=1800) == []
+
+    # We fake the heartbeat to be 35 minutes old
+    await psycopg_connector.execute_query_async(
+        "UPDATE procrastinate_workers "
+        "SET last_heartbeat=last_heartbeat - INTERVAL '35 minutes' "
+        f"WHERE worker_id='{worker_id}'"
+    )
+    assert await pg_job_manager.get_stalled_workers(seconds_since_heartbeat=1800) == [
+        worker_id
+    ]
+
+    await pg_job_manager.prune_stalled_workers(seconds_since_heartbeat=1800)
+    assert await pg_job_manager.get_stalled_workers(seconds_since_heartbeat=1800) == []
+
+
 async def test_delete_old_jobs_job_todo(
     get_all,
     pg_job_manager,

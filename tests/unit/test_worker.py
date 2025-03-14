@@ -702,6 +702,7 @@ async def test_run_log_actions(app: App, caplog, worker):
     connector = cast(InMemoryConnector, app.connector)
     assert [q[0] for q in connector.queries] == [
         "defer_job",
+        "prune_stalled_workers",
         "update_heartbeat",
         "fetch_job",
         "finish_job",

@@ -4,6 +4,8 @@ CREATE TABLE procrastinate_workers(
     last_heartbeat timestamp with time zone NOT NULL DEFAULT NOW()
 );
 
+CREATE INDEX idx_procrastinate_workers_last_heartbeat ON procrastinate_workers(last_heartbeat);
+
 CREATE FUNCTION procrastinate_update_heartbeat_v1(p_worker_id character varying)
     RETURNS void
     LANGUAGE plpgsql
@@ -23,6 +25,16 @@ AS $$
 BEGIN
     DELETE FROM procrastinate_workers
     WHERE worker_id = p_worker_id;
+END;
+$$;
+
+CREATE FUNCTION procrastinate_prune_stalled_workers_v1(seconds_since_heartbeat float)
+    RETURNS void
+    LANGUAGE plpgsql
+AS $$
+BEGIN
+    DELETE FROM procrastinate_workers
+    WHERE last_heartbeat < NOW() - (seconds_since_heartbeat || 'SECOND')::INTERVAL;
 END;
 $$;
 
