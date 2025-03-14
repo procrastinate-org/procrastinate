@@ -319,12 +319,11 @@ class App(blueprints.Blueprint):
             run the work as an async task in a bigger application)
             (defaults to ``True``)
         update_heartbeat_interval: ``float``
-            Time in seconds between heartbeat updates of the worker. If set to 0, the worker
-            will not send heartbeats (defaults to 10).
+            Time in seconds between heartbeat updates of the worker. (defaults to 10)
         stalled_worker_timeout: ``float``
             Time in seconds after which a worker is considered stalled if no heartbeat has
             been received. A worker prunes stalled workers from the database at startup.
-            If set to 0, the worker will not prune stalled workers (defaults to 30).
+            (defaults to 30)
         """
         self.perform_import_paths()
         worker = self._worker(**kwargs)
