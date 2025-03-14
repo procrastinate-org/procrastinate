@@ -381,7 +381,7 @@ class InMemoryConnector(connector.BaseAsyncConnector):
     async def update_heartbeat_run(self, worker_id):
         self.heartbeats[worker_id] = utils.utcnow()
 
-    async def delete_heartbeat_run(self, worker_id):
+    async def delete_finished_worker_run(self, worker_id):
         self.heartbeats.pop(worker_id)
 
     async def prune_stalled_workers_run(self, seconds_since_heartbeat):

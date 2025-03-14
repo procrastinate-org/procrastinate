@@ -210,9 +210,9 @@ AND (%(queue_name)s::varchar IS NULL OR queue_name = %(queue_name)s)
 -- Update the heartbeat of a worker
 SELECT procrastinate_update_heartbeat_v1(%(worker_id)s)
 
--- delete_heartbeat --
--- Delete the heartbeat of a worker
-SELECT procrastinate_delete_heartbeat_v1(%(worker_id)s)
+-- delete_finished_worker --
+-- Delete a shut down worker
+SELECT procrastinate_delete_finished_worker_v1(%(worker_id)s)
 
 -- prune_stalled_workers --
 -- Delete stalled workers that haven't sent a heartbeat in a while

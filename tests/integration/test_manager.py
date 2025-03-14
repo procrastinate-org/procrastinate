@@ -265,7 +265,7 @@ async def test_heartbeat_and_stalled_workers(
         worker_id
     ]
 
-    await pg_job_manager.delete_heartbeat(worker_id=worker_id)
+    await pg_job_manager.delete_finished_worker(worker_id=worker_id)
     assert await pg_job_manager.get_stalled_workers(seconds_since_heartbeat=1800) == []
 
 

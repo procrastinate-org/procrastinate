@@ -504,8 +504,8 @@ class Worker:
             )
             await self._abort_running_jobs()
 
-        logger.debug(f"Delete heartbeat of worker {self.worker_id}")
-        await self.app.job_manager.delete_heartbeat(self.worker_id)
+        logger.debug(f"Delete shut down worker {self.worker_id}")
+        await self.app.job_manager.delete_finished_worker(self.worker_id)
 
         self.logger.info(
             f"Stopped worker on {utils.queues_display(self.queues)}",

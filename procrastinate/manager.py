@@ -874,17 +874,17 @@ class JobManager:
             worker_id=worker_id,
         )
 
-    async def delete_heartbeat(self, worker_id: str) -> None:
+    async def delete_finished_worker(self, worker_id: str) -> None:
         """
-        Delete the heartbeat of a worker.
+        Delete a shut down worker (inclusive its heartbeat) from the database.
 
         Parameters
         ----------
         worker_id:
-            The ID of the worker to delete the heartbeat
+            The ID of the worker to delete
         """
         await self.connector.execute_query_async(
-            query=sql.queries["delete_heartbeat"],
+            query=sql.queries["delete_finished_worker"],
             worker_id=worker_id,
         )
 

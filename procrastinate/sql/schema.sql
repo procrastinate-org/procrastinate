@@ -430,7 +430,7 @@ BEGIN
 END;
 $$;
 
-CREATE FUNCTION procrastinate_delete_heartbeat_v1(p_worker_id character varying)
+CREATE FUNCTION procrastinate_delete_finished_worker_v1(p_worker_id character varying)
     RETURNS void
     LANGUAGE plpgsql
 AS $$
