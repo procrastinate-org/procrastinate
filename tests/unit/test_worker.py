@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import asyncio
+import datetime
 import signal
 from typing import cast
 
 import pytest
 from pytest_mock import MockerFixture
 
+from procrastinate import utils
 from procrastinate.app import App
 from procrastinate.exceptions import JobAborted
 from procrastinate.job_context import JobContext
@@ -805,3 +807,24 @@ async def test_job_receives_worker_id(app: App):
     assert job_row["worker_id"] == worker.worker_id
 
     await run_task
+
+
+async def test_worker_prunes_stalled_workers(app: App):
+    worker = Worker(app, wait=False)
+
+    worker1_id = utils.create_worker_id()
+    worker2_id = utils.create_worker_id()
+
+    connector = cast(InMemoryConnector, app.connector)
+    connector.heartbeats = {
+        worker1_id: utils.utcnow()
+        - datetime.timedelta(seconds=worker.stalled_worker_timeout - 1),
+        worker2_id: utils.utcnow()
+        - datetime.timedelta(seconds=worker.stalled_worker_timeout + 1),
+    }
+
+    run_task = await start_worker(worker)
+    await run_task
+
+    assert worker1_id in connector.heartbeats
+    assert worker2_id not in connector.heartbeats
