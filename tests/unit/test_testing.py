@@ -162,7 +162,7 @@ def test_finished_jobs(connector):
     assert connector.finished_jobs == [{"status": "succeeded"}, {"status": "failed"}]
 
 
-async def test_select_stalled_jobs_all(connector):
+async def test_select_stalled_jobs_by_started_all(connector):
     connector.jobs = {
         # We're not selecting this job because it's "succeeded"
         1: {
@@ -216,8 +216,74 @@ async def test_select_stalled_jobs_all(connector):
         6: [{"at": conftest.aware_datetime(2000, 1, 1)}],
     }
 
-    results = await connector.select_stalled_jobs_all(
+    results = await connector.select_stalled_jobs_by_started_all(
         queue="marsupilami", task_name="mytask", nb_seconds=0
+    )
+    assert [job["id"] for job in results] == [5, 6]
+
+
+async def test_select_stalled_jobs_by_heartbeat_all(connector):
+    worker1_id = utils.create_worker_id()
+    worker2_id = utils.create_worker_id()
+    worker3_id = utils.create_worker_id()
+
+    connector.jobs = {
+        # We're not selecting this job because it's "succeeded"
+        1: {
+            "id": 1,
+            "status": "succeeded",
+            "queue_name": "marsupilami",
+            "task_name": "mytask",
+            "worker_id": worker1_id,
+        },
+        # This one because it's the wrong queue
+        2: {
+            "id": 2,
+            "status": "doing",
+            "queue_name": "other_queue",
+            "task_name": "mytask",
+            "worker_id": worker1_id,
+        },
+        # This one because of the task
+        3: {
+            "id": 3,
+            "status": "doing",
+            "queue_name": "marsupilami",
+            "task_name": "my_other_task",
+            "worker_id": worker1_id,
+        },
+        # This one because it's not stalled
+        4: {
+            "id": 4,
+            "status": "doing",
+            "queue_name": "marsupilami",
+            "task_name": "mytask",
+            "worker_id": worker3_id,
+        },
+        # We're taking this one.
+        5: {
+            "id": 5,
+            "status": "doing",
+            "queue_name": "marsupilami",
+            "task_name": "mytask",
+            "worker_id": worker1_id,
+        },
+        # And this one
+        6: {
+            "id": 6,
+            "status": "doing",
+            "queue_name": "marsupilami",
+            "task_name": "mytask",
+            "worker_id": worker2_id,
+        },
+    }
+    connector.heartbeats = {
+        worker2_id: conftest.aware_datetime(2000, 1, 1),
+        worker3_id: conftest.aware_datetime(2100, 1, 1),
+    }
+
+    results = await connector.select_stalled_jobs_by_heartbeat_all(
+        queue="marsupilami", task_name="mytask", seconds_since_heartbeat=0
     )
     assert [job["id"] for job in results] == [5, 6]
 

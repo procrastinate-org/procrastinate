@@ -17,7 +17,7 @@ SELECT procrastinate_defer_periodic_job_v1(%(queue)s, %(lock)s, %(queueing_lock)
 SELECT id, status, task_name, priority, lock, queueing_lock, args, scheduled_at, queue_name, attempts, worker_id
     FROM procrastinate_fetch_job_v2(%(queues)s::varchar[], %(worker_id)s);
 
--- select_stalled_jobs --
+-- select_stalled_jobs_by_started --
 -- Get running jobs that started more than a given time ago
 SELECT job.id, status, task_name, priority, lock, queueing_lock,
        args, scheduled_at, queue_name, attempts, worker_id,
@@ -31,6 +31,25 @@ WHERE event.type = 'started'
   AND (%(task_name)s::varchar IS NULL OR job.task_name = %(task_name)s)
 GROUP BY job.id
   HAVING MAX(event.at) < NOW() - (%(nb_seconds)s || 'SECOND')::INTERVAL
+
+-- select_stalled_jobs_by_heartbeat --
+-- Get running jobs of stalled workers (with absent or outdated heartbeat)
+SELECT job.id, status, task_name, priority, lock, queueing_lock,
+       args, scheduled_at, queue_name, attempts, worker_id
+    FROM procrastinate_jobs job
+WHERE job.status = 'doing'
+  AND (%(queue)s::varchar IS NULL OR job.queue_name = %(queue)s)
+  AND (%(task_name)s::varchar IS NULL OR job.task_name = %(task_name)s)
+  AND (
+    NOT EXISTS (
+      SELECT 1 FROM procrastinate_workers WHERE procrastinate_workers.worker_id = job.worker_id
+    )
+    OR worker_id IN (
+      SELECT worker_id
+     FROM procrastinate_workers
+      WHERE last_heartbeat < NOW() - (%(seconds_since_heartbeat)s || 'SECOND')::INTERVAL
+    )
+  )
 
 -- select_stalled_workers --
 -- Get IDs of workers that haven't sent a heartbeat in a while

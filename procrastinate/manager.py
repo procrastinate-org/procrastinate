@@ -164,9 +164,10 @@ class JobManager:
 
     async def get_stalled_jobs(
         self,
-        nb_seconds: int,
+        nb_seconds: int | None = None,
         queue: str | None = None,
         task_name: str | None = None,
+        seconds_since_heartbeat: float = 30,
     ) -> Iterable[jobs.Job]:
         """
         Return all jobs that have been in ``doing`` state for more than a given time.
@@ -174,19 +175,36 @@ class JobManager:
         Parameters
         ----------
         nb_seconds:
-            Only jobs that have been in ``doing`` state for longer than this will be
-            returned
+            If set then jobs that have been in ``doing`` state for longer than that time
+            in seconds will be returned without considering stalled workers and heartbeats.
+            This parameter is DEPRECATED and will be removed in a next major version.
+            Use this method without this parameter instead to get stalled jobs based on
+            stalled workers and heartbeats.
         queue:
             Filter by job queue name
         task_name:
             Filter by job task name
+        seconds_since_heartbeat:
+            Get stalled jobs based on workers that have not sent a heartbeat for longer
+            than this time in seconds. Only used if ``nb_seconds`` is not set. Defaults
+            to 30 seconds. When changing it then check also the ``update_heartbeat_interval``
+            and ``stalled_worker_timeout`` parameters of the worker.
         """
-        rows = await self.connector.execute_query_all_async(
-            query=sql.queries["select_stalled_jobs"],
-            nb_seconds=nb_seconds,
-            queue=queue,
-            task_name=task_name,
-        )
+        if nb_seconds is not None:
+            rows = await self.connector.execute_query_all_async(
+                query=sql.queries["select_stalled_jobs_by_started"],
+                nb_seconds=nb_seconds,
+                queue=queue,
+                task_name=task_name,
+            )
+        else:
+            rows = await self.connector.execute_query_all_async(
+                query=sql.queries["select_stalled_jobs_by_heartbeat"],
+                queue=queue,
+                task_name=task_name,
+                seconds_since_heartbeat=seconds_since_heartbeat,
+            )
+
         return [jobs.Job.from_row(row) for row in rows]
 
     async def get_stalled_workers(self, seconds_since_heartbeat: float) -> list[str]:

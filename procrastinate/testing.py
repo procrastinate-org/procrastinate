@@ -285,7 +285,7 @@ class InMemoryConnector(connector.BaseAsyncConnector):
         self.events[job_id].append({"type": "scheduled", "at": retry_at})
         self.events[job_id].append({"type": "deferred_for_retry", "at": utils.utcnow()})
 
-    async def select_stalled_jobs_all(self, nb_seconds, queue, task_name):
+    async def select_stalled_jobs_by_started_all(self, nb_seconds, queue, task_name):
         return (
             job
             for job in self.jobs.values()
@@ -294,6 +294,22 @@ class InMemoryConnector(connector.BaseAsyncConnector):
             < utils.utcnow() - datetime.timedelta(seconds=nb_seconds)
             and queue in (job["queue_name"], None)
             and task_name in (job["task_name"], None)
+        )
+
+    async def select_stalled_jobs_by_heartbeat_all(
+        self, queue, task_name, seconds_since_heartbeat
+    ):
+        return (
+            job
+            for job in self.jobs.values()
+            if job["status"] == "doing"
+            and queue in (job["queue_name"], None)
+            and task_name in (job["task_name"], None)
+            and (
+                self.heartbeats.get(job["worker_id"]) is None
+                or self.heartbeats[job["worker_id"]]
+                < utils.utcnow() - datetime.timedelta(seconds=seconds_since_heartbeat)
+            )
         )
 
     async def select_stalled_workers_all(self, seconds_since_heartbeat: float):
