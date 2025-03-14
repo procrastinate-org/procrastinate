@@ -249,9 +249,7 @@ async def test_get_stalled_jobs__retries__yes(
     assert result == [job]
 
 
-async def test_heartbeat_and_stalled_workers(
-    pg_job_manager, psycopg_connector, worker_id
-):
+async def test_delete_finished_worker(pg_job_manager, psycopg_connector, worker_id):
     await pg_job_manager.update_heartbeat(worker_id=worker_id)
     assert await pg_job_manager.get_stalled_workers(seconds_since_heartbeat=1800) == []
 
