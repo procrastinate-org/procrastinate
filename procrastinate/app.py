@@ -34,6 +34,7 @@ class WorkerOptions(TypedDict):
     delete_jobs: NotRequired[str | jobs.DeleteJobCondition]
     additional_context: NotRequired[dict[str, Any]]
     install_signal_handlers: NotRequired[bool]
+    update_heartbeat_interval: NotRequired[float]
 
 
 class App(blueprints.Blueprint):
@@ -316,6 +317,9 @@ class App(blueprints.Blueprint):
             worker. Use ``False`` if you want to handle signals yourself (e.g. if you
             run the work as an async task in a bigger application)
             (defaults to ``True``)
+        update_heartbeat_interval: ``float``
+            Time in seconds between heartbeat updates of the worker. If set to 0, the worker
+            will not send heartbeats (defaults to 10).
         """
         self.perform_import_paths()
         worker = self._worker(**kwargs)
