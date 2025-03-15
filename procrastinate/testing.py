@@ -305,8 +305,10 @@ class InMemoryConnector(connector.BaseAsyncConnector):
             and queue in (job["queue_name"], None)
             and task_name in (job["task_name"], None)
             and (
-                self.heartbeats.get(job["worker_id"]) is None
-                or self.heartbeats[job["worker_id"]]
+                self.heartbeats.get(
+                    job["worker_id"],
+                    datetime.datetime.min.replace(tzinfo=datetime.timezone.utc),
+                )
                 < utils.utcnow() - datetime.timedelta(seconds=seconds_since_heartbeat)
             )
         )
