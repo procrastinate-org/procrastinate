@@ -372,8 +372,12 @@ class Worker:
         Run the worker
         This will run forever until asked to stop/cancelled, or until no more job is available is configured not to wait
         """
-        logger.debug("Prune stalled workers with old heartbeats")
-        await self.app.job_manager.prune_stalled_workers(self.stalled_worker_timeout)
+        logger.debug("Pruning stalled workers with old heartbeats")
+        pruned_workers = await self.app.job_manager.prune_stalled_workers(
+            self.stalled_worker_timeout
+        )
+        if pruned_workers:
+            logger.debug(f"Pruned stalled workers: {', '.join(pruned_workers)}")
 
         logger.debug(f"Start heartbeat of worker {self.worker_id}")
         await self.app.job_manager.update_heartbeat(self.worker_id)
