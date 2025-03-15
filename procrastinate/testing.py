@@ -401,9 +401,13 @@ class InMemoryConnector(connector.BaseAsyncConnector):
     async def delete_finished_worker_run(self, worker_id):
         self.heartbeats.pop(worker_id)
 
-    async def prune_stalled_workers_run(self, seconds_since_heartbeat):
+    async def prune_stalled_workers_all(self, seconds_since_heartbeat):
+        pruned_workers = []
         for worker_id, heartbeat in list(self.heartbeats.items()):
             if heartbeat < utils.utcnow() - datetime.timedelta(
                 seconds=seconds_since_heartbeat
             ):
                 self.heartbeats.pop(worker_id)
+                pruned_workers.append({"worker_id": worker_id})
+
+        return pruned_workers

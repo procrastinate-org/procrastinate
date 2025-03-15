@@ -29,12 +29,14 @@ END;
 $$;
 
 CREATE FUNCTION procrastinate_prune_stalled_workers_v1(seconds_since_heartbeat float)
-    RETURNS void
+    RETURNS TABLE(worker_id character varying)
     LANGUAGE plpgsql
 AS $$
 BEGIN
+    RETURN QUERY
     DELETE FROM procrastinate_workers
-    WHERE last_heartbeat < NOW() - (seconds_since_heartbeat || 'SECOND')::INTERVAL;
+    WHERE last_heartbeat < NOW() - (seconds_since_heartbeat || 'SECOND')::INTERVAL
+    RETURNING procrastinate_workers.worker_id;
 END;
 $$;
 

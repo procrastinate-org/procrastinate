@@ -233,4 +233,4 @@ SELECT procrastinate_delete_finished_worker_v1(%(worker_id)s)
 
 -- prune_stalled_workers --
 -- Delete stalled workers that haven't sent a heartbeat in a while
-SELECT procrastinate_prune_stalled_workers_v1(%(seconds_since_heartbeat)s)
+SELECT * FROM procrastinate_prune_stalled_workers_v1(%(seconds_since_heartbeat)s)

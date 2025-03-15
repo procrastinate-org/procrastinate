@@ -179,7 +179,10 @@ async def test_prune_stalled_workers(job_manager, connector, worker_id):
         worker_id
     ]
 
-    await job_manager.prune_stalled_workers(seconds_since_heartbeat=1800)
+    pruned_workers = await job_manager.prune_stalled_workers(
+        seconds_since_heartbeat=1800
+    )
+    assert pruned_workers == [worker_id]
     assert await job_manager.get_stalled_workers(seconds_since_heartbeat=1800) == []
 
 

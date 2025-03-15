@@ -540,11 +540,17 @@ async def test_delete_finished_worker(connector, worker_id):
     assert connector.heartbeats == {}
 
 
-async def test_prune_stalled_workers_run(connector):
+async def test_prune_stalled_workers_all(connector):
     connector.heartbeats = {
         "worker1": conftest.aware_datetime(2000, 1, 1),
         "worker2": conftest.aware_datetime(2000, 1, 1),
         "worker3": conftest.aware_datetime(2100, 1, 1),
     }
-    await connector.prune_stalled_workers_run(seconds_since_heartbeat=0)
+    pruned_workers = await connector.prune_stalled_workers_all(
+        seconds_since_heartbeat=0
+    )
+    assert pruned_workers == [
+        {"worker_id": "worker1"},
+        {"worker_id": "worker2"},
+    ]
     assert connector.heartbeats == {"worker3": conftest.aware_datetime(2100, 1, 1)}

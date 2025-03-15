@@ -914,7 +914,7 @@ class JobManager:
             worker_id=worker_id,
         )
 
-    async def prune_stalled_workers(self, seconds_since_heartbeat: float) -> None:
+    async def prune_stalled_workers(self, seconds_since_heartbeat: float) -> list[str]:
         """
         Delete the workers that have not sent a heartbeat for more than a given time.
 
@@ -923,8 +923,17 @@ class JobManager:
         seconds_since_heartbeat:
             Only workers that have not sent a heartbeat for longer than this will be
             deleted
+
+        Returns
+        -------
+        :
+            A list of worker IDs that have been deleted
         """
-        await self.connector.execute_query_async(
+        result = []
+        for row in await self.connector.execute_query_all_async(
             query=sql.queries["prune_stalled_workers"],
             seconds_since_heartbeat=seconds_since_heartbeat,
-        )
+        ):
+            result.append(row["worker_id"])
+
+        return result

@@ -345,7 +345,10 @@ async def test_prune_stalled_workers(pg_job_manager, psycopg_connector, worker_i
         worker_id
     ]
 
-    await pg_job_manager.prune_stalled_workers(seconds_since_heartbeat=1800)
+    pruned_workers = await pg_job_manager.prune_stalled_workers(
+        seconds_since_heartbeat=1800
+    )
+    assert pruned_workers == [worker_id]
     assert await pg_job_manager.get_stalled_workers(seconds_since_heartbeat=1800) == []
 
 
