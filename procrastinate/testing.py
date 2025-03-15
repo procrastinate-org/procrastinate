@@ -26,16 +26,16 @@ class InMemoryConnector(connector.BaseAsyncConnector):
         self.reset()
         self.reverse_queries = {value: key for key, value in sql.queries.items()}
         self.reverse_queries[schema.SchemaManager.get_schema()] = "apply_schema"
+        #: Mapping of ``{<job id>: <Job database row as a dictionary>}``
+        self.jobs: dict[int, JobRow] = {}
 
     def reset(self) -> None:
         """
         Removes anything the in-memory pseudo-database contains, to ensure test
         independence.
         """
-        #: Mapping of ``{<job id>: <Job database row as a dictionary>}``
         self.jobs: dict[int, JobRow] = {}
         self.events: dict[int, list[EventRow]] = {}
-        #: Mapping of ``{<worker id>: <heartbeat>}``
         self.heartbeats: dict[str, datetime.datetime] = {}
         self.job_counter = count(1)
         self.queries: list[tuple[str, dict[str, Any]]] = []
