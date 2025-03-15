@@ -894,7 +894,7 @@ class JobManager:
 
     async def delete_finished_worker(self, worker_id: str) -> None:
         """
-        Delete a shut down worker (inclusive its heartbeat) from the database.
+        Delete a shut down worker (including its heartbeat) from the database.
 
         Parameters
         ----------
