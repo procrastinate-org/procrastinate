@@ -3,6 +3,7 @@ from __future__ import annotations
 import datetime
 import json
 import logging
+import warnings
 from collections.abc import Awaitable, Iterable
 from typing import Any, NoReturn, Protocol
 
@@ -191,6 +192,13 @@ class JobManager:
             and ``stalled_worker_timeout`` parameters of the worker.
         """
         if nb_seconds is not None:
+            warnings.warn(
+                "The `nb_seconds` parameter is deprecated and will be removed in a next "
+                "major version. Use the method without this parameter instead to get "
+                "stalled jobs based on stalled workers and heartbeats.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
             rows = await self.connector.execute_query_all_async(
                 query=sql.queries["select_stalled_jobs_by_started"],
                 nb_seconds=nb_seconds,

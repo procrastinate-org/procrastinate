@@ -120,7 +120,8 @@ async def test_fetch_job(job_manager, job_factory, worker_id):
 async def test_get_stalled_jobs_by_started_not_stalled(job_manager, job_factory):
     job = job_factory(id=1)
     await job_manager.defer_job_async(job=job)
-    assert await job_manager.get_stalled_jobs(nb_seconds=1000) == []
+    with pytest.warns(DeprecationWarning, match=".*nb_seconds.*"):
+        assert await job_manager.get_stalled_jobs(nb_seconds=1000) == []
 
 
 async def test_get_stalled_jobs_by_started_stalled(
@@ -131,7 +132,8 @@ async def test_get_stalled_jobs_by_started_stalled(
     await job_manager.fetch_job(queues=None, worker_id=worker_id)
     connector.events[1][-1]["at"] = conftest.aware_datetime(2000, 1, 1)
     expected_job = job.evolve(id=1, status="doing", worker_id=worker_id)
-    assert await job_manager.get_stalled_jobs(nb_seconds=1000) == [expected_job]
+    with pytest.warns(DeprecationWarning, match=".*nb_seconds.*"):
+        assert await job_manager.get_stalled_jobs(nb_seconds=1000) == [expected_job]
 
 
 async def test_get_stalled_jobs_by_heartbeat_not_stalled(job_manager, job_factory):

@@ -146,7 +146,8 @@ async def test_get_stalled_jobs_by_started__yes(
         f"WHERE job_id={job.id}"
     )
 
-    result = await pg_job_manager.get_stalled_jobs(**filter_args)
+    with pytest.warns(DeprecationWarning, match=".*nb_seconds.*"):
+        result = await pg_job_manager.get_stalled_jobs(**filter_args)
     assert result == [job]
 
 
@@ -169,7 +170,8 @@ async def test_get_stalled_jobs_by_started__no(
         f"WHERE job_id={job.id}"
     )
 
-    result = await pg_job_manager.get_stalled_jobs(**filter_args)
+    with pytest.warns(DeprecationWarning, match=".*nb_seconds.*"):
+        result = await pg_job_manager.get_stalled_jobs(**filter_args)
     assert result == []
 
 
@@ -206,7 +208,8 @@ async def test_get_stalled_jobs_by_started__retries__no(
     ]
 
     # It should not be considered stalled
-    result = await pg_job_manager.get_stalled_jobs(nb_seconds=1800)
+    with pytest.warns(DeprecationWarning, match=".*nb_seconds.*"):
+        result = await pg_job_manager.get_stalled_jobs(nb_seconds=1800)
     assert result == []
 
 
@@ -247,7 +250,8 @@ async def test_get_stalled_jobs_by_started__retries__yes(
     ]
 
     # It should not be considered stalled
-    result = await pg_job_manager.get_stalled_jobs(nb_seconds=1800)
+    with pytest.warns(DeprecationWarning, match=".*nb_seconds.*"):
+        result = await pg_job_manager.get_stalled_jobs(nb_seconds=1800)
     assert result == [job]
 
 
