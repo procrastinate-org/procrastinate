@@ -29,7 +29,7 @@ CREATE TYPE procrastinate_job_event_type AS ENUM (
 -- Tables
 
 CREATE TABLE procrastinate_workers(
-    id bigserial PRIMARY KEY,
+    id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     last_heartbeat timestamp with time zone NOT NULL DEFAULT NOW()
 );
 
