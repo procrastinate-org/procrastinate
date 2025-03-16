@@ -705,7 +705,7 @@ async def test_run_log_actions(app: App, caplog, worker):
     assert [q[0] for q in connector.queries] == [
         "defer_job",
         "prune_stalled_workers",
-        "update_heartbeat",
+        "register_worker",
         "fetch_job",
         "finish_job",
         "fetch_job",
@@ -757,28 +757,34 @@ async def test_run_no_signal_handlers(worker, kill_own_pid):
         kill_own_pid(signal=signal.SIGINT)
 
 
-async def test_heartbeat_updated_and_finally_deleted(app: App):
+async def test_worker_id_and_heartbeat_lifecycle(app: App):
     connector = cast(InMemoryConnector, app.connector)
 
-    assert connector.heartbeats == {}
+    assert connector.workers == {}
 
     worker = Worker(app, update_heartbeat_interval=0.05)
+    assert worker.worker_id is None
+
     run_task = await start_worker(worker)
+
+    worker_id = worker.worker_id
+    assert worker_id is not None and worker_id > 0
 
     await asyncio.sleep(0.01)
 
-    heartbeat1 = connector.heartbeats[worker.worker_id]
+    heartbeat1 = connector.workers[worker_id]
     assert heartbeat1 is not None
 
     await asyncio.sleep(0.05)
 
-    heartbeat2 = connector.heartbeats[worker.worker_id]
+    heartbeat2 = connector.workers[worker_id]
     assert heartbeat2 > heartbeat1
 
     worker.stop()
     await run_task
 
-    assert connector.heartbeats == {}
+    assert worker.worker_id is None
+    assert connector.workers == {}
 
 
 async def test_job_receives_worker_id(app: App):
@@ -804,7 +810,7 @@ async def test_job_receives_worker_id(app: App):
     await asyncio.sleep(0.05)
 
     assert job_row["status"] == "succeeded"
-    assert job_row["worker_id"] == worker.worker_id
+    assert job_row["worker_id"] is None
 
     await run_task
 
@@ -812,11 +818,11 @@ async def test_job_receives_worker_id(app: App):
 async def test_worker_prunes_stalled_workers(app: App):
     worker = Worker(app, wait=False)
 
-    worker1_id = utils.create_worker_id()
-    worker2_id = utils.create_worker_id()
+    worker1_id = 1
+    worker2_id = 2
 
     connector = cast(InMemoryConnector, app.connector)
-    connector.heartbeats = {
+    connector.workers = {
         worker1_id: utils.utcnow()
         - datetime.timedelta(seconds=worker.stalled_worker_timeout - 1),
         worker2_id: utils.utcnow()
@@ -826,5 +832,5 @@ async def test_worker_prunes_stalled_workers(app: App):
     run_task = await start_worker(worker)
     await run_task
 
-    assert worker1_id in connector.heartbeats
-    assert worker2_id not in connector.heartbeats
+    assert worker1_id in connector.workers
+    assert worker2_id not in connector.workers

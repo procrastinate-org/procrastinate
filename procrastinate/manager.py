@@ -134,7 +134,7 @@ class JobManager:
         return result["id"]
 
     async def fetch_job(
-        self, queues: Iterable[str] | None, worker_id: str
+        self, queues: Iterable[str] | None, worker_id: int
     ) -> jobs.Job | None:
         """
         Select a job in the queue, and mark it as doing.
@@ -214,21 +214,6 @@ class JobManager:
             )
 
         return [jobs.Job.from_row(row) for row in rows]
-
-    async def get_stalled_workers(self, seconds_since_heartbeat: float) -> list[str]:
-        """
-        Return all IDs or workers that have not sent a heartbeat for more than a given time.
-
-        Parameters
-        ----------
-        seconds_since_heartbeat:
-            Only workers that have not sent a heartbeat for longer than this will be returned
-        """
-        rows = await self.connector.execute_query_all_async(
-            query=sql.queries["select_stalled_workers"],
-            seconds_since_heartbeat=seconds_since_heartbeat,
-        )
-        return [row["worker_id"] for row in rows]
 
     async def delete_old_jobs(
         self,
@@ -579,7 +564,7 @@ class JobManager:
         status: str | None = None,
         lock: str | None = None,
         queueing_lock: str | None = None,
-        worker_id: str | None = None,
+        worker_id: int | None = None,
     ) -> Iterable[jobs.Job]:
         """
         List all procrastinate jobs given query filters.
@@ -625,7 +610,7 @@ class JobManager:
         status: str | None = None,
         lock: str | None = None,
         queueing_lock: str | None = None,
-        worker_id: str | None = None,
+        worker_id: int | None = None,
     ) -> list[jobs.Job]:
         """
         Sync version of `list_jobs_async`
@@ -886,7 +871,35 @@ class JobManager:
         )
         return [row["id"] for row in rows]
 
-    async def update_heartbeat(self, worker_id: str) -> None:
+    async def register_worker(self) -> int:
+        """
+        Register a newly started worker (with a initial heartbeat) in the database.
+
+        Returns
+        -------
+        :
+            The ID of the registered worker
+        """
+        result = await self.connector.execute_query_one_async(
+            query=sql.queries["register_worker"],
+        )
+        return result["worker_id"]
+
+    async def unregister_worker(self, worker_id: int) -> None:
+        """
+        Unregister a shut down worker and also delete its heartbeat from the database.
+
+        Parameters
+        ----------
+        worker_id:
+            The ID of the worker to delete
+        """
+        await self.connector.execute_query_async(
+            query=sql.queries["unregister_worker"],
+            worker_id=worker_id,
+        )
+
+    async def update_heartbeat(self, worker_id: int) -> None:
         """
         Update the heartbeat of a worker.
 
@@ -900,21 +913,7 @@ class JobManager:
             worker_id=worker_id,
         )
 
-    async def delete_finished_worker(self, worker_id: str) -> None:
-        """
-        Delete a shut down worker (including its heartbeat) from the database.
-
-        Parameters
-        ----------
-        worker_id:
-            The ID of the worker to delete
-        """
-        await self.connector.execute_query_async(
-            query=sql.queries["delete_finished_worker"],
-            worker_id=worker_id,
-        )
-
-    async def prune_stalled_workers(self, seconds_since_heartbeat: float) -> list[str]:
+    async def prune_stalled_workers(self, seconds_since_heartbeat: float) -> list[int]:
         """
         Delete the workers that have not sent a heartbeat for more than a given time.
 
@@ -929,11 +928,8 @@ class JobManager:
         :
             A list of worker IDs that have been deleted
         """
-        result = []
-        for row in await self.connector.execute_query_all_async(
+        rows = await self.connector.execute_query_all_async(
             query=sql.queries["prune_stalled_workers"],
             seconds_since_heartbeat=seconds_since_heartbeat,
-        ):
-            result.append(row["worker_id"])
-
-        return result
+        )
+        return [row["worker_id"] for row in rows]

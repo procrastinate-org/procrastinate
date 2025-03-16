@@ -35,25 +35,18 @@ GROUP BY job.id
 -- select_stalled_jobs_by_heartbeat --
 -- Get running jobs of stalled workers (with absent or outdated heartbeat)
 WITH stalled_workers AS (
-   SELECT worker_id
+   SELECT id
      FROM procrastinate_workers
     WHERE last_heartbeat < NOW() - (%(seconds_since_heartbeat)s || ' SECOND')::INTERVAL
 )
 SELECT job.id, status, task_name, priority, lock, queueing_lock,
        args, scheduled_at, queue_name, attempts, job.worker_id
   FROM procrastinate_jobs job
- LEFT JOIN procrastinate_workers pw ON pw.worker_id = job.worker_id
- LEFT JOIN stalled_workers sw ON sw.worker_id = job.worker_id
+ LEFT JOIN stalled_workers sw ON sw.id = job.worker_id
  WHERE job.status = 'doing'
    AND (%(queue)s::varchar IS NULL OR job.queue_name = %(queue)s)
    AND (%(task_name)s::varchar IS NULL OR job.task_name = %(task_name)s)
-   AND (pw.worker_id IS NULL OR sw.worker_id IS NOT NULL)
-
--- select_stalled_workers --
--- Get IDs of workers that haven't sent a heartbeat in a while
-SELECT worker_id
-    FROM procrastinate_workers
-WHERE last_heartbeat < NOW() - (%(seconds_since_heartbeat)s || 'SECOND')::INTERVAL
+   AND (job.worker_id IS NULL OR sw.id IS NOT NULL)
 
 -- delete_old_jobs --
 -- Delete jobs that have been in a final state for longer than nb_hours
@@ -120,7 +113,7 @@ SELECT id,
    AND (%(status)s::procrastinate_job_status IS NULL OR status = %(status)s)
    AND (%(lock)s::varchar IS NULL OR lock = %(lock)s)
    AND (%(queueing_lock)s::varchar IS NULL OR queueing_lock = %(queueing_lock)s)
-   AND (%(worker_id)s::varchar IS NULL OR worker_id = %(worker_id)s)
+   AND (%(worker_id)s::bigint IS NULL OR worker_id = %(worker_id)s)
  ORDER BY id ASC;
 
 -- list_queues --
@@ -223,13 +216,17 @@ WHERE status = 'doing'
 AND abort_requested = true
 AND (%(queue_name)s::varchar IS NULL OR queue_name = %(queue_name)s)
 
+-- register_worker --
+-- Register a newly started worker
+SELECT * FROM procrastinate_register_worker_v1()
+
+-- unregister_worker --
+-- Unregister a finished worker
+SELECT procrastinate_unregister_worker_v1(%(worker_id)s)
+
 -- update_heartbeat --
 -- Update the heartbeat of a worker
 SELECT procrastinate_update_heartbeat_v1(%(worker_id)s)
-
--- delete_finished_worker --
--- Delete a shut down worker
-SELECT procrastinate_delete_finished_worker_v1(%(worker_id)s)
 
 -- prune_stalled_workers --
 -- Delete stalled workers that haven't sent a heartbeat in a while

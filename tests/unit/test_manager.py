@@ -5,9 +5,14 @@ import uuid
 
 import pytest
 
-from procrastinate import exceptions, jobs, manager
+from procrastinate import exceptions, jobs, manager, utils
 
 from .. import conftest
+
+
+@pytest.fixture
+async def worker_id(job_manager):
+    return await job_manager.register_worker()
 
 
 async def test_manager_defer_job(job_manager, job_factory, connector):
@@ -148,42 +153,53 @@ async def test_get_stalled_jobs_by_heartbeat_stalled(
     job = job_factory()
     await job_manager.defer_job_async(job=job)
     await job_manager.fetch_job(queues=None, worker_id=worker_id)
-    connector.heartbeats = {worker_id: conftest.aware_datetime(2000, 1, 1)}
+    connector.workers = {1: conftest.aware_datetime(2000, 1, 1)}
     expected_job = job.evolve(id=1, status="doing", worker_id=worker_id)
     assert await job_manager.get_stalled_jobs() == [expected_job]
 
 
-async def test_delete_finished_worker(job_manager, connector, worker_id):
+async def test_register_and_unregister_worker(job_manager, connector):
+    then = utils.utcnow()
+    assert connector.workers == {}
+    worker_id = await job_manager.register_worker()
+    assert worker_id is not None
+
+    assert len(connector.workers) == 1
+    assert worker_id in connector.workers
+    assert then < connector.workers[worker_id] < utils.utcnow()
+
+    await job_manager.unregister_worker(worker_id=1)
+
+    assert connector.workers == {}
+
+
+async def test_update_heartbeat(job_manager, connector, worker_id):
+    first_heartbeat = connector.workers[worker_id]
+
     await job_manager.update_heartbeat(worker_id=worker_id)
-    assert await job_manager.get_stalled_workers(seconds_since_heartbeat=1800) == []
 
-    # We fake the heartbeat to be 35 minutes old
-    heartbeat = connector.heartbeats[worker_id]
-    connector.heartbeats[worker_id] = heartbeat - datetime.timedelta(minutes=35)
-    assert await job_manager.get_stalled_workers(seconds_since_heartbeat=1800) == [
-        worker_id
-    ]
-
-    await job_manager.delete_finished_worker(worker_id=worker_id)
-    assert await job_manager.get_stalled_workers(seconds_since_heartbeat=1800) == []
+    assert len(connector.workers) == 1
+    assert worker_id in connector.workers
+    assert first_heartbeat < connector.workers[worker_id] < utils.utcnow()
 
 
 async def test_prune_stalled_workers(job_manager, connector, worker_id):
-    await job_manager.update_heartbeat(worker_id=worker_id)
-    assert await job_manager.get_stalled_workers(seconds_since_heartbeat=1800) == []
+    assert len(connector.workers) == 1
+
+    pruned_workers = await job_manager.prune_stalled_workers(
+        seconds_since_heartbeat=1800
+    )
+    assert pruned_workers == []
 
     # We fake the heartbeat to be 35 minutes old
-    heartbeat = connector.heartbeats[worker_id]
-    connector.heartbeats[worker_id] = heartbeat - datetime.timedelta(minutes=35)
-    assert await job_manager.get_stalled_workers(seconds_since_heartbeat=1800) == [
-        worker_id
-    ]
+    heartbeat = connector.workers[worker_id]
+    connector.workers[worker_id] = heartbeat - datetime.timedelta(minutes=35)
 
     pruned_workers = await job_manager.prune_stalled_workers(
         seconds_since_heartbeat=1800
     )
     assert pruned_workers == [worker_id]
-    assert await job_manager.get_stalled_workers(seconds_since_heartbeat=1800) == []
+    assert connector.workers == {}
 
 
 @pytest.mark.parametrize(

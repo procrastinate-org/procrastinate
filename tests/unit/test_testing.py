@@ -223,9 +223,9 @@ async def test_select_stalled_jobs_by_started_all(connector):
 
 
 async def test_select_stalled_jobs_by_heartbeat_all(connector):
-    worker1_id = utils.create_worker_id()
-    worker2_id = utils.create_worker_id()
-    worker3_id = utils.create_worker_id()
+    worker1_id = 1
+    worker2_id = 2
+    worker3_id = 3
 
     connector.jobs = {
         # We're not selecting this job because it's "succeeded"
@@ -277,7 +277,7 @@ async def test_select_stalled_jobs_by_heartbeat_all(connector):
             "worker_id": worker2_id,
         },
     }
-    connector.heartbeats = {
+    connector.workers = {
         worker2_id: conftest.aware_datetime(2000, 1, 1),
         worker3_id: conftest.aware_datetime(2100, 1, 1),
     }
@@ -286,24 +286,6 @@ async def test_select_stalled_jobs_by_heartbeat_all(connector):
         queue="marsupilami", task_name="mytask", seconds_since_heartbeat=0
     )
     assert [job["id"] for job in results] == [5, 6]
-
-
-async def test_select_stalled_workers_all(connector):
-    worker_id1 = utils.create_worker_id()
-    worker_id2 = utils.create_worker_id()
-    worker_id3 = utils.create_worker_id()
-
-    connector.heartbeats = {
-        worker_id1: conftest.aware_datetime(2000, 1, 1),
-        worker_id2: conftest.aware_datetime(2000, 1, 1),
-        worker_id3: conftest.aware_datetime(2100, 1, 1),
-    }
-
-    results = await connector.select_stalled_workers_all(seconds_since_heartbeat=0)
-    assert results == [
-        {"worker_id": worker_id1},
-        {"worker_id": worker_id2},
-    ]
 
 
 async def test_delete_old_jobs_run(connector):
@@ -330,7 +312,7 @@ async def test_delete_old_jobs_run(connector):
     assert 4 not in connector.jobs
 
 
-async def test_fetch_job_one(connector, worker_id):
+async def test_fetch_job_one(connector):
     # This one will be selected, then skipped the second time because it's processing
     await connector.defer_job_one(
         task_name="mytask",
@@ -383,15 +365,17 @@ async def test_fetch_job_one(connector, worker_id):
         queueing_lock="e",
     )
 
-    assert (await connector.fetch_job_one(queues=["marsupilami"], worker_id=worker_id))[
+    connector.workers = {1: utils.utcnow()}
+
+    assert (await connector.fetch_job_one(queues=["marsupilami"], worker_id=1))[
         "id"
     ] == 1
-    assert (await connector.fetch_job_one(queues=["marsupilami"], worker_id=worker_id))[
+    assert (await connector.fetch_job_one(queues=["marsupilami"], worker_id=1))[
         "id"
     ] == 5
 
 
-async def test_fetch_job_one_prioritized(connector, worker_id):
+async def test_fetch_job_one_prioritized(connector):
     # This one will be selected second as it has a lower priority
     await connector.defer_job_one(
         task_name="mytask",
@@ -414,11 +398,13 @@ async def test_fetch_job_one_prioritized(connector, worker_id):
         queueing_lock=None,
     )
 
-    assert (await connector.fetch_job_one(queues=None, worker_id=worker_id))["id"] == 2
-    assert (await connector.fetch_job_one(queues=None, worker_id=worker_id))["id"] == 1
+    connector.workers = {1: utils.utcnow()}
+
+    assert (await connector.fetch_job_one(queues=None, worker_id=1))["id"] == 2
+    assert (await connector.fetch_job_one(queues=None, worker_id=1))["id"] == 1
 
 
-async def test_fetch_job_one_none_lock(connector, worker_id):
+async def test_fetch_job_one_none_lock(connector):
     """Testing that 2 jobs with locks "None" don't block one another"""
     await connector.defer_job_one(
         task_name="mytask",
@@ -439,11 +425,13 @@ async def test_fetch_job_one_none_lock(connector, worker_id):
         queueing_lock=None,
     )
 
-    assert (await connector.fetch_job_one(queues=None, worker_id=worker_id))["id"] == 1
-    assert (await connector.fetch_job_one(queues=None, worker_id=worker_id))["id"] == 2
+    connector.workers = {1: utils.utcnow()}
+
+    assert (await connector.fetch_job_one(queues=None, worker_id=1))["id"] == 1
+    assert (await connector.fetch_job_one(queues=None, worker_id=1))["id"] == 2
 
 
-async def test_finish_job_run(connector, worker_id):
+async def test_finish_job_run(connector):
     await connector.defer_job_one(
         task_name="mytask",
         priority=0,
@@ -453,7 +441,10 @@ async def test_finish_job_run(connector, worker_id):
         lock="sher",
         queueing_lock="houba",
     )
-    job_row = await connector.fetch_job_one(queues=None, worker_id=worker_id)
+
+    connector.workers = {1: utils.utcnow()}
+
+    job_row = await connector.fetch_job_one(queues=None, worker_id=1)
     id = job_row["id"]
 
     await connector.finish_job_run(job_id=id, status="finished", delete_job=False)
@@ -462,7 +453,7 @@ async def test_finish_job_run(connector, worker_id):
     assert connector.jobs[id]["status"] == "finished"
 
 
-async def test_retry_job_run(connector, worker_id):
+async def test_retry_job_run(connector):
     await connector.defer_job_one(
         task_name="mytask",
         priority=0,
@@ -472,7 +463,10 @@ async def test_retry_job_run(connector, worker_id):
         lock="sher",
         queueing_lock="houba",
     )
-    job_row = await connector.fetch_job_one(queues=None, worker_id=worker_id)
+
+    connector.workers = {1: utils.utcnow()}
+
+    job_row = await connector.fetch_job_one(queues=None, worker_id=1)
     id = job_row["id"]
 
     retry_at = conftest.aware_datetime(2000, 1, 1)
@@ -528,20 +522,28 @@ async def test_defer_no_notify(connector):
     assert not event.is_set()
 
 
-async def test_update_heartbeat_run(connector, worker_id):
-    connector.heartbeats = {}
-    await connector.update_heartbeat_run(worker_id=worker_id)
-    assert connector.heartbeats[worker_id] is not None
+async def test_register_worker(connector):
+    then = utils.utcnow()
+    assert connector.workers == {}
+    row = await connector.register_worker_one()
+    assert then <= connector.workers[row["worker_id"]] <= utils.utcnow()
 
 
-async def test_delete_finished_worker(connector, worker_id):
-    connector.heartbeats = {worker_id: conftest.aware_datetime(2000, 1, 1)}
-    await connector.delete_finished_worker_run(worker_id=worker_id)
-    assert connector.heartbeats == {}
+async def test_unregister_worker(connector):
+    connector.workers = {1: utils.utcnow()}
+    await connector.unregister_worker_run(worker_id=1)
+    assert connector.workers == {}
+
+
+async def test_update_heartbeat_run(connector):
+    dt = conftest.aware_datetime(2000, 1, 1)
+    connector.workers = {1: dt}
+    await connector.update_heartbeat_run(worker_id=1)
+    assert dt < connector.workers[1] <= utils.utcnow()
 
 
 async def test_prune_stalled_workers_all(connector):
-    connector.heartbeats = {
+    connector.workers = {
         "worker1": conftest.aware_datetime(2000, 1, 1),
         "worker2": conftest.aware_datetime(2000, 1, 1),
         "worker3": conftest.aware_datetime(2100, 1, 1),
@@ -553,4 +555,4 @@ async def test_prune_stalled_workers_all(connector):
         {"worker_id": "worker1"},
         {"worker_id": "worker2"},
     ]
-    assert connector.heartbeats == {"worker3": conftest.aware_datetime(2100, 1, 1)}
+    assert connector.workers == {"worker3": conftest.aware_datetime(2100, 1, 1)}

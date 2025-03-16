@@ -31,12 +31,15 @@ def deferred_job_factory(deferred_job_factory, pg_job_manager):
 
 
 @pytest.fixture
-def fetched_job_factory(deferred_job_factory, pg_job_manager):
+async def worker_id(pg_job_manager):
+    return await pg_job_manager.register_worker()
+
+
+@pytest.fixture
+def fetched_job_factory(deferred_job_factory, pg_job_manager, worker_id):
     async def factory(**kwargs):
         job = await deferred_job_factory(**kwargs)
-        fetched_job = await pg_job_manager.fetch_job(
-            queues=None, worker_id=utils.create_worker_id()
-        )
+        fetched_job = await pg_job_manager.fetch_job(queues=None, worker_id=worker_id)
         # to make sure we do fetch the job we just deferred
         assert fetched_job.id == job.id
         return fetched_job
@@ -53,11 +56,7 @@ def fetched_job_factory(deferred_job_factory, pg_job_manager):
     ],
 )
 async def test_fetch_job(
-    pg_job_manager,
-    deferred_job_factory,
-    job_kwargs,
-    fetch_queues,
-    worker_id,
+    pg_job_manager, deferred_job_factory, job_kwargs, fetch_queues, worker_id
 ):
     # Now add the job we're testing
     job = await deferred_job_factory(**job_kwargs)
@@ -270,7 +269,7 @@ async def test_get_stalled_jobs_by_heartbeat__yes(
     # We fake the worker heartbeat
     await psycopg_connector.execute_query_async(
         "UPDATE procrastinate_workers SET last_heartbeat=last_heartbeat - INTERVAL '35 minutes' "
-        f"WHERE worker_id='{job.worker_id}'"
+        f"WHERE id='{job.worker_id}'"
     )
 
     result = await pg_job_manager.get_stalled_jobs(**filter_args)
@@ -292,7 +291,7 @@ async def test_get_stalled_jobs_by_heartbeat__no(
     # We fake the worker heartbeat
     await psycopg_connector.execute_query_async(
         "UPDATE procrastinate_workers SET last_heartbeat=last_heartbeat - INTERVAL '35 minutes' "
-        f"WHERE worker_id='{job.worker_id}'"
+        f"WHERE id='{job.worker_id}'"
     )
 
     result = await pg_job_manager.get_stalled_jobs(**filter_args)
@@ -306,50 +305,77 @@ async def test_get_stalled_jobs_by_heartbeat__pruned_worker(
 
     # We fake a stalled and pruned worker
     await psycopg_connector.execute_query_async(
-        f"DELETE FROM procrastinate_workers WHERE worker_id='{job.worker_id}'"
+        f"DELETE FROM procrastinate_workers WHERE id='{job.worker_id}'"
     )
 
     result = await pg_job_manager.get_stalled_jobs()
-    assert result == [job]
+    pruned_job = job.evolve(worker_id=None)
+    assert result == [pruned_job]
 
 
-async def test_delete_finished_worker(pg_job_manager, psycopg_connector, worker_id):
-    await pg_job_manager.update_heartbeat(worker_id=worker_id)
-    assert await pg_job_manager.get_stalled_workers(seconds_since_heartbeat=1800) == []
+async def test_register_and_unregister_worker(pg_job_manager, psycopg_connector):
+    then = utils.utcnow()
+    worker_id = await pg_job_manager.register_worker()
+    assert worker_id is not None
 
-    # We fake the heartbeat to be 35 minutes old
-    await psycopg_connector.execute_query_async(
-        "UPDATE procrastinate_workers "
-        "SET last_heartbeat=last_heartbeat - INTERVAL '35 minutes' "
-        f"WHERE worker_id='{worker_id}'"
+    rows = await psycopg_connector.execute_query_all_async(
+        f"SELECT * FROM procrastinate_workers WHERE id={worker_id}"
     )
-    assert await pg_job_manager.get_stalled_workers(seconds_since_heartbeat=1800) == [
-        worker_id
-    ]
+    assert len(rows) == 1
+    assert rows[0]["id"] == worker_id
+    assert then < rows[0]["last_heartbeat"] < utils.utcnow()
 
-    await pg_job_manager.delete_finished_worker(worker_id=worker_id)
-    assert await pg_job_manager.get_stalled_workers(seconds_since_heartbeat=1800) == []
+    await pg_job_manager.unregister_worker(worker_id=worker_id)
+
+    rows = await psycopg_connector.execute_query_all_async(
+        f"SELECT * FROM procrastinate_workers WHERE id={worker_id}"
+    )
+    assert len(rows) == 0
+
+
+async def test_update_heartbeat(pg_job_manager, psycopg_connector, worker_id):
+    rows = await psycopg_connector.execute_query_all_async(
+        f"SELECT * FROM procrastinate_workers WHERE id={worker_id}"
+    )
+    first_heartbeat = rows[0]["last_heartbeat"]
+
+    await pg_job_manager.update_heartbeat(worker_id=worker_id)
+
+    rows = await psycopg_connector.execute_query_all_async(
+        f"SELECT * FROM procrastinate_workers WHERE id={worker_id}"
+    )
+    assert len(rows) == 1
+    assert rows[0]["id"] == worker_id
+    assert first_heartbeat < rows[0]["last_heartbeat"] < utils.utcnow()
 
 
 async def test_prune_stalled_workers(pg_job_manager, psycopg_connector, worker_id):
-    await pg_job_manager.update_heartbeat(worker_id=worker_id)
-    assert await pg_job_manager.get_stalled_workers(seconds_since_heartbeat=1800) == []
+    rows = await psycopg_connector.execute_query_all_async(
+        f"SELECT * FROM procrastinate_workers WHERE id={worker_id}"
+    )
+    assert len(rows) == 1
+
+    pruned_workers = await pg_job_manager.prune_stalled_workers(
+        seconds_since_heartbeat=1800
+    )
+    assert pruned_workers == []
 
     # We fake the heartbeat to be 35 minutes old
     await psycopg_connector.execute_query_async(
         "UPDATE procrastinate_workers "
         "SET last_heartbeat=last_heartbeat - INTERVAL '35 minutes' "
-        f"WHERE worker_id='{worker_id}'"
+        f"WHERE id='{worker_id}'"
     )
-    assert await pg_job_manager.get_stalled_workers(seconds_since_heartbeat=1800) == [
-        worker_id
-    ]
 
     pruned_workers = await pg_job_manager.prune_stalled_workers(
         seconds_since_heartbeat=1800
     )
     assert pruned_workers == [worker_id]
-    assert await pg_job_manager.get_stalled_workers(seconds_since_heartbeat=1800) == []
+
+    rows = await psycopg_connector.execute_query_all_async(
+        f"SELECT * FROM procrastinate_workers WHERE id={worker_id}"
+    )
+    assert len(rows) == 0
 
 
 async def test_delete_old_jobs_job_todo(

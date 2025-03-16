@@ -28,6 +28,11 @@ CREATE TYPE procrastinate_job_event_type AS ENUM (
 
 -- Tables
 
+CREATE TABLE procrastinate_workers(
+    id bigserial PRIMARY KEY,
+    last_heartbeat timestamp with time zone NOT NULL DEFAULT NOW()
+);
+
 CREATE TABLE procrastinate_jobs (
     id bigserial PRIMARY KEY,
     queue_name character varying(128) NOT NULL,
@@ -40,7 +45,7 @@ CREATE TABLE procrastinate_jobs (
     scheduled_at timestamp with time zone NULL,
     attempts integer DEFAULT 0 NOT NULL,
     abort_requested boolean DEFAULT false NOT NULL,
-    worker_id character varying(36) NULL,
+    worker_id bigint REFERENCES procrastinate_workers(id) ON DELETE SET NULL,
     CONSTRAINT check_not_todo_abort_requested CHECK (NOT (status = 'todo' AND abort_requested = true))
 );
 
@@ -58,12 +63,6 @@ CREATE TABLE procrastinate_events (
     job_id bigint NOT NULL REFERENCES procrastinate_jobs ON DELETE CASCADE,
     type procrastinate_job_event_type,
     at timestamp with time zone DEFAULT NOW() NULL
-);
-
-CREATE TABLE procrastinate_workers(
-    id bigserial PRIMARY KEY,
-    worker_id character varying(36) NOT NULL UNIQUE,
-    last_heartbeat timestamp with time zone NOT NULL DEFAULT NOW()
 );
 
 -- Constraints & Indices
@@ -167,7 +166,7 @@ $$;
 
 CREATE FUNCTION procrastinate_fetch_job_v2(
     target_queue_names character varying[],
-    p_worker_id character varying
+    p_worker_id bigint
 )
     RETURNS procrastinate_jobs
     LANGUAGE plpgsql
@@ -418,37 +417,47 @@ BEGIN
 END;
 $$;
 
-CREATE FUNCTION procrastinate_update_heartbeat_v1(p_worker_id character varying)
-    RETURNS void
+CREATE FUNCTION procrastinate_register_worker_v1()
+    RETURNS TABLE(worker_id bigint)
     LANGUAGE plpgsql
 AS $$
 BEGIN
-    INSERT INTO procrastinate_workers(worker_id)
-    VALUES (p_worker_id)
-    ON CONFLICT (worker_id)
-    DO UPDATE SET last_heartbeat = NOW();
+    RETURN QUERY
+    INSERT INTO procrastinate_workers DEFAULT VALUES
+    RETURNING procrastinate_workers.id;
 END;
 $$;
 
-CREATE FUNCTION procrastinate_delete_finished_worker_v1(p_worker_id character varying)
+CREATE FUNCTION procrastinate_unregister_worker_v1(worker_id bigint)
     RETURNS void
     LANGUAGE plpgsql
 AS $$
 BEGIN
     DELETE FROM procrastinate_workers
-    WHERE worker_id = p_worker_id;
+    WHERE id = worker_id;
+END;
+$$;
+
+CREATE FUNCTION procrastinate_update_heartbeat_v1(worker_id bigint)
+    RETURNS void
+    LANGUAGE plpgsql
+AS $$
+BEGIN
+    UPDATE procrastinate_workers
+    SET last_heartbeat = NOW()
+    WHERE id = worker_id;
 END;
 $$;
 
 CREATE FUNCTION procrastinate_prune_stalled_workers_v1(seconds_since_heartbeat float)
-    RETURNS TABLE(worker_id character varying)
+    RETURNS TABLE(worker_id bigint)
     LANGUAGE plpgsql
 AS $$
 BEGIN
     RETURN QUERY
     DELETE FROM procrastinate_workers
     WHERE last_heartbeat < NOW() - (seconds_since_heartbeat || 'SECOND')::INTERVAL
-    RETURNING procrastinate_workers.worker_id;
+    RETURNING procrastinate_workers.id;
 END;
 $$;
 

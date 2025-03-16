@@ -71,7 +71,7 @@ class Worker:
         else:
             self.logger = logger
 
-        self.worker_id: str = utils.create_worker_id()
+        self.worker_id: int | None = None
 
         self._loop_task: asyncio.Future | None = None
         self._new_job_event = asyncio.Event()
@@ -329,6 +329,8 @@ class Worker:
                 await utils.wait_any(acquire_sem_task, self._stop_event.wait())
                 if self._stop_event.is_set():
                     break
+
+                assert self.worker_id is not None
                 job = await self.app.job_manager.fetch_job(
                     queues=self.queues, worker_id=self.worker_id
                 )
@@ -377,10 +379,10 @@ class Worker:
             self.stalled_worker_timeout
         )
         if pruned_workers:
-            logger.debug(f"Pruned stalled workers: {', '.join(pruned_workers)}")
+            logger.debug(f"Pruned stalled workers: {', '.join(str(pruned_workers))}")
 
-        logger.debug(f"Start heartbeat of worker {self.worker_id}")
-        await self.app.job_manager.update_heartbeat(self.worker_id)
+        self.worker_id = await self.app.job_manager.register_worker()
+        logger.debug(f"Registered worker {self.worker_id} in the database")
 
         self.run_task = asyncio.current_task()
         loop_task = asyncio.create_task(self._run_loop(), name="worker loop")
@@ -411,6 +413,7 @@ class Worker:
             await asyncio.sleep(self.update_heartbeat_interval)
 
             logger.debug(f"Updating heartbeat of worker {self.worker_id}")
+            assert self.worker_id is not None
             await self.app.job_manager.update_heartbeat(self.worker_id)
 
     async def _poll_jobs_to_abort(self):
@@ -508,8 +511,10 @@ class Worker:
             )
             await self._abort_running_jobs()
 
-        logger.debug(f"Delete shut down worker {self.worker_id}")
-        await self.app.job_manager.delete_finished_worker(self.worker_id)
+        assert self.worker_id is not None
+        await self.app.job_manager.unregister_worker(self.worker_id)
+        logger.debug(f"Unregistered finished worker {self.worker_id} from the database")
+        self.worker_id = None
 
         self.logger.info(
             f"Stopped worker on {utils.queues_display(self.queues)}",

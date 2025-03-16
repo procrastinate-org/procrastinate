@@ -36,7 +36,7 @@ class InMemoryConnector(connector.BaseAsyncConnector):
         """
         self.jobs: dict[int, JobRow] = {}
         self.events: dict[int, list[EventRow]] = {}
-        self.heartbeats: dict[str, datetime.datetime] = {}
+        self.workers: dict[int, datetime.datetime] = {}
         self.job_counter = count(1)
         self.queries: list[tuple[str, dict[str, Any]]] = []
         self.on_notification: connector.Notify | None = None
@@ -199,8 +199,8 @@ class InMemoryConnector(connector.BaseAsyncConnector):
                 payload=json.dumps(notification),
             )
 
-    async def fetch_job_one(self, queues: Iterable[str] | None, worker_id: str) -> dict:
-        # Creating a copy of the iterable so that we can modify it while we iterate
+    async def fetch_job_one(self, queues: Iterable[str] | None, worker_id: int) -> dict:
+        assert worker_id in self.workers, f"Worker {worker_id} not found"
 
         filtered_jobs = [
             job
@@ -305,21 +305,13 @@ class InMemoryConnector(connector.BaseAsyncConnector):
             and queue in (job["queue_name"], None)
             and task_name in (job["task_name"], None)
             and (
-                self.heartbeats.get(
+                self.workers.get(
                     job["worker_id"],
                     datetime.datetime.min.replace(tzinfo=datetime.timezone.utc),
                 )
                 < utils.utcnow() - datetime.timedelta(seconds=seconds_since_heartbeat)
             )
         )
-
-    async def select_stalled_workers_all(self, seconds_since_heartbeat: float):
-        return [
-            {"worker_id": worker_id}
-            for worker_id, heartbeat in self.heartbeats.items()
-            if heartbeat
-            < utils.utcnow() - datetime.timedelta(seconds=seconds_since_heartbeat)
-        ]
 
     async def delete_old_jobs_run(self, nb_hours, queue, statuses):
         for id, job in list(self.jobs.items()):
@@ -395,19 +387,31 @@ class InMemoryConnector(connector.BaseAsyncConnector):
     async def check_connection_one(self):
         return {"check": self.table_exists or None}
 
-    async def update_heartbeat_run(self, worker_id):
-        self.heartbeats[worker_id] = utils.utcnow()
+    async def register_worker_one(self):
+        worker_id = max(self.workers, default=0) + 1
+        self.workers[worker_id] = utils.utcnow()
+        return {"worker_id": worker_id}
 
-    async def delete_finished_worker_run(self, worker_id):
-        self.heartbeats.pop(worker_id)
+    async def unregister_worker_run(self, worker_id):
+        self.workers.pop(worker_id)
+        for job in self.jobs.values():
+            if job["worker_id"] == worker_id:
+                job["worker_id"] = None
+
+    async def update_heartbeat_run(self, worker_id):
+        self.workers[worker_id] = utils.utcnow()
 
     async def prune_stalled_workers_all(self, seconds_since_heartbeat):
         pruned_workers = []
-        for worker_id, heartbeat in list(self.heartbeats.items()):
+        for worker_id, heartbeat in list(self.workers.items()):
             if heartbeat < utils.utcnow() - datetime.timedelta(
                 seconds=seconds_since_heartbeat
             ):
-                self.heartbeats.pop(worker_id)
+                self.workers.pop(worker_id)
                 pruned_workers.append({"worker_id": worker_id})
+
+        for job in self.jobs.values():
+            if job["worker_id"] not in self.workers:
+                job["worker_id"] = None
 
         return pruned_workers

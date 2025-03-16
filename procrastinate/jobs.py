@@ -98,8 +98,8 @@ class Job:
     attempts: int = 0
     #: True if the job is requested to abort
     abort_requested: bool = False
-    #: Worker ID that is or was running the job
-    worker_id: str | None = None
+    #: ID of the worker that is processing the job
+    worker_id: int | None = None
 
     @classmethod
     def from_row(cls, row: dict[str, Any]) -> Job:
