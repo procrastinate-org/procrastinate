@@ -175,6 +175,38 @@ jobs:
           name: python-coverage-comment-action
           path: python-coverage-comment-action.txt
 
+  benchmark:
+    name: Benchmark
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:17
+        # Set health checks to wait until postgres has started
+        env:
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+        ports:
+          - 5432:5432
+
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+
+      - name: Install the latest version of uv
+        uses: astral-sh/setup-uv@f94ec6bedd8674c4426838e6b50417d36b6ab231 # v5
+        with:
+          python-version: "3.13"
+
+      - name: Run benchmarks
+        run: uv run pytest -m "benchmark"
+        env:
+          PGHOST: localhost
+          PGUSER: postgres
+          PGPASSWORD: postgres
+
   publish:
     name: Publish package to PyPI
     if: github.event_name == 'push' && github.ref_type == 'tag'
