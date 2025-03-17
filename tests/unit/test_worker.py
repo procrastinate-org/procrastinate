@@ -630,12 +630,13 @@ async def test_run_job_abort(app: App, worker: Worker):
 
 
 @pytest.mark.parametrize(
-    "critical_error, recover_on_attempt_number, expected_status, expected_attempts",
+    "critical_error, recover_on_attempt_number, expected_status, "
+    "expected_attempts, expected_info_logs, expected_error_logs",
     [
-        (False, 2, "succeeded", 2),
-        (True, 2, "succeeded", 2),
-        (False, 3, "failed", 2),
-        (True, 3, "failed", 2),
+        (False, 2, "succeeded", 2, 1, 0),
+        (True, 2, "succeeded", 2, 1, 0),
+        (False, 3, "failed", 2, 1, 1),
+        (True, 3, "failed", 2, 1, 1),
     ],
 )
 async def test_run_job_retry_failed_job(
@@ -645,7 +646,12 @@ async def test_run_job_retry_failed_job(
     recover_on_attempt_number,
     expected_status,
     expected_attempts,
+    expected_info_logs,
+    expected_error_logs,
+    caplog,
 ):
+    caplog.set_level("INFO")
+
     worker.wait = False
 
     attempt = 0
@@ -667,6 +673,15 @@ async def test_run_job_retry_failed_job(
     job_row = connector.jobs[job_id]
     assert job_row["status"] == expected_status
     assert job_row["attempts"] == expected_attempts
+
+    info_records = [
+        record
+        for record in caplog.records
+        if record.levelname == "INFO" and "to retry" in record.message
+    ]
+    error_records = [record for record in caplog.records if record.levelname == "ERROR"]
+    assert len(info_records) == expected_info_logs
+    assert len(error_records) == expected_error_logs
 
 
 async def test_run_log_actions(app: App, caplog, worker):
