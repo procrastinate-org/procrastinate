@@ -78,6 +78,7 @@ pg_implem = [
 ]
 test = [
     "pytest-asyncio",
+    "pytest-benchmark",
     "pytest-cov",
     "pytest-django",
     "pytest-mock",
@@ -99,12 +100,13 @@ docs = [
 dev = ["ruff", "pyright", "doc8"]
 
 [tool.pytest.ini_options]
-addopts = ["-vv", "--strict-markers", "-rfE", "--reuse-db"]
+addopts = ["-vv", "--strict-markers", "-rfE", "--reuse-db", "-m not benchmark"]
 testpaths = [
     "tests/unit",
     "tests/integration",
     "tests/acceptance",
     "tests/migration",
+    "tests/benchmarks",
 ]
 # https://adamj.eu/tech/2025/01/08/django-silence-exception-ignored-outputwrapper/
 # https://code.djangoproject.com/ticket/36056
