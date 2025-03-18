@@ -5,6 +5,8 @@ CREATE TABLE procrastinate_workers(
 
 ALTER TABLE procrastinate_jobs ADD COLUMN worker_id bigint REFERENCES procrastinate_workers(id) ON DELETE SET NULL;
 
+CREATE INDEX idx_procrastinate_jobs_worker_not_null ON procrastinate_jobs(worker_id) WHERE worker_id IS NOT NULL AND status = 'doing'::procrastinate_job_status;
+
 CREATE INDEX idx_procrastinate_workers_last_heartbeat ON procrastinate_workers(last_heartbeat);
 
 CREATE FUNCTION procrastinate_fetch_job_v2(
