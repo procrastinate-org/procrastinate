@@ -120,7 +120,6 @@ asyncio_default_fixture_loop_scope = "function"
 django_find_project = false
 DJANGO_SETTINGS_MODULE = "tests.acceptance.django_settings"
 pythonpath = ["."]
-markers = ["benchmark: Tests dedicated to detect performance regressions"]
 
 [tool.coverage.run]
 relative_files = true
