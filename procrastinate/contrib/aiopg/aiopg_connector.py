@@ -4,7 +4,7 @@ import asyncio
 import functools
 import logging
 from collections.abc import AsyncGenerator, Coroutine, Iterable
-from typing import Any, Callable
+from typing import Any, Callable, TypeVar, cast
 
 import aiopg
 import psycopg2
@@ -19,6 +19,7 @@ from procrastinate.contrib.psycopg2 import psycopg2_connector
 logger = logging.getLogger(__name__)
 
 CoroutineFunction = Callable[..., Coroutine]
+T = TypeVar("T", bound=CoroutineFunction)
 
 
 @utils.async_context_decorator
@@ -36,7 +37,7 @@ async def wrap_exceptions() -> AsyncGenerator[None, None]:
         raise exceptions.ConnectorException from exc
 
 
-def wrap_query_exceptions(coro: CoroutineFunction) -> CoroutineFunction:
+def wrap_query_exceptions(coro: T) -> T:
     """
     Detect aiopg OperationalError's with a "server closed the connection unexpectedly"
     message and retry a number of times.
@@ -70,7 +71,8 @@ def wrap_query_exceptions(coro: CoroutineFunction) -> CoroutineFunction:
             f"Could not get a valid connection after {max_tries} tries"
         ) from final_exc
 
-    return wrapped
+    f = cast(T, wrapped)
+    return f
 
 
 class AiopgConnector(connector.BaseAsyncConnector):
