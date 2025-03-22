@@ -148,10 +148,16 @@ class JobManager:
         :
             None if no suitable job was found. The job otherwise.
         """
-
-        row = await self.connector.execute_query_one_async(
-            query=sql.queries["fetch_job"], queues=queues
-        )
+        try:
+            row = await self.connector.execute_query_one_async(
+                query=sql.queries["fetch_job"], queues=queues
+            )
+        except exceptions.UniqueViolation as _exc:
+            # getting a job with lock lead to conflicts
+            # get any doable job instead
+            row = await self.connector.execute_query_one_async(
+                query=sql.queries["fetch_job_without_lock"], queues=queues
+            )
 
         # fetch_tasks will always return a row, but is there's no relevant
         # value, it will all be None
