@@ -6,7 +6,7 @@ your own decorator instead of `@app.task` and have this decorator
 implement the actions you need and delegate the rest to `@app.task`.
 It might look like this:
 
-```
+```python
 import functools
 
 def task(original_func=None, **kwargs):
