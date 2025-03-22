@@ -57,7 +57,6 @@ def read(shell):
     return _
 
 
-@pytest.mark.skip_before_version("3.0.0")
 async def test_shell(read, write, defer):
     assert await read() == [
         "Welcome to the procrastinate shell.   Type help or ? to list commands."

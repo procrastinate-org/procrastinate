@@ -109,7 +109,6 @@ async def test_no_job_to_cancel_found(async_app: app_module.App):
     assert len(jobs) == 1
 
 
-@pytest.mark.skip_before_version("3.0.0")
 @pytest.mark.parametrize("mode", ["listen", "poll"])
 async def test_abort_async_task(async_app: app_module.App, mode):
     @async_app.task(queue="default", name="task1")
@@ -143,7 +142,6 @@ async def test_abort_async_task(async_app: app_module.App, mode):
     assert status == Status.ABORTED
 
 
-@pytest.mark.skip_before_version("3.0.0")
 @pytest.mark.parametrize("mode", ["listen", "poll"])
 async def test_abort_sync_task(async_app: app_module.App, mode):
     @async_app.task(queue="default", name="task1", pass_context=True)
@@ -213,7 +211,6 @@ async def test_concurrency(async_app: app_module.App):
     assert len(results) == 100, "Unexpected number of job executions"
 
 
-@pytest.mark.skip_before_version("3.0.0")
 async def test_polling(async_app: app_module.App):
     @async_app.task(queue="default", name="sum")
     async def sum(a: int, b: int):
@@ -302,7 +299,6 @@ async def test_stop_worker(async_app: app_module.App):
         assert status == Status.SUCCEEDED
 
 
-@pytest.mark.skip_before_version("3.0.0")
 async def test_stop_worker_aborts_async_jobs_past_shutdown_graceful_timeout(
     async_app: app_module.App,
 ):
@@ -341,7 +337,6 @@ async def test_stop_worker_aborts_async_jobs_past_shutdown_graceful_timeout(
     assert slow_job_cancelled
 
 
-@pytest.mark.skip_before_version("3.0.0")
 async def test_stop_worker_retries_async_jobs_past_shutdown_graceful_timeout(
     async_app: app_module.App,
 ):
@@ -372,7 +367,6 @@ async def test_stop_worker_retries_async_jobs_past_shutdown_graceful_timeout(
     assert slow_job_status == Status.TODO
 
 
-@pytest.mark.skip_before_version("3.0.0")
 async def test_stop_worker_aborts_sync_jobs_past_shutdown_graceful_timeout(
     async_app: app_module.App,
 ):
@@ -413,7 +407,6 @@ async def test_stop_worker_aborts_sync_jobs_past_shutdown_graceful_timeout(
     assert slow_job_cancelled
 
 
-@pytest.mark.skip_before_version("3.0.0")
 async def test_stop_worker_retries_sync_jobs_past_shutdown_graceful_timeout(
     async_app: app_module.App,
 ):
