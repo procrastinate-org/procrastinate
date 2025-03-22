@@ -386,7 +386,7 @@ async def test_stop_worker_aborts_sync_jobs_past_shutdown_graceful_timeout(
     def slow_job(context: JobContext):
         nonlocal slow_job_cancelled
         while True:
-            time.sleep(0.05)
+            time.sleep(0.01)
             if context.should_abort():
                 slow_job_cancelled = True
                 raise JobAborted()
@@ -402,6 +402,8 @@ async def test_stop_worker_aborts_sync_jobs_past_shutdown_graceful_timeout(
     with pytest.raises(asyncio.CancelledError):
         run_task.cancel()
         await run_task
+
+    await asyncio.sleep(0.05)
 
     fast_job_status = await async_app.job_manager.get_job_status_async(fast_job_id)
     slow_job_status = await async_app.job_manager.get_job_status_async(slow_job_id)
