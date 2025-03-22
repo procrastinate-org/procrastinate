@@ -3,6 +3,7 @@ from __future__ import annotations
 import datetime
 import json
 import logging
+import warnings
 from collections.abc import Awaitable, Iterable
 from typing import Any, NoReturn, Protocol
 
@@ -132,7 +133,9 @@ class JobManager:
 
         return result["id"]
 
-    async def fetch_job(self, queues: Iterable[str] | None) -> jobs.Job | None:
+    async def fetch_job(
+        self, queues: Iterable[str] | None, worker_id: int
+    ) -> jobs.Job | None:
         """
         Select a job in the queue, and mark it as doing.
         The worker selecting a job is then responsible for running it, and then
@@ -150,7 +153,7 @@ class JobManager:
         """
 
         row = await self.connector.execute_query_one_async(
-            query=sql.queries["fetch_job"], queues=queues
+            query=sql.queries["fetch_job"], queues=queues, worker_id=worker_id
         )
 
         # fetch_tasks will always return a row, but is there's no relevant
@@ -162,9 +165,10 @@ class JobManager:
 
     async def get_stalled_jobs(
         self,
-        nb_seconds: int,
+        nb_seconds: int | None = None,
         queue: str | None = None,
         task_name: str | None = None,
+        seconds_since_heartbeat: float = 30,
     ) -> Iterable[jobs.Job]:
         """
         Return all jobs that have been in ``doing`` state for more than a given time.
@@ -172,19 +176,43 @@ class JobManager:
         Parameters
         ----------
         nb_seconds:
-            Only jobs that have been in ``doing`` state for longer than this will be
-            returned
+            If set then jobs that have been in ``doing`` state for longer than that time
+            in seconds will be returned without considering stalled workers and heartbeats.
+            This parameter is DEPRECATED and will be removed in a next major version.
+            Use this method without this parameter instead to get stalled jobs based on
+            stalled workers and heartbeats.
         queue:
             Filter by job queue name
         task_name:
             Filter by job task name
+        seconds_since_heartbeat:
+            Get stalled jobs based on workers that have not sent a heartbeat for longer
+            than this time in seconds. Only used if ``nb_seconds`` is not set. Defaults
+            to 30 seconds. When changing it then check also the ``update_heartbeat_interval``
+            and ``stalled_worker_timeout`` parameters of the worker.
         """
-        rows = await self.connector.execute_query_all_async(
-            query=sql.queries["select_stalled_jobs"],
-            nb_seconds=nb_seconds,
-            queue=queue,
-            task_name=task_name,
-        )
+        if nb_seconds is not None:
+            warnings.warn(
+                "The `nb_seconds` parameter is deprecated and will be removed in a next "
+                "major version. Use the method without this parameter instead to get "
+                "stalled jobs based on stalled workers and heartbeats.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            rows = await self.connector.execute_query_all_async(
+                query=sql.queries["select_stalled_jobs_by_started"],
+                nb_seconds=nb_seconds,
+                queue=queue,
+                task_name=task_name,
+            )
+        else:
+            rows = await self.connector.execute_query_all_async(
+                query=sql.queries["select_stalled_jobs_by_heartbeat"],
+                queue=queue,
+                task_name=task_name,
+                seconds_since_heartbeat=seconds_since_heartbeat,
+            )
+
         return [jobs.Job.from_row(row) for row in rows]
 
     async def delete_old_jobs(
@@ -536,6 +564,7 @@ class JobManager:
         status: str | None = None,
         lock: str | None = None,
         queueing_lock: str | None = None,
+        worker_id: int | None = None,
     ) -> Iterable[jobs.Job]:
         """
         List all procrastinate jobs given query filters.
@@ -554,6 +583,8 @@ class JobManager:
             Filter by job lock
         queueing_lock:
             Filter by job queueing_lock
+        worker_id:
+            Filter by worker ID
 
         Returns
         -------
@@ -567,6 +598,7 @@ class JobManager:
             status=status,
             lock=lock,
             queueing_lock=queueing_lock,
+            worker_id=worker_id,
         )
         return [jobs.Job.from_row(row) for row in rows]
 
@@ -578,6 +610,7 @@ class JobManager:
         status: str | None = None,
         lock: str | None = None,
         queueing_lock: str | None = None,
+        worker_id: int | None = None,
     ) -> list[jobs.Job]:
         """
         Sync version of `list_jobs_async`
@@ -590,6 +623,7 @@ class JobManager:
             status=status,
             lock=lock,
             queueing_lock=queueing_lock,
+            worker_id=worker_id,
         )
         return [jobs.Job.from_row(row) for row in rows]
 
@@ -836,3 +870,66 @@ class JobManager:
             query=sql.queries["list_jobs_to_abort"], queue_name=queue
         )
         return [row["id"] for row in rows]
+
+    async def register_worker(self) -> int:
+        """
+        Register a newly started worker (with a initial heartbeat) in the database.
+
+        Returns
+        -------
+        :
+            The ID of the registered worker
+        """
+        result = await self.connector.execute_query_one_async(
+            query=sql.queries["register_worker"],
+        )
+        return result["worker_id"]
+
+    async def unregister_worker(self, worker_id: int) -> None:
+        """
+        Unregister a shut down worker and also delete its heartbeat from the database.
+
+        Parameters
+        ----------
+        worker_id:
+            The ID of the worker to delete
+        """
+        await self.connector.execute_query_async(
+            query=sql.queries["unregister_worker"],
+            worker_id=worker_id,
+        )
+
+    async def update_heartbeat(self, worker_id: int) -> None:
+        """
+        Update the heartbeat of a worker.
+
+        Parameters
+        ----------
+        worker_id:
+            The ID of the worker to update the heartbeat
+        """
+        await self.connector.execute_query_async(
+            query=sql.queries["update_heartbeat"],
+            worker_id=worker_id,
+        )
+
+    async def prune_stalled_workers(self, seconds_since_heartbeat: float) -> list[int]:
+        """
+        Delete the workers that have not sent a heartbeat for more than a given time.
+
+        Parameters
+        ----------
+        seconds_since_heartbeat:
+            Only workers that have not sent a heartbeat for longer than this will be
+            deleted
+
+        Returns
+        -------
+        :
+            A list of worker IDs that have been deleted
+        """
+        rows = await self.connector.execute_query_all_async(
+            query=sql.queries["prune_stalled_workers"],
+            seconds_since_heartbeat=seconds_since_heartbeat,
+        )
+        return [row["worker_id"] for row in rows]

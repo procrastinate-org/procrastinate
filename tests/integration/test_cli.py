@@ -169,6 +169,7 @@ async def test_defer(entrypoint, cli_app, connector):
             "task_name": "hello",
             "priority": 0,
             "abort_requested": False,
+            "worker_id": None,
         }
     }
 
@@ -195,6 +196,7 @@ async def test_defer_priority(entrypoint, cli_app, connector):
             "task_name": "hello",
             "priority": 5,
             "abort_requested": False,
+            "worker_id": None,
         }
     }
 
@@ -226,6 +228,7 @@ async def test_defer_at(entrypoint, cli_app, connector):
             "task_name": "hello",
             "priority": 0,
             "abort_requested": False,
+            "worker_id": None,
         }
     }
 
@@ -256,6 +259,7 @@ async def test_defer_in(entrypoint, cli_app, connector):
         "task_name": "hello",
         "priority": 0,
         "abort_requested": False,
+        "worker_id": None,
     }
     assert (
         now + datetime.timedelta(seconds=9)
@@ -321,6 +325,7 @@ async def test_defer_unknown(entrypoint, cli_app, connector):
             "task_name": "hello",
             "priority": 0,
             "abort_requested": False,
+            "worker_id": None,
         }
     }
 

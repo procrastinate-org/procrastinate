@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import asyncio
+import datetime
 import signal
 from typing import cast
 
 import pytest
 from pytest_mock import MockerFixture
 
+from procrastinate import utils
 from procrastinate.app import App
 from procrastinate.exceptions import JobAborted
 from procrastinate.job_context import JobContext
@@ -702,6 +704,8 @@ async def test_run_log_actions(app: App, caplog, worker):
     connector = cast(InMemoryConnector, app.connector)
     assert [q[0] for q in connector.queries] == [
         "defer_job",
+        "prune_stalled_workers",
+        "register_worker",
         "fetch_job",
         "finish_job",
         "fetch_job",
@@ -751,3 +755,82 @@ async def test_run_no_signal_handlers(worker, kill_own_pid):
         await asyncio.sleep(0.01)
         # Test that handlers are NOT installed
         kill_own_pid(signal=signal.SIGINT)
+
+
+async def test_worker_id_and_heartbeat_lifecycle(app: App):
+    connector = cast(InMemoryConnector, app.connector)
+
+    assert connector.workers == {}
+
+    worker = Worker(app, update_heartbeat_interval=0.05)
+    assert worker.worker_id is None
+
+    run_task = await start_worker(worker)
+
+    worker_id = worker.worker_id
+    assert worker_id is not None and worker_id > 0
+
+    await asyncio.sleep(0.01)
+
+    heartbeat1 = connector.workers[worker_id]
+    assert heartbeat1 is not None
+
+    await asyncio.sleep(0.05)
+
+    heartbeat2 = connector.workers[worker_id]
+    assert heartbeat2 > heartbeat1
+
+    worker.stop()
+    await run_task
+
+    assert worker.worker_id is None
+    assert connector.workers == {}
+
+
+async def test_job_receives_worker_id(app: App):
+    @app.task(queue="some_queue")
+    async def t():
+        await asyncio.sleep(0.08)
+
+    job_id = await t.defer_async()
+
+    connector = cast(InMemoryConnector, app.connector)
+    job_row = connector.jobs[job_id]
+
+    assert job_row["worker_id"] is None
+
+    worker = Worker(app, wait=False)
+    run_task = await start_worker(worker)
+
+    await asyncio.sleep(0.05)
+
+    assert job_row["status"] == "doing"
+    assert job_row["worker_id"] == worker.worker_id
+
+    await asyncio.sleep(0.05)
+
+    assert job_row["status"] == "succeeded"
+    assert job_row["worker_id"] is None
+
+    await run_task
+
+
+async def test_worker_prunes_stalled_workers(app: App):
+    worker = Worker(app, wait=False)
+
+    worker1_id = 1
+    worker2_id = 2
+
+    connector = cast(InMemoryConnector, app.connector)
+    connector.workers = {
+        worker1_id: utils.utcnow()
+        - datetime.timedelta(seconds=worker.stalled_worker_timeout - 1),
+        worker2_id: utils.utcnow()
+        - datetime.timedelta(seconds=worker.stalled_worker_timeout + 1),
+    }
+
+    run_task = await start_worker(worker)
+    await run_task
+
+    assert worker1_id in connector.workers
+    assert worker2_id not in connector.workers

@@ -7,27 +7,42 @@ terminate immediately, possibly leaving jobs with the `doing` status in the queu
 And, if no specific action is taken, these *stalled* jobs will remain in the queue
 forever, and their execution will never resume.
 
-To address that problem, Procrastinate offers functions that can be used in a periodic
-task for retrying stalled jobs. Add the following in your code to enable automatic retry
-of tasks after some time:
+To address this problem, Procrastinate workers update heartbeats at a regular
+interval (every 10 seconds by default). If a worker is terminated without a regular
+shutdown, the heartbeat of that worker will not be updated, and the worker will be
+considered stalled. Jobs in the `doing` state of such stalled workers are considered
+stalled as well and can be fetched by the with the {py:meth}`JobManager.get_stalled_jobs`
+method.
+
+:::{note}
+Regular worker shutdowns delete the worker's heartbeat from the database. Heartbeats
+of stalled worker are also pruned after a certain duration (30 seconds by default) to
+avoid having too many heartbeats of old worker runs in the database, but stalled jobs
+can still be detected.
+:::
+
+Those stalled jobs can then be retried for example by a periodic task. To enable
+this add this task to your code:
 
 ```python
-# time in seconds for running jobs to be deemed as stalled
-RUNNING_JOBS_MAX_TIME = 30
-
 @app.periodic(cron="*/10 * * * *")
 @app.task(queueing_lock="retry_stalled_jobs", pass_context=True)
 async def retry_stalled_jobs(context, timestamp):
-    stalled_jobs = await app.job_manager.get_stalled_jobs(
-        nb_seconds=RUNNING_JOBS_MAX_TIME
-    )
+    stalled_jobs = await app.job_manager.get_stalled_jobs()
     for job in stalled_jobs:
         await app.job_manager.retry_job(job)
 ```
 
 This defines a periodic task, configured to be deferred at every 10th minute. The task
-retrieves all the jobs that have been in the `doing` status for more than
-30 seconds, and restarts them (marking them with the `todo` status in the database).
+retrieves all the jobs that have been in the `doing` status of workers that have not
+received a heartbeat since the last (by default) 30 seconds. This duration can be
+configured with the `seconds_since_heartbeat` parameter of the `get_stalled_jobs` method.
+
+:::{note}
+If you change the `seconds_since_heartbeat` parameter, make sure to also check the
+`update_heartbeat_interval` and `stalled_worker_timeout` parameters of the worker
+and adjust them accordingly.
+:::
 
 With this, if you have multiple workers, and, for some reason, one of them gets killed
 while running jobs, then one of the remaining workers will run the
@@ -38,7 +53,10 @@ on specific parameters, or the duration before a task is considered stalled shou
 depend on the task), you're free to make the periodic task function more complex and add
 your logic to it. See {py:meth}`JobManager.get_stalled_jobs` for details.
 
-Also, note that if a task is considered stalled, it will be retried, but if it's
-actually running, then you may have your task running twice. Make sure to only retry
-a task when you're reasonably sure that it is not running anymore, so make sure your
-stalled duration is sufficient.
+:::{warning}
+`get_stalled_jobs` also accepts a `nb_seconds` parameter, which if set fetches
+stalled jobs that have been in the `doing` state for more than the specified seconds
+without even considering the worker heartbeat. This parameter is deprecated and will be
+removed in a next major release as it may lead to wrongly retrying jobs that are still
+running.
+:::

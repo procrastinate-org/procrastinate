@@ -36,6 +36,7 @@ class InMemoryConnector(connector.BaseAsyncConnector):
         """
         self.jobs: dict[int, JobRow] = {}
         self.events: dict[int, list[EventRow]] = {}
+        self.workers: dict[int, datetime.datetime] = {}
         self.job_counter = count(1)
         self.queries: list[tuple[str, dict[str, Any]]] = []
         self.on_notification: connector.Notify | None = None
@@ -127,6 +128,7 @@ class InMemoryConnector(connector.BaseAsyncConnector):
             "scheduled_at": scheduled_at,
             "attempts": 0,
             "abort_requested": False,
+            "worker_id": None,
         }
         self.events[id] = []
         if scheduled_at:
@@ -197,8 +199,8 @@ class InMemoryConnector(connector.BaseAsyncConnector):
                 payload=json.dumps(notification),
             )
 
-    async def fetch_job_one(self, queues: Iterable[str] | None) -> dict:
-        # Creating a copy of the iterable so that we can modify it while we iterate
+    async def fetch_job_one(self, queues: Iterable[str] | None, worker_id: int) -> dict:
+        assert worker_id in self.workers, f"Worker {worker_id} not found"
 
         filtered_jobs = [
             job
@@ -218,6 +220,7 @@ class InMemoryConnector(connector.BaseAsyncConnector):
 
         job = filtered_jobs[0]
         job["status"] = "doing"
+        job["worker_id"] = worker_id
         self.events[job["id"]].append({"type": "started", "at": utils.utcnow()})
         return job
 
@@ -281,7 +284,7 @@ class InMemoryConnector(connector.BaseAsyncConnector):
         self.events[job_id].append({"type": "scheduled", "at": retry_at})
         self.events[job_id].append({"type": "deferred_for_retry", "at": utils.utcnow()})
 
-    async def select_stalled_jobs_all(self, nb_seconds, queue, task_name):
+    async def select_stalled_jobs_by_started_all(self, nb_seconds, queue, task_name):
         return (
             job
             for job in self.jobs.values()
@@ -290,6 +293,24 @@ class InMemoryConnector(connector.BaseAsyncConnector):
             < utils.utcnow() - datetime.timedelta(seconds=nb_seconds)
             and queue in (job["queue_name"], None)
             and task_name in (job["task_name"], None)
+        )
+
+    async def select_stalled_jobs_by_heartbeat_all(
+        self, queue, task_name, seconds_since_heartbeat
+    ):
+        return (
+            job
+            for job in self.jobs.values()
+            if job["status"] == "doing"
+            and queue in (job["queue_name"], None)
+            and task_name in (job["task_name"], None)
+            and (
+                self.workers.get(
+                    job["worker_id"],
+                    datetime.datetime.min.replace(tzinfo=datetime.timezone.utc),
+                )
+                < utils.utcnow() - datetime.timedelta(seconds=seconds_since_heartbeat)
+            )
         )
 
     async def delete_old_jobs_run(self, nb_hours, queue, statuses):
@@ -365,3 +386,32 @@ class InMemoryConnector(connector.BaseAsyncConnector):
 
     async def check_connection_one(self):
         return {"check": self.table_exists or None}
+
+    async def register_worker_one(self):
+        worker_id = max(self.workers, default=0) + 1
+        self.workers[worker_id] = utils.utcnow()
+        return {"worker_id": worker_id}
+
+    async def unregister_worker_run(self, worker_id):
+        self.workers.pop(worker_id)
+        for job in self.jobs.values():
+            if job["worker_id"] == worker_id:
+                job["worker_id"] = None
+
+    async def update_heartbeat_run(self, worker_id):
+        self.workers[worker_id] = utils.utcnow()
+
+    async def prune_stalled_workers_all(self, seconds_since_heartbeat):
+        pruned_workers = []
+        for worker_id, heartbeat in list(self.workers.items()):
+            if heartbeat < utils.utcnow() - datetime.timedelta(
+                seconds=seconds_since_heartbeat
+            ):
+                self.workers.pop(worker_id)
+                pruned_workers.append({"worker_id": worker_id})
+
+        for job in self.jobs.values():
+            if job["worker_id"] not in self.workers:
+                job["worker_id"] = None
+
+        return pruned_workers

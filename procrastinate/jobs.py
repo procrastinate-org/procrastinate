@@ -96,9 +96,10 @@ class Job:
     )
     #: Number of times the job has been tried.
     attempts: int = 0
-
-    # True if the job is requested to abort
+    #: True if the job is requested to abort
     abort_requested: bool = False
+    #: ID of the worker that is processing the job
+    worker_id: int | None = None
 
     @classmethod
     def from_row(cls, row: dict[str, Any]) -> Job:
@@ -114,6 +115,7 @@ class Job:
             queue=row["queue_name"],
             attempts=row["attempts"],
             abort_requested=row.get("abort_requested", False),
+            worker_id=row.get("worker_id"),
         )
 
     def asdict(self) -> dict[str, Any]:

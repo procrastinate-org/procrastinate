@@ -5,9 +5,14 @@ import uuid
 
 import pytest
 
-from procrastinate import exceptions, jobs, manager
+from procrastinate import exceptions, jobs, manager, utils
 
 from .. import conftest
+
+
+@pytest.fixture
+async def worker_id(job_manager):
+    return await job_manager.register_worker()
 
 
 async def test_manager_defer_job(job_manager, job_factory, connector):
@@ -36,6 +41,7 @@ async def test_manager_defer_job(job_manager, job_factory, connector):
             "status": "todo",
             "task_name": "bla",
             "abort_requested": False,
+            "worker_id": None,
         }
     }
 
@@ -105,30 +111,95 @@ async def test_manager_defer_job_unique_violation_exception_other_constraint_syn
         job_manager.defer_job(job=job_factory(task_kwargs={"a": "b"}))
 
 
-async def test_fetch_job_no_suitable_job(job_manager):
-    assert await job_manager.fetch_job(queues=None) is None
+async def test_fetch_job_no_suitable_job(job_manager, worker_id):
+    assert await job_manager.fetch_job(queues=None, worker_id=worker_id) is None
 
 
-async def test_fetch_job(job_manager, job_factory):
+async def test_fetch_job(job_manager, job_factory, worker_id):
     job = job_factory(id=None)
     await job_manager.defer_job_async(job=job)
-    expected_job = job.evolve(id=1, status="doing")
-    assert await job_manager.fetch_job(queues=None) == expected_job
+    expected_job = job.evolve(id=1, status="doing", worker_id=worker_id)
+    assert await job_manager.fetch_job(queues=None, worker_id=worker_id) == expected_job
 
 
-async def test_get_stalled_jobs_not_stalled(job_manager, job_factory):
+async def test_get_stalled_jobs_by_started_not_stalled(job_manager, job_factory):
     job = job_factory(id=1)
     await job_manager.defer_job_async(job=job)
-    assert await job_manager.get_stalled_jobs(nb_seconds=1000) == []
+    with pytest.warns(DeprecationWarning, match=".*nb_seconds.*"):
+        assert await job_manager.get_stalled_jobs(nb_seconds=1000) == []
 
 
-async def test_get_stalled_jobs_stalled(job_manager, job_factory, connector):
+async def test_get_stalled_jobs_by_started_stalled(
+    job_manager, job_factory, connector, worker_id
+):
     job = job_factory()
     await job_manager.defer_job_async(job=job)
-    await job_manager.fetch_job(queues=None)
+    await job_manager.fetch_job(queues=None, worker_id=worker_id)
     connector.events[1][-1]["at"] = conftest.aware_datetime(2000, 1, 1)
-    expected_job = job.evolve(id=1, status="doing")
-    assert await job_manager.get_stalled_jobs(nb_seconds=1000) == [expected_job]
+    expected_job = job.evolve(id=1, status="doing", worker_id=worker_id)
+    with pytest.warns(DeprecationWarning, match=".*nb_seconds.*"):
+        assert await job_manager.get_stalled_jobs(nb_seconds=1000) == [expected_job]
+
+
+async def test_get_stalled_jobs_by_heartbeat_not_stalled(job_manager, job_factory):
+    job = job_factory(id=1)
+    await job_manager.defer_job_async(job=job)
+    assert await job_manager.get_stalled_jobs() == []
+
+
+async def test_get_stalled_jobs_by_heartbeat_stalled(
+    job_manager, job_factory, connector, worker_id
+):
+    job = job_factory()
+    await job_manager.defer_job_async(job=job)
+    await job_manager.fetch_job(queues=None, worker_id=worker_id)
+    connector.workers = {1: conftest.aware_datetime(2000, 1, 1)}
+    expected_job = job.evolve(id=1, status="doing", worker_id=worker_id)
+    assert await job_manager.get_stalled_jobs() == [expected_job]
+
+
+async def test_register_and_unregister_worker(job_manager, connector):
+    then = utils.utcnow()
+    assert connector.workers == {}
+    worker_id = await job_manager.register_worker()
+    assert worker_id is not None
+
+    assert len(connector.workers) == 1
+    assert worker_id in connector.workers
+    assert then < connector.workers[worker_id] < utils.utcnow()
+
+    await job_manager.unregister_worker(worker_id=1)
+
+    assert connector.workers == {}
+
+
+async def test_update_heartbeat(job_manager, connector, worker_id):
+    first_heartbeat = connector.workers[worker_id]
+
+    await job_manager.update_heartbeat(worker_id=worker_id)
+
+    assert len(connector.workers) == 1
+    assert worker_id in connector.workers
+    assert first_heartbeat < connector.workers[worker_id] < utils.utcnow()
+
+
+async def test_prune_stalled_workers(job_manager, connector, worker_id):
+    assert len(connector.workers) == 1
+
+    pruned_workers = await job_manager.prune_stalled_workers(
+        seconds_since_heartbeat=1800
+    )
+    assert pruned_workers == []
+
+    # We fake the heartbeat to be 35 minutes old
+    heartbeat = connector.workers[worker_id]
+    connector.workers[worker_id] = heartbeat - datetime.timedelta(minutes=35)
+
+    pruned_workers = await job_manager.prune_stalled_workers(
+        seconds_since_heartbeat=1800
+    )
+    assert pruned_workers == [worker_id]
+    assert connector.workers == {}
 
 
 @pytest.mark.parametrize(
@@ -226,10 +297,10 @@ async def test_delete_cancelled_todo_job_async(job_manager, job_factory, connect
     assert len(connector.jobs) == 0
 
 
-async def test_cancel_doing_job(job_manager, job_factory, connector):
+async def test_cancel_doing_job(job_manager, job_factory, connector, worker_id):
     job = job_factory(id=1)
     await job_manager.defer_job_async(job=job)
-    await job_manager.fetch_job(queues=None)
+    await job_manager.fetch_job(queues=None, worker_id=worker_id)
 
     cancelled = await job_manager.cancel_job_by_id_async(job_id=1)
     assert not cancelled
@@ -240,10 +311,10 @@ async def test_cancel_doing_job(job_manager, job_factory, connector):
     assert connector.jobs[1]["status"] == "doing"
 
 
-async def test_abort_doing_job(job_manager, job_factory, connector):
+async def test_abort_doing_job(job_manager, job_factory, connector, worker_id):
     job = job_factory(id=1)
     await job_manager.defer_job_async(job=job)
-    await job_manager.fetch_job(queues=None)
+    await job_manager.fetch_job(queues=None, worker_id=worker_id)
 
     cancelled = await job_manager.cancel_job_by_id_async(job_id=1, abort=True)
     assert cancelled
@@ -262,13 +333,13 @@ def test_get_job_status(job_manager, job_factory, connector):
     assert job_manager.get_job_status(job_id=1) == jobs.Status.TODO
 
 
-async def test_get_job_status_async(job_manager, job_factory, connector):
+async def test_get_job_status_async(job_manager, job_factory, connector, worker_id):
     job = job_factory(id=1)
     await job_manager.defer_job_async(job=job)
 
     assert await job_manager.get_job_status_async(job_id=1) == jobs.Status.TODO
 
-    await job_manager.fetch_job(queues=None)
+    await job_manager.fetch_job(queues=None, worker_id=worker_id)
     assert await job_manager.get_job_status_async(job_id=1) == jobs.Status.DOING
 
 

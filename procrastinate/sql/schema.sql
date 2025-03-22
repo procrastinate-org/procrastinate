@@ -28,6 +28,11 @@ CREATE TYPE procrastinate_job_event_type AS ENUM (
 
 -- Tables
 
+CREATE TABLE procrastinate_workers(
+    id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    last_heartbeat timestamp with time zone NOT NULL DEFAULT NOW()
+);
+
 CREATE TABLE procrastinate_jobs (
     id bigserial PRIMARY KEY,
     queue_name character varying(128) NOT NULL,
@@ -40,6 +45,7 @@ CREATE TABLE procrastinate_jobs (
     scheduled_at timestamp with time zone NULL,
     attempts integer DEFAULT 0 NOT NULL,
     abort_requested boolean DEFAULT false NOT NULL,
+    worker_id bigint REFERENCES procrastinate_workers(id) ON DELETE SET NULL,
     CONSTRAINT check_not_todo_abort_requested CHECK (NOT (status = 'todo' AND abort_requested = true))
 );
 
@@ -66,6 +72,9 @@ CREATE UNIQUE INDEX procrastinate_jobs_queueing_lock_idx_v1 ON procrastinate_job
 -- this prevents from having several jobs with the same lock in the "doing" state
 CREATE UNIQUE INDEX procrastinate_jobs_lock_idx_v1 ON procrastinate_jobs (lock) WHERE status = 'doing';
 
+-- Index for select_stalled_jobs_by_heartbeat query
+CREATE INDEX idx_procrastinate_jobs_worker_not_null ON procrastinate_jobs(worker_id) WHERE worker_id IS NOT NULL AND status = 'doing'::procrastinate_job_status;
+
 CREATE INDEX procrastinate_jobs_queue_name_idx_v1 ON procrastinate_jobs(queue_name);
 CREATE INDEX procrastinate_jobs_id_lock_idx_v1 ON procrastinate_jobs (id, lock) WHERE status = ANY (ARRAY['todo'::procrastinate_job_status, 'doing'::procrastinate_job_status]);
 CREATE INDEX procrastinate_jobs_priority_idx_v1 ON procrastinate_jobs(priority desc, id asc) WHERE (status = 'todo'::procrastinate_job_status);
@@ -74,6 +83,7 @@ CREATE INDEX procrastinate_events_job_id_fkey_v1 ON procrastinate_events(job_id)
 
 CREATE INDEX procrastinate_periodic_defers_job_id_fkey_v1 ON procrastinate_periodic_defers(job_id);
 
+CREATE INDEX idx_procrastinate_workers_last_heartbeat ON procrastinate_workers(last_heartbeat);
 
 -- Functions
 CREATE FUNCTION procrastinate_defer_job_v1(
@@ -157,8 +167,9 @@ BEGIN
 END;
 $$;
 
-CREATE FUNCTION procrastinate_fetch_job_v1(
-    target_queue_names character varying[]
+CREATE FUNCTION procrastinate_fetch_job_v2(
+    target_queue_names character varying[],
+    p_worker_id bigint
 )
     RETURNS procrastinate_jobs
     LANGUAGE plpgsql
@@ -186,7 +197,7 @@ BEGIN
             FOR UPDATE OF jobs SKIP LOCKED
     )
     UPDATE procrastinate_jobs
-        SET status = 'doing'
+        SET status = 'doing', worker_id = p_worker_id
         FROM candidate
         WHERE procrastinate_jobs.id = candidate.id
         RETURNING procrastinate_jobs.* INTO found_jobs;
@@ -406,6 +417,50 @@ BEGIN
     SET job_id = NULL
     WHERE job_id = OLD.id;
     RETURN OLD;
+END;
+$$;
+
+CREATE FUNCTION procrastinate_register_worker_v1()
+    RETURNS TABLE(worker_id bigint)
+    LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN QUERY
+    INSERT INTO procrastinate_workers DEFAULT VALUES
+    RETURNING procrastinate_workers.id;
+END;
+$$;
+
+CREATE FUNCTION procrastinate_unregister_worker_v1(worker_id bigint)
+    RETURNS void
+    LANGUAGE plpgsql
+AS $$
+BEGIN
+    DELETE FROM procrastinate_workers
+    WHERE id = worker_id;
+END;
+$$;
+
+CREATE FUNCTION procrastinate_update_heartbeat_v1(worker_id bigint)
+    RETURNS void
+    LANGUAGE plpgsql
+AS $$
+BEGIN
+    UPDATE procrastinate_workers
+    SET last_heartbeat = NOW()
+    WHERE id = worker_id;
+END;
+$$;
+
+CREATE FUNCTION procrastinate_prune_stalled_workers_v1(seconds_since_heartbeat float)
+    RETURNS TABLE(worker_id bigint)
+    LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN QUERY
+    DELETE FROM procrastinate_workers
+    WHERE last_heartbeat < NOW() - (seconds_since_heartbeat || 'SECOND')::INTERVAL
+    RETURNING procrastinate_workers.id;
 END;
 $$;
 

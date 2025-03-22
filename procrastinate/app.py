@@ -34,6 +34,8 @@ class WorkerOptions(TypedDict):
     delete_jobs: NotRequired[str | jobs.DeleteJobCondition]
     additional_context: NotRequired[dict[str, Any]]
     install_signal_handlers: NotRequired[bool]
+    update_heartbeat_interval: NotRequired[float]
+    stalled_worker_timeout: NotRequired[float]
 
 
 class App(blueprints.Blueprint):
@@ -316,6 +318,12 @@ class App(blueprints.Blueprint):
             worker. Use ``False`` if you want to handle signals yourself (e.g. if you
             run the work as an async task in a bigger application)
             (defaults to ``True``)
+        update_heartbeat_interval: ``float``
+            Time in seconds between heartbeat updates of the worker. (defaults to 10)
+        stalled_worker_timeout: ``float``
+            Time in seconds after which a worker is considered stalled if no heartbeat has
+            been received. A worker prunes stalled workers from the database at startup.
+            (defaults to 30)
         """
         self.perform_import_paths()
         worker = self._worker(**kwargs)

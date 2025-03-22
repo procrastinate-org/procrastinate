@@ -5,7 +5,7 @@ import functools
 
 import pytest
 
-from procrastinate import exceptions, jobs, manager
+from procrastinate import exceptions, jobs, manager, utils
 
 from .. import conftest
 
@@ -31,10 +31,15 @@ def deferred_job_factory(deferred_job_factory, pg_job_manager):
 
 
 @pytest.fixture
-def fetched_job_factory(deferred_job_factory, pg_job_manager):
+async def worker_id(pg_job_manager):
+    return await pg_job_manager.register_worker()
+
+
+@pytest.fixture
+def fetched_job_factory(deferred_job_factory, pg_job_manager, worker_id):
     async def factory(**kwargs):
         job = await deferred_job_factory(**kwargs)
-        fetched_job = await pg_job_manager.fetch_job(queues=None)
+        fetched_job = await pg_job_manager.fetch_job(queues=None, worker_id=worker_id)
         # to make sure we do fetch the job we just deferred
         assert fetched_job.id == job.id
         return fetched_job
@@ -51,51 +56,55 @@ def fetched_job_factory(deferred_job_factory, pg_job_manager):
     ],
 )
 async def test_fetch_job(
-    pg_job_manager,
-    deferred_job_factory,
-    job_kwargs,
-    fetch_queues,
+    pg_job_manager, deferred_job_factory, job_kwargs, fetch_queues, worker_id
 ):
     # Now add the job we're testing
     job = await deferred_job_factory(**job_kwargs)
 
-    expected_job = job.evolve(status="doing")
-    assert await pg_job_manager.fetch_job(queues=fetch_queues) == expected_job
+    expected_job = job.evolve(status="doing", worker_id=worker_id)
+    assert (
+        await pg_job_manager.fetch_job(queues=fetch_queues, worker_id=worker_id)
+        == expected_job
+    )
 
 
-async def test_fetch_job_not_fetching_started_job(pg_job_manager, fetched_job_factory):
+async def test_fetch_job_not_fetching_started_job(
+    pg_job_manager, fetched_job_factory, worker_id
+):
     # Add a first started job
     await fetched_job_factory()
 
-    assert await pg_job_manager.fetch_job(queues=None) is None
+    assert await pg_job_manager.fetch_job(queues=None, worker_id=worker_id) is None
 
 
 async def test_fetch_job_not_fetching_locked_job(
-    pg_job_manager, deferred_job_factory, fetched_job_factory
+    pg_job_manager, deferred_job_factory, fetched_job_factory, worker_id
 ):
     await fetched_job_factory(lock="lock_1")
     await deferred_job_factory(lock="lock_1")
 
-    assert await pg_job_manager.fetch_job(queues=None) is None
+    assert await pg_job_manager.fetch_job(queues=None, worker_id=worker_id) is None
 
 
 async def test_fetch_job_respect_lock_aborting_job(
-    pg_job_manager, deferred_job_factory, fetched_job_factory
+    pg_job_manager, deferred_job_factory, fetched_job_factory, worker_id
 ):
     job = await fetched_job_factory(lock="lock_1")
     await deferred_job_factory(lock="lock_1")
 
     await pg_job_manager.cancel_job_by_id_async(job.id, abort=True)
-    assert await pg_job_manager.fetch_job(queues=None) is None
+    assert await pg_job_manager.fetch_job(queues=None, worker_id=worker_id) is None
 
 
 async def test_fetch_job_spacial_case_none_lock(
-    pg_job_manager, deferred_job_factory, fetched_job_factory
+    pg_job_manager, deferred_job_factory, fetched_job_factory, worker_id
 ):
     await fetched_job_factory(lock=None)
     job = await deferred_job_factory(lock=None)
 
-    assert (await pg_job_manager.fetch_job(queues=None)).id == job.id
+    assert (
+        await pg_job_manager.fetch_job(queues=None, worker_id=worker_id)
+    ).id == job.id
 
 
 @pytest.mark.parametrize(
@@ -108,11 +117,13 @@ async def test_fetch_job_spacial_case_none_lock(
     ],
 )
 async def test_fetch_job_no_result(
-    pg_job_manager, deferred_job_factory, job_kwargs, fetch_queues
+    pg_job_manager, deferred_job_factory, job_kwargs, fetch_queues, worker_id
 ):
     await deferred_job_factory(**job_kwargs)
 
-    assert await pg_job_manager.fetch_job(queues=fetch_queues) is None
+    assert (
+        await pg_job_manager.fetch_job(queues=fetch_queues, worker_id=worker_id) is None
+    )
 
 
 @pytest.mark.parametrize(
@@ -123,7 +134,7 @@ async def test_fetch_job_no_result(
         {"nb_seconds": 1800, "task_name": "task_1"},
     ],
 )
-async def test_get_stalled_jobs__yes(
+async def test_get_stalled_jobs_by_started__yes(
     pg_job_manager, fetched_job_factory, psycopg_connector, filter_args
 ):
     job = await fetched_job_factory(queue="queue_a", task_name="task_1")
@@ -134,7 +145,8 @@ async def test_get_stalled_jobs__yes(
         f"WHERE job_id={job.id}"
     )
 
-    result = await pg_job_manager.get_stalled_jobs(**filter_args)
+    with pytest.warns(DeprecationWarning, match=".*nb_seconds.*"):
+        result = await pg_job_manager.get_stalled_jobs(**filter_args)
     assert result == [job]
 
 
@@ -146,7 +158,7 @@ async def test_get_stalled_jobs__yes(
         {"nb_seconds": 1800, "task_name": "task_2"},
     ],
 )
-async def test_get_stalled_jobs__no(
+async def test_get_stalled_jobs_by_started__no(
     pg_job_manager, fetched_job_factory, psycopg_connector, filter_args
 ):
     job = await fetched_job_factory(queue="queue_a", task_name="task_1")
@@ -157,11 +169,12 @@ async def test_get_stalled_jobs__no(
         f"WHERE job_id={job.id}"
     )
 
-    result = await pg_job_manager.get_stalled_jobs(**filter_args)
+    with pytest.warns(DeprecationWarning, match=".*nb_seconds.*"):
+        result = await pg_job_manager.get_stalled_jobs(**filter_args)
     assert result == []
 
 
-async def test_get_stalled_jobs__retries__no(
+async def test_get_stalled_jobs_by_started__retries__no(
     pg_job_manager, fetched_job_factory, psycopg_connector
 ):
     job = await fetched_job_factory(queue="queue_a", task_name="task_1")
@@ -194,11 +207,12 @@ async def test_get_stalled_jobs__retries__no(
     ]
 
     # It should not be considered stalled
-    result = await pg_job_manager.get_stalled_jobs(nb_seconds=1800)
+    with pytest.warns(DeprecationWarning, match=".*nb_seconds.*"):
+        result = await pg_job_manager.get_stalled_jobs(nb_seconds=1800)
     assert result == []
 
 
-async def test_get_stalled_jobs__retries__yes(
+async def test_get_stalled_jobs_by_started__retries__yes(
     pg_job_manager, fetched_job_factory, psycopg_connector
 ):
     job = await fetched_job_factory(queue="queue_a", task_name="task_1")
@@ -235,8 +249,133 @@ async def test_get_stalled_jobs__retries__yes(
     ]
 
     # It should not be considered stalled
-    result = await pg_job_manager.get_stalled_jobs(nb_seconds=1800)
+    with pytest.warns(DeprecationWarning, match=".*nb_seconds.*"):
+        result = await pg_job_manager.get_stalled_jobs(nb_seconds=1800)
     assert result == [job]
+
+
+@pytest.mark.parametrize(
+    "filter_args",
+    [
+        {"queue": "queue_a"},
+        {"task_name": "task_1"},
+    ],
+)
+async def test_get_stalled_jobs_by_heartbeat__yes(
+    pg_job_manager, fetched_job_factory, psycopg_connector, filter_args
+):
+    job = await fetched_job_factory(queue="queue_a", task_name="task_1")
+
+    # We fake the worker heartbeat
+    await psycopg_connector.execute_query_async(
+        "UPDATE procrastinate_workers SET last_heartbeat=last_heartbeat - INTERVAL '35 minutes' "
+        f"WHERE id='{job.worker_id}'"
+    )
+
+    result = await pg_job_manager.get_stalled_jobs(**filter_args)
+    assert result == [job]
+
+
+@pytest.mark.parametrize(
+    "filter_args",
+    [
+        {"queue": "queue_b"},
+        {"task_name": "task_2"},
+    ],
+)
+async def test_get_stalled_jobs_by_heartbeat__no(
+    pg_job_manager, fetched_job_factory, psycopg_connector, filter_args
+):
+    job = await fetched_job_factory(queue="queue_a", task_name="task_1")
+
+    # We fake the worker heartbeat
+    await psycopg_connector.execute_query_async(
+        "UPDATE procrastinate_workers SET last_heartbeat=last_heartbeat - INTERVAL '35 minutes' "
+        f"WHERE id='{job.worker_id}'"
+    )
+
+    result = await pg_job_manager.get_stalled_jobs(**filter_args)
+    assert result == []
+
+
+async def test_get_stalled_jobs_by_heartbeat__pruned_worker(
+    pg_job_manager, fetched_job_factory, psycopg_connector
+):
+    job = await fetched_job_factory(queue="queue_a", task_name="task_1")
+
+    # We fake a stalled and pruned worker
+    await psycopg_connector.execute_query_async(
+        f"DELETE FROM procrastinate_workers WHERE id='{job.worker_id}'"
+    )
+
+    result = await pg_job_manager.get_stalled_jobs()
+    pruned_job = job.evolve(worker_id=None)
+    assert result == [pruned_job]
+
+
+async def test_register_and_unregister_worker(pg_job_manager, psycopg_connector):
+    then = utils.utcnow()
+    worker_id = await pg_job_manager.register_worker()
+    assert worker_id is not None
+
+    rows = await psycopg_connector.execute_query_all_async(
+        f"SELECT * FROM procrastinate_workers WHERE id={worker_id}"
+    )
+    assert len(rows) == 1
+    assert rows[0]["id"] == worker_id
+    assert then < rows[0]["last_heartbeat"] < utils.utcnow()
+
+    await pg_job_manager.unregister_worker(worker_id=worker_id)
+
+    rows = await psycopg_connector.execute_query_all_async(
+        f"SELECT * FROM procrastinate_workers WHERE id={worker_id}"
+    )
+    assert len(rows) == 0
+
+
+async def test_update_heartbeat(pg_job_manager, psycopg_connector, worker_id):
+    rows = await psycopg_connector.execute_query_all_async(
+        f"SELECT * FROM procrastinate_workers WHERE id={worker_id}"
+    )
+    first_heartbeat = rows[0]["last_heartbeat"]
+
+    await pg_job_manager.update_heartbeat(worker_id=worker_id)
+
+    rows = await psycopg_connector.execute_query_all_async(
+        f"SELECT * FROM procrastinate_workers WHERE id={worker_id}"
+    )
+    assert len(rows) == 1
+    assert rows[0]["id"] == worker_id
+    assert first_heartbeat < rows[0]["last_heartbeat"] < utils.utcnow()
+
+
+async def test_prune_stalled_workers(pg_job_manager, psycopg_connector, worker_id):
+    rows = await psycopg_connector.execute_query_all_async(
+        f"SELECT * FROM procrastinate_workers WHERE id={worker_id}"
+    )
+    assert len(rows) == 1
+
+    pruned_workers = await pg_job_manager.prune_stalled_workers(
+        seconds_since_heartbeat=1800
+    )
+    assert pruned_workers == []
+
+    # We fake the heartbeat to be 35 minutes old
+    await psycopg_connector.execute_query_async(
+        "UPDATE procrastinate_workers "
+        "SET last_heartbeat=last_heartbeat - INTERVAL '35 minutes' "
+        f"WHERE id='{worker_id}'"
+    )
+
+    pruned_workers = await pg_job_manager.prune_stalled_workers(
+        seconds_since_heartbeat=1800
+    )
+    assert pruned_workers == [worker_id]
+
+    rows = await psycopg_connector.execute_query_all_async(
+        f"SELECT * FROM procrastinate_workers WHERE id={worker_id}"
+    )
+    assert len(rows) == 0
 
 
 async def test_delete_old_jobs_job_todo(
@@ -369,21 +508,23 @@ async def test_finish_job_wrong_end_status(
     )
 
 
-async def test_retry_job(pg_job_manager, fetched_job_factory):
+async def test_retry_job(pg_job_manager, fetched_job_factory, worker_id):
     job1 = await fetched_job_factory(queue="queue_a")
 
     await pg_job_manager.retry_job(
         job=job1, retry_at=datetime.datetime.now(datetime.timezone.utc)
     )
 
-    job2 = await pg_job_manager.fetch_job(queues=None)
+    job2 = await pg_job_manager.fetch_job(queues=None, worker_id=worker_id)
 
     assert job2.id == job1.id
     assert job2.attempts == job1.attempts + 1
     assert job2.priority == job1.priority == 0
 
 
-async def test_retry_job_with_additional_params(pg_job_manager, fetched_job_factory):
+async def test_retry_job_with_additional_params(
+    pg_job_manager, fetched_job_factory, worker_id
+):
     job1 = await fetched_job_factory(queue="queue_a")
 
     await pg_job_manager.retry_job(
@@ -394,7 +535,7 @@ async def test_retry_job_with_additional_params(pg_job_manager, fetched_job_fact
         lock="some_lock",
     )
 
-    job2 = await pg_job_manager.fetch_job(queues=None)
+    job2 = await pg_job_manager.fetch_job(queues=None, worker_id=worker_id)
 
     assert job2.id == job1.id
     assert job2.attempts == 1
@@ -492,7 +633,7 @@ def test_check_connection_sync(pg_job_manager):
 
 
 @pytest.fixture
-async def fixture_jobs(pg_job_manager, job_factory):
+async def fixture_jobs(pg_job_manager, job_factory, worker_id):
     j1 = job_factory(
         queue="q1",
         lock="lock1",
@@ -532,7 +673,7 @@ async def fixture_jobs(pg_job_manager, job_factory):
         task_kwargs={"key": "d"},
     )
     j4 = await pg_job_manager.defer_job_async(job=j4)
-    await pg_job_manager.fetch_job(queues=["q3"])
+    await pg_job_manager.fetch_job(queues=["q3"], worker_id=worker_id)
 
     return [j1, j2, j3, j4]
 

@@ -14,13 +14,13 @@ SELECT procrastinate_defer_periodic_job_v1(%(queue)s, %(lock)s, %(queueing_lock)
 
 -- fetch_job --
 -- Get the first awaiting job
-SELECT id, status, task_name, priority, lock, queueing_lock, args, scheduled_at, queue_name, attempts
-    FROM procrastinate_fetch_job_v1(%(queues)s::varchar[]);
+SELECT id, status, task_name, priority, lock, queueing_lock, args, scheduled_at, queue_name, attempts, worker_id
+    FROM procrastinate_fetch_job_v2(%(queues)s::varchar[], %(worker_id)s);
 
--- select_stalled_jobs --
+-- select_stalled_jobs_by_started --
 -- Get running jobs that started more than a given time ago
 SELECT job.id, status, task_name, priority, lock, queueing_lock,
-       args, scheduled_at, queue_name, attempts,
+       args, scheduled_at, queue_name, attempts, worker_id,
        MAX(event.at) AS started_at
     FROM procrastinate_jobs job
     JOIN procrastinate_events event
@@ -31,6 +31,22 @@ WHERE event.type = 'started'
   AND (%(task_name)s::varchar IS NULL OR job.task_name = %(task_name)s)
 GROUP BY job.id
   HAVING MAX(event.at) < NOW() - (%(nb_seconds)s || 'SECOND')::INTERVAL
+
+-- select_stalled_jobs_by_heartbeat --
+-- Get running jobs of stalled workers (with absent or outdated heartbeat)
+WITH stalled_workers AS (
+   SELECT id
+     FROM procrastinate_workers
+    WHERE last_heartbeat < NOW() - (%(seconds_since_heartbeat)s || ' SECOND')::INTERVAL
+)
+SELECT job.id, status, task_name, priority, lock, queueing_lock,
+       args, scheduled_at, queue_name, attempts, job.worker_id
+  FROM procrastinate_jobs job
+ LEFT JOIN stalled_workers sw ON sw.id = job.worker_id
+ WHERE job.status = 'doing'
+   AND (%(queue)s::varchar IS NULL OR job.queue_name = %(queue)s)
+   AND (%(task_name)s::varchar IS NULL OR job.task_name = %(task_name)s)
+   AND (job.worker_id IS NULL OR sw.id IS NOT NULL)
 
 -- delete_old_jobs --
 -- Delete jobs that have been in a final state for longer than nb_hours
@@ -88,7 +104,8 @@ SELECT id,
        status,
        scheduled_at,
        attempts,
-       abort_requested
+       abort_requested,
+       worker_id
   FROM procrastinate_jobs
  WHERE (%(id)s::bigint IS NULL OR id = %(id)s)
    AND (%(queue_name)s::varchar IS NULL OR queue_name = %(queue_name)s)
@@ -96,6 +113,7 @@ SELECT id,
    AND (%(status)s::procrastinate_job_status IS NULL OR status = %(status)s)
    AND (%(lock)s::varchar IS NULL OR lock = %(lock)s)
    AND (%(queueing_lock)s::varchar IS NULL OR queueing_lock = %(queueing_lock)s)
+   AND (%(worker_id)s::bigint IS NULL OR worker_id = %(worker_id)s)
  ORDER BY id ASC;
 
 -- list_queues --
@@ -197,3 +215,19 @@ SELECT id from procrastinate_jobs
 WHERE status = 'doing'
 AND abort_requested = true
 AND (%(queue_name)s::varchar IS NULL OR queue_name = %(queue_name)s)
+
+-- register_worker --
+-- Register a newly started worker
+SELECT * FROM procrastinate_register_worker_v1()
+
+-- unregister_worker --
+-- Unregister a finished worker
+SELECT procrastinate_unregister_worker_v1(%(worker_id)s)
+
+-- update_heartbeat --
+-- Update the heartbeat of a worker
+SELECT procrastinate_update_heartbeat_v1(%(worker_id)s)
+
+-- prune_stalled_workers --
+-- Delete stalled workers that haven't sent a heartbeat in a while
+SELECT * FROM procrastinate_prune_stalled_workers_v1(%(seconds_since_heartbeat)s)

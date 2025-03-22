@@ -58,6 +58,7 @@ async def test_list_jobs(shell, connector, capsys):
                 "queueing_lock": None,
                 "lock": None,
                 "status": None,
+                "worker_id": None,
             },
         )
     ]
@@ -100,6 +101,7 @@ async def test_list_jobs_filters(shell, connector, capsys):
                 "queueing_lock": None,
                 "lock": "lock2",
                 "status": "todo",
+                "worker_id": None,
             },
         )
     ]
