@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import datetime
+import inspect
 import logging
 from typing import Callable, Generic, TypedDict, cast
 
@@ -8,6 +9,7 @@ from typing_extensions import NotRequired, ParamSpec, TypeVar, Unpack
 
 from procrastinate import app as app_module
 from procrastinate import blueprints, exceptions, jobs, manager, types, utils
+from procrastinate import middleware as middleware_module
 from procrastinate import retry as retry_module
 
 logger = logging.getLogger(__name__)
@@ -85,6 +87,7 @@ class Task(Generic[P, R, Args]):
         priority: int = jobs.DEFAULT_PRIORITY,
         lock: str | None = None,
         queueing_lock: str | None = None,
+        middleware: middleware_module.TaskMiddleware[R] | None = None,
     ):
         #: Default queue to send deferred jobs to. The queue can be overridden
         #: when a job is deferred.
@@ -113,6 +116,14 @@ class Task(Generic[P, R, Args]):
         #: Default queueing lock. The queuing lock can be overridden when a job
         #: is deferred.
         self.queueing_lock: str | None = queueing_lock
+        #: Middleware to be used when the task is executed.
+        if middleware is not None:
+            self.middleware = middleware
+        else:
+            if inspect.iscoroutinefunction(func):
+                self.middleware = middleware_module.default_async_task_middleware
+            else:
+                self.middleware = middleware_module.default_sync_task_middleware
 
     def add_namespace(self, namespace: str) -> None:
         """

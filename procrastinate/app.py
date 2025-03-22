@@ -13,7 +13,15 @@ from typing import (
 
 from typing_extensions import NotRequired, Unpack
 
-from procrastinate import blueprints, exceptions, jobs, manager, schema, utils
+from procrastinate import (
+    blueprints,
+    exceptions,
+    jobs,
+    manager,
+    middleware,
+    schema,
+    utils,
+)
 from procrastinate import connector as connector_module
 
 if TYPE_CHECKING:
@@ -34,6 +42,7 @@ class WorkerOptions(TypedDict):
     delete_jobs: NotRequired[str | jobs.DeleteJobCondition]
     additional_context: NotRequired[dict[str, Any]]
     install_signal_handlers: NotRequired[bool]
+    middleware: NotRequired[middleware.WorkerMiddleware]
 
 
 class App(blueprints.Blueprint):
@@ -316,6 +325,9 @@ class App(blueprints.Blueprint):
             worker. Use ``False`` if you want to handle signals yourself (e.g. if you
             run the work as an async task in a bigger application)
             (defaults to ``True``)
+        middleware: ``Optional[Middleware]``
+            A coroutine that can be used to wrap the task execution. The default middleware
+            just awaits the task and returns the result.
         """
         self.perform_import_paths()
         worker = self._worker(**kwargs)

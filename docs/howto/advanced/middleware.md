@@ -1,30 +1,76 @@
-# Add a task middleware
+# Middleware for workers and tasks
 
-As of today, Procrastinate has no specific way of ensuring a piece of code runs
-before or after every job. That being said, you can always decide to use
-your own decorator instead of `@app.task` and have this decorator
-implement the actions you need and delegate the rest to `@app.task`.
-It might look like this:
+Procrastinate lets you add middleware to workers and tasks. Middleware is a
+function that wraps the execution of a task, allowing you to execute custom
+logic before and after the task runs. You might use it to log task activity,
+measure performance, or handle errors consistently.
 
+A middleware is a function or coroutine (see examples below) that takes three arguments:
+- `process_task`: a function resp. coroutine (without arguments) that runs the task
+- `context`: a `JobContext` object that contains information about the job
+- `worker`: the worker that runs the job
+
+The middleware should call resp. await `process_task` to run the task and then return the
+result.
+
+:::{note}
+The `worker` instance can be used to stop the worker from within the middleware by
+calling `worker.stop()`. This will stop the worker after the jobs currently being
+processed by the worker are finished.
+:::
+
+:::{warning}
+When the middleware is called, the job was already fetched from the database and
+is in `doing` state. After `process_task` the job is still in `doing` state and will
+be updated to its final state after the middleware returns.
+:::
+
+## Worker middleware
+
+To add a middleware to a worker, pass a middleware coroutine to the `run_worker` or
+`run_worker_async` method. The middleware will wrap the execution of all tasks
+run by this worker.
+
+```python
+async def custom_worker_middleware(process_task, context, worker):
+    # Execute any logic before the task is processed
+    result = await process_task()
+    # Execute any logic after the task is processed
+    return result
+
+app.run_worker(middleware=custom_middleware)
 ```
-import functools
 
-def task(original_func=None, **kwargs):
-    def wrap(func):
-        def new_func(*job_args, **job_kwargs):
-            # This is the custom part
-            log_something()
-            result = func(*job_args, **job_kwargs)
-            log_something_else()
-            return result
+## Task middleware
 
-        wrapped_func = functools.update_wrapper(new_func, func, updated=())
-        return app.task(**kwargs)(wrapped_func)
+You can also add a middleware to a specific task. This middleware will only wrap
+the execution of this task then.
 
-    if not original_func:
-        return wrap
+:::{note}
+For a sync task, the middleware must be a sync function, and for an async task, the
+middleware should be a coroutine.
+:::
 
-    return wrap(original_func)
+```python
+# middleware of a sync task
+def custom_sync_middleware(process_task, context, worker):
+    # Execute any logic before the task is processed
+    result = process_task()
+    # Execute any logic after the task is processed
+    return result
+
+@app.task(middleware=custom_sync_middleware)
+def my_task():
+    ...
+
+# or middleware of an async task
+async def custom_async_middleware(process_task, context, worker):
+    # Execute any logic before the task is processed
+    result = await process_task()
+    # Execute any logic after the task is processed
+    return result
+
+@app.task(middleware=custom_async_middleware)
+async def my_task():
+    ...
 ```
-
-Then, define all of your tasks using this `@task` decorator.

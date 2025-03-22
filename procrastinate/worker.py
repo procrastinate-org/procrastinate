@@ -14,6 +14,7 @@ from procrastinate import (
     exceptions,
     job_context,
     jobs,
+    middleware,
     periodic,
     retry,
     signals,
@@ -45,6 +46,7 @@ class Worker:
         delete_jobs: str | jobs.DeleteJobCondition | None = None,
         additional_context: dict[str, Any] | None = None,
         install_signal_handlers: bool = True,
+        middleware: middleware.WorkerMiddleware = middleware.default_worker_middleware,
     ):
         self.app = app
         self.queues = queues
@@ -61,6 +63,7 @@ class Worker:
         ) or jobs.DeleteJobCondition.NEVER
         self.additional_context = additional_context
         self.install_signal_handlers = install_signal_handlers
+        self.middleware = middleware
 
         if self.worker_name:
             self.logger = logger.getChild(self.worker_name)
@@ -234,14 +237,32 @@ class Worker:
             exc_info: bool | BaseException = False
 
             async def ensure_async() -> Callable[..., Awaitable]:
-                await_func: Callable[..., Awaitable]
-                if inspect.iscoroutinefunction(task.func):
-                    await_func = task
-                else:
-                    await_func = functools.partial(utils.sync_to_async, task)
-
                 job_args = [context] if task.pass_context else []
-                task_result = await await_func(*job_args, **job.task_kwargs)
+                if inspect.iscoroutinefunction(task.func):
+
+                    async def run_task_async():
+                        return await task.func(*job_args, **job.task_kwargs)
+
+                    wrapped_middleware = functools.partial(
+                        task.middleware,
+                        run_task_async,
+                        context,
+                        self,
+                    )
+                else:
+
+                    def run_task_sync():
+                        return task(*job_args, **job.task_kwargs)
+
+                    wrapped_middleware = functools.partial(
+                        utils.sync_to_async,
+                        task.middleware,
+                        run_task_sync,
+                        context,
+                        self,
+                    )
+
+                task_result = await wrapped_middleware()
                 # In some cases, the task function might be a synchronous function
                 # that returns an awaitable without actually being a
                 # coroutinefunction. In that case, in the await above, we haven't
@@ -255,7 +276,7 @@ class Worker:
 
                 return task_result
 
-            job_result.result = await ensure_async()
+            job_result.result = await self.middleware(ensure_async, context, self)
 
         except BaseException as e:
             exc_info = e

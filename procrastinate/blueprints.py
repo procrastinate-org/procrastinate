@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Callable, Literal, Union, cast, overload
 
 from typing_extensions import Concatenate, ParamSpec, TypeVar, Unpack
 
-from procrastinate import exceptions, jobs, periodic, retry, utils
+from procrastinate import exceptions, jobs, middleware, periodic, retry, utils
 from procrastinate.job_context import JobContext
 
 if TYPE_CHECKING:
@@ -211,6 +211,7 @@ class Blueprint:
         priority: int = jobs.DEFAULT_PRIORITY,
         lock: str | None = None,
         queueing_lock: str | None = None,
+        middleware: middleware.TaskMiddleware[R] | None = None,
     ) -> Callable[[Callable[P, R]], Task[P, R, P]]:
         """Declare a function as a task. This method is meant to be used as a decorator
         Parameters
@@ -249,6 +250,11 @@ class Blueprint:
             Default is no retry.
         pass_context :
             Passes the task execution context in the task as first
+        middleware :
+            A function that can be used to wrap the task execution. The default middleware
+            just calls the task function and returns its result. If the task is synchronous,
+            the middleware must also be a sync function. If the task is async, the middleware
+            must be async, too.
         """
         ...
 
@@ -265,6 +271,7 @@ class Blueprint:
         priority: int = jobs.DEFAULT_PRIORITY,
         lock: str | None = None,
         queueing_lock: str | None = None,
+        middleware: middleware.TaskMiddleware[R] | None = None,
     ) -> Callable[
         [Callable[Concatenate[JobContext, P], R]],
         Task[Concatenate[JobContext, P], R, P],
@@ -299,6 +306,7 @@ class Blueprint:
         priority: int = jobs.DEFAULT_PRIORITY,
         lock: str | None = None,
         queueing_lock: str | None = None,
+        middleware: middleware.TaskMiddleware[R] | None = None,
     ):
         from procrastinate.tasks import Task
 
@@ -329,6 +337,7 @@ class Blueprint:
                 aliases=aliases,
                 retry=retry,
                 pass_context=pass_context,
+                middleware=middleware,
             )
             self._register_task(task)
 
