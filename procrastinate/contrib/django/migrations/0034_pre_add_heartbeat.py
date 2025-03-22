@@ -7,7 +7,7 @@ from .. import migrations_utils
 
 class Migration(migrations.Migration):
     operations = [
-        migrations_utils.RunProcrastinateSQL(name="03.00.02_01_pre_add_heartbeat.sql"),
+        migrations_utils.RunProcrastinateSQL(name="03.01.00_01_pre_add_heartbeat.sql"),
         migrations.AddField(
             "procrastinatejob",
             "heartbeat_updated_at",
