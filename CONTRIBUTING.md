@@ -189,7 +189,7 @@ The name of migration scripts must follow a specific pattern:
 xx.yy.zz_ab_{pre|post}_very_short_description_of_your_changes.sql
 ```
 
-`xx.yy.zz` is the number of the latest released version of Procrastinate. (The
+`xx.yy.zz` is the number of the next minor version of Procrastinate. (The
 latest release is the one marked `Latest release` on the [Procrastinate
 releases] page.) `xx`, `yy` and `zz` must be 2-digit numbers, with leading
 zeros if necessary. `ab` is the 2-digit migration script's serial number, the
@@ -200,11 +200,11 @@ code. And, finally, `very_short_description_of_your_changes` is a very short
 description of the changes (wow). It is important to use underscores between
 the different parts, and between words in the short description.
 
-For example, let's say the latest released version of Procrastinate is `1.0.1`,
+For example, let's say the latest released version of Procrastinate is `3.0.4`,
 that the `migrations` directory already includes a post-migration script whose
 serial number for that release number and your migration should be
 applied after deploying the corresponding python code. In that case, if you
-need to add a migration script, its name will start with `01.00.01_51_post_`.
+need to add a migration script, its name will start with `03.01.00_51_post_`.
 
 ### Backward-compatibility
 
