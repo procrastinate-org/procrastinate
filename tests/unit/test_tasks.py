@@ -4,6 +4,7 @@ import pytest
 
 from procrastinate import tasks, utils
 from procrastinate.app import App
+from procrastinate.exceptions import TaskMisconfigured
 
 from .. import conftest
 
@@ -137,3 +138,18 @@ def test_task_get_retry_exception(app, mocker):
     assert task.get_retry_exception(exception=exception, job=job) is mock.return_value
     mock.assert_called_with(exception=exception, job=job)
     mock.assert_called_with(exception=exception, job=job)
+
+
+def test_task_configure_queueing_lock_interpolation(app):
+    task = tasks.Task(task_func, blueprint=app, queue="queue")
+
+    job = task.configure(queueing_lock="lock_{param}", task_kwargs={"param": "1"}).job
+
+    assert job.queueing_lock == "lock_1"
+
+
+def test_task_configure_queueing_lock_interpolation_failed(app):
+    task = tasks.Task(task_func, blueprint=app, queue="queue")
+
+    with pytest.raises(TaskMisconfigured):
+        task.configure(queueing_lock="lock_{param}", task_kwargs={}).job

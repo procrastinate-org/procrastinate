@@ -34,6 +34,19 @@ def my_task(**kwargs):
     ...
 ```
 
+Queueing lock can also be interpolated with the parameters sent to the task.
+In this example:
+
+```
+@app.task(queueing_lock="my_lock_value_{param_1}")
+def my_task(param_1="aaa", **kwargs):
+    ...
+
+```
+
+the queing lock value will be `my_lock_value_aaa`. (Under the hood we are invocating the
+method .format(\*\*task_kwargs) of the queueing_lock's value.)
+
 `queueing_lock` allows a single job in `todo` status. Meanwhile, it allows multiple jobs to be in `doing` status.
 
 To enforce that only one job runs at a time while limiting the queue size, you can combine `queueing_lock` with [lock](./locks.md).

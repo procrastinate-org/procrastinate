@@ -34,6 +34,12 @@ class TaskAlreadyRegistered(ProcrastinateException):
     """
 
 
+class TaskMisconfigured(ProcrastinateException):
+    """
+    Configuration of the task is unsound.
+    """
+
+
 class LoadFromPathError(ImportError, ProcrastinateException):
     """
     App was not found at the provided path, or the loaded object is not an App.

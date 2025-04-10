@@ -48,11 +48,22 @@ def configure_task(
         priority = jobs.DEFAULT_PRIORITY
 
     task_kwargs = options.get("task_kwargs") or {}
+    if queueing_lock := options.get("queueing_lock"):
+        try:
+            queueing_lock = queueing_lock.format(**task_kwargs)
+        except KeyError as exc:
+            raise exceptions.TaskMisconfigured(
+                message="queueing_lock formatting failed"
+            ) from exc
+
+    else:
+        queueing_lock = None
+
     return jobs.JobDeferrer(
         job=jobs.Job(
             id=None,
             lock=options.get("lock"),
-            queueing_lock=options.get("queueing_lock"),
+            queueing_lock=queueing_lock,
             task_name=name,
             queue=options.get("queue") or jobs.DEFAULT_QUEUE,
             task_kwargs=task_kwargs,
