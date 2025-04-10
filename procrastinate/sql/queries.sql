@@ -80,6 +80,10 @@ SELECT status FROM procrastinate_jobs WHERE id = %(job_id)s;
 -- Retry a job, changing it from "doing" to "todo"
 SELECT procrastinate_retry_job_v1(%(job_id)s, %(retry_at)s, %(new_priority)s, %(new_queue_name)s, %(new_lock)s);
 
+-- retry_failed_job --
+-- Retry a failed job, changing it from "failed" to "todo"
+SELECT procrastinate_retry_failed_job_v1(%(job_id)s, %(new_priority)s, %(new_queue_name)s, %(new_lock)s);
+
 -- listen_queue --
 -- In this one, the argument is an identifier, shoud not be escaped the same way
 LISTEN {channel_name};
