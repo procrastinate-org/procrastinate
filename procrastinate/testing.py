@@ -415,3 +415,14 @@ class InMemoryConnector(connector.BaseAsyncConnector):
                 job["worker_id"] = None
 
         return pruned_workers
+
+    async def retry_failed_job_run(
+        self, job_id, new_priority, new_queue_name, new_lock
+    ):
+        job_row = self.jobs[job_id]
+        job_row["status"] = "todo"
+        job_row["attempts"] += 1
+        job_row["priority"] = new_priority
+        job_row["queue_name"] = new_queue_name
+        job_row["lock"] = new_lock
+        self.events[job_id].append({"type": "retried", "at": utils.utcnow()})

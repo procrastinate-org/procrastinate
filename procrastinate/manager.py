@@ -496,6 +496,86 @@ class JobManager:
             new_lock=lock,
         )
 
+    async def retry_failed_job(
+        self,
+        job: jobs.Job,
+        priority: int | None = None,
+        queue: str | None = None,
+        lock: str | None = None,
+    ) -> None:
+        """
+        Indicates that a failed job should be retried later.
+
+        Parameters
+        ----------
+        job:
+        priority:
+            If set, the job will be retried with this priority. If not set, the priority
+            remains unchanged.
+        queue:
+            If set, the job will be retried on this queue. If not set, the queue remains
+            unchanged.
+        lock:
+            If set, the job will be retried with this lock. If not set, the lock remains
+            unchanged.
+        """
+        assert job.id  # TODO remove this
+        await self.retry_failed_job_by_id_async(
+            job_id=job.id,
+            priority=priority,
+            queue=queue,
+            lock=lock,
+        )
+
+    async def retry_failed_job_by_id_async(
+        self,
+        job_id: int,
+        priority: int | None = None,
+        queue: str | None = None,
+        lock: str | None = None,
+    ) -> None:
+        """
+        Indicates that a job should be retried later.
+
+        Parameters
+        ----------
+        job_id:
+        priority:
+            If set, the job will be retried with this priority. If not set, the priority
+            remains unchanged.
+        queue:
+            If set, the job will be retried on this queue. If not set, the queue remains
+            unchanged.
+        lock:
+            If set, the job will be retried with this lock. If not set, the lock remains
+            unchanged.
+        """
+        await self.connector.execute_query_async(
+            query=sql.queries["retry_failed_job"],
+            job_id=job_id,
+            new_priority=priority,
+            new_queue_name=queue,
+            new_lock=lock,
+        )
+
+    def retry_failed_job_by_id(
+        self,
+        job_id: int,
+        priority: int | None = None,
+        queue: str | None = None,
+        lock: str | None = None,
+    ) -> None:
+        """
+        Sync version of `retry_failed_job_by_id_async`.
+        """
+        self.connector.get_sync_connector().execute_query(
+            query=sql.queries["retry_failed_job"],
+            job_id=job_id,
+            new_priority=priority,
+            new_queue_name=queue,
+            new_lock=lock,
+        )
+
     async def listen_for_jobs(
         self,
         *,

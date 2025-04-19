@@ -23,7 +23,8 @@ CREATE TYPE procrastinate_job_event_type AS ENUM (
     'cancelled', -- todo -> cancelled
     'abort_requested', -- not a state transition, but set in a separate field
     'aborted', -- doing -> aborted (only allowed when abort_requested field is set)
-    'scheduled' -- not a state transition, but recording when a task is scheduled for
+    'scheduled', -- not a state transition, but recording when a task is scheduled for
+    'retried' -- Manually retried failed job
 );
 
 -- Tables
@@ -306,6 +307,30 @@ BEGIN
 END;
 $$;
 
+CREATE FUNCTION procrastinate_retry_failed_job_v1(
+    job_id bigint,
+    new_priority integer,
+    new_queue_name character varying,
+    new_lock character varying
+) RETURNS void LANGUAGE plpgsql AS $$
+DECLARE
+    _job_id bigint;
+BEGIN
+    UPDATE procrastinate_jobs
+    SET status = 'todo'::procrastinate_job_status,
+        attempts = attempts + 1,
+        priority = COALESCE(new_priority, priority),
+        queue_name = COALESCE(new_queue_name, queue_name),
+        lock = COALESCE(new_lock, lock)
+    WHERE id = job_id AND status = 'failed'
+    RETURNING id INTO _job_id;
+
+    IF _job_id IS NULL THEN
+        RAISE 'Job was not found or not in "failed" status (job id: %)', job_id;
+    END IF;
+END;
+$$;
+
 CREATE FUNCTION procrastinate_notify_queue_job_inserted_v1()
     RETURNS trigger
     LANGUAGE plpgsql
@@ -374,6 +399,9 @@ BEGIN
             WHEN OLD.status = 'doing'::procrastinate_job_status
                 AND NEW.status = 'aborted'::procrastinate_job_status
                 THEN 'aborted'::procrastinate_job_event_type
+            WHEN OLD.status = 'failed'::procrastinate_job_status
+                AND NEW.status = 'todo'::procrastinate_job_status
+                THEN 'retried'::procrastinate_job_event_type
             ELSE NULL
         END as event_type
     )

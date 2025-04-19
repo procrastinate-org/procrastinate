@@ -515,6 +515,42 @@ def test_retry_job_by_id(job_manager, connector, job_factory, dt):
     )
 
 
+async def test_retry_failed_job_by_id_async(job_manager, connector, job_factory, dt):
+    job = await job_manager.defer_job_async(job=job_factory())
+
+    await job_manager.retry_failed_job_by_id_async(
+        job_id=job.id, priority=7, queue="some_queue", lock="some_lock"
+    )
+
+    assert connector.queries[-1] == (
+        "retry_failed_job",
+        {
+            "job_id": 1,
+            "new_priority": 7,
+            "new_queue_name": "some_queue",
+            "new_lock": "some_lock",
+        },
+    )
+
+
+def test_retry_failed_job_by_id(job_manager, connector, job_factory, dt):
+    job = job_manager.defer_job(job=job_factory())
+
+    job_manager.retry_failed_job_by_id(
+        job_id=job.id, priority=7, queue="some_queue", lock="some_lock"
+    )
+
+    assert connector.queries[-1] == (
+        "retry_failed_job",
+        {
+            "job_id": 1,
+            "new_priority": 7,
+            "new_queue_name": "some_queue",
+            "new_lock": "some_lock",
+        },
+    )
+
+
 async def test_list_jobs_async(job_manager, job_factory):
     job = await job_manager.defer_job_async(job=job_factory())
 
