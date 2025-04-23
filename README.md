@@ -15,7 +15,7 @@
 Procrastinate is an open-source Python 3.9+ distributed task processing
 library, leveraging PostgreSQL 13+ to store task definitions, manage locks and
 dispatch tasks. It can be used within both sync and async code,
-has [Django](docs/howto/django/configuration.md) integration, and is easy to use with ASGI frameworks.
+has [Django](https://procrastinate.readthedocs.io/en/stable/howto/django/configuration.html) integration, and is easy to use with ASGI frameworks.
 It supports periodic tasks, retries, arbitrary task locks etc.
 
 In other words, from your main code, you call specific functions (tasks) in a
