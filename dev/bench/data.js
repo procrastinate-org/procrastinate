@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1745026279237,
+  "lastUpdate": 1746205346213,
   "repoUrl": "https://github.com/procrastinate-org/procrastinate",
   "entries": {
     "Procrastinate Benchmarks": [
@@ -936,6 +936,58 @@ window.BENCHMARK_DATA = {
             "unit": "iter/sec",
             "range": "stddev: 0.10032785920144316",
             "extra": "mean: 3.848405557800004 sec\nrounds: 5"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kai.schlamp@gmail.com",
+            "name": "Kai Schlamp",
+            "username": "medihack"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "072da20ff679b1860ae0fbb3bca6547340d0a65a",
+          "message": "Merge pull request #1377 from procrastinate-org/fix-sync-pre-commit\n\nFix sync-pre-commit",
+          "timestamp": "2025-05-02T18:59:59+02:00",
+          "tree_id": "d7a35b57b5ee0084744ac4ec1173d925878557e7",
+          "url": "https://github.com/procrastinate-org/procrastinate/commit/072da20ff679b1860ae0fbb3bca6547340d0a65a"
+        },
+        "date": 1746205345765,
+        "tool": "pytest",
+        "benches": [
+          {
+            "name": "tests/benchmarks/test_benchmark_async.py::test_benchmark_1000_async_jobs[psycopg_connector]",
+            "value": 0.25079257770173274,
+            "unit": "iter/sec",
+            "range": "stddev: 0.20940987602459984",
+            "extra": "mean: 3.987358833199994 sec\nrounds: 5"
+          },
+          {
+            "name": "tests/benchmarks/test_benchmark_async.py::test_benchmark_1000_async_jobs[aiopg_connector]",
+            "value": 0.4598904145361265,
+            "unit": "iter/sec",
+            "range": "stddev: 0.09943623663496895",
+            "extra": "mean: 2.174431056599997 sec\nrounds: 5"
+          },
+          {
+            "name": "tests/benchmarks/test_benchmark_sync.py::test_benchmark_1000_sync_jobs[sync_psycopg_connector]",
+            "value": 0.24530234259050876,
+            "unit": "iter/sec",
+            "range": "stddev: 0.13049968711867682",
+            "extra": "mean: 4.076601916800007 sec\nrounds: 5"
+          },
+          {
+            "name": "tests/benchmarks/test_benchmark_sync.py::test_benchmark_1000_sync_jobs[psycopg2_connector]",
+            "value": 0.2567770168964415,
+            "unit": "iter/sec",
+            "range": "stddev: 0.11956254939828312",
+            "extra": "mean: 3.8944295407999903 sec\nrounds: 5"
           }
         ]
       }
