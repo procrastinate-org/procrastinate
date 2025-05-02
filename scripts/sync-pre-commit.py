@@ -48,6 +48,7 @@ def export_from_uv_lock(group_args):
         "--no-header",
         "--no-emit-project",
         "--no-emit-workspace",
+        "--no-annotate",
     ]
     packages = (
         subprocess.check_output(
