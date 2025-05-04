@@ -111,11 +111,16 @@ class DjangoConnector(connector.BaseAsyncConnector):
         columns = [col[0] for col in cursor.description]
         return (dict(zip(columns, row)) for row in cursor.fetchall())
 
+    def _wrap_value(self, value: Any) -> Any:
+        if isinstance(value, dict):
+            return Jsonb(value)
+        elif isinstance(value, list):
+            return [self._wrap_value(item) for item in value]
+        else:
+            return value
+
     def _wrap_json(self, arguments: dict[str, Any]) -> dict[str, Any]:
-        return {
-            key: Jsonb(value) if isinstance(value, dict) else value
-            for key, value in arguments.items()
-        }
+        return {key: self._wrap_value(value) for key, value in arguments.items()}
 
     @wrap_exceptions()
     def execute_query(self, query: LiteralString, **arguments: Any) -> None:

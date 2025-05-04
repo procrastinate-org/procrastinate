@@ -22,24 +22,14 @@ def test_EOF(shell):
 
 
 async def test_list_jobs(shell, connector, capsys):
-    await connector.defer_job_one(
-        "task1",
-        0,
-        "lock1",
-        "queueing_lock1",
-        {},
-        conftest.aware_datetime(2000, 1, 1),
-        "queue1",
-    )
-
-    await connector.defer_job_one(
-        "task2",
-        0,
-        "lock2",
-        "queueing_lock2",
-        {},
-        conftest.aware_datetime(2000, 1, 1),
-        "queue2",
+    await connector.defer_jobs_all(
+        ["task1", "task2"],
+        [0, 0],
+        ["lock1", "lock2"],
+        ["queueing_lock1", "queueing_lock2"],
+        [{}, {}],
+        [conftest.aware_datetime(2000, 1, 1), conftest.aware_datetime(2000, 1, 1)],
+        ["queue1", "queue2"],
     )
 
     await utils.sync_to_async(shell.do_list_jobs, "")
@@ -65,23 +55,14 @@ async def test_list_jobs(shell, connector, capsys):
 
 
 async def test_list_jobs_filters(shell, connector, capsys):
-    await connector.defer_job_one(
-        "task1",
-        0,
-        "lock1",
-        "queueing_lock1",
-        {},
-        conftest.aware_datetime(2000, 1, 1),
-        "queue1",
-    )
-    await connector.defer_job_one(
-        "task2",
-        0,
-        "lock2",
-        "queueing_lock2",
-        {},
-        conftest.aware_datetime(2000, 1, 1),
-        "queue2",
+    await connector.defer_jobs_all(
+        ["task1", "task2"],
+        [0, 0],
+        ["lock1", "lock2"],
+        ["queueing_lock1", "queueing_lock2"],
+        [{}, {}],
+        [conftest.aware_datetime(2000, 1, 1), conftest.aware_datetime(2000, 1, 1)],
+        ["queue1", "queue2"],
     )
 
     await utils.sync_to_async(
@@ -108,23 +89,14 @@ async def test_list_jobs_filters(shell, connector, capsys):
 
 
 async def test_list_jobs_details(shell, connector, capsys):
-    await connector.defer_job_one(
-        "task1",
-        5,
-        "lock1",
-        "queueing_lock1",
-        {"x": 11},
-        conftest.aware_datetime(1000, 1, 1),
-        "queue1",
-    )
-    await connector.defer_job_one(
-        "task2",
-        7,
-        "lock2",
-        "queueing_lock2",
-        {"y": 22},
-        conftest.aware_datetime(2000, 1, 1),
-        "queue2",
+    await connector.defer_jobs_all(
+        ["task1", "task2"],
+        [5, 7],
+        ["lock1", "lock2"],
+        ["queueing_lock1", "queueing_lock2"],
+        [{"x": 11}, {"y": 22}],
+        [conftest.aware_datetime(1000, 1, 1), conftest.aware_datetime(2000, 1, 1)],
+        ["queue1", "queue2"],
     )
 
     await utils.sync_to_async(shell.do_list_jobs, "details")
@@ -144,11 +116,14 @@ async def test_list_jobs_empty(shell, connector, capsys):
 
 
 async def test_list_queues(shell, connector, capsys):
-    await connector.defer_job_one(
-        "task1", 0, "lock1", "queueing_lock1", {}, 0, "queue1"
-    )
-    await connector.defer_job_one(
-        "task2", 0, "lock2", "queueing_lock2", {}, 0, "queue2"
+    await connector.defer_jobs_all(
+        ["task1", "task2"],
+        [0, 0],
+        ["lock1", "lock2"],
+        ["queueing_lock1", "queueing_lock2"],
+        [{}, {}],
+        [0, 0],
+        ["queue1", "queue2"],
     )
 
     await utils.sync_to_async(shell.do_list_queues, "")
@@ -166,11 +141,14 @@ async def test_list_queues(shell, connector, capsys):
 
 
 async def test_list_queues_filters(shell, connector, capsys):
-    await connector.defer_job_one(
-        "task1", 0, "lock1", "queueing_lock1", {}, 0, "queue1"
-    )
-    await connector.defer_job_one(
-        "task2", 0, "lock2", "queueing_lock2", {}, 0, "queue2"
+    await connector.defer_jobs_all(
+        ["task1", "task2"],
+        [0, 0],
+        ["lock1", "lock2"],
+        ["queueing_lock1", "queueing_lock2"],
+        [{}, {}],
+        [0, 0],
+        ["queue1", "queue2"],
     )
 
     await utils.sync_to_async(
@@ -200,11 +178,14 @@ async def test_list_queues_empty(shell, connector, capsys):
 
 
 async def test_list_tasks(shell, connector, capsys):
-    await connector.defer_job_one(
-        "task1", 0, "lock1", "queueing_lock1", {}, 0, "queue1"
-    )
-    await connector.defer_job_one(
-        "task2", 0, "lock2", "queueing_lock2", {}, 0, "queue2"
+    await connector.defer_jobs_all(
+        ["task1", "task2"],
+        [0, 0],
+        ["lock1", "lock2"],
+        ["queueing_lock1", "queueing_lock2"],
+        [{}, {}],
+        [0, 0],
+        ["queue1", "queue2"],
     )
 
     await utils.sync_to_async(shell.do_list_tasks, "")
@@ -222,11 +203,14 @@ async def test_list_tasks(shell, connector, capsys):
 
 
 async def test_list_tasks_filters(shell, connector, capsys):
-    await connector.defer_job_one(
-        "task1", 0, "lock1", "queueing_lock1", {}, 0, "queue1"
-    )
-    await connector.defer_job_one(
-        "task2", 0, "lock2", "queueing_lock2", {}, 0, "queue2"
+    await connector.defer_jobs_all(
+        ["task1", "task2"],
+        [0, 0],
+        ["lock1", "lock2"],
+        ["queueing_lock1", "queueing_lock2"],
+        [{}, {}],
+        [0, 0],
+        ["queue1", "queue2"],
     )
 
     await utils.sync_to_async(
@@ -256,11 +240,14 @@ async def test_list_tasks_empty(shell, connector, capsys):
 
 
 async def test_list_locks(shell, connector, capsys):
-    await connector.defer_job_one(
-        "task1", 0, "lock1", "queueing_lock1", {}, 0, "queue1"
-    )
-    await connector.defer_job_one(
-        "task2", 0, "lock2", "queueing_lock2", {}, 0, "queue2"
+    await connector.defer_jobs_all(
+        ["task1", "task2"],
+        [0, 0],
+        ["lock1", "lock2"],
+        ["queueing_lock1", "queueing_lock2"],
+        [{}, {}],
+        [0, 0],
+        ["queue1", "queue2"],
     )
 
     await utils.sync_to_async(shell.do_list_locks, "")
@@ -278,11 +265,14 @@ async def test_list_locks(shell, connector, capsys):
 
 
 async def test_list_locks_filters(shell, connector, capsys):
-    await connector.defer_job_one(
-        "task1", 0, "lock1", "queueing_lock1", {}, 0, "queue1"
-    )
-    await connector.defer_job_one(
-        "task2", 0, "lock2", "queueing_lock2", {}, 0, "queue2"
+    await connector.defer_jobs_all(
+        ["task1", "task2"],
+        [0, 0],
+        ["lock1", "lock2"],
+        ["queueing_lock1", "queueing_lock2"],
+        [{}, {}],
+        [0, 0],
+        ["queue1", "queue2"],
     )
 
     await utils.sync_to_async(
@@ -312,14 +302,14 @@ async def test_list_locks_empty(shell, connector, capsys):
 
 
 async def test_retry(shell, connector, capsys):
-    await connector.defer_job_one(
-        "task",
-        0,
-        "lock",
-        "queueing_lock",
-        {},
-        conftest.aware_datetime(2000, 1, 1),
-        "queue",
+    await connector.defer_jobs_all(
+        ["task"],
+        [0],
+        ["lock"],
+        ["queueing_lock"],
+        [{}],
+        [conftest.aware_datetime(2000, 1, 1)],
+        ["queue"],
     )
     await connector.set_job_status_run(1, "failed")
 
@@ -333,14 +323,14 @@ async def test_retry(shell, connector, capsys):
 
 
 async def test_cancel(shell, connector, capsys):
-    await connector.defer_job_one(
-        "task",
-        0,
-        "lock",
-        "queueing_lock",
-        {},
-        conftest.aware_datetime(2000, 1, 1),
-        "queue",
+    await connector.defer_jobs_all(
+        ["task"],
+        [0],
+        ["lock"],
+        ["queueing_lock"],
+        [{}],
+        [conftest.aware_datetime(2000, 1, 1)],
+        ["queue"],
     )
 
     await utils.sync_to_async(shell.do_list_jobs, "id=1")

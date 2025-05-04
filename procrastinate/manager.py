@@ -7,7 +7,8 @@ import warnings
 from collections.abc import Awaitable, Iterable
 from typing import Any, NoReturn, Protocol
 
-from procrastinate import connector, exceptions, jobs, sql, utils
+from procrastinate import connector, exceptions, sql, utils
+from procrastinate import jobs as jobs_module
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +21,7 @@ QUEUEING_LOCK_CONSTRAINT_LEGACY = "procrastinate_jobs_queueing_lock_idx"
 
 class NotificationCallback(Protocol):
     def __call__(
-        self, *, channel: str, notification: jobs.Notification
+        self, *, channel: str, notification: jobs_module.Notification
     ) -> Awaitable[None]: ...
 
 
@@ -35,7 +36,7 @@ class JobManager:
     def __init__(self, connector: connector.BaseConnector):
         self.connector = connector
 
-    async def defer_job_async(self, job: jobs.Job) -> jobs.Job:
+    async def defer_job_async(self, job: jobs_module.Job) -> jobs_module.Job:
         """
         Add a job in its queue for later processing by a worker.
 
@@ -51,37 +52,84 @@ class JobManager:
         """
         # Make sure this code stays synchronized with .defer_job()
         try:
-            result = await self.connector.execute_query_one_async(
-                **self._defer_job_query_kwargs(job=job)
+            result = await self.connector.execute_query_all_async(
+                **self._defer_jobs_query_kwargs(jobs=[job])
             )
         except exceptions.UniqueViolation as exc:
             self._raise_already_enqueued(exc=exc, queueing_lock=job.queueing_lock)
 
-        return job.evolve(id=result["id"], status=jobs.Status.TODO.value)
+        return job.evolve(id=result[0]["id"], status=jobs_module.Status.TODO.value)
 
-    def defer_job(self, job: jobs.Job) -> jobs.Job:
+    async def batch_defer_jobs_async(
+        self, jobs: list[jobs_module.Job]
+    ) -> list[jobs_module.Job]:
+        """
+        Add multiple jobs in their queue for later processing by a worker.
+
+        Parameters
+        ----------
+        jobs:
+            The jobs to defer
+
+        Returns
+        -------
+        :
+            A list of jobs with their id set.
+        """
+        # Make sure this code stays synchronized with .batch_defer_jobs()
+        try:
+            results = await self.connector.execute_query_all_async(
+                **self._defer_jobs_query_kwargs(jobs=jobs)
+            )
+        except exceptions.UniqueViolation as exc:
+            self._raise_already_enqueued(
+                exc=exc, queueing_lock=None
+            )  # TODO: fix queing_lock
+
+        return [
+            job.evolve(id=results[index]["id"], status=jobs_module.Status.TODO.value)
+            for index, job in enumerate(jobs)
+        ]
+
+    def defer_job(self, job: jobs_module.Job) -> jobs_module.Job:
         """
         Sync version of `defer_job_async`.
         """
         try:
-            result = self.connector.get_sync_connector().execute_query_one(
-                **self._defer_job_query_kwargs(job=job)
+            results = self.connector.get_sync_connector().execute_query_all(
+                **self._defer_jobs_query_kwargs(jobs=[job])
             )
         except exceptions.UniqueViolation as exc:
             self._raise_already_enqueued(exc=exc, queueing_lock=job.queueing_lock)
 
-        return job.evolve(id=result["id"], status=jobs.Status.TODO.value)
+        return job.evolve(id=results[0]["id"], status=jobs_module.Status.TODO.value)
 
-    def _defer_job_query_kwargs(self, job: jobs.Job) -> dict[str, Any]:
+    def batch_defer_jobs(self, jobs: list[jobs_module.Job]) -> list[jobs_module.Job]:
+        """
+        Sync version of `batch_defer_jobs_async`.
+        """
+        try:
+            results = self.connector.get_sync_connector().execute_query_all(
+                **self._defer_jobs_query_kwargs(jobs=jobs)
+            )
+        except exceptions.UniqueViolation as exc:
+            self._raise_already_enqueued(exc=exc, queueing_lock=jobs[0].queueing_lock)
+
+        return [
+            job.evolve(id=results[index]["id"], status=jobs_module.Status.TODO.value)
+            for index, job in enumerate(jobs)
+        ]
+
+    def _defer_jobs_query_kwargs(self, jobs: list[jobs_module.Job]) -> dict[str, Any]:
         return {
-            "query": sql.queries["defer_job"],
-            "task_name": job.task_name,
-            "queue": job.queue,
-            "priority": job.priority,
-            "lock": job.lock,
-            "queueing_lock": job.queueing_lock,
-            "args": job.task_kwargs,
-            "scheduled_at": job.scheduled_at,
+            "query": sql.queries["defer_jobs"],
+            "task_names": [job.task_name for job in jobs],
+            "queues": [job.queue for job in jobs],
+            "priorities": [job.priority for job in jobs],
+            "locks": [job.lock for job in jobs],
+            "queueing_locks": [job.queueing_lock for job in jobs],
+            "args_list": [job.task_kwargs for job in jobs],
+            "scheduled_ats": [job.scheduled_at for job in jobs],
         }
 
     def _raise_already_enqueued(
@@ -99,7 +147,7 @@ class JobManager:
 
     async def defer_periodic_job(
         self,
-        job: jobs.Job,
+        job: jobs_module.Job,
         periodic_id: str,
         defer_timestamp: int,
     ) -> int | None:
@@ -135,7 +183,7 @@ class JobManager:
 
     async def fetch_job(
         self, queues: Iterable[str] | None, worker_id: int
-    ) -> jobs.Job | None:
+    ) -> jobs_module.Job | None:
         """
         Select a job in the queue, and mark it as doing.
         The worker selecting a job is then responsible for running it, and then
@@ -161,7 +209,7 @@ class JobManager:
         if row["id"] is None:
             return None
 
-        return jobs.Job.from_row(row)
+        return jobs_module.Job.from_row(row)
 
     async def get_stalled_jobs(
         self,
@@ -169,7 +217,7 @@ class JobManager:
         queue: str | None = None,
         task_name: str | None = None,
         seconds_since_heartbeat: float = 30,
-    ) -> Iterable[jobs.Job]:
+    ) -> Iterable[jobs_module.Job]:
         """
         Return all jobs that have been in ``doing`` state for more than a given time.
 
@@ -213,7 +261,7 @@ class JobManager:
                 seconds_since_heartbeat=seconds_since_heartbeat,
             )
 
-        return [jobs.Job.from_row(row) for row in rows]
+        return [jobs_module.Job.from_row(row) for row in rows]
 
     async def delete_old_jobs(
         self,
@@ -242,13 +290,13 @@ class JobManager:
             If ``True``, also consider aborted jobs. ``False`` by default.
         """
         # We only consider finished jobs by default
-        statuses = [jobs.Status.SUCCEEDED.value]
+        statuses = [jobs_module.Status.SUCCEEDED.value]
         if include_failed:
-            statuses.append(jobs.Status.FAILED.value)
+            statuses.append(jobs_module.Status.FAILED.value)
         if include_cancelled:
-            statuses.append(jobs.Status.CANCELLED.value)
+            statuses.append(jobs_module.Status.CANCELLED.value)
         if include_aborted:
-            statuses.append(jobs.Status.ABORTED.value)
+            statuses.append(jobs_module.Status.ABORTED.value)
 
         await self.connector.execute_query_async(
             query=sql.queries["delete_old_jobs"],
@@ -259,8 +307,8 @@ class JobManager:
 
     async def finish_job(
         self,
-        job: jobs.Job,
-        status: jobs.Status,
+        job: jobs_module.Job,
+        status: jobs_module.Status,
         delete_job: bool,
     ) -> None:
         """
@@ -280,7 +328,7 @@ class JobManager:
     async def finish_job_by_id_async(
         self,
         job_id: int,
-        status: jobs.Status,
+        status: jobs_module.Status,
         delete_job: bool,
     ) -> None:
         await self.connector.execute_query_async(
@@ -366,7 +414,7 @@ class JobManager:
         assert result["id"] == job_id
         return True
 
-    def get_job_status(self, job_id: int) -> jobs.Status:
+    def get_job_status(self, job_id: int) -> jobs_module.Status:
         """
         Get the status of a job by id.
 
@@ -382,9 +430,9 @@ class JobManager:
         result = self.connector.get_sync_connector().execute_query_one(
             query=sql.queries["get_job_status"], job_id=job_id
         )
-        return jobs.Status(result["status"])
+        return jobs_module.Status(result["status"])
 
-    async def get_job_status_async(self, job_id: int) -> jobs.Status:
+    async def get_job_status_async(self, job_id: int) -> jobs_module.Status:
         """
         Get the status of a job by id.
 
@@ -400,11 +448,11 @@ class JobManager:
         result = await self.connector.execute_query_one_async(
             query=sql.queries["get_job_status"], job_id=job_id
         )
-        return jobs.Status(result["status"])
+        return jobs_module.Status(result["status"])
 
     async def retry_job(
         self,
-        job: jobs.Job,
+        job: jobs_module.Job,
         retry_at: datetime.datetime | None = None,
         priority: int | None = None,
         queue: str | None = None,
@@ -520,7 +568,7 @@ class JobManager:
         """
 
         async def handle_notification(channel: str, payload: str):
-            notification: jobs.Notification = json.loads(payload)
+            notification: jobs_module.Notification = json.loads(payload)
             logger.debug(
                 f"Received {notification['type']} notification from channel",
                 extra={channel: channel, payload: payload},
@@ -565,7 +613,7 @@ class JobManager:
         lock: str | None = None,
         queueing_lock: str | None = None,
         worker_id: int | None = None,
-    ) -> Iterable[jobs.Job]:
+    ) -> Iterable[jobs_module.Job]:
         """
         List all procrastinate jobs given query filters.
 
@@ -600,7 +648,7 @@ class JobManager:
             queueing_lock=queueing_lock,
             worker_id=worker_id,
         )
-        return [jobs.Job.from_row(row) for row in rows]
+        return [jobs_module.Job.from_row(row) for row in rows]
 
     def list_jobs(
         self,
@@ -611,7 +659,7 @@ class JobManager:
         lock: str | None = None,
         queueing_lock: str | None = None,
         worker_id: int | None = None,
-    ) -> list[jobs.Job]:
+    ) -> list[jobs_module.Job]:
         """
         Sync version of `list_jobs_async`
         """
@@ -625,7 +673,7 @@ class JobManager:
             queueing_lock=queueing_lock,
             worker_id=worker_id,
         )
-        return [jobs.Job.from_row(row) for row in rows]
+        return [jobs_module.Job.from_row(row) for row in rows]
 
     async def list_queues_async(
         self,

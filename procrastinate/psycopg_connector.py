@@ -171,11 +171,16 @@ class PsycopgConnector(connector.BaseAsyncConnector):
         await self._async_pool.close()
         self._async_pool = None
 
+    def _wrap_value(self, value: Any) -> Any:
+        if isinstance(value, dict):
+            return psycopg.types.json.Jsonb(value)
+        elif isinstance(value, list):
+            return [self._wrap_value(item) for item in value]
+        else:
+            return value
+
     def _wrap_json(self, arguments: dict[str, Any]):
-        return {
-            key: psycopg.types.json.Jsonb(value) if isinstance(value, dict) else value
-            for key, value in arguments.items()
-        }
+        return {key: self._wrap_value(value) for key, value in arguments.items()}
 
     @contextlib.asynccontextmanager
     async def _get_cursor(

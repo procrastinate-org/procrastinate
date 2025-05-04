@@ -86,30 +86,52 @@ CREATE INDEX procrastinate_periodic_defers_job_id_fkey_v1 ON procrastinate_perio
 CREATE INDEX idx_procrastinate_workers_last_heartbeat ON procrastinate_workers(last_heartbeat);
 
 -- Functions
-CREATE FUNCTION procrastinate_defer_job_v1(
-    queue_name character varying,
-    task_name character varying,
-    priority integer,
-    lock text,
-    queueing_lock text,
-    args jsonb,
-    scheduled_at timestamp with time zone
+CREATE FUNCTION procrastinate_defer_jobs_v1(
+    queue_names character varying[],
+    task_names character varying[],
+    priorities integer[],
+    locks text[],
+    queueing_locks text[],
+    args_list jsonb[],
+    scheduled_ats timestamp with time zone[]
 )
-    RETURNS bigint
+    RETURNS bigint[]
     LANGUAGE plpgsql
 AS $$
 DECLARE
-	job_id bigint;
+    job_ids bigint[];
+    array_length integer;
+    i integer;
 BEGIN
-    INSERT INTO procrastinate_jobs (queue_name, task_name, priority, lock, queueing_lock, args, scheduled_at)
-    VALUES (queue_name, task_name, priority, lock, queueing_lock, args, scheduled_at)
-    RETURNING id INTO job_id;
+    array_length := array_length(queue_names, 1);
+    IF array_length != array_length(task_names, 1) OR
+       array_length != array_length(priorities, 1) OR
+       array_length != array_length(locks, 1) OR
+       array_length != array_length(queueing_locks, 1) OR
+       array_length != array_length(args_list, 1) OR
+       array_length != array_length(scheduled_ats, 1) THEN
+        RAISE EXCEPTION 'All input arrays must have the same length';
+    END IF;
 
-    RETURN job_id;
+    job_ids := ARRAY[]::bigint[];
+    WITH inserted_jobs AS (
+        INSERT INTO procrastinate_jobs (queue_name, task_name, priority, lock, queueing_lock, args, scheduled_at)
+        SELECT unnest(queue_names),
+               unnest(task_names),
+               unnest(priorities),
+               unnest(locks),
+               unnest(queueing_locks),
+               unnest(args_list),
+               unnest(scheduled_ats)
+        RETURNING id
+    )
+    SELECT array_agg(id) FROM inserted_jobs INTO job_ids;
+
+    RETURN job_ids;
 END;
 $$;
 
-CREATE FUNCTION procrastinate_defer_periodic_job_v1(
+CREATE FUNCTION procrastinate_defer_periodic_job_v2(
     _queue_name character varying,
     _lock character varying,
     _queueing_lock character varying,
@@ -138,15 +160,19 @@ BEGIN
     END IF;
 
     UPDATE procrastinate_periodic_defers
-        SET job_id = procrastinate_defer_job_v1(
-                _queue_name,
-                _task_name,
-                _priority,
-                _lock,
-                _queueing_lock,
-                _args,
-                NULL
-            )
+        SET job_id = (
+            SELECT COALESCE((
+                SELECT unnest(procrastinate_defer_jobs_v1(
+                    ARRAY[_queue_name]::character varying[],
+                    ARRAY[_task_name]::character varying[],
+                    ARRAY[_priority]::integer[],
+                    ARRAY[_lock]::text[],
+                    ARRAY[_queueing_lock]::text[],
+                    ARRAY[_args]::jsonb[],
+                    ARRAY[NULL::timestamptz]
+                ))
+            ), NULL)
+        )
         WHERE id = _defer_id
         RETURNING job_id INTO _job_id;
 

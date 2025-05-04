@@ -55,7 +55,7 @@ async def test_manager_defer_job_no_lock(job_manager, job_factory, connector):
 async def test_manager_defer_job_connector_exception(
     mocker, job_manager, job_factory, connector
 ):
-    connector.execute_query_one_async = mocker.Mock(
+    connector.execute_query_all_async = mocker.Mock(
         side_effect=exceptions.ConnectorException
     )
 
@@ -66,7 +66,7 @@ async def test_manager_defer_job_connector_exception(
 async def test_manager_defer_job_unique_violation_exception(
     mocker, job_manager, job_factory, connector
 ):
-    connector.execute_query_one_async = mocker.Mock(
+    connector.execute_query_all_async = mocker.Mock(
         side_effect=exceptions.UniqueViolation(
             constraint_name="procrastinate_jobs_queueing_lock_idx_v1"
         )
@@ -79,7 +79,7 @@ async def test_manager_defer_job_unique_violation_exception(
 async def test_manager_defer_job_unique_violation_exception_other_constraint(
     mocker, job_manager, job_factory, connector
 ):
-    connector.execute_query_one_async = mocker.Mock(
+    connector.execute_query_all_async = mocker.Mock(
         side_effect=exceptions.UniqueViolation(constraint_name="some_other_constraint")
     )
 
@@ -90,7 +90,7 @@ async def test_manager_defer_job_unique_violation_exception_other_constraint(
 async def test_manager_defer_job_unique_violation_exception_sync(
     mocker, job_manager, job_factory, connector
 ):
-    connector.execute_query_one = mocker.Mock(
+    connector.execute_query_all = mocker.Mock(
         side_effect=exceptions.UniqueViolation(
             constraint_name="procrastinate_jobs_queueing_lock_idx_v1"
         )
@@ -103,7 +103,7 @@ async def test_manager_defer_job_unique_violation_exception_sync(
 async def test_manager_defer_job_unique_violation_exception_other_constraint_sync(
     mocker, job_manager, job_factory, connector
 ):
-    connector.execute_query_one = mocker.Mock(
+    connector.execute_query_all = mocker.Mock(
         side_effect=exceptions.UniqueViolation(constraint_name="some_other_constraint")
     )
 

@@ -99,14 +99,26 @@ async def test_execute_query(psycopg_connector):
 
 async def test_wrap_exceptions(psycopg_connector):
     await psycopg_connector.execute_query_async(
-        """SELECT procrastinate_defer_job_v1(
-            'queue', 'foo', 0, NULL, 'lock', '{}', NULL
+        """SELECT procrastinate_defer_jobs_v1(
+            ARRAY['queue']::character varying[],
+            ARRAY['foo']::character varying[],
+            ARRAY[0]::integer[],
+            ARRAY[NULL]::text[],
+            ARRAY['lock']::text[],
+            ARRAY['{}']::jsonb[],
+            ARRAY[NULL::timestamptz]
         ) AS id;"""
     )
     with pytest.raises(exceptions.UniqueViolation):
         await psycopg_connector.execute_query_async(
-            """SELECT procrastinate_defer_job_v1(
-                'queue', 'foo', 0, NULL, 'lock', '{}', NULL
+            """SELECT procrastinate_defer_jobs_v1(
+                ARRAY['queue']::character varying[],
+                ARRAY['foo']::character varying[],
+                ARRAY[0]::integer[],
+                ARRAY[NULL]::text[],
+                ARRAY['lock']::text[],
+                ARRAY['{}']::jsonb[],
+                ARRAY[NULL::timestamptz]
             ) AS id;"""
         )
 

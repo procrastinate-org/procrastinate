@@ -228,13 +228,16 @@ class AiopgConnector(connector.BaseAsyncConnector):
             while self._pool._free:
                 self._pool._free.popleft().close()
 
+    def _wrap_value(self, value: Any) -> Any:
+        if isinstance(value, dict):
+            return Json(value, dumps=self.json_dumps)
+        elif isinstance(value, list):
+            return [self._wrap_value(item) for item in value]
+        else:
+            return value
+
     def _wrap_json(self, arguments: dict[str, Any]):
-        return {
-            key: Json(value, dumps=self.json_dumps)
-            if isinstance(value, dict)
-            else value
-            for key, value in arguments.items()
-        }
+        return {key: self._wrap_value(value) for key, value in arguments.items()}
 
     # Pools and single connections do not exactly share their cursor API:
     # - connection.cursor() is an async context manager (async with)

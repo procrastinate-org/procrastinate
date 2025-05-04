@@ -94,55 +94,82 @@ class InMemoryConnector(connector.BaseAsyncConnector):
 
     # End of BaseConnector methods
 
-    async def defer_job_one(
+    async def defer_jobs_all(
         self,
-        task_name: str,
-        priority: int,
-        lock: str | None,
-        queueing_lock: str | None,
-        args: types.JSONDict,
-        scheduled_at: datetime.datetime | None,
-        queue: str,
-    ) -> JobRow:
-        if queueing_lock is not None and any(
-            job["queueing_lock"] == queueing_lock and job["status"] == "todo"
-            for job in self.jobs.values()
+        task_names: list[str],
+        priorities: list[int],
+        locks: list[str | None],
+        queueing_locks: list[str | None],
+        args_list: list[types.JSONDict],
+        scheduled_ats: list[datetime.datetime | None],
+        queues: list[str],
+    ) -> list[JobRow]:
+        list_length = len(queues)
+        if not all(
+            len(lst) == list_length
+            for lst in [
+                task_names,
+                priorities,
+                locks,
+                queueing_locks,
+                args_list,
+                scheduled_ats,
+            ]
         ):
-            from . import manager
+            raise ValueError("All input lists must have the same length")
 
-            raise exceptions.UniqueViolation(
-                constraint_name=manager.QUEUEING_LOCK_CONSTRAINT
+        for queueing_lock in queueing_locks:
+            if queueing_lock is not None and any(
+                job["queueing_lock"] == queueing_lock and job["status"] == "todo"
+                for job in self.jobs.values()
+            ):
+                from . import manager
+
+                raise exceptions.UniqueViolation(
+                    constraint_name=manager.QUEUEING_LOCK_CONSTRAINT
+                )
+
+        job_rows = []
+        for index in range(list_length):
+            task_name = task_names[index]
+            priority = priorities[index]
+            lock = locks[index]
+            queueing_lock = queueing_locks[index]
+            args = args_list[index]
+            scheduled_at = scheduled_ats[index]
+            queue = queues[index]
+
+            id = next(self.job_counter)
+
+            self.jobs[id] = job_row = {
+                "id": id,
+                "queue_name": queue,
+                "task_name": task_name,
+                "priority": priority,
+                "lock": lock,
+                "queueing_lock": queueing_lock,
+                "args": args,
+                "status": "todo",
+                "scheduled_at": scheduled_at,
+                "attempts": 0,
+                "abort_requested": False,
+                "worker_id": None,
+            }
+            self.events[id] = []
+            if scheduled_at:
+                self.events[id].append({"type": "scheduled", "at": scheduled_at})
+            self.events[id].append({"type": "deferred", "at": utils.utcnow()})
+
+            await self._notify(
+                queue,
+                {
+                    "type": "job_inserted",
+                    "job_id": id,
+                },
             )
+            job_rows.append(job_row)
 
-        id = next(self.job_counter)
-
-        self.jobs[id] = job_row = {
-            "id": id,
-            "queue_name": queue,
-            "task_name": task_name,
-            "priority": priority,
-            "lock": lock,
-            "queueing_lock": queueing_lock,
-            "args": args,
-            "status": "todo",
-            "scheduled_at": scheduled_at,
-            "attempts": 0,
-            "abort_requested": False,
-            "worker_id": None,
-        }
-        self.events[id] = []
-        if scheduled_at:
-            self.events[id].append({"type": "scheduled", "at": scheduled_at})
-        self.events[id].append({"type": "deferred", "at": utils.utcnow()})
-
-        await self._notify(
-            queue,
-            {
-                "type": "job_inserted",
-                "job_id": id,
-            },
-        )
-        return job_row
+        return job_rows
 
     async def defer_periodic_job_one(
         self,
@@ -154,21 +181,22 @@ class InMemoryConnector(connector.BaseAsyncConnector):
         lock: str | None,
         queueing_lock: str | None,
         periodic_id: str,
-    ):
+    ) -> JobRow:
         # If the periodic task has already been deferred for this timestamp
         if self.periodic_defers.get((task_name, periodic_id)) == defer_timestamp:
             return {"id": None}
 
         self.periodic_defers[(task_name, periodic_id)] = defer_timestamp
-        return await self.defer_job_one(
-            task_name=task_name,
-            queue=queue,
-            priority=priority,
-            lock=lock,
-            queueing_lock=queueing_lock,
-            args=args,
-            scheduled_at=None,
+        job_rows = await self.defer_jobs_all(
+            task_names=[task_name],
+            priorities=[priority],
+            locks=[lock],
+            queueing_locks=[queueing_lock],
+            args_list=[args],
+            scheduled_ats=[None],
+            queues=[queue],
         )
+        return job_rows[0]
 
     @property
     def current_locks(self) -> Iterable[str]:

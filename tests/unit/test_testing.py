@@ -58,15 +58,15 @@ def test_make_dynamic_query(connector):
     assert connector.make_dynamic_query("foo {bar}", bar="baz") == "foo baz"
 
 
-async def test_defer_job_one(connector):
-    job = await connector.defer_job_one(
-        task_name="mytask",
-        priority=5,
-        lock="sher",
-        queueing_lock="houba",
-        args={"a": "b"},
-        scheduled_at=None,
-        queue="marsupilami",
+async def test_defer_one_job(connector):
+    jobs = await connector.defer_jobs_all(
+        task_names=["mytask"],
+        priorities=[5],
+        locks=["sher"],
+        queueing_locks=["houba"],
+        args_list=[{"a": "b"}],
+        scheduled_ats=[None],
+        queues=["marsupilami"],
     )
 
     assert connector.jobs == {
@@ -85,27 +85,40 @@ async def test_defer_job_one(connector):
             "worker_id": None,
         }
     }
-    assert connector.jobs[1] == job
+    assert connector.jobs[1] == jobs[0]
 
 
-async def test_defer_job_one_multiple_times(connector):
-    await connector.defer_job_one(
-        task_name="mytask",
-        priority=0,
-        lock=None,
-        queueing_lock=None,
-        args={},
-        scheduled_at=None,
-        queue="default",
+async def test_defer_one_job_multiple_times(connector):
+    await connector.defer_jobs_all(
+        task_names=["mytask"],
+        priorities=[0],
+        locks=[None],
+        queueing_locks=[None],
+        args_list=[{}],
+        scheduled_ats=[None],
+        queues=["default"],
     )
-    await connector.defer_job_one(
-        task_name="mytask",
-        priority=0,
-        lock=None,
-        queueing_lock=None,
-        args={},
-        scheduled_at=None,
-        queue="default",
+    await connector.defer_jobs_all(
+        task_names=["mytask"],
+        priorities=[0],
+        locks=[None],
+        queueing_locks=[None],
+        args_list=[{}],
+        scheduled_ats=[None],
+        queues=["default"],
+    )
+    assert len(connector.jobs) == 2
+
+
+async def test_defer_multiple_jobs_at_once(connector):
+    await connector.defer_jobs_all(
+        task_names=["mytask", "mytask"],
+        priorities=[0, 0],
+        locks=[None, None],
+        queueing_locks=[None, None],
+        args_list=[{}, {}],
+        scheduled_ats=[None, None],
+        queues=["default", "default"],
     )
     assert len(connector.jobs) == 2
 
@@ -114,33 +127,33 @@ async def test_defer_same_job_with_queueing_lock_second_time_after_first_one_suc
     connector,
 ):
     job_data = {
-        "task_name": "mytask",
-        "priority": 0,
-        "lock": None,
-        "queueing_lock": "some-lock",
-        "args": {},
-        "scheduled_at": None,
-        "queue": "default",
+        "task_names": ["mytask"],
+        "priorities": [0],
+        "locks": [None],
+        "queueing_locks": ["some-lock"],
+        "args_list": [{}],
+        "scheduled_ats": [None],
+        "queues": ["default"],
     }
 
     # 1. Defer job with queueing-lock
-    job_row = await connector.defer_job_one(**job_data)
+    job_rows = await connector.defer_jobs_all(**job_data)
     assert len(connector.jobs) == 1
 
     # 2. Defering a second time should fail, as first one
     #    still in state `todo`
     with pytest.raises(exceptions.UniqueViolation):
-        await connector.defer_job_one(**job_data)
+        await connector.defer_jobs_all(**job_data)
     assert len(connector.jobs) == 1
 
     # 3. Finish first job
     await connector.finish_job_run(
-        job_id=job_row["id"], status="finished", delete_job=False
+        job_id=job_rows[0]["id"], status="finished", delete_job=False
     )
 
     # 4. Defering a second time should work now,
     #    as first job in state `finished`
-    await connector.defer_job_one(**job_data)
+    await connector.defer_jobs_all(**job_data)
     assert len(connector.jobs) == 2
 
 
@@ -314,55 +327,54 @@ async def test_delete_old_jobs_run(connector):
 
 async def test_fetch_job_one(connector):
     # This one will be selected, then skipped the second time because it's processing
-    await connector.defer_job_one(
-        task_name="mytask",
-        priority=0,
-        args={},
-        queue="marsupilami",
-        scheduled_at=None,
-        lock="a",
-        queueing_lock="a",
+    await connector.defer_jobs_all(
+        task_names=["mytask"],
+        priorities=[0],
+        locks=["a"],
+        queueing_locks=["a"],
+        args_list=[{}],
+        scheduled_ats=[None],
+        queues=["marsupilami"],
     )
-
     # This one because it's the wrong queue
-    await connector.defer_job_one(
-        task_name="mytask",
-        priority=0,
-        args={},
-        queue="other_queue",
-        scheduled_at=None,
-        lock="b",
-        queueing_lock="b",
+    await connector.defer_jobs_all(
+        task_names=["mytask"],
+        priorities=[0],
+        locks=["b"],
+        queueing_locks=["b"],
+        args_list=[{}],
+        scheduled_ats=[None],
+        queues=["other_queue"],
     )
     # This one because of the scheduled_at
-    await connector.defer_job_one(
-        task_name="mytask",
-        priority=0,
-        args={},
-        queue="marsupilami",
-        scheduled_at=conftest.aware_datetime(2100, 1, 1),
-        lock="c",
-        queueing_lock="c",
+    await connector.defer_jobs_all(
+        task_names=["mytask"],
+        priorities=[0],
+        locks=["c"],
+        queueing_locks=["c"],
+        args_list=[{}],
+        scheduled_ats=[conftest.aware_datetime(2100, 1, 1)],
+        queues=["marsupilami"],
     )
     # This one because of the lock
-    await connector.defer_job_one(
-        task_name="mytask",
-        priority=0,
-        args={},
-        queue="marsupilami",
-        scheduled_at=None,
-        lock="a",
-        queueing_lock="d",
+    await connector.defer_jobs_all(
+        task_names=["mytask"],
+        priorities=[0],
+        locks=["a"],
+        queueing_locks=["d"],
+        args_list=[{}],
+        scheduled_ats=[None],
+        queues=["marsupilami"],
     )
     # We're taking this one.
-    await connector.defer_job_one(
-        task_name="mytask",
-        priority=0,
-        args={},
-        queue="marsupilami",
-        scheduled_at=None,
-        lock="e",
-        queueing_lock="e",
+    await connector.defer_jobs_all(
+        task_names=["mytask"],
+        priorities=[0],
+        locks=["e"],
+        queueing_locks=["e"],
+        args_list=[{}],
+        scheduled_ats=[None],
+        queues=["marsupilami"],
     )
 
     connector.workers = {1: utils.utcnow()}
@@ -377,25 +389,24 @@ async def test_fetch_job_one(connector):
 
 async def test_fetch_job_one_prioritized(connector):
     # This one will be selected second as it has a lower priority
-    await connector.defer_job_one(
-        task_name="mytask",
-        priority=5,
-        args={},
-        queue="marsupilami",
-        scheduled_at=None,
-        lock=None,
-        queueing_lock=None,
+    await connector.defer_jobs_all(
+        task_names=["mytask"],
+        priorities=[5],
+        locks=[None],
+        queueing_locks=[None],
+        args_list=[{}],
+        scheduled_ats=[None],
+        queues=["marsupilami"],
     )
-
     # This one will be selected first as it has a higher priority
-    await connector.defer_job_one(
-        task_name="mytask",
-        priority=7,
-        args={},
-        queue="marsupilami",
-        scheduled_at=None,
-        lock=None,
-        queueing_lock=None,
+    await connector.defer_jobs_all(
+        task_names=["mytask"],
+        priorities=[7],
+        locks=[None],
+        queueing_locks=[None],
+        args_list=[{}],
+        scheduled_ats=[None],
+        queues=["marsupilami"],
     )
 
     connector.workers = {1: utils.utcnow()}
@@ -406,23 +417,23 @@ async def test_fetch_job_one_prioritized(connector):
 
 async def test_fetch_job_one_none_lock(connector):
     """Testing that 2 jobs with locks "None" don't block one another"""
-    await connector.defer_job_one(
-        task_name="mytask",
-        priority=0,
-        args={},
-        queue="default",
-        scheduled_at=None,
-        lock=None,
-        queueing_lock=None,
+    await connector.defer_jobs_all(
+        task_names=["mytask"],
+        priorities=[0],
+        locks=[None],
+        queueing_locks=[None],
+        args_list=[{}],
+        scheduled_ats=[None],
+        queues=["default"],
     )
-    await connector.defer_job_one(
-        task_name="mytask",
-        priority=0,
-        args={},
-        queue="default",
-        scheduled_at=None,
-        lock=None,
-        queueing_lock=None,
+    await connector.defer_jobs_all(
+        task_names=["mytask"],
+        priorities=[0],
+        locks=[None],
+        queueing_locks=[None],
+        args_list=[{}],
+        scheduled_ats=[None],
+        queues=["default"],
     )
 
     connector.workers = {1: utils.utcnow()}
@@ -432,14 +443,14 @@ async def test_fetch_job_one_none_lock(connector):
 
 
 async def test_finish_job_run(connector):
-    await connector.defer_job_one(
-        task_name="mytask",
-        priority=0,
-        args={},
-        queue="marsupilami",
-        scheduled_at=None,
-        lock="sher",
-        queueing_lock="houba",
+    await connector.defer_jobs_all(
+        task_names=["mytask"],
+        priorities=[0],
+        locks=["sher"],
+        queueing_locks=["houba"],
+        args_list=[{}],
+        scheduled_ats=[None],
+        queues=["marsupilami"],
     )
 
     connector.workers = {1: utils.utcnow()}
@@ -454,14 +465,14 @@ async def test_finish_job_run(connector):
 
 
 async def test_retry_job_run(connector):
-    await connector.defer_job_one(
-        task_name="mytask",
-        priority=0,
-        args={},
-        queue="marsupilami",
-        scheduled_at=None,
-        lock="sher",
-        queueing_lock="houba",
+    await connector.defer_jobs_all(
+        task_names=["mytask"],
+        priorities=[0],
+        locks=["sher"],
+        queueing_locks=["houba"],
+        args_list=[{}],
+        scheduled_ats=[None],
+        queues=["marsupilami"],
     )
 
     connector.workers = {1: utils.utcnow()}
@@ -509,14 +520,14 @@ async def test_defer_no_notify(connector):
     await connector.listen_notify(
         on_notification=on_notification, channels="some_other_channel"
     )
-    await connector.defer_job_one(
-        task_name="foo",
-        priority=0,
-        lock="bar",
-        args={},
-        scheduled_at=None,
-        queue="baz",
-        queueing_lock="houba",
+    await connector.defer_jobs_all(
+        task_names=["foo"],
+        priorities=[0],
+        locks=["bar"],
+        args_list=[{}],
+        scheduled_ats=[None],
+        queues=["baz"],
+        queueing_locks=["houba"],
     )
 
     assert not event.is_set()

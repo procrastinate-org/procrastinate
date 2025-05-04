@@ -30,4 +30,4 @@ INSERT INTO blou VALUES(%(yay)s)
 
 
 def test_get_queries():
-    assert {"defer_job", "fetch_job", "finish_job"} <= set(sql.get_queries())
+    assert {"defer_jobs", "fetch_job", "finish_job"} <= set(sql.get_queries())
