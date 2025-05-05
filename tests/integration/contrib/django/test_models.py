@@ -29,6 +29,7 @@ def test_procrastinate_job(db):
         "attempts": 0,
         "queueing_lock": None,
         "abort_requested": False,
+        "worker_id": None,
     }
 
 
@@ -45,6 +46,7 @@ def test_procrastinate_job__property(db):
         attempts=0,
         queueing_lock="baz",
         abort_requested=False,
+        worker_id=None,
     )
     assert job.procrastinate_job == jobs_module.Job(
         id=1,

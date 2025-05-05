@@ -60,6 +60,20 @@ class ProcrastinateReadOnlyManager(models.Manager):
         return super().__getattribute__(name)
 
 
+class ProcrastinateWorker(ProcrastinateReadOnlyModelMixin, models.Model):
+    id = models.BigAutoField(primary_key=True)
+    last_heartbeat = models.DateTimeField()
+
+    objects = ProcrastinateReadOnlyManager()
+
+    class Meta:
+        managed = False
+        db_table = "procrastinate_workers"
+
+    def __str__(self) -> str:
+        return f"Worker {self.id} - Last heartbeat at {self.last_heartbeat}"
+
+
 class ProcrastinateJob(ProcrastinateReadOnlyModelMixin, models.Model):
     STATUSES = (
         "todo",
@@ -80,6 +94,9 @@ class ProcrastinateJob(ProcrastinateReadOnlyModelMixin, models.Model):
     attempts = models.IntegerField()
     queueing_lock = models.TextField(unique=True, blank=True, null=True)
     abort_requested = models.BooleanField()
+    worker = models.ForeignKey(
+        ProcrastinateWorker, on_delete=models.SET_NULL, blank=True, null=True
+    )
 
     objects = ProcrastinateReadOnlyManager()
 
