@@ -118,16 +118,25 @@ class InMemoryConnector(connector.BaseAsyncConnector):
         ):
             raise ValueError("All input lists must have the same length")
 
+        # We check the queueing locks upfront so that no job is inserted into
+        # the queue if the constraint is violated (simulating a database
+        # rollback).
+        seen_locks = set()
         for queueing_lock in queueing_locks:
-            if queueing_lock is not None and any(
-                job["queueing_lock"] == queueing_lock and job["status"] == "todo"
-                for job in self.jobs.values()
+            if queueing_lock is not None and (
+                any(
+                    job["queueing_lock"] == queueing_lock and job["status"] == "todo"
+                    for job in self.jobs.values()
+                )
+                or queueing_lock in seen_locks
             ):
                 from . import manager
 
                 raise exceptions.UniqueViolation(
                     constraint_name=manager.QUEUEING_LOCK_CONSTRAINT
                 )
+
+            seen_locks.add(queueing_lock)
 
         job_rows = []
         for index in range(list_length):
