@@ -11,5 +11,5 @@ class Migration(migrations.Migration):
             name="03.02.00_01_pre_batch_defer_jobs.sql"
         ),
     ]
-    name = "0036_pre_batch_defer_jobs"
-    dependencies = [("procrastinate", "0035_post_add_heartbeat")]
+    name = "0037_pre_batch_defer_jobs"
+    dependencies = [("procrastinate", "0036_add_worker_model")]
