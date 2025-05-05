@@ -139,6 +139,15 @@ class Task(Generic[P, R, Args]):
         """
         return await self.configure().defer_async(**task_kwargs)
 
+    async def batch_defer_async(self, *task_kwargs: types.JSONDict) -> list[int]:
+        """
+        Create multiple jobs from this task and the given arguments. This is more
+        efficient than deferring them one by one.
+        The jobs will be created with default parameters, if you want to better
+        specify when and how to launch this job, see `Task.configure`.
+        """
+        return await self.configure().batch_defer_async(*task_kwargs)
+
     def defer(self, *_: Args.args, **task_kwargs: Args.kwargs) -> int:
         """
         Create a job from this task and the given arguments.
@@ -146,6 +155,15 @@ class Task(Generic[P, R, Args]):
         specify when and how to launch this job, see `Task.configure`.
         """
         return self.configure().defer(**task_kwargs)
+
+    def batch_defer(self, *task_kwargs: types.JSONDict) -> list[int]:
+        """
+        Create multiple jobs from this task and the given arguments. This is more
+        efficient than deferring them one by one.
+        The jobs will be created with default parameters, if you want to better
+        specify when and how to launch this job, see `Task.configure`.
+        """
+        return self.configure().batch_defer(*task_kwargs)
 
     def configure(self, **options: Unpack[ConfigureTaskOptions]) -> jobs.JobDeferrer:
         """
