@@ -171,8 +171,9 @@ class JobDeferrer:
         )
 
     def _log_before_batch_defer_jobs(self, jobs: list[Job]) -> None:
+        job_count = len(jobs)
         logger.debug(
-            f"About to defer {len(jobs)} jobs",
+            f"About to defer {job_count} {'job' if job_count == 1 else 'jobs'}",
             extra={
                 "action": "about_to_defer_jobs",
                 "jobs": [job.log_context() for job in jobs],
@@ -180,8 +181,9 @@ class JobDeferrer:
         )
 
     def _lob_after_batch_defer_jobs(self, jobs: list[Job]) -> None:
+        job_count = len(jobs)
         logger.info(
-            f"Deferred {len(jobs)} jobs",
+            f"Deferred {job_count} {'job' if job_count == 1 else 'jobs'}",
             extra={"action": "jobs_defer", "jobs": [job.log_context() for job in jobs]},
         )
 
