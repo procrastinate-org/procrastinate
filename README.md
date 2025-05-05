@@ -23,7 +23,7 @@
 | procrastinate/contrib/django/management/commands/\_\_init\_\_.py  |        0 |        0 |        0 |        0 |    100% |           |
 | procrastinate/contrib/django/management/commands/procrastinate.py |       23 |        1 |        4 |        2 |     89% |29, 34->38 |
 | procrastinate/contrib/django/migrations\_utils.py                 |       11 |        0 |        0 |        0 |    100% |           |
-| procrastinate/contrib/django/models.py                            |       69 |        3 |        6 |        1 |     95% |33, 107, 135 |
+| procrastinate/contrib/django/models.py                            |       79 |        4 |        6 |        1 |     94% |33, 74, 124, 152 |
 | procrastinate/contrib/django/procrastinate\_app.py                |       21 |        1 |        2 |        0 |     96% |        58 |
 | procrastinate/contrib/django/settings.py                          |       18 |        0 |        0 |        0 |    100% |           |
 | procrastinate/contrib/django/utils.py                             |       16 |        0 |        0 |        0 |    100% |           |
@@ -76,7 +76,7 @@
 | procrastinate/types.py                                            |       13 |        0 |        0 |        0 |    100% |           |
 | procrastinate/utils.py                                            |      165 |        0 |       36 |        0 |    100% |           |
 | procrastinate/worker.py                                           |      252 |        7 |       72 |        7 |     96% |72, 86, 195->198, 405->exit, 426-427, 431-432, 448->447, 465 |
-|                                                         **TOTAL** | **2870** |  **224** |  **454** |   **23** | **92%** |           |
+|                                                         **TOTAL** | **2880** |  **225** |  **454** |   **23** | **92%** |           |
 
 
 ## Setup coverage badge
