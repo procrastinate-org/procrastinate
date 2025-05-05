@@ -47,6 +47,7 @@ async def test_defer(async_app: app_module.App):
     assert product_results == [12]
 
 
+@pytest.mark.skip_before_version("3.2.0")
 async def test_batch_defer(async_app: app_module.App):
     sum_results = []
     product_results = []
