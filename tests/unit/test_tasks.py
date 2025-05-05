@@ -44,6 +44,45 @@ async def test_task_defer_async(app: App, connector):
     }
 
 
+async def test_task_batch_defer_async(app: App, connector):
+    task = tasks.Task(task_func, blueprint=app, queue="queue")
+
+    await task.batch_defer_async({"a": 1}, {"b": 2})
+
+    # The lock is the only thing we can't predict
+    lock = connector.jobs[1]["lock"]
+    assert connector.jobs == {
+        1: {
+            "id": 1,
+            "queue_name": "queue",
+            "priority": 0,
+            "task_name": "tests.unit.test_tasks.task_func",
+            "lock": lock,
+            "queueing_lock": None,
+            "args": {"a": 1},
+            "status": "todo",
+            "scheduled_at": None,
+            "attempts": 0,
+            "abort_requested": False,
+            "worker_id": None,
+        },
+        2: {
+            "id": 2,
+            "queue_name": "queue",
+            "priority": 0,
+            "task_name": "tests.unit.test_tasks.task_func",
+            "lock": lock,
+            "queueing_lock": None,
+            "args": {"b": 2},
+            "status": "todo",
+            "scheduled_at": None,
+            "attempts": 0,
+            "abort_requested": False,
+            "worker_id": None,
+        },
+    }
+
+
 async def test_task_default_priority(app: App, connector):
     task = tasks.Task(task_func, blueprint=app, queue="queue", priority=7)
 

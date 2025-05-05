@@ -58,6 +58,33 @@ async def test_defer(sync_app: procrastinate.App, async_app: procrastinate.App):
     assert product_results == [12]
 
 
+async def test_batch_defer(sync_app: procrastinate.App, async_app: procrastinate.App):
+    sum_results = []
+    product_results = []
+
+    @sync_app.task(queue="default", name="sum_task")
+    def sum_task(a, b):
+        sum_results.append(a + b)
+
+    @sync_app.task(queue="default", name="product_task")
+    async def product_task(a, b):
+        product_results.append(a * b)
+
+    sum_task.batch_defer({"a": 1, "b": 2}, {"a": 3, "b": 4})
+    sum_task.configure().batch_defer({"a": 5, "b": 6}, {"a": 7, "b": 8})
+    sync_app.configure_task(name="sum_task").batch_defer(
+        {"a": 9, "b": 10}, {"a": 11, "b": 12}
+    )
+    product_task.batch_defer({"a": 3, "b": 4}, {"a": 5, "b": 6})
+
+    # We need to run the async app to execute the tasks
+    async_app.tasks = sync_app.tasks
+    await async_app.run_worker_async(queues=["default"], wait=False)
+
+    assert sum_results == [3, 7, 11, 15, 19, 23]
+    assert product_results == [12, 30]
+
+
 async def test_nested_sync_to_async(
     sync_app: procrastinate.App, async_app: procrastinate.App
 ):

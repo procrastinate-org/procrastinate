@@ -157,6 +157,21 @@ async def test_defer_same_job_with_queueing_lock_second_time_after_first_one_suc
     assert len(connector.jobs) == 2
 
 
+async def test_defer_jobs_all_violates_queueing_lock(connector):
+    with pytest.raises(exceptions.UniqueViolation):
+        await connector.defer_jobs_all(
+            task_names=["mytask", "mytask"],
+            priorities=[0, 0],
+            locks=[None, None],
+            queueing_locks=["queueing_lock", "queueing_lock"],
+            args_list=[{}, {}],
+            scheduled_ats=[None, None],
+            queues=["default", "default"],
+        )
+
+    assert len(connector.jobs) == 0
+
+
 def test_current_locks(connector):
     connector.jobs = {
         1: {"status": "todo", "lock": "foo"},
