@@ -158,11 +158,6 @@ class JobDeferrer:
 
         return self.job.evolve(task_kwargs=final_kwargs)
 
-    def make_multiple_new_jobs(
-        self, task_kwargs_list: list[dict[str, types.JSONValue]]
-    ) -> list[Job]:
-        return [self.make_new_job(**task_kwargs) for task_kwargs in task_kwargs_list]
-
     def _log_before_defer_job(self, job: Job) -> None:
         logger.debug(
             f"About to defer job {job.call_string}",
@@ -209,7 +204,7 @@ class JobDeferrer:
         Defer multiple jobs at once. This is more efficient than deferring them one by
         one, as it only requires one database query.
         """
-        jobs = self.make_multiple_new_jobs(task_kwargs_list)
+        jobs = [self.make_new_job(**task_kwargs) for task_kwargs in task_kwargs_list]
         self._log_before_batch_defer_jobs(jobs=jobs)
         jobs = await self.job_manager.batch_defer_jobs_async(jobs=jobs)
         self._lob_after_batch_defer_jobs(jobs=jobs)
@@ -236,7 +231,7 @@ class JobDeferrer:
         Defer multiple jobs at once. This is more efficient than deferring them one by
         one, as it only requires one database query.
         """
-        jobs = self.make_multiple_new_jobs(task_kwargs_list)
+        jobs = [self.make_new_job(**task_kwargs) for task_kwargs in task_kwargs_list]
         self._log_before_batch_defer_jobs(jobs=jobs)
         jobs = self.job_manager.batch_defer_jobs(jobs=jobs)
         self._lob_after_batch_defer_jobs(jobs=jobs)
