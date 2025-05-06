@@ -7,7 +7,16 @@ from collections.abc import Iterable
 from itertools import count
 from typing import Any
 
-from procrastinate import connector, exceptions, jobs, schema, sql, types, utils
+from procrastinate import (
+    connector,
+    exceptions,
+    jobs,
+    manager,
+    schema,
+    sql,
+    types,
+    utils,
+)
 
 JobRow = dict[str, Any]
 EventRow = dict[str, Any]
@@ -108,8 +117,6 @@ class InMemoryConnector(connector.BaseAsyncConnector):
                 )
                 or queueing_lock in seen_queueing_locks
             ):
-                from . import manager
-
                 raise exceptions.UniqueViolation(
                     constraint_name=manager.QUEUEING_LOCK_CONSTRAINT
                 )
