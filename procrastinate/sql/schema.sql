@@ -106,10 +106,7 @@ CREATE FUNCTION procrastinate_defer_jobs_v1(
 AS $$
 DECLARE
     job_ids bigint[];
-    array_length integer;
-    i integer;
 BEGIN
-    job_ids := ARRAY[]::bigint[];
     WITH inserted_jobs AS (
         INSERT INTO procrastinate_jobs (queue_name, task_name, priority, lock, queueing_lock, args, scheduled_at)
         SELECT (job).queue_name,
@@ -145,7 +142,6 @@ DECLARE
 	_job_id bigint;
 	_defer_id bigint;
 BEGIN
-
     INSERT
         INTO procrastinate_periodic_defers (task_name, periodic_id, defer_timestamp)
         VALUES (_task_name, _periodic_id, _defer_timestamp)
