@@ -5,21 +5,12 @@ import json
 from collections import Counter
 from collections.abc import Iterable
 from itertools import count
-from typing import Any, Union
+from typing import Any
 
 from procrastinate import connector, exceptions, jobs, schema, sql, types, utils
 
 JobRow = dict[str, Any]
 EventRow = dict[str, Any]
-JobToDefer = tuple[
-    str,  # queue_name
-    str,  # task_name
-    int,  # priority
-    Union[str, None],  # lock
-    Union[str, None],  # queueing_lock
-    types.JSONDict,  # args
-    Union[datetime.datetime, None],  # scheduled_at
-]
 
 
 class InMemoryConnector(connector.BaseAsyncConnector):
@@ -103,19 +94,19 @@ class InMemoryConnector(connector.BaseAsyncConnector):
 
     # End of BaseConnector methods
 
-    async def defer_jobs_all(self, jobs: list[JobToDefer]) -> list[JobRow]:
+    async def defer_jobs_all(self, jobs: list[types.JobToDefer]) -> list[JobRow]:
         # We check the queueing locks upfront so that no job is inserted into
         # the queue if the constraint is violated (simulating a database
         # rollback).
-        seen_locks = set()
+        seen_queueing_locks = set()
         for job in jobs:
-            queueing_lock = job[4]
+            queueing_lock = job.queueing_lock
             if queueing_lock is not None and (
                 any(
                     job["queueing_lock"] == queueing_lock and job["status"] == "todo"
                     for job in self.jobs.values()
                 )
-                or queueing_lock in seen_locks
+                or queueing_lock in seen_queueing_locks
             ):
                 from . import manager
 
@@ -123,41 +114,33 @@ class InMemoryConnector(connector.BaseAsyncConnector):
                     constraint_name=manager.QUEUEING_LOCK_CONSTRAINT
                 )
 
-            seen_locks.add(queueing_lock)
+            seen_queueing_locks.add(queueing_lock)
 
         job_rows = []
         for job in jobs:
-            queue: str = job[0]
-            task_name: str = job[1]
-            priority: int = job[2]
-            lock: str | None = job[3]
-            queueing_lock: str | None = job[4]
-            args: types.JSONDict = job[5]
-            scheduled_at: datetime.datetime | None = job[6]
-
             id = next(self.job_counter)
 
             self.jobs[id] = job_row = {
                 "id": id,
-                "queue_name": queue,
-                "task_name": task_name,
-                "priority": priority,
-                "lock": lock,
-                "queueing_lock": queueing_lock,
-                "args": args,
+                "queue_name": job.queue_name,
+                "task_name": job.task_name,
+                "priority": job.priority,
+                "lock": job.lock,
+                "queueing_lock": job.queueing_lock,
+                "args": job.args,
                 "status": "todo",
-                "scheduled_at": scheduled_at,
+                "scheduled_at": job.scheduled_at,
                 "attempts": 0,
                 "abort_requested": False,
                 "worker_id": None,
             }
             self.events[id] = []
-            if scheduled_at:
-                self.events[id].append({"type": "scheduled", "at": scheduled_at})
+            if job.scheduled_at:
+                self.events[id].append({"type": "scheduled", "at": job.scheduled_at})
             self.events[id].append({"type": "deferred", "at": utils.utcnow()})
 
             await self._notify(
-                queue,
+                job.queue_name,
                 {
                     "type": "job_inserted",
                     "job_id": id,
@@ -185,14 +168,14 @@ class InMemoryConnector(connector.BaseAsyncConnector):
         self.periodic_defers[(task_name, periodic_id)] = defer_timestamp
         job_rows = await self.defer_jobs_all(
             [
-                (
-                    queue,
-                    task_name,
-                    priority,
-                    lock,
-                    queueing_lock,
-                    args,
-                    None,
+                types.JobToDefer(
+                    queue_name=queue,
+                    task_name=task_name,
+                    priority=priority,
+                    lock=lock,
+                    queueing_lock=queueing_lock,
+                    args=args,
+                    scheduled_at=None,
                 )
             ]
         )

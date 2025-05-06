@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock
 import pytest
 
 from procrastinate import exceptions, testing, utils
+from procrastinate import types as t
 
 from .. import conftest
 
@@ -61,14 +62,14 @@ def test_make_dynamic_query(connector: testing.InMemoryConnector):
 async def test_defer_one_job(connector: testing.InMemoryConnector):
     jobs = await connector.defer_jobs_all(
         [
-            (
-                "marsupilami",  # queue
-                "mytask",  # task_name
-                5,  # priority
-                "sher",  # lock
-                "houba",  # queueing_lock
-                {"a": "b"},  # args
-                None,  # scheduled_at
+            t.JobToDefer(
+                queue_name="marsupilami",
+                task_name="mytask",
+                priority=5,
+                lock="sher",
+                queueing_lock="houba",
+                args={"a": "b"},
+                scheduled_at=None,
             )
         ]
     )
@@ -95,27 +96,27 @@ async def test_defer_one_job(connector: testing.InMemoryConnector):
 async def test_defer_one_job_multiple_times(connector: testing.InMemoryConnector):
     await connector.defer_jobs_all(
         [
-            (
-                "default",  # queue
-                "mytask",  # task_name
-                0,  # priority
-                None,  # lock
-                None,  # queueing_lock
-                {},  # args
-                None,  # scheduled_at
+            t.JobToDefer(
+                queue_name="default",
+                task_name="mytask",
+                priority=0,
+                lock=None,
+                queueing_lock=None,
+                args={},
+                scheduled_at=None,
             )
         ]
     )
     await connector.defer_jobs_all(
         [
-            (
-                "default",  # queue
-                "mytask",  # task_name
-                0,  # priority
-                None,  # lock
-                None,  # queueing_lock
-                {},  # args
-                None,  # scheduled_at
+            t.JobToDefer(
+                queue_name="default",
+                task_name="mytask",
+                priority=0,
+                lock=None,
+                queueing_lock=None,
+                args={},
+                scheduled_at=None,
             )
         ]
     )
@@ -125,23 +126,23 @@ async def test_defer_one_job_multiple_times(connector: testing.InMemoryConnector
 async def test_defer_multiple_jobs_at_once(connector: testing.InMemoryConnector):
     await connector.defer_jobs_all(
         [
-            (
-                "default",  # queue
-                "mytask",  # task_name
-                0,  # priority
-                None,  # lock
-                None,  # queueing_lock
-                {},  # args
-                None,  # scheduled_at
+            t.JobToDefer(
+                queue_name="default",
+                task_name="mytask",
+                priority=0,
+                lock=None,
+                queueing_lock=None,
+                args={},
+                scheduled_at=None,
             ),
-            (
-                "default",  # queue
-                "mytask",  # task_name
-                0,  # priority
-                None,  # lock
-                None,  # queueing_lock
-                {},  # args
-                None,  # scheduled_at
+            t.JobToDefer(
+                queue_name="default",
+                task_name="mytask",
+                priority=0,
+                lock=None,
+                queueing_lock=None,
+                args={},
+                scheduled_at=None,
             ),
         ]
     )
@@ -151,15 +152,15 @@ async def test_defer_multiple_jobs_at_once(connector: testing.InMemoryConnector)
 async def test_defer_same_job_with_queueing_lock_second_time_after_first_one_succeeded(
     connector: testing.InMemoryConnector,
 ):
-    jobs_to_defer: list[testing.JobToDefer] = [
-        (
-            "default",  # queue
-            "mytask",  # task_name
-            0,  # priority
-            None,  # lock
-            "some-lock",  # queueing_lock
-            {},  # args
-            None,  # scheduled_at
+    jobs_to_defer: list[t.JobToDefer] = [
+        t.JobToDefer(
+            queue_name="default",
+            task_name="mytask",
+            priority=0,
+            lock=None,
+            queueing_lock="some-lock",
+            args={},
+            scheduled_at=None,
         )
     ]
 
@@ -190,23 +191,23 @@ async def test_defer_jobs_all_violates_queueing_lock(
     with pytest.raises(exceptions.UniqueViolation):
         await connector.defer_jobs_all(
             [
-                (
-                    "default",  # queue
-                    "mytask",  # task_name
-                    0,  # priority
-                    None,  # lock
-                    "queueing_lock",  # queueing_lock
-                    {},  # args
-                    None,  # scheduled_at
+                t.JobToDefer(
+                    queue_name="default",
+                    task_name="mytask",
+                    priority=0,
+                    lock=None,
+                    queueing_lock="queueing_lock",
+                    args={},
+                    scheduled_at=None,
                 ),
-                (
-                    "default",  # queue
-                    "mytask",  # task_name
-                    0,  # priority
-                    None,  # lock
-                    "queueing_lock",  # queueing_lock
-                    {},  # args
-                    None,  # scheduled_at
+                t.JobToDefer(
+                    queue_name="default",
+                    task_name="mytask",
+                    priority=0,
+                    lock=None,
+                    queueing_lock="queueing_lock",
+                    args={},
+                    scheduled_at=None,
                 ),
             ]
         )
@@ -388,70 +389,70 @@ async def test_fetch_job_one(connector: testing.InMemoryConnector):
     # This one will be selected, then skipped the second time because it's processing
     await connector.defer_jobs_all(
         [
-            (
-                "marsupilami",  # queue
-                "mytask",  # task_name
-                0,  # priority
-                "a",  # lock
-                "a",  # queueing_lock
-                {},  # args
-                None,  # scheduled_at
+            t.JobToDefer(
+                queue_name="marsupilami",
+                task_name="mytask",
+                priority=0,
+                lock="a",
+                queueing_lock="a",
+                args={},
+                scheduled_at=None,
             )
         ]
     )
     # This one because it's the wrong queue
     await connector.defer_jobs_all(
         [
-            (
-                "other_queue",  # queue
-                "mytask",  # task_name
-                0,  # priority
-                "b",  # lock
-                "b",  # queueing_lock
-                {},  # args
-                None,  # scheduled_at
+            t.JobToDefer(
+                queue_name="other_queue",
+                task_name="mytask",
+                priority=0,
+                lock="b",
+                queueing_lock="b",
+                args={},
+                scheduled_at=None,
             )
         ]
     )
     # This one because of the scheduled_at
     await connector.defer_jobs_all(
         [
-            (
-                "marsupilami",  # queue
-                "mytask",  # task_name
-                0,  # priority
-                "c",  # lock
-                "c",  # queueing_lock
-                {},  # args
-                conftest.aware_datetime(2100, 1, 1),  # scheduled_at
+            t.JobToDefer(
+                queue_name="marsupilami",
+                task_name="mytask",
+                priority=0,
+                lock="c",
+                queueing_lock="c",
+                args={},
+                scheduled_at=conftest.aware_datetime(2100, 1, 1),
             )
         ]
     )
     # This one because of the lock
     await connector.defer_jobs_all(
         [
-            (
-                "marsupilami",  # queue
-                "mytask",  # task_name
-                0,  # priority
-                "a",  # lock
-                "d",  # queueing_lock
-                {},  # args
-                None,  # scheduled_at
+            t.JobToDefer(
+                queue_name="marsupilami",
+                task_name="mytask",
+                priority=0,
+                lock="a",
+                queueing_lock="d",
+                args={},
+                scheduled_at=None,
             )
         ]
     )
     # We're taking this one.
     await connector.defer_jobs_all(
         [
-            (
-                "marsupilami",  # queue
-                "mytask",  # task_name
-                0,  # priority
-                "e",  # lock
-                "e",  # queueing_lock
-                {},  # args
-                None,  # scheduled_at
+            t.JobToDefer(
+                queue_name="marsupilami",
+                task_name="mytask",
+                priority=0,
+                lock="e",
+                queueing_lock="e",
+                args={},
+                scheduled_at=None,
             )
         ]
     )
@@ -470,28 +471,28 @@ async def test_fetch_job_one_prioritized(connector: testing.InMemoryConnector):
     # This one will be selected second as it has a lower priority
     await connector.defer_jobs_all(
         [
-            (
-                "marsupilami",  # queue
-                "mytask",  # task_name
-                5,  # priority
-                None,  # lock
-                None,  # queueing_lock
-                {},  # args
-                None,  # scheduled_at
+            t.JobToDefer(
+                queue_name="marsupilami",
+                task_name="mytask",
+                priority=5,
+                lock=None,
+                queueing_lock=None,
+                args={},
+                scheduled_at=None,
             )
         ]
     )
     # This one will be selected first as it has a higher priority
     await connector.defer_jobs_all(
         [
-            (
-                "marsupilami",  # queue
-                "mytask",  # task_name
-                7,  # priority
-                None,  # lock
-                None,  # queueing_lock
-                {},  # args
-                None,  # scheduled_at
+            t.JobToDefer(
+                queue_name="marsupilami",
+                task_name="mytask",
+                priority=7,
+                lock=None,
+                queueing_lock=None,
+                args={},
+                scheduled_at=None,
             )
         ]
     )
@@ -506,23 +507,23 @@ async def test_fetch_job_one_none_lock(connector: testing.InMemoryConnector):
     """Testing that 2 jobs with locks "None" don't block one another"""
     await connector.defer_jobs_all(
         [
-            (
-                "default",  # queue
-                "mytask",  # task_name
-                0,  # priority
-                None,  # lock
-                None,  # queueing_lock
-                {},  # args
-                None,  # scheduled_at
+            t.JobToDefer(
+                queue_name="default",
+                task_name="mytask",
+                priority=0,
+                lock=None,
+                queueing_lock=None,
+                args={},
+                scheduled_at=None,
             ),
-            (
-                "default",  # queue
-                "mytask",  # task_name
-                0,  # priority
-                None,  # lock
-                None,  # queueing_lock
-                {},  # args
-                None,  # scheduled_at
+            t.JobToDefer(
+                queue_name="default",
+                task_name="mytask",
+                priority=0,
+                lock=None,
+                queueing_lock=None,
+                args={},
+                scheduled_at=None,
             ),
         ]
     )
@@ -536,14 +537,14 @@ async def test_fetch_job_one_none_lock(connector: testing.InMemoryConnector):
 async def test_finish_job_run(connector: testing.InMemoryConnector):
     await connector.defer_jobs_all(
         [
-            (
-                "marsupilami",  # queue
-                "mytask",  # task_name
-                0,  # priority
-                "sher",  # lock
-                "houba",  # queueing_lock
-                {},  # args
-                None,  # scheduled_at
+            t.JobToDefer(
+                queue_name="marsupilami",
+                task_name="mytask",
+                priority=0,
+                lock="sher",
+                queueing_lock="houba",
+                args={},
+                scheduled_at=None,
             )
         ]
     )
@@ -562,14 +563,14 @@ async def test_finish_job_run(connector: testing.InMemoryConnector):
 async def test_retry_job_run(connector: testing.InMemoryConnector):
     await connector.defer_jobs_all(
         [
-            (
-                "marsupilami",  # queue
-                "mytask",  # task_name
-                0,  # priority
-                "sher",  # lock
-                "houba",  # queueing_lock
-                {},  # args
-                None,  # scheduled_at
+            t.JobToDefer(
+                queue_name="marsupilami",
+                task_name="mytask",
+                priority=0,
+                lock="sher",
+                queueing_lock="houba",
+                args={},
+                scheduled_at=None,
             )
         ]
     )
@@ -621,14 +622,14 @@ async def test_defer_no_notify(connector: testing.InMemoryConnector):
     )
     await connector.defer_jobs_all(
         [
-            (
-                "baz",  # queue
-                "foo",  # task_name
-                0,  # priority
-                "bar",  # lock
-                "houba",  # queueing_lock
-                {},  # args
-                None,  # scheduled_at
+            t.JobToDefer(
+                queue_name="baz",
+                task_name="foo",
+                priority=0,
+                lock="bar",
+                queueing_lock="houba",
+                args={},
+                scheduled_at=None,
             )
         ]
     )

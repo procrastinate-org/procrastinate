@@ -4,6 +4,7 @@ import pytest
 
 from procrastinate import manager, testing, utils
 from procrastinate import shell as shell_module
+from procrastinate import types as t
 
 from .. import conftest
 
@@ -28,23 +29,23 @@ async def test_list_jobs(
 ):
     await connector.defer_jobs_all(
         [
-            (
-                "queue1",  # queue
-                "task1",  # task_name
-                0,  # priority
-                "lock1",  # lock
-                "queueing_lock1",  # queueing_lock
-                {},  # args
-                conftest.aware_datetime(2000, 1, 1),  # scheduled_at
+            t.JobToDefer(
+                queue_name="queue1",
+                task_name="task1",
+                priority=0,
+                lock="lock1",
+                queueing_lock="queueing_lock1",
+                args={},
+                scheduled_at=conftest.aware_datetime(2000, 1, 1),
             ),
-            (
-                "queue2",  # queue
-                "task2",  # task_name
-                0,  # priority
-                "lock2",  # lock
-                "queueing_lock2",  # queueing_lock
-                {},  # args
-                conftest.aware_datetime(2000, 1, 1),  # scheduled_at
+            t.JobToDefer(
+                queue_name="queue2",
+                task_name="task2",
+                priority=0,
+                lock="lock2",
+                queueing_lock="queueing_lock2",
+                args={},
+                scheduled_at=conftest.aware_datetime(2000, 1, 1),
             ),
         ]
     )
@@ -78,23 +79,23 @@ async def test_list_jobs_filters(
 ):
     await connector.defer_jobs_all(
         [
-            (
-                "queue1",  # queue
-                "task1",  # task_name
-                0,  # priority
-                "lock1",  # lock
-                "queueing_lock1",  # queueing_lock
-                {},  # args
-                conftest.aware_datetime(2000, 1, 1),  # scheduled_at
+            t.JobToDefer(
+                queue_name="queue1",
+                task_name="task1",
+                priority=0,
+                lock="lock1",
+                queueing_lock="queueing_lock1",
+                args={},
+                scheduled_at=conftest.aware_datetime(2000, 1, 1),
             ),
-            (
-                "queue2",  # queue
-                "task2",  # task_name
-                0,  # priority
-                "lock2",  # lock
-                "queueing_lock2",  # queueing_lock
-                {},  # args
-                conftest.aware_datetime(2000, 1, 1),  # scheduled_at
+            t.JobToDefer(
+                queue_name="queue2",
+                task_name="task2",
+                priority=0,
+                lock="lock2",
+                queueing_lock="queueing_lock2",
+                args={},
+                scheduled_at=conftest.aware_datetime(2000, 1, 1),
             ),
         ]
     )
@@ -129,23 +130,23 @@ async def test_list_jobs_details(
 ):
     await connector.defer_jobs_all(
         [
-            (
-                "queue1",  # queue
-                "task1",  # task_name
-                5,  # priority
-                "lock1",  # lock
-                "queueing_lock1",  # queueing_lock
-                {"x": 11},  # args
-                conftest.aware_datetime(1000, 1, 1),  # scheduled_at
+            t.JobToDefer(
+                queue_name="queue1",
+                task_name="task1",
+                priority=5,
+                lock="lock1",
+                queueing_lock="queueing_lock1",
+                args={"x": 11},
+                scheduled_at=conftest.aware_datetime(1000, 1, 1),
             ),
-            (
-                "queue2",  # queue
-                "task2",  # task_name
-                7,  # priority
-                "lock2",  # lock
-                "queueing_lock2",  # queueing_lock
-                {"y": 22},  # args
-                conftest.aware_datetime(2000, 1, 1),  # scheduled_at
+            t.JobToDefer(
+                queue_name="queue2",
+                task_name="task2",
+                priority=7,
+                lock="lock2",
+                queueing_lock="queueing_lock2",
+                args={"y": 22},
+                scheduled_at=conftest.aware_datetime(2000, 1, 1),
             ),
         ]
     )
@@ -177,23 +178,23 @@ async def test_list_queues(
 ):
     await connector.defer_jobs_all(
         [
-            (
-                "queue1",  # queue
-                "task1",  # task_name
-                0,  # priority
-                "lock1",  # lock
-                "queueing_lock1",  # queueing_lock
-                {},  # args
-                conftest.aware_datetime(2000, 1, 1),  # scheduled_at
+            t.JobToDefer(
+                queue_name="queue1",
+                task_name="task1",
+                priority=0,
+                lock="lock1",
+                queueing_lock="queueing_lock1",
+                args={},
+                scheduled_at=conftest.aware_datetime(2000, 1, 1),
             ),
-            (
-                "queue2",  # queue
-                "task2",  # task_name
-                0,  # priority
-                "lock2",  # lock
-                "queueing_lock2",  # queueing_lock
-                {},  # args
-                conftest.aware_datetime(2000, 1, 1),  # scheduled_at
+            t.JobToDefer(
+                queue_name="queue2",
+                task_name="task2",
+                priority=0,
+                lock="lock2",
+                queueing_lock="queueing_lock2",
+                args={},
+                scheduled_at=conftest.aware_datetime(2000, 1, 1),
             ),
         ]
     )
@@ -219,23 +220,23 @@ async def test_list_queues_filters(
 ):
     await connector.defer_jobs_all(
         [
-            (
-                "queue1",  # queue
-                "task1",  # task_name
-                0,  # priority
-                "lock1",  # lock
-                "queueing_lock1",  # queueing_lock
-                {},  # args
-                conftest.aware_datetime(2000, 1, 1),  # scheduled_at
+            t.JobToDefer(
+                queue_name="queue1",
+                task_name="task1",
+                priority=0,
+                lock="lock1",
+                queueing_lock="queueing_lock1",
+                args={},
+                scheduled_at=conftest.aware_datetime(2000, 1, 1),
             ),
-            (
-                "queue2",  # queue
-                "task2",  # task_name
-                0,  # priority
-                "lock2",  # lock
-                "queueing_lock2",  # queueing_lock
-                {},  # args
-                conftest.aware_datetime(2000, 1, 1),  # scheduled_at
+            t.JobToDefer(
+                queue_name="queue2",
+                task_name="task2",
+                priority=0,
+                lock="lock2",
+                queueing_lock="queueing_lock2",
+                args={},
+                scheduled_at=conftest.aware_datetime(2000, 1, 1),
             ),
         ]
     )
@@ -277,23 +278,23 @@ async def test_list_tasks(
 ):
     await connector.defer_jobs_all(
         [
-            (
-                "queue1",  # queue
-                "task1",  # task_name
-                0,  # priority
-                "lock1",  # lock
-                "queueing_lock1",  # queueing_lock
-                {},  # args
-                conftest.aware_datetime(2000, 1, 1),  # scheduled_at
+            t.JobToDefer(
+                queue_name="queue1",
+                task_name="task1",
+                priority=0,
+                lock="lock1",
+                queueing_lock="queueing_lock1",
+                args={},
+                scheduled_at=conftest.aware_datetime(2000, 1, 1),
             ),
-            (
-                "queue2",  # queue
-                "task2",  # task_name
-                0,  # priority
-                "lock2",  # lock
-                "queueing_lock2",  # queueing_lock
-                {},  # args
-                conftest.aware_datetime(2000, 1, 1),  # scheduled_at
+            t.JobToDefer(
+                queue_name="queue2",
+                task_name="task2",
+                priority=0,
+                lock="lock2",
+                queueing_lock="queueing_lock2",
+                args={},
+                scheduled_at=conftest.aware_datetime(2000, 1, 1),
             ),
         ]
     )
@@ -319,23 +320,23 @@ async def test_list_tasks_filters(
 ):
     await connector.defer_jobs_all(
         [
-            (
-                "queue1",  # queue
-                "task1",  # task_name
-                0,  # priority
-                "lock1",  # lock
-                "queueing_lock1",  # queueing_lock
-                {},  # args
-                conftest.aware_datetime(2000, 1, 1),  # scheduled_at
+            t.JobToDefer(
+                queue_name="queue1",
+                task_name="task1",
+                priority=0,
+                lock="lock1",
+                queueing_lock="queueing_lock1",
+                args={},
+                scheduled_at=conftest.aware_datetime(2000, 1, 1),
             ),
-            (
-                "queue2",  # queue
-                "task2",  # task_name
-                0,  # priority
-                "lock2",  # lock
-                "queueing_lock2",  # queueing_lock
-                {},  # args
-                conftest.aware_datetime(2000, 1, 1),  # scheduled_at
+            t.JobToDefer(
+                queue_name="queue2",
+                task_name="task2",
+                priority=0,
+                lock="lock2",
+                queueing_lock="queueing_lock2",
+                args={},
+                scheduled_at=conftest.aware_datetime(2000, 1, 1),
             ),
         ]
     )
@@ -377,23 +378,23 @@ async def test_list_locks(
 ):
     await connector.defer_jobs_all(
         [
-            (
-                "queue1",  # queue
-                "task1",  # task_name
-                0,  # priority
-                "lock1",  # lock
-                "queueing_lock1",  # queueing_lock
-                {},  # args
-                conftest.aware_datetime(2000, 1, 1),  # scheduled_at
+            t.JobToDefer(
+                queue_name="queue1",
+                task_name="task1",
+                priority=0,
+                lock="lock1",
+                queueing_lock="queueing_lock1",
+                args={},
+                scheduled_at=conftest.aware_datetime(2000, 1, 1),
             ),
-            (
-                "queue2",  # queue
-                "task2",  # task_name
-                0,  # priority
-                "lock2",  # lock
-                "queueing_lock2",  # queueing_lock
-                {},  # args
-                conftest.aware_datetime(2000, 1, 1),  # scheduled_at
+            t.JobToDefer(
+                queue_name="queue2",
+                task_name="task2",
+                priority=0,
+                lock="lock2",
+                queueing_lock="queueing_lock2",
+                args={},
+                scheduled_at=conftest.aware_datetime(2000, 1, 1),
             ),
         ]
     )
@@ -419,23 +420,23 @@ async def test_list_locks_filters(
 ):
     await connector.defer_jobs_all(
         [
-            (
-                "queue1",  # queue
-                "task1",  # task_name
-                0,  # priority
-                "lock1",  # lock
-                "queueing_lock1",  # queueing_lock
-                {},  # args
-                conftest.aware_datetime(2000, 1, 1),  # scheduled_at
+            t.JobToDefer(
+                queue_name="queue1",
+                task_name="task1",
+                priority=0,
+                lock="lock1",
+                queueing_lock="queueing_lock1",
+                args={},
+                scheduled_at=conftest.aware_datetime(2000, 1, 1),
             ),
-            (
-                "queue2",  # queue
-                "task2",  # task_name
-                0,  # priority
-                "lock2",  # lock
-                "queueing_lock2",  # queueing_lock
-                {},  # args
-                conftest.aware_datetime(2000, 1, 1),  # scheduled_at
+            t.JobToDefer(
+                queue_name="queue2",
+                task_name="task2",
+                priority=0,
+                lock="lock2",
+                queueing_lock="queueing_lock2",
+                args={},
+                scheduled_at=conftest.aware_datetime(2000, 1, 1),
             ),
         ]
     )
@@ -477,14 +478,14 @@ async def test_retry(
 ):
     await connector.defer_jobs_all(
         [
-            (
-                "queue",  # queue
-                "task",  # task_name
-                0,  # priority
-                "lock",  # lock
-                "queueing_lock",  # queueing_lock
-                {},  # args
-                conftest.aware_datetime(2000, 1, 1),  # scheduled_at
+            t.JobToDefer(
+                queue_name="queue",
+                task_name="task",
+                priority=0,
+                lock="lock",
+                queueing_lock="queueing_lock",
+                args={},
+                scheduled_at=conftest.aware_datetime(2000, 1, 1),
             ),
         ]
     )
@@ -506,14 +507,14 @@ async def test_cancel(
 ):
     await connector.defer_jobs_all(
         [
-            (
-                "queue",  # queue
-                "task",  # task_name
-                0,  # priority
-                "lock",  # lock
-                "queueing_lock",  # queueing_lock
-                {},  # args
-                conftest.aware_datetime(2000, 1, 1),  # scheduled_at
+            t.JobToDefer(
+                queue_name="queue",
+                task_name="task",
+                priority=0,
+                lock="lock",
+                queueing_lock="queueing_lock",
+                args={},
+                scheduled_at=conftest.aware_datetime(2000, 1, 1),
             ),
         ]
     )

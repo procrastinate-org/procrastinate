@@ -7,7 +7,7 @@ import warnings
 from collections.abc import Awaitable, Iterable
 from typing import Any, NoReturn, Protocol
 
-from procrastinate import connector, exceptions, sql, utils
+from procrastinate import connector, exceptions, sql, types, utils
 from procrastinate import jobs as jobs_module
 
 logger = logging.getLogger(__name__)
@@ -124,14 +124,14 @@ class JobManager:
         return {
             "query": sql.queries["defer_jobs"],
             "jobs": [
-                (
-                    job.queue,
-                    job.task_name,
-                    job.priority,
-                    job.lock,
-                    job.queueing_lock,
-                    job.task_kwargs,
-                    job.scheduled_at,
+                types.JobToDefer(
+                    queue_name=job.queue,
+                    task_name=job.task_name,
+                    priority=job.priority,
+                    lock=job.lock,
+                    queueing_lock=job.queueing_lock,
+                    args=job.task_kwargs,
+                    scheduled_at=job.scheduled_at,
                 )
                 for job in jobs
             ],
