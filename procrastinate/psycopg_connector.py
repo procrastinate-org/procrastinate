@@ -176,6 +176,8 @@ class PsycopgConnector(connector.BaseAsyncConnector):
             return psycopg.types.json.Jsonb(value)
         elif isinstance(value, list):
             return [self._wrap_value(item) for item in value]
+        elif isinstance(value, tuple):
+            return tuple([self._wrap_value(item) for item in value])
         else:
             return value
 

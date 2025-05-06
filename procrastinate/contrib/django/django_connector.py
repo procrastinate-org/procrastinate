@@ -116,6 +116,8 @@ class DjangoConnector(connector.BaseAsyncConnector):
             return Jsonb(value)
         elif isinstance(value, list):
             return [self._wrap_value(item) for item in value]
+        elif isinstance(value, tuple):
+            return tuple([self._wrap_value(item) for item in value])
         else:
             return value
 
@@ -140,7 +142,9 @@ class DjangoConnector(connector.BaseAsyncConnector):
         self, query: LiteralString, **arguments: Any
     ) -> list[dict[str, Any]]:
         with self.connection.cursor() as cursor:
-            cursor.execute(query, self._wrap_json(arguments))
+            v = self._wrap_json(arguments)
+            print(f"Executing query: {query} with arguments: {v}")
+            cursor.execute(query, v)
             return list(self._dictfetch(cursor))
 
     async def listen_notify(

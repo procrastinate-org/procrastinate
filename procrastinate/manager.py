@@ -123,13 +123,18 @@ class JobManager:
     def _defer_jobs_query_kwargs(self, jobs: list[jobs_module.Job]) -> dict[str, Any]:
         return {
             "query": sql.queries["defer_jobs"],
-            "task_names": [job.task_name for job in jobs],
-            "queues": [job.queue for job in jobs],
-            "priorities": [job.priority for job in jobs],
-            "locks": [job.lock for job in jobs],
-            "queueing_locks": [job.queueing_lock for job in jobs],
-            "args_list": [job.task_kwargs for job in jobs],
-            "scheduled_ats": [job.scheduled_at for job in jobs],
+            "jobs": [
+                (
+                    job.queue,
+                    job.task_name,
+                    job.priority,
+                    job.lock,
+                    job.queueing_lock,
+                    job.task_kwargs,
+                    job.scheduled_at,
+                )
+                for job in jobs
+            ],
         }
 
     def _raise_already_enqueued(

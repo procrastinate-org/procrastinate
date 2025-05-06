@@ -100,25 +100,33 @@ async def test_execute_query(psycopg_connector):
 async def test_wrap_exceptions(psycopg_connector):
     await psycopg_connector.execute_query_async(
         """SELECT procrastinate_defer_jobs_v1(
-            ARRAY['queue']::character varying[],
-            ARRAY['foo']::character varying[],
-            ARRAY[0]::integer[],
-            ARRAY[NULL]::text[],
-            ARRAY['lock']::text[],
-            ARRAY['{}']::jsonb[],
-            ARRAY[NULL::timestamptz]
+            ARRAY[
+                ROW(
+                    'queue'::character varying,
+                    'foo'::character varying,
+                    0::integer,
+                    NULL::text,
+                    'lock'::text,
+                    '{}'::jsonb,
+                    NULL::timestamptz
+                )
+            ]::procrastinate_job_to_defer_v1[]
         ) AS id;"""
     )
     with pytest.raises(exceptions.UniqueViolation):
         await psycopg_connector.execute_query_async(
             """SELECT procrastinate_defer_jobs_v1(
-                ARRAY['queue']::character varying[],
-                ARRAY['foo']::character varying[],
-                ARRAY[0]::integer[],
-                ARRAY[NULL]::text[],
-                ARRAY['lock']::text[],
-                ARRAY['{}']::jsonb[],
-                ARRAY[NULL::timestamptz]
+                ARRAY[
+                    ROW(
+                        'queue'::character varying,
+                        'foo'::character varying,
+                        0::integer,
+                        NULL::text,
+                        'lock'::text,
+                        '{}'::jsonb,
+                        NULL::timestamptz
+                    )
+                ]::procrastinate_job_to_defer_v1[]
             ) AS id;"""
         )
 

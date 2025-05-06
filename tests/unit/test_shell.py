@@ -2,34 +2,51 @@ from __future__ import annotations
 
 import pytest
 
-from procrastinate import manager, utils
+from procrastinate import manager, testing, utils
 from procrastinate import shell as shell_module
 
 from .. import conftest
 
 
 @pytest.fixture
-def shell(connector):
+def shell(connector: testing.InMemoryConnector):
     return shell_module.ProcrastinateShell(manager.JobManager(connector=connector))
 
 
-def test_exit(shell):
+def test_exit(shell: shell_module.ProcrastinateShell):
     assert shell.do_exit("") is True
 
 
-def test_EOF(shell):
+def test_EOF(shell: shell_module.ProcrastinateShell):
     assert shell.do_EOF("") is True
 
 
-async def test_list_jobs(shell, connector, capsys):
+async def test_list_jobs(
+    shell: shell_module.ProcrastinateShell,
+    connector: testing.InMemoryConnector,
+    capsys: pytest.CaptureFixture,
+):
     await connector.defer_jobs_all(
-        ["task1", "task2"],
-        [0, 0],
-        ["lock1", "lock2"],
-        ["queueing_lock1", "queueing_lock2"],
-        [{}, {}],
-        [conftest.aware_datetime(2000, 1, 1), conftest.aware_datetime(2000, 1, 1)],
-        ["queue1", "queue2"],
+        [
+            (
+                "queue1",  # queue
+                "task1",  # task_name
+                0,  # priority
+                "lock1",  # lock
+                "queueing_lock1",  # queueing_lock
+                {},  # args
+                conftest.aware_datetime(2000, 1, 1),  # scheduled_at
+            ),
+            (
+                "queue2",  # queue
+                "task2",  # task_name
+                0,  # priority
+                "lock2",  # lock
+                "queueing_lock2",  # queueing_lock
+                {},  # args
+                conftest.aware_datetime(2000, 1, 1),  # scheduled_at
+            ),
+        ]
     )
 
     await utils.sync_to_async(shell.do_list_jobs, "")
@@ -54,15 +71,32 @@ async def test_list_jobs(shell, connector, capsys):
     ]
 
 
-async def test_list_jobs_filters(shell, connector, capsys):
+async def test_list_jobs_filters(
+    shell: shell_module.ProcrastinateShell,
+    connector: testing.InMemoryConnector,
+    capsys: pytest.CaptureFixture,
+):
     await connector.defer_jobs_all(
-        ["task1", "task2"],
-        [0, 0],
-        ["lock1", "lock2"],
-        ["queueing_lock1", "queueing_lock2"],
-        [{}, {}],
-        [conftest.aware_datetime(2000, 1, 1), conftest.aware_datetime(2000, 1, 1)],
-        ["queue1", "queue2"],
+        [
+            (
+                "queue1",  # queue
+                "task1",  # task_name
+                0,  # priority
+                "lock1",  # lock
+                "queueing_lock1",  # queueing_lock
+                {},  # args
+                conftest.aware_datetime(2000, 1, 1),  # scheduled_at
+            ),
+            (
+                "queue2",  # queue
+                "task2",  # task_name
+                0,  # priority
+                "lock2",  # lock
+                "queueing_lock2",  # queueing_lock
+                {},  # args
+                conftest.aware_datetime(2000, 1, 1),  # scheduled_at
+            ),
+        ]
     )
 
     await utils.sync_to_async(
@@ -88,15 +122,32 @@ async def test_list_jobs_filters(shell, connector, capsys):
     ]
 
 
-async def test_list_jobs_details(shell, connector, capsys):
+async def test_list_jobs_details(
+    shell: shell_module.ProcrastinateShell,
+    connector: testing.InMemoryConnector,
+    capsys: pytest.CaptureFixture,
+):
     await connector.defer_jobs_all(
-        ["task1", "task2"],
-        [5, 7],
-        ["lock1", "lock2"],
-        ["queueing_lock1", "queueing_lock2"],
-        [{"x": 11}, {"y": 22}],
-        [conftest.aware_datetime(1000, 1, 1), conftest.aware_datetime(2000, 1, 1)],
-        ["queue1", "queue2"],
+        [
+            (
+                "queue1",  # queue
+                "task1",  # task_name
+                5,  # priority
+                "lock1",  # lock
+                "queueing_lock1",  # queueing_lock
+                {"x": 11},  # args
+                conftest.aware_datetime(1000, 1, 1),  # scheduled_at
+            ),
+            (
+                "queue2",  # queue
+                "task2",  # task_name
+                7,  # priority
+                "lock2",  # lock
+                "queueing_lock2",  # queueing_lock
+                {"y": 22},  # args
+                conftest.aware_datetime(2000, 1, 1),  # scheduled_at
+            ),
+        ]
     )
 
     await utils.sync_to_async(shell.do_list_jobs, "details")
@@ -109,21 +160,42 @@ async def test_list_jobs_details(shell, connector, capsys):
     ]
 
 
-async def test_list_jobs_empty(shell, connector, capsys):
+async def test_list_jobs_empty(
+    shell: shell_module.ProcrastinateShell,
+    connector: testing.InMemoryConnector,
+    capsys: pytest.CaptureFixture,
+):
     await utils.sync_to_async(shell.do_list_jobs, "")
     captured = capsys.readouterr()
     assert captured.out == ""
 
 
-async def test_list_queues(shell, connector, capsys):
+async def test_list_queues(
+    shell: shell_module.ProcrastinateShell,
+    connector: testing.InMemoryConnector,
+    capsys: pytest.CaptureFixture,
+):
     await connector.defer_jobs_all(
-        ["task1", "task2"],
-        [0, 0],
-        ["lock1", "lock2"],
-        ["queueing_lock1", "queueing_lock2"],
-        [{}, {}],
-        [0, 0],
-        ["queue1", "queue2"],
+        [
+            (
+                "queue1",  # queue
+                "task1",  # task_name
+                0,  # priority
+                "lock1",  # lock
+                "queueing_lock1",  # queueing_lock
+                {},  # args
+                conftest.aware_datetime(2000, 1, 1),  # scheduled_at
+            ),
+            (
+                "queue2",  # queue
+                "task2",  # task_name
+                0,  # priority
+                "lock2",  # lock
+                "queueing_lock2",  # queueing_lock
+                {},  # args
+                conftest.aware_datetime(2000, 1, 1),  # scheduled_at
+            ),
+        ]
     )
 
     await utils.sync_to_async(shell.do_list_queues, "")
@@ -140,15 +212,32 @@ async def test_list_queues(shell, connector, capsys):
     ]
 
 
-async def test_list_queues_filters(shell, connector, capsys):
+async def test_list_queues_filters(
+    shell: shell_module.ProcrastinateShell,
+    connector: testing.InMemoryConnector,
+    capsys: pytest.CaptureFixture,
+):
     await connector.defer_jobs_all(
-        ["task1", "task2"],
-        [0, 0],
-        ["lock1", "lock2"],
-        ["queueing_lock1", "queueing_lock2"],
-        [{}, {}],
-        [0, 0],
-        ["queue1", "queue2"],
+        [
+            (
+                "queue1",  # queue
+                "task1",  # task_name
+                0,  # priority
+                "lock1",  # lock
+                "queueing_lock1",  # queueing_lock
+                {},  # args
+                conftest.aware_datetime(2000, 1, 1),  # scheduled_at
+            ),
+            (
+                "queue2",  # queue
+                "task2",  # task_name
+                0,  # priority
+                "lock2",  # lock
+                "queueing_lock2",  # queueing_lock
+                {},  # args
+                conftest.aware_datetime(2000, 1, 1),  # scheduled_at
+            ),
+        ]
     )
 
     await utils.sync_to_async(
@@ -171,21 +260,42 @@ async def test_list_queues_filters(shell, connector, capsys):
     ]
 
 
-async def test_list_queues_empty(shell, connector, capsys):
+async def test_list_queues_empty(
+    shell: shell_module.ProcrastinateShell,
+    connector: testing.InMemoryConnector,
+    capsys: pytest.CaptureFixture,
+):
     await utils.sync_to_async(shell.do_list_queues, "")
     captured = capsys.readouterr()
     assert captured.out == ""
 
 
-async def test_list_tasks(shell, connector, capsys):
+async def test_list_tasks(
+    shell: shell_module.ProcrastinateShell,
+    connector: testing.InMemoryConnector,
+    capsys: pytest.CaptureFixture,
+):
     await connector.defer_jobs_all(
-        ["task1", "task2"],
-        [0, 0],
-        ["lock1", "lock2"],
-        ["queueing_lock1", "queueing_lock2"],
-        [{}, {}],
-        [0, 0],
-        ["queue1", "queue2"],
+        [
+            (
+                "queue1",  # queue
+                "task1",  # task_name
+                0,  # priority
+                "lock1",  # lock
+                "queueing_lock1",  # queueing_lock
+                {},  # args
+                conftest.aware_datetime(2000, 1, 1),  # scheduled_at
+            ),
+            (
+                "queue2",  # queue
+                "task2",  # task_name
+                0,  # priority
+                "lock2",  # lock
+                "queueing_lock2",  # queueing_lock
+                {},  # args
+                conftest.aware_datetime(2000, 1, 1),  # scheduled_at
+            ),
+        ]
     )
 
     await utils.sync_to_async(shell.do_list_tasks, "")
@@ -202,15 +312,32 @@ async def test_list_tasks(shell, connector, capsys):
     ]
 
 
-async def test_list_tasks_filters(shell, connector, capsys):
+async def test_list_tasks_filters(
+    shell: shell_module.ProcrastinateShell,
+    connector: testing.InMemoryConnector,
+    capsys: pytest.CaptureFixture,
+):
     await connector.defer_jobs_all(
-        ["task1", "task2"],
-        [0, 0],
-        ["lock1", "lock2"],
-        ["queueing_lock1", "queueing_lock2"],
-        [{}, {}],
-        [0, 0],
-        ["queue1", "queue2"],
+        [
+            (
+                "queue1",  # queue
+                "task1",  # task_name
+                0,  # priority
+                "lock1",  # lock
+                "queueing_lock1",  # queueing_lock
+                {},  # args
+                conftest.aware_datetime(2000, 1, 1),  # scheduled_at
+            ),
+            (
+                "queue2",  # queue
+                "task2",  # task_name
+                0,  # priority
+                "lock2",  # lock
+                "queueing_lock2",  # queueing_lock
+                {},  # args
+                conftest.aware_datetime(2000, 1, 1),  # scheduled_at
+            ),
+        ]
     )
 
     await utils.sync_to_async(
@@ -233,21 +360,42 @@ async def test_list_tasks_filters(shell, connector, capsys):
     ]
 
 
-async def test_list_tasks_empty(shell, connector, capsys):
+async def test_list_tasks_empty(
+    shell: shell_module.ProcrastinateShell,
+    connector: testing.InMemoryConnector,
+    capsys: pytest.CaptureFixture,
+):
     await utils.sync_to_async(shell.do_list_tasks, "")
     captured = capsys.readouterr()
     assert captured.out == ""
 
 
-async def test_list_locks(shell, connector, capsys):
+async def test_list_locks(
+    shell: shell_module.ProcrastinateShell,
+    connector: testing.InMemoryConnector,
+    capsys: pytest.CaptureFixture,
+):
     await connector.defer_jobs_all(
-        ["task1", "task2"],
-        [0, 0],
-        ["lock1", "lock2"],
-        ["queueing_lock1", "queueing_lock2"],
-        [{}, {}],
-        [0, 0],
-        ["queue1", "queue2"],
+        [
+            (
+                "queue1",  # queue
+                "task1",  # task_name
+                0,  # priority
+                "lock1",  # lock
+                "queueing_lock1",  # queueing_lock
+                {},  # args
+                conftest.aware_datetime(2000, 1, 1),  # scheduled_at
+            ),
+            (
+                "queue2",  # queue
+                "task2",  # task_name
+                0,  # priority
+                "lock2",  # lock
+                "queueing_lock2",  # queueing_lock
+                {},  # args
+                conftest.aware_datetime(2000, 1, 1),  # scheduled_at
+            ),
+        ]
     )
 
     await utils.sync_to_async(shell.do_list_locks, "")
@@ -264,15 +412,32 @@ async def test_list_locks(shell, connector, capsys):
     ]
 
 
-async def test_list_locks_filters(shell, connector, capsys):
+async def test_list_locks_filters(
+    shell: shell_module.ProcrastinateShell,
+    connector: testing.InMemoryConnector,
+    capsys: pytest.CaptureFixture,
+):
     await connector.defer_jobs_all(
-        ["task1", "task2"],
-        [0, 0],
-        ["lock1", "lock2"],
-        ["queueing_lock1", "queueing_lock2"],
-        [{}, {}],
-        [0, 0],
-        ["queue1", "queue2"],
+        [
+            (
+                "queue1",  # queue
+                "task1",  # task_name
+                0,  # priority
+                "lock1",  # lock
+                "queueing_lock1",  # queueing_lock
+                {},  # args
+                conftest.aware_datetime(2000, 1, 1),  # scheduled_at
+            ),
+            (
+                "queue2",  # queue
+                "task2",  # task_name
+                0,  # priority
+                "lock2",  # lock
+                "queueing_lock2",  # queueing_lock
+                {},  # args
+                conftest.aware_datetime(2000, 1, 1),  # scheduled_at
+            ),
+        ]
     )
 
     await utils.sync_to_async(
@@ -295,21 +460,33 @@ async def test_list_locks_filters(shell, connector, capsys):
     ]
 
 
-async def test_list_locks_empty(shell, connector, capsys):
+async def test_list_locks_empty(
+    shell: shell_module.ProcrastinateShell,
+    connector: testing.InMemoryConnector,
+    capsys: pytest.CaptureFixture,
+):
     await utils.sync_to_async(shell.do_list_locks, "")
     captured = capsys.readouterr()
     assert captured.out == ""
 
 
-async def test_retry(shell, connector, capsys):
+async def test_retry(
+    shell: shell_module.ProcrastinateShell,
+    connector: testing.InMemoryConnector,
+    capsys: pytest.CaptureFixture,
+):
     await connector.defer_jobs_all(
-        ["task"],
-        [0],
-        ["lock"],
-        ["queueing_lock"],
-        [{}],
-        [conftest.aware_datetime(2000, 1, 1)],
-        ["queue"],
+        [
+            (
+                "queue",  # queue
+                "task",  # task_name
+                0,  # priority
+                "lock",  # lock
+                "queueing_lock",  # queueing_lock
+                {},  # args
+                conftest.aware_datetime(2000, 1, 1),  # scheduled_at
+            ),
+        ]
     )
     await connector.set_job_status_run(1, "failed")
 
@@ -322,15 +499,23 @@ async def test_retry(shell, connector, capsys):
     assert captured.out.strip() == "#1 task on queue - [todo]"
 
 
-async def test_cancel(shell, connector, capsys):
+async def test_cancel(
+    shell: shell_module.ProcrastinateShell,
+    connector: testing.InMemoryConnector,
+    capsys: pytest.CaptureFixture,
+):
     await connector.defer_jobs_all(
-        ["task"],
-        [0],
-        ["lock"],
-        ["queueing_lock"],
-        [{}],
-        [conftest.aware_datetime(2000, 1, 1)],
-        ["queue"],
+        [
+            (
+                "queue",  # queue
+                "task",  # task_name
+                0,  # priority
+                "lock",  # lock
+                "queueing_lock",  # queueing_lock
+                {},  # args
+                conftest.aware_datetime(2000, 1, 1),  # scheduled_at
+            ),
+        ]
     )
 
     await utils.sync_to_async(shell.do_list_jobs, "id=1")

@@ -7,13 +7,7 @@
 -- Create and enqueue one or more jobs
 SELECT  unnest(
   procrastinate_defer_jobs_v1(
-    %(queues)s::varchar[],
-    %(task_names)s::varchar[],
-    %(priorities)s::integer[],
-    %(locks)s::text[],
-    %(queueing_locks)s::text[],
-    %(args_list)s::jsonb[],
-    %(scheduled_ats)s::timestamp with time zone[]
+    %(jobs)s::procrastinate_job_to_defer_v1[]
   )
 ) AS id;
 

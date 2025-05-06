@@ -233,6 +233,8 @@ class AiopgConnector(connector.BaseAsyncConnector):
             return Json(value, dumps=self.json_dumps)
         elif isinstance(value, list):
             return [self._wrap_value(item) for item in value]
+        elif isinstance(value, tuple):
+            return tuple([self._wrap_value(item) for item in value])
         else:
             return value
 

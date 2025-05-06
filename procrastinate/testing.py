@@ -5,12 +5,21 @@ import json
 from collections import Counter
 from collections.abc import Iterable
 from itertools import count
-from typing import Any
+from typing import Any, Union
 
 from procrastinate import connector, exceptions, jobs, schema, sql, types, utils
 
 JobRow = dict[str, Any]
 EventRow = dict[str, Any]
+JobToDefer = tuple[
+    str,  # queue_name
+    str,  # task_name
+    int,  # priority
+    Union[str, None],  # lock
+    Union[str, None],  # queueing_lock
+    types.JSONDict,  # args
+    Union[datetime.datetime, None],  # scheduled_at
+]
 
 
 class InMemoryConnector(connector.BaseAsyncConnector):
@@ -94,35 +103,13 @@ class InMemoryConnector(connector.BaseAsyncConnector):
 
     # End of BaseConnector methods
 
-    async def defer_jobs_all(
-        self,
-        task_names: list[str],
-        priorities: list[int],
-        locks: list[str | None],
-        queueing_locks: list[str | None],
-        args_list: list[types.JSONDict],
-        scheduled_ats: list[datetime.datetime | None],
-        queues: list[str],
-    ) -> list[JobRow]:
-        list_length = len(queues)
-        if not all(
-            len(lst) == list_length
-            for lst in [
-                task_names,
-                priorities,
-                locks,
-                queueing_locks,
-                args_list,
-                scheduled_ats,
-            ]
-        ):
-            raise ValueError("All input lists must have the same length")
-
+    async def defer_jobs_all(self, jobs: list[JobToDefer]) -> list[JobRow]:
         # We check the queueing locks upfront so that no job is inserted into
         # the queue if the constraint is violated (simulating a database
         # rollback).
         seen_locks = set()
-        for queueing_lock in queueing_locks:
+        for job in jobs:
+            queueing_lock = job[4]
             if queueing_lock is not None and (
                 any(
                     job["queueing_lock"] == queueing_lock and job["status"] == "todo"
@@ -139,14 +126,14 @@ class InMemoryConnector(connector.BaseAsyncConnector):
             seen_locks.add(queueing_lock)
 
         job_rows = []
-        for index in range(list_length):
-            task_name = task_names[index]
-            priority = priorities[index]
-            lock = locks[index]
-            queueing_lock = queueing_locks[index]
-            args = args_list[index]
-            scheduled_at = scheduled_ats[index]
-            queue = queues[index]
+        for job in jobs:
+            queue: str = job[0]
+            task_name: str = job[1]
+            priority: int = job[2]
+            lock: str | None = job[3]
+            queueing_lock: str | None = job[4]
+            args: types.JSONDict = job[5]
+            scheduled_at: datetime.datetime | None = job[6]
 
             id = next(self.job_counter)
 
@@ -197,13 +184,17 @@ class InMemoryConnector(connector.BaseAsyncConnector):
 
         self.periodic_defers[(task_name, periodic_id)] = defer_timestamp
         job_rows = await self.defer_jobs_all(
-            task_names=[task_name],
-            priorities=[priority],
-            locks=[lock],
-            queueing_locks=[queueing_lock],
-            args_list=[args],
-            scheduled_ats=[None],
-            queues=[queue],
+            [
+                (
+                    queue,
+                    task_name,
+                    priority,
+                    lock,
+                    queueing_lock,
+                    args,
+                    None,
+                )
+            ]
         )
         return job_rows[0]
 

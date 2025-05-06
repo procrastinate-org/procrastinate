@@ -26,6 +26,18 @@ CREATE TYPE procrastinate_job_event_type AS ENUM (
     'scheduled' -- not a state transition, but recording when a task is scheduled for
 );
 
+-- Composite Types
+
+CREATE TYPE procrastinate_job_to_defer_v1 AS (
+    queue_name character varying,
+    task_name character varying,
+    priority integer,
+    lock text,
+    queueing_lock text,
+    args jsonb,
+    scheduled_at timestamp with time zone
+);
+
 -- Tables
 
 CREATE TABLE procrastinate_workers(
@@ -87,13 +99,7 @@ CREATE INDEX idx_procrastinate_workers_last_heartbeat ON procrastinate_workers(l
 
 -- Functions
 CREATE FUNCTION procrastinate_defer_jobs_v1(
-    queue_names character varying[],
-    task_names character varying[],
-    priorities integer[],
-    locks text[],
-    queueing_locks text[],
-    args_list jsonb[],
-    scheduled_ats timestamp with time zone[]
+    jobs procrastinate_job_to_defer_v1[]
 )
     RETURNS bigint[]
     LANGUAGE plpgsql
@@ -103,26 +109,17 @@ DECLARE
     array_length integer;
     i integer;
 BEGIN
-    array_length := array_length(queue_names, 1);
-    IF array_length != array_length(task_names, 1) OR
-       array_length != array_length(priorities, 1) OR
-       array_length != array_length(locks, 1) OR
-       array_length != array_length(queueing_locks, 1) OR
-       array_length != array_length(args_list, 1) OR
-       array_length != array_length(scheduled_ats, 1) THEN
-        RAISE EXCEPTION 'All input arrays must have the same length';
-    END IF;
-
     job_ids := ARRAY[]::bigint[];
     WITH inserted_jobs AS (
         INSERT INTO procrastinate_jobs (queue_name, task_name, priority, lock, queueing_lock, args, scheduled_at)
-        SELECT unnest(queue_names),
-               unnest(task_names),
-               unnest(priorities),
-               unnest(locks),
-               unnest(queueing_locks),
-               unnest(args_list),
-               unnest(scheduled_ats)
+        SELECT (job).queue_name,
+               (job).task_name,
+               (job).priority,
+               (job).lock,
+               (job).queueing_lock,
+               (job).args,
+               (job).scheduled_at
+        FROM unnest(jobs) AS job
         RETURNING id
     )
     SELECT array_agg(id) FROM inserted_jobs INTO job_ids;
@@ -163,13 +160,17 @@ BEGIN
         SET job_id = (
             SELECT COALESCE((
                 SELECT unnest(procrastinate_defer_jobs_v1(
-                    ARRAY[_queue_name]::character varying[],
-                    ARRAY[_task_name]::character varying[],
-                    ARRAY[_priority]::integer[],
-                    ARRAY[_lock]::text[],
-                    ARRAY[_queueing_lock]::text[],
-                    ARRAY[_args]::jsonb[],
-                    ARRAY[NULL::timestamptz]
+                    ARRAY[
+                        ROW(
+                            _queue_name,
+                            _task_name,
+                            _priority,
+                            _lock,
+                            _queueing_lock,
+                            _args,
+                            NULL::timestamptz
+                        )
+                    ]::procrastinate_job_to_defer_v1[]
                 ))
             ), NULL)
         )
