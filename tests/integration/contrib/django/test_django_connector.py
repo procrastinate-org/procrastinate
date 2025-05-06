@@ -24,6 +24,15 @@ def test_wrap_exceptions__integrity_error(db):
         foo.defer()
 
 
+def test_wrap_exceptions_batch__integrity_error(db):
+    @procrastinate.contrib.django.app.task(queueing_lock="bar")
+    def bar():
+        pass
+
+    with pytest.raises(exceptions.AlreadyEnqueued):
+        bar.batch_defer({}, {})
+
+
 def test_get_sync_connector(django_connector):
     assert django_connector.get_sync_connector() is django_connector
 
