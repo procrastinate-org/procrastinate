@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+
 from django.contrib import admin
 from django.db.models import Prefetch
 from django.http import JsonResponse
@@ -123,7 +125,7 @@ class ProcrastinateJobAdmin(admin.ModelAdmin):
             format_html(
                 "<tr><td>{key}</td><td>{value}</td></tr>",
                 key=key,
-                value=ellipsize_middle(value),
+                value=ellipsize_middle(json.dumps(value)),
             )
             for key, value in instance.args.items()
         ]
