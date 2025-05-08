@@ -9,7 +9,7 @@ from django.utils import timezone
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 
-from procrastinate.utils import format_arg
+from procrastinate.utils import ellipsize_middle
 
 from . import models
 
@@ -123,7 +123,7 @@ class ProcrastinateJobAdmin(admin.ModelAdmin):
             format_html(
                 "<tr><td>{key}</td><td>{value}</td></tr>",
                 key=key,
-                value=format_arg(value),
+                value=ellipsize_middle(value),
             )
             for key, value in instance.args.items()
         ]

@@ -5,7 +5,6 @@ import contextlib
 import datetime
 import importlib
 import inspect
-import json
 import logging
 import pathlib
 import sys
@@ -28,7 +27,7 @@ import dateutil.parser
 from asgiref import sync
 
 from procrastinate import exceptions
-from procrastinate.types import JSONValue, TimeDeltaParams
+from procrastinate.types import TimeDeltaParams
 
 T = TypeVar("T")
 U = TypeVar("U")
@@ -332,12 +331,15 @@ def queues_display(queues: Iterable[str] | None) -> str:
         return "all queues"
 
 
-def format_arg(value: JSONValue) -> str:
+def ellipsize_middle(
+    value: str, max_length: int = 100, suffix_length: int = 20, ellipsis: str = "..."
+) -> str:
     """
-    Format a JSON argument value for display in logs and the admin interface.
+    Limits the length of a string to `max_length` by placing `ellipsis` in the middle, preserving `suffix_length` at the end.
     """
+    prefix_length = max_length - len(ellipsis) - suffix_length
 
-    formatted = json.dumps(value)
-    if len(formatted) > 100:
-        formatted = formatted[:77] + "..." + formatted[-20:]
-    return formatted
+    if len(value) > max_length:
+        return value[:prefix_length] + ellipsis + value[-suffix_length:]
+    else:
+        return value
