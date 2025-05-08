@@ -8,7 +8,7 @@ from django.http import JsonResponse
 from django.template.loader import render_to_string
 from django.urls import path, reverse
 from django.utils import timezone
-from django.utils.html import format_html
+from django.utils.html import format_html, format_html_join
 from django.utils.safestring import mark_safe
 
 from procrastinate.utils import ellipsize_middle
@@ -121,18 +121,18 @@ class ProcrastinateJobAdmin(admin.ModelAdmin):
 
     @admin.display(description="Args")
     def pretty_args(self, instance: models.ProcrastinateJob) -> str:
-        arg_rows = [
-            format_html(
-                "<tr><td>{key}</td><td>{value}</td></tr>",
-                key=key,
-                value=ellipsize_middle(json.dumps(value)),
-            )
-            for key, value in instance.args.items()
-        ]
+        rows = format_html_join(
+            "\n",
+            "<tr><td>{}</td><td>{}</td></tr>",
+            (
+                (key, ellipsize_middle(json.dumps(value)))
+                for key, value in instance.args.items()
+            ),
+        )
         return format_html(
-            "<table>{arg_rows}</table>"
+            "<table>{rows}</table>"
             '<div style="margin-top: 8px"><a href="{full_args_url}">View unformatted</a></div>',
-            arg_rows=mark_safe("".join(arg_rows)),
+            rows=rows,
             full_args_url=reverse("admin:full_args", kwargs={"job_id": instance.id}),
         )
 
