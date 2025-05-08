@@ -5,6 +5,7 @@ import contextlib
 import datetime
 import importlib
 import inspect
+import json
 import logging
 import pathlib
 import sys
@@ -27,7 +28,7 @@ import dateutil.parser
 from asgiref import sync
 
 from procrastinate import exceptions
-from procrastinate.types import TimeDeltaParams
+from procrastinate.types import JSONValue, TimeDeltaParams
 
 T = TypeVar("T")
 U = TypeVar("U")
@@ -329,3 +330,14 @@ def queues_display(queues: Iterable[str] | None) -> str:
         return f"queues {', '.join(queues)}"
     else:
         return "all queues"
+
+
+def format_arg(value: JSONValue) -> str:
+    """
+    Format a JSON argument value for display in logs and the admin interface.
+    """
+
+    formatted = json.dumps(value)
+    if len(formatted) > 100:
+        formatted = formatted[:77] + "..." + formatted[-20:]
+    return formatted

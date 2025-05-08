@@ -1,13 +1,15 @@
 from __future__ import annotations
 
-import json
-
 from django.contrib import admin
 from django.db.models import Prefetch
+from django.http import JsonResponse
 from django.template.loader import render_to_string
+from django.urls import path, reverse
 from django.utils import timezone
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
+
+from procrastinate.utils import format_arg
 
 from . import models
 
@@ -90,6 +92,17 @@ class ProcrastinateJobAdmin(admin.ModelAdmin):
             )
         )
 
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path(
+                "<int:job_id>/full_args/",
+                self.admin_site.admin_view(self.full_args_view),
+                name="full_args",
+            ),
+        ]
+        return custom_urls + urls
+
     @admin.display(description="Status")
     def pretty_status(self, instance: models.ProcrastinateJob) -> str:
         emoji = JOB_STATUS_EMOJI_MAPPING.get(instance.status, "")
@@ -106,12 +119,19 @@ class ProcrastinateJobAdmin(admin.ModelAdmin):
 
     @admin.display(description="Args")
     def pretty_args(self, instance: models.ProcrastinateJob) -> str:
-        indent = 2 if len(instance.args) > 1 or len(str(instance.args)) > 30 else None
-        pretty_json = json.dumps(instance.args, indent=indent)
-        if len(pretty_json) > 2000:
-            pretty_json = pretty_json[:2000] + "..."
+        arg_rows = [
+            format_html(
+                "<tr><td>{key}</td><td>{value}</td></tr>",
+                key=key,
+                value=format_arg(value),
+            )
+            for key, value in instance.args.items()
+        ]
         return format_html(
-            '<pre style="margin: 0">{pretty_json}</pre>', pretty_json=pretty_json
+            "<table>{arg_rows}</table>"
+            '<div style="margin-top: 8px"><a href="{full_args_url}">View unformatted</a></div>',
+            arg_rows=mark_safe("".join(arg_rows)),
+            full_args_url=reverse("admin:full_args", kwargs={"job_id": instance.id}),
         )
 
     @admin.display(description="Summary")
@@ -128,3 +148,7 @@ class ProcrastinateJobAdmin(admin.ModelAdmin):
                 ).strip()
             )
         return ""
+
+    def full_args_view(self, request, job_id):
+        instance = models.ProcrastinateJob.objects.get(id=job_id)
+        return JsonResponse(instance.args)

@@ -10,6 +10,7 @@ import attr
 from typing_extensions import Literal
 
 from procrastinate import types
+from procrastinate.utils import format_arg
 
 if TYPE_CHECKING:
     from procrastinate import manager
@@ -136,7 +137,7 @@ class Job:
     @cached_property
     def call_string(self):
         kwargs_string = ", ".join(
-            f"{key}={value!r}" for key, value in self.task_kwargs.items()
+            f"{key}={format_arg(value)}" for key, value in self.task_kwargs.items()
         )
         return f"{self.task_name}[{self.id}]({kwargs_string})"
 
