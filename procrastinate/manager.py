@@ -50,15 +50,7 @@ class JobManager:
         :
             A copy of the job instance with the id set.
         """
-        # Make sure this code stays synchronized with .defer_job()
-        try:
-            result = await self.connector.execute_query_all_async(
-                **self._defer_jobs_query_kwargs(jobs=[job])
-            )
-        except exceptions.UniqueViolation as exc:
-            self._raise_already_enqueued(exc=exc, queueing_lock=job.queueing_lock)
-
-        return job.evolve(id=result[0]["id"], status=jobs_module.Status.TODO.value)
+        return (await self.batch_defer_jobs_async(jobs=[job]))[0]
 
     async def batch_defer_jobs_async(
         self, jobs: list[jobs_module.Job]
@@ -82,9 +74,7 @@ class JobManager:
                 **self._defer_jobs_query_kwargs(jobs=jobs)
             )
         except exceptions.UniqueViolation as exc:
-            self._raise_already_enqueued(
-                exc=exc, queueing_lock=None
-            )  # TODO: fix queing_lock
+            self._raise_already_enqueued(exc=exc, queueing_lock=exc.queueing_lock)
 
         return [
             job.evolve(id=results[index]["id"], status=jobs_module.Status.TODO.value)
@@ -95,14 +85,7 @@ class JobManager:
         """
         Sync version of `defer_job_async`.
         """
-        try:
-            results = self.connector.get_sync_connector().execute_query_all(
-                **self._defer_jobs_query_kwargs(jobs=[job])
-            )
-        except exceptions.UniqueViolation as exc:
-            self._raise_already_enqueued(exc=exc, queueing_lock=job.queueing_lock)
-
-        return job.evolve(id=results[0]["id"], status=jobs_module.Status.TODO.value)
+        return self.batch_defer_jobs(jobs=[job])[0]
 
     def batch_defer_jobs(self, jobs: list[jobs_module.Job]) -> list[jobs_module.Job]:
         """
@@ -113,7 +96,7 @@ class JobManager:
                 **self._defer_jobs_query_kwargs(jobs=jobs)
             )
         except exceptions.UniqueViolation as exc:
-            self._raise_already_enqueued(exc=exc, queueing_lock=jobs[0].queueing_lock)
+            self._raise_already_enqueued(exc=exc, queueing_lock=exc.queueing_lock)
 
         return [
             job.evolve(id=results[index]["id"], status=jobs_module.Status.TODO.value)

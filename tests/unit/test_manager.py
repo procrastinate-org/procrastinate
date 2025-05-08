@@ -124,7 +124,8 @@ async def test_manager_defer_job_unique_violation_exception(
 ):
     connector.execute_query_all_async = mocker.Mock(
         side_effect=exceptions.UniqueViolation(
-            constraint_name="procrastinate_jobs_queueing_lock_idx_v1"
+            constraint_name="procrastinate_jobs_queueing_lock_idx_v1",
+            queueing_lock="some_queueing_lock",
         )
     )
 
@@ -136,7 +137,9 @@ async def test_manager_defer_job_unique_violation_exception_other_constraint(
     mocker, job_manager, job_factory, connector
 ):
     connector.execute_query_all_async = mocker.Mock(
-        side_effect=exceptions.UniqueViolation(constraint_name="some_other_constraint")
+        side_effect=exceptions.UniqueViolation(
+            constraint_name="some_other_constraint", queueing_lock=None
+        )
     )
 
     with pytest.raises(exceptions.ConnectorException):
@@ -148,7 +151,8 @@ async def test_manager_defer_job_unique_violation_exception_sync(
 ):
     connector.execute_query_all = mocker.Mock(
         side_effect=exceptions.UniqueViolation(
-            constraint_name="procrastinate_jobs_queueing_lock_idx_v1"
+            constraint_name="procrastinate_jobs_queueing_lock_idx_v1",
+            queueing_lock="some_queueing_lock",
         )
     )
 
@@ -160,7 +164,9 @@ async def test_manager_defer_job_unique_violation_exception_other_constraint_syn
     mocker, job_manager, job_factory, connector
 ):
     connector.execute_query_all = mocker.Mock(
-        side_effect=exceptions.UniqueViolation(constraint_name="some_other_constraint")
+        side_effect=exceptions.UniqueViolation(
+            constraint_name="some_other_constraint", queueing_lock=None
+        )
     )
 
     with pytest.raises(exceptions.ConnectorException):

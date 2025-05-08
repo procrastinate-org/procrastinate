@@ -107,22 +107,31 @@ class InMemoryConnector(connector.BaseAsyncConnector):
         # We check the queueing locks upfront so that no job is inserted into
         # the queue if the constraint is violated (simulating a database
         # rollback).
-        current_queuing_locks = {
-            job["queueing_lock"]
-            for job in self.jobs.values()
-            if job["status"] == "todo"
-        } - {None}
-
         new_queueing_locks = [
             job.queueing_lock for job in jobs if job.queueing_lock is not None
         ]
-        new_queueing_locks_set = set(new_queueing_locks)
-        if (
-            len(new_queueing_locks) != len(new_queueing_locks_set)
-            or current_queuing_locks & new_queueing_locks_set
-        ):
+
+        counts = Counter(new_queueing_locks)
+        duplicate = next(
+            (lock for lock in new_queueing_locks if counts[lock] > 1), None
+        )
+
+        if duplicate is None:
+            current_queueing_locks = {
+                job["queueing_lock"]
+                for job in self.jobs.values()
+                if job["status"] == "todo"
+            } - {None}
+
+            duplicate = next(
+                (lock for lock in new_queueing_locks if lock in current_queueing_locks),
+                None,
+            )
+
+        if duplicate is not None:
             raise exceptions.UniqueViolation(
-                constraint_name=manager.QUEUEING_LOCK_CONSTRAINT
+                constraint_name=manager.QUEUEING_LOCK_CONSTRAINT,
+                queueing_lock=duplicate,
             )
 
         job_rows = []

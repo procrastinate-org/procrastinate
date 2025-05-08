@@ -650,7 +650,7 @@ async def test_defer_job_violate_queueing_lock(pg_job_manager, job_factory):
             queue="queue_a",
             task_name="task_1",
             lock="lock_1",
-            queueing_lock="queueing_lock",
+            queueing_lock="same_queueing_lock",
             task_kwargs={"a": "b"},
         )
     )
@@ -661,7 +661,7 @@ async def test_defer_job_violate_queueing_lock(pg_job_manager, job_factory):
                 queue="queue_a",
                 task_name="task_2",
                 lock="lock_2",
-                queueing_lock="queueing_lock",
+                queueing_lock="same_queueing_lock",
                 task_kwargs={"c": "d"},
             )
         )
@@ -674,6 +674,7 @@ async def test_defer_job_violate_queueing_lock(pg_job_manager, job_factory):
         "procrastinate_jobs_queueing_lock_idx",
         "procrastinate_jobs_queueing_lock_idx_v1",
     ]
+    assert cause.queueing_lock == "same_queueing_lock"
 
 
 async def test_batch_defer_jobs_violate_queueing_lock(
@@ -687,7 +688,7 @@ async def test_batch_defer_jobs_violate_queueing_lock(
                     queue="queue_a",
                     task_name="task_1",
                     lock="lock_1",
-                    queueing_lock="queueing_lock",
+                    queueing_lock="same_queueing_lock",
                     task_kwargs={"a": "b"},
                 ),
                 job_factory(
@@ -695,13 +696,14 @@ async def test_batch_defer_jobs_violate_queueing_lock(
                     queue="queue_a",
                     task_name="task_2",
                     lock="lock_2",
-                    queueing_lock="queueing_lock",
+                    queueing_lock="same_queueing_lock",
                     task_kwargs={"c": "d"},
                 ),
             ]
         )
     cause = excinfo.value.__cause__
     assert isinstance(cause, exceptions.UniqueViolation)
+    assert cause.queueing_lock == "same_queueing_lock"
 
     # TODO: When QUEUEING_LOCK_CONSTRAINT_LEGACY in manager.py is removed, we can
     # also remove the check for the old constraint name "procrastinate_jobs_queueing_lock_idx"
