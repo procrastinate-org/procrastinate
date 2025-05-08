@@ -22,7 +22,8 @@ def wrap_exceptions() -> Generator[None, None, None]:
         yield
     except sqlalchemy.exc.SQLAlchemyError as exc:
         if isinstance(exc.orig, psycopg2.errors.UniqueViolation):
-            constraint_name = exc.orig.diag.constraint_name
+            exc = exc.orig
+            constraint_name = exc.diag.constraint_name
             queueing_lock = None
             if constraint_name == manager.QUEUEING_LOCK_CONSTRAINT:
                 assert exc.diag.message_detail

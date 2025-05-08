@@ -8,7 +8,7 @@ import asgiref.sync
 import attr
 import pytest
 
-from procrastinate import exceptions, psycopg_connector, sync_psycopg_connector
+from procrastinate import exceptions, manager, psycopg_connector, sync_psycopg_connector
 
 
 @pytest.fixture
@@ -79,6 +79,42 @@ async def test_json_loads(psycopg_connector_factory, mocker):
     assert result["json"] == {"a": 1, "b": Param(p=2)}
 
 
+async def test_wrap_exceptions(psycopg_connector):
+    await psycopg_connector.execute_query_async(
+        """SELECT procrastinate_defer_jobs_v1(
+            ARRAY[
+                ROW(
+                    'queue'::character varying,
+                    'foo'::character varying,
+                    0::integer,
+                    NULL::text,
+                    'same_queueing_lock'::text,
+                    '{}'::jsonb,
+                    NULL::timestamptz
+                )
+            ]::procrastinate_job_to_defer_v1[]
+        ) AS id;"""
+    )
+    with pytest.raises(exceptions.UniqueViolation) as excinfo:
+        await psycopg_connector.execute_query_async(
+            """SELECT procrastinate_defer_jobs_v1(
+                ARRAY[
+                    ROW(
+                        'queue'::character varying,
+                        'foo'::character varying,
+                        0::integer,
+                        NULL::text,
+                        'same_queueing_lock'::text,
+                        '{}'::jsonb,
+                        NULL::timestamptz
+                    )
+                ]::procrastinate_job_to_defer_v1[]
+            ) AS id;"""
+        )
+    assert excinfo.value.constraint_name == manager.QUEUEING_LOCK_CONSTRAINT
+    assert excinfo.value.queueing_lock == "same_queueing_lock"
+
+
 async def test_execute_query(psycopg_connector):
     assert (
         await psycopg_connector.execute_query_async(
@@ -95,40 +131,6 @@ async def test_execute_query(psycopg_connector):
         "SELECT obj_description('public.procrastinate_jobs'::regclass)"
     )
     assert result == [{"obj_description": "foo"}]
-
-
-async def test_wrap_exceptions(psycopg_connector):
-    await psycopg_connector.execute_query_async(
-        """SELECT procrastinate_defer_jobs_v1(
-            ARRAY[
-                ROW(
-                    'queue'::character varying,
-                    'foo'::character varying,
-                    0::integer,
-                    NULL::text,
-                    'lock'::text,
-                    '{}'::jsonb,
-                    NULL::timestamptz
-                )
-            ]::procrastinate_job_to_defer_v1[]
-        ) AS id;"""
-    )
-    with pytest.raises(exceptions.UniqueViolation):
-        await psycopg_connector.execute_query_async(
-            """SELECT procrastinate_defer_jobs_v1(
-                ARRAY[
-                    ROW(
-                        'queue'::character varying,
-                        'foo'::character varying,
-                        0::integer,
-                        NULL::text,
-                        'lock'::text,
-                        '{}'::jsonb,
-                        NULL::timestamptz
-                    )
-                ]::procrastinate_job_to_defer_v1[]
-            ) AS id;"""
-        )
 
 
 async def test_execute_query_sync(psycopg_connector):

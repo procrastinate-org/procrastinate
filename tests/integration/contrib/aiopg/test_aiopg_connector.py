@@ -8,6 +8,7 @@ import asgiref.sync
 import attr
 import pytest
 
+from procrastinate import exceptions, manager
 from procrastinate.contrib.aiopg import aiopg_connector as aiopg
 from procrastinate.contrib.psycopg2 import psycopg2_connector
 
@@ -76,6 +77,42 @@ async def test_json_loads(aiopg_connector_factory, mocker):
 
     result = await connector.execute_query_one_async(query, arg=arg)
     assert result["json"] == {"a": 1, "b": Param(p=2)}
+
+
+async def test_wrap_exceptions(aiopg_connector):
+    await aiopg_connector.execute_query_async(
+        """SELECT procrastinate_defer_jobs_v1(
+            ARRAY[
+                ROW(
+                    'queue'::character varying,
+                    'foo'::character varying,
+                    0::integer,
+                    NULL::text,
+                    'same_queueing_lock'::text,
+                    '{}'::jsonb,
+                    NULL::timestamptz
+                )
+            ]::procrastinate_job_to_defer_v1[]
+        ) AS id;"""
+    )
+    with pytest.raises(exceptions.UniqueViolation) as excinfo:
+        await aiopg_connector.execute_query_async(
+            """SELECT procrastinate_defer_jobs_v1(
+                ARRAY[
+                    ROW(
+                        'queue'::character varying,
+                        'foo'::character varying,
+                        0::integer,
+                        NULL::text,
+                        'same_queueing_lock'::text,
+                        '{}'::jsonb,
+                        NULL::timestamptz
+                    )
+                ]::procrastinate_job_to_defer_v1[]
+            ) AS id;"""
+        )
+    assert excinfo.value.constraint_name == manager.QUEUEING_LOCK_CONSTRAINT
+    assert excinfo.value.queueing_lock == "same_queueing_lock"
 
 
 async def test_execute_query(aiopg_connector):

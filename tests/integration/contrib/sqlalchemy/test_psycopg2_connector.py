@@ -6,6 +6,7 @@ import json
 import psycopg2.errors
 import pytest
 
+from procrastinate import exceptions, manager
 from procrastinate.contrib.sqlalchemy import SQLAlchemyPsycopg2Connector
 
 
@@ -89,6 +90,42 @@ def test_json_loads(sqlalchemy_psycopg2_connector_factory, mocker):
     loads = mocker.Mock()
     connector = sqlalchemy_psycopg2_connector_factory(json_loads=loads)
     assert connector.json_loads is loads
+
+
+async def test_wrap_exceptions(sqlalchemy_psycopg2_connector):
+    sqlalchemy_psycopg2_connector.execute_query(
+        """SELECT procrastinate_defer_jobs_v1(
+            ARRAY[
+                ROW(
+                    'queue'::character varying,
+                    'foo'::character varying,
+                    0::integer,
+                    NULL::text,
+                    'same_queueing_lock'::text,
+                    '{}'::jsonb,
+                    NULL::timestamptz
+                )
+            ]::procrastinate_job_to_defer_v1[]
+        ) AS id;"""
+    )
+    with pytest.raises(exceptions.UniqueViolation) as excinfo:
+        sqlalchemy_psycopg2_connector.execute_query(
+            """SELECT procrastinate_defer_jobs_v1(
+                ARRAY[
+                    ROW(
+                        'queue'::character varying,
+                        'foo'::character varying,
+                        0::integer,
+                        NULL::text,
+                        'same_queueing_lock'::text,
+                        '{}'::jsonb,
+                        NULL::timestamptz
+                    )
+                ]::procrastinate_job_to_defer_v1[]
+            ) AS id;"""
+        )
+    assert excinfo.value.constraint_name == manager.QUEUEING_LOCK_CONSTRAINT
+    assert excinfo.value.queueing_lock == "same_queueing_lock"
 
 
 def test_execute_query(sqlalchemy_psycopg2_connector):
