@@ -111,11 +111,18 @@ class DjangoConnector(connector.BaseAsyncConnector):
         columns = [col[0] for col in cursor.description]
         return (dict(zip(columns, row)) for row in cursor.fetchall())
 
+    def _wrap_value(self, value: Any) -> Any:
+        if isinstance(value, dict):
+            return Jsonb(value)
+        elif isinstance(value, list):
+            return [self._wrap_value(item) for item in value]
+        elif isinstance(value, tuple):
+            return tuple([self._wrap_value(item) for item in value])
+        else:
+            return value
+
     def _wrap_json(self, arguments: dict[str, Any]) -> dict[str, Any]:
-        return {
-            key: Jsonb(value) if isinstance(value, dict) else value
-            for key, value in arguments.items()
-        }
+        return {key: self._wrap_value(value) for key, value in arguments.items()}
 
     @wrap_exceptions()
     def execute_query(self, query: LiteralString, **arguments: Any) -> None:
@@ -135,7 +142,9 @@ class DjangoConnector(connector.BaseAsyncConnector):
         self, query: LiteralString, **arguments: Any
     ) -> list[dict[str, Any]]:
         with self.connection.cursor() as cursor:
-            cursor.execute(query, self._wrap_json(arguments))
+            v = self._wrap_json(arguments)
+            print(f"Executing query: {query} with arguments: {v}")
+            cursor.execute(query, v)
             return list(self._dictfetch(cursor))
 
     async def listen_notify(

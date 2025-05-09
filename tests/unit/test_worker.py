@@ -703,7 +703,7 @@ async def test_run_log_actions(app: App, caplog, worker):
 
     connector = cast(InMemoryConnector, app.connector)
     assert [q[0] for q in connector.queries] == [
-        "defer_job",
+        "defer_jobs",
         "prune_stalled_workers",
         "register_worker",
         "fetch_job",
@@ -714,8 +714,8 @@ async def test_run_log_actions(app: App, caplog, worker):
     logs = {(r.action, r.levelname) for r in caplog.records if hasattr(r, "action")}
     # remove the periodic_deferrer_no_task log record because that makes the test flaky
     assert {
-        ("about_to_defer_job", "DEBUG"),
-        ("job_defer", "INFO"),
+        ("about_to_defer_jobs", "DEBUG"),
+        ("jobs_deferred", "INFO"),
         ("start_worker", "INFO"),
         ("loaded_job_info", "DEBUG"),
         ("start_job", "INFO"),

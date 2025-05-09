@@ -46,6 +46,62 @@ async def test_manager_defer_job(job_manager, job_factory, connector):
     }
 
 
+async def test_manager_batch_defer_jobs(job_manager, job_factory, connector):
+    jobs = await job_manager.batch_defer_jobs_async(
+        jobs=[
+            job_factory(
+                task_kwargs={"a": "b"},
+                queue="marsupilami",
+                task_name="bla",
+                priority=5,
+                lock="sher",
+            ),
+            job_factory(
+                task_kwargs={"a": "c"},
+                queue="marsupilami",
+                task_name="bla",
+                priority=7,
+                lock="sher",
+            ),
+        ]
+    )
+
+    assert len(jobs) == 2
+    assert jobs[0].id == 1
+    assert jobs[1].id == 2
+
+    assert connector.jobs == {
+        1: {
+            "args": {"a": "b"},
+            "attempts": 0,
+            "id": 1,
+            "lock": "sher",
+            "queueing_lock": None,
+            "queue_name": "marsupilami",
+            "priority": 5,
+            "scheduled_at": None,
+            "status": "todo",
+            "task_name": "bla",
+            "abort_requested": False,
+            "worker_id": None,
+        },
+        2: {
+            "args": {"a": "c"},
+            "attempts": 0,
+            "id": 2,
+            "lock": "sher",
+            "queueing_lock": None,
+            "queue_name": "marsupilami",
+            "priority": 7,
+            "scheduled_at": None,
+            "status": "todo",
+            "task_name": "bla",
+            "abort_requested": False,
+            "worker_id": None,
+        },
+    }
+
+
 async def test_manager_defer_job_no_lock(job_manager, job_factory, connector):
     await job_manager.defer_job_async(job=job_factory())
 
@@ -55,7 +111,7 @@ async def test_manager_defer_job_no_lock(job_manager, job_factory, connector):
 async def test_manager_defer_job_connector_exception(
     mocker, job_manager, job_factory, connector
 ):
-    connector.execute_query_one_async = mocker.Mock(
+    connector.execute_query_all_async = mocker.Mock(
         side_effect=exceptions.ConnectorException
     )
 
@@ -66,9 +122,10 @@ async def test_manager_defer_job_connector_exception(
 async def test_manager_defer_job_unique_violation_exception(
     mocker, job_manager, job_factory, connector
 ):
-    connector.execute_query_one_async = mocker.Mock(
+    connector.execute_query_all_async = mocker.Mock(
         side_effect=exceptions.UniqueViolation(
-            constraint_name="procrastinate_jobs_queueing_lock_idx_v1"
+            constraint_name="procrastinate_jobs_queueing_lock_idx_v1",
+            queueing_lock="some_queueing_lock",
         )
     )
 
@@ -79,8 +136,10 @@ async def test_manager_defer_job_unique_violation_exception(
 async def test_manager_defer_job_unique_violation_exception_other_constraint(
     mocker, job_manager, job_factory, connector
 ):
-    connector.execute_query_one_async = mocker.Mock(
-        side_effect=exceptions.UniqueViolation(constraint_name="some_other_constraint")
+    connector.execute_query_all_async = mocker.Mock(
+        side_effect=exceptions.UniqueViolation(
+            constraint_name="some_other_constraint", queueing_lock=None
+        )
     )
 
     with pytest.raises(exceptions.ConnectorException):
@@ -90,9 +149,10 @@ async def test_manager_defer_job_unique_violation_exception_other_constraint(
 async def test_manager_defer_job_unique_violation_exception_sync(
     mocker, job_manager, job_factory, connector
 ):
-    connector.execute_query_one = mocker.Mock(
+    connector.execute_query_all = mocker.Mock(
         side_effect=exceptions.UniqueViolation(
-            constraint_name="procrastinate_jobs_queueing_lock_idx_v1"
+            constraint_name="procrastinate_jobs_queueing_lock_idx_v1",
+            queueing_lock="some_queueing_lock",
         )
     )
 
@@ -103,8 +163,10 @@ async def test_manager_defer_job_unique_violation_exception_sync(
 async def test_manager_defer_job_unique_violation_exception_other_constraint_sync(
     mocker, job_manager, job_factory, connector
 ):
-    connector.execute_query_one = mocker.Mock(
-        side_effect=exceptions.UniqueViolation(constraint_name="some_other_constraint")
+    connector.execute_query_all = mocker.Mock(
+        side_effect=exceptions.UniqueViolation(
+            constraint_name="some_other_constraint", queueing_lock=None
+        )
     )
 
     with pytest.raises(exceptions.ConnectorException):

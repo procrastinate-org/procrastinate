@@ -87,9 +87,10 @@ class UniqueViolation(ConnectorException):
     ``exception.constraint_name``.
     """
 
-    def __init__(self, *args, constraint_name: str | None):
+    def __init__(self, *args, constraint_name: str | None, queueing_lock: str | None):
         super().__init__(*args)
         self.constraint_name = constraint_name
+        self.queueing_lock = queueing_lock
 
 
 class NoResult(ConnectorException):

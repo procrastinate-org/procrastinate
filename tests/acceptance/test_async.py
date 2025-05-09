@@ -47,6 +47,32 @@ async def test_defer(async_app: app_module.App):
     assert product_results == [12]
 
 
+@pytest.mark.skip_before_version("3.2.0")
+async def test_batch_defer(async_app: app_module.App):
+    sum_results = []
+    product_results = []
+
+    @async_app.task(queue="default", name="sum_task")
+    def sum_task(a, b):
+        sum_results.append(a + b)
+
+    @async_app.task(queue="default", name="product_task")
+    async def product_task(a, b):
+        product_results.append(a * b)
+
+    await sum_task.batch_defer_async({"a": 1, "b": 2}, {"a": 3, "b": 4})
+    await sum_task.configure().batch_defer_async({"a": 5, "b": 6}, {"a": 7, "b": 8})
+    await async_app.configure_task(name="sum_task").batch_defer_async(
+        {"a": 9, "b": 10}, {"a": 11, "b": 12}
+    )
+    await product_task.batch_defer_async({"a": 3, "b": 4}, {"a": 5, "b": 6})
+
+    await async_app.run_worker_async(queues=["default"], wait=False)
+
+    assert sum_results == [3, 7, 11, 15, 19, 23]
+    assert product_results == [12, 30]
+
+
 async def test_cancel(async_app: app_module.App):
     sum_results = []
 

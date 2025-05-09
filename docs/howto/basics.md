@@ -10,6 +10,7 @@ basics/connector
 basics/open_connection
 basics/tasks
 basics/defer
+basics/batch_defer
 basics/worker
 basics/command_line
 basics/windows

@@ -41,3 +41,19 @@ def test_benchmark_1000_sync_jobs(
         await async_app.run_worker_async(queues=["default"], wait=False)
 
     aio_benchmark(defer_and_process_jobs)
+
+
+@pytest.mark.benchmark
+def test_benchmark_1000_sync_batch_jobs(
+    aio_benchmark, sync_app: procrastinate.App, async_app: procrastinate.App
+):
+    @sync_app.task(queue="default", name="sum_task")
+    def simple_task():
+        pass
+
+    async def defer_and_process_jobs():
+        simple_task.batch_defer(*[{} for _ in range(1000)])
+
+        await async_app.run_worker_async(queues=["default"], wait=False)
+
+    aio_benchmark(defer_and_process_jobs)

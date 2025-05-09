@@ -7,7 +7,16 @@ from collections.abc import Iterable
 from itertools import count
 from typing import Any
 
-from procrastinate import connector, exceptions, jobs, schema, sql, types, utils
+from procrastinate import (
+    connector,
+    exceptions,
+    jobs,
+    manager,
+    schema,
+    sql,
+    types,
+    utils,
+)
 
 JobRow = dict[str, Any]
 EventRow = dict[str, Any]
@@ -94,55 +103,70 @@ class InMemoryConnector(connector.BaseAsyncConnector):
 
     # End of BaseConnector methods
 
-    async def defer_job_one(
-        self,
-        task_name: str,
-        priority: int,
-        lock: str | None,
-        queueing_lock: str | None,
-        args: types.JSONDict,
-        scheduled_at: datetime.datetime | None,
-        queue: str,
-    ) -> JobRow:
-        if queueing_lock is not None and any(
-            job["queueing_lock"] == queueing_lock and job["status"] == "todo"
-            for job in self.jobs.values()
-        ):
-            from . import manager
+    async def defer_jobs_all(self, jobs: list[types.JobToDefer]) -> list[JobRow]:
+        # We check the queueing locks upfront so that no job is inserted into
+        # the queue if the constraint is violated (simulating a database
+        # rollback).
+        new_queueing_locks = [
+            job.queueing_lock for job in jobs if job.queueing_lock is not None
+        ]
 
-            raise exceptions.UniqueViolation(
-                constraint_name=manager.QUEUEING_LOCK_CONSTRAINT
+        counts = Counter(new_queueing_locks)
+        duplicate = next(
+            (lock for lock in new_queueing_locks if counts[lock] > 1), None
+        )
+
+        if duplicate is None:
+            current_queueing_locks = {
+                job["queueing_lock"]
+                for job in self.jobs.values()
+                if job["status"] == "todo"
+            } - {None}
+
+            duplicate = next(
+                (lock for lock in new_queueing_locks if lock in current_queueing_locks),
+                None,
             )
 
-        id = next(self.job_counter)
+        if duplicate is not None:
+            raise exceptions.UniqueViolation(
+                constraint_name=manager.QUEUEING_LOCK_CONSTRAINT,
+                queueing_lock=duplicate,
+            )
 
-        self.jobs[id] = job_row = {
-            "id": id,
-            "queue_name": queue,
-            "task_name": task_name,
-            "priority": priority,
-            "lock": lock,
-            "queueing_lock": queueing_lock,
-            "args": args,
-            "status": "todo",
-            "scheduled_at": scheduled_at,
-            "attempts": 0,
-            "abort_requested": False,
-            "worker_id": None,
-        }
-        self.events[id] = []
-        if scheduled_at:
-            self.events[id].append({"type": "scheduled", "at": scheduled_at})
-        self.events[id].append({"type": "deferred", "at": utils.utcnow()})
+        job_rows = []
+        for job in jobs:
+            id = next(self.job_counter)
 
-        await self._notify(
-            queue,
-            {
-                "type": "job_inserted",
-                "job_id": id,
-            },
-        )
-        return job_row
+            self.jobs[id] = job_row = {
+                "id": id,
+                "queue_name": job.queue_name,
+                "task_name": job.task_name,
+                "priority": job.priority,
+                "lock": job.lock,
+                "queueing_lock": job.queueing_lock,
+                "args": job.args,
+                "status": "todo",
+                "scheduled_at": job.scheduled_at,
+                "attempts": 0,
+                "abort_requested": False,
+                "worker_id": None,
+            }
+            self.events[id] = []
+            if job.scheduled_at:
+                self.events[id].append({"type": "scheduled", "at": job.scheduled_at})
+            self.events[id].append({"type": "deferred", "at": utils.utcnow()})
+
+            await self._notify(
+                job.queue_name,
+                {
+                    "type": "job_inserted",
+                    "job_id": id,
+                },
+            )
+            job_rows.append(job_row)
+
+        return job_rows
 
     async def defer_periodic_job_one(
         self,
@@ -154,21 +178,26 @@ class InMemoryConnector(connector.BaseAsyncConnector):
         lock: str | None,
         queueing_lock: str | None,
         periodic_id: str,
-    ):
+    ) -> JobRow:
         # If the periodic task has already been deferred for this timestamp
         if self.periodic_defers.get((task_name, periodic_id)) == defer_timestamp:
             return {"id": None}
 
         self.periodic_defers[(task_name, periodic_id)] = defer_timestamp
-        return await self.defer_job_one(
-            task_name=task_name,
-            queue=queue,
-            priority=priority,
-            lock=lock,
-            queueing_lock=queueing_lock,
-            args=args,
-            scheduled_at=None,
+        job_rows = await self.defer_jobs_all(
+            [
+                types.JobToDefer(
+                    queue_name=queue,
+                    task_name=task_name,
+                    priority=priority,
+                    lock=lock,
+                    queueing_lock=queueing_lock,
+                    args=args,
+                    scheduled_at=None,
+                )
+            ]
         )
+        return job_rows[0]
 
     @property
     def current_locks(self) -> Iterable[str]:

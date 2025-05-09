@@ -10,7 +10,7 @@ import psycopg2.errors
 import sqlalchemy
 from psycopg2.extras import Json
 
-from procrastinate import connector, exceptions
+from procrastinate import connector, exceptions, manager
 
 
 @contextlib.contextmanager
@@ -22,8 +22,18 @@ def wrap_exceptions() -> Generator[None, None, None]:
         yield
     except sqlalchemy.exc.SQLAlchemyError as exc:
         if isinstance(exc.orig, psycopg2.errors.UniqueViolation):
+            exc = exc.orig
+            constraint_name = exc.diag.constraint_name
+            queueing_lock = None
+            if constraint_name == manager.QUEUEING_LOCK_CONSTRAINT:
+                assert exc.diag.message_detail
+                match = re.search(r"Key \((.*?)\)=\((.*?)\)", exc.diag.message_detail)
+                assert match
+                column, queueing_lock = match.groups()
+                assert column == "queueing_lock"
+
             raise exceptions.UniqueViolation(
-                constraint_name=exc.orig.diag.constraint_name
+                constraint_name=constraint_name, queueing_lock=queueing_lock
             )
         raise exceptions.ConnectorException from exc
 
@@ -133,13 +143,18 @@ class SQLAlchemyPsycopg2Connector(connector.BaseConnector):
             raise exceptions.AppNotOpen
         return self._engine
 
+    def _wrap_value(self, value: Any) -> Any:
+        if isinstance(value, dict):
+            return Json(value, dumps=self.json_dumps)
+        elif isinstance(value, list):
+            return [self._wrap_value(item) for item in value]
+        elif isinstance(value, tuple):
+            return tuple([self._wrap_value(item) for item in value])
+        else:
+            return value
+
     def _wrap_json(self, arguments: dict[str, Any]):
-        return {
-            key: Json(value, dumps=self.json_dumps)
-            if isinstance(value, dict)
-            else value
-            for key, value in arguments.items()
-        }
+        return {key: self._wrap_value(value) for key, value in arguments.items()}
 
     @wrap_exceptions()
     @wrap_query_exceptions

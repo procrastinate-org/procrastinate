@@ -158,35 +158,76 @@ class JobDeferrer:
 
         return self.job.evolve(task_kwargs=final_kwargs)
 
-    def _log_before_defer_job(self, job: Job) -> None:
+    def _log_before_defer_jobs(self, jobs: list[Job]) -> None:
+        job_count = len(jobs)
         logger.debug(
-            f"About to defer job {job.call_string}",
-            extra={"action": "about_to_defer_job", "job": job.log_context()},
+            f"About to defer {job_count} {'job' if job_count == 1 else 'jobs'}",
+            extra={
+                "action": "about_to_defer_jobs",
+                "jobs": [job.log_context() for job in jobs],
+            },
         )
 
-    def _log_after_defer_job(self, job: Job) -> None:
+    def _log_after_defer_jobs(self, jobs: list[Job]) -> None:
+        job_count = len(jobs)
         logger.info(
-            f"Deferred job {job.call_string}",
-            extra={"action": "job_defer", "job": job.log_context()},
+            f"Deferred {job_count} {'job' if job_count == 1 else 'jobs'}",
+            extra={
+                "action": "jobs_deferred",
+                "jobs": [job.log_context() for job in jobs],
+            },
         )
 
     async def defer_async(self, **task_kwargs: types.JSONValue) -> int:
         """
-        See `Task.defer` for details.
+        See `Task.defer_async` for details.
         """
         # Make sure this code stays synchronized with .defer()
         job = self.make_new_job(**task_kwargs)
-        self._log_before_defer_job(job=job)
+        self._log_before_defer_jobs(jobs=[job])
         job = await self.job_manager.defer_job_async(job=job)
-        self._log_after_defer_job(job=job)
+        self._log_after_defer_jobs(jobs=[job])
         assert job.id  # for mypy
         return job.id
 
+    async def batch_defer_async(self, *task_kwargs: types.JSONDict) -> list[int]:
+        """
+        See `Task.batch_defer_async` for details.
+        """
+        jobs = [self.make_new_job(**kwargs) for kwargs in task_kwargs]
+        self._log_before_defer_jobs(jobs=jobs)
+        jobs = await self.job_manager.batch_defer_jobs_async(jobs=jobs)
+        self._log_after_defer_jobs(jobs=jobs)
+
+        job_ids: list[int] = []
+        for job in jobs:
+            assert job.id  # for mypy
+            job_ids.append(job.id)
+        return job_ids
+
     def defer(self, **task_kwargs: types.JSONValue) -> int:
+        """
+        See `Task.defer` for details.
+        """
         # Make sure this code stays synchronized with .defer_async()
         job = self.make_new_job(**task_kwargs)
-        self._log_before_defer_job(job=job)
+        self._log_before_defer_jobs(jobs=[job])
         job = self.job_manager.defer_job(job=job)
-        self._log_after_defer_job(job=job)
+        self._log_after_defer_jobs(jobs=[job])
         assert job.id  # for mypy
         return job.id
+
+    def batch_defer(self, *task_kwargs: types.JSONDict) -> list[int]:
+        """
+        See `Task.batch_defer` for details.
+        """
+        jobs = [self.make_new_job(**kwargs) for kwargs in task_kwargs]
+        self._log_before_defer_jobs(jobs=jobs)
+        jobs = self.job_manager.batch_defer_jobs(jobs=jobs)
+        self._log_after_defer_jobs(jobs=jobs)
+
+        job_ids: list[int] = []
+        for job in jobs:
+            assert job.id
+            job_ids.append(job.id)
+        return job_ids

@@ -61,6 +61,8 @@ await pattern.defer_async(b=3)
 await pattern.defer_async(b=4)
 ```
 
+For a more efficient way to defer multiple jobs see {doc}`batch defer <batch_defer>`.
+
 ## Defer a job if you can't access the task
 
 This is useful if the code that defers jobs is not in the same code base as the code

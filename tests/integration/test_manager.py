@@ -591,6 +591,58 @@ async def test_defer_job(pg_job_manager, get_all, job_factory):
     ]
 
 
+async def test_batch_defer_jobs(pg_job_manager, get_all, job_factory):
+    queue = "marsupilami"
+    new_jobs = await pg_job_manager.batch_defer_jobs_async(
+        jobs=[
+            job_factory(
+                id=0,
+                queue=queue,
+                task_name="bob",
+                lock="sher",
+                queueing_lock="houba1",
+                task_kwargs={"a": 1, "b": 2},
+            ),
+            job_factory(
+                id=0,
+                queue=queue,
+                task_name="bob",
+                lock="sher",
+                queueing_lock="houba2",
+                task_kwargs={"a": 3, "b": 4},
+            ),
+        ]
+    )
+
+    result = await get_all(
+        "procrastinate_jobs",
+        "id",
+        "args",
+        "status",
+        "lock",
+        "queueing_lock",
+        "task_name",
+    )
+    assert result == [
+        {
+            "id": new_jobs[0].id,
+            "args": {"a": 1, "b": 2},
+            "status": "todo",
+            "lock": "sher",
+            "queueing_lock": "houba1",
+            "task_name": "bob",
+        },
+        {
+            "id": new_jobs[1].id,
+            "args": {"a": 3, "b": 4},
+            "status": "todo",
+            "lock": "sher",
+            "queueing_lock": "houba2",
+            "task_name": "bob",
+        },
+    ]
+
+
 async def test_defer_job_violate_queueing_lock(pg_job_manager, job_factory):
     await pg_job_manager.defer_job_async(
         job_factory(
@@ -598,7 +650,7 @@ async def test_defer_job_violate_queueing_lock(pg_job_manager, job_factory):
             queue="queue_a",
             task_name="task_1",
             lock="lock_1",
-            queueing_lock="queueing_lock",
+            queueing_lock="same_queueing_lock",
             task_kwargs={"a": "b"},
         )
     )
@@ -609,7 +661,7 @@ async def test_defer_job_violate_queueing_lock(pg_job_manager, job_factory):
                 queue="queue_a",
                 task_name="task_2",
                 lock="lock_2",
-                queueing_lock="queueing_lock",
+                queueing_lock="same_queueing_lock",
                 task_kwargs={"c": "d"},
             )
         )
@@ -622,6 +674,45 @@ async def test_defer_job_violate_queueing_lock(pg_job_manager, job_factory):
         "procrastinate_jobs_queueing_lock_idx",
         "procrastinate_jobs_queueing_lock_idx_v1",
     ]
+    assert cause.queueing_lock == "same_queueing_lock"
+
+
+async def test_batch_defer_jobs_violate_queueing_lock(
+    pg_job_manager, get_all, job_factory
+):
+    with pytest.raises(exceptions.AlreadyEnqueued) as excinfo:
+        await pg_job_manager.batch_defer_jobs_async(
+            [
+                job_factory(
+                    id=1,
+                    queue="queue_a",
+                    task_name="task_1",
+                    lock="lock_1",
+                    queueing_lock="same_queueing_lock",
+                    task_kwargs={"a": "b"},
+                ),
+                job_factory(
+                    id=2,
+                    queue="queue_a",
+                    task_name="task_2",
+                    lock="lock_2",
+                    queueing_lock="same_queueing_lock",
+                    task_kwargs={"c": "d"},
+                ),
+            ]
+        )
+    cause = excinfo.value.__cause__
+    assert isinstance(cause, exceptions.UniqueViolation)
+    assert cause.queueing_lock == "same_queueing_lock"
+
+    # TODO: When QUEUEING_LOCK_CONSTRAINT_LEGACY in manager.py is removed, we can
+    # also remove the check for the old constraint name "procrastinate_jobs_queueing_lock_idx"
+    assert cause.constraint_name in [
+        "procrastinate_jobs_queueing_lock_idx",
+        "procrastinate_jobs_queueing_lock_idx_v1",
+    ]
+
+    assert await get_all("procrastinate_jobs", "id") == []
 
 
 async def test_check_connection(pg_job_manager):

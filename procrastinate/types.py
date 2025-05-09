@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import datetime
 import typing as t
 
 from typing_extensions import NotRequired
@@ -16,3 +17,13 @@ class TimeDeltaParams(t.TypedDict):
     seconds: NotRequired[int]
     milliseconds: NotRequired[int]
     microseconds: NotRequired[int]
+
+
+class JobToDefer(t.NamedTuple):
+    queue_name: str
+    task_name: str
+    priority: int
+    lock: str | None
+    queueing_lock: str | None
+    args: JSONDict
+    scheduled_at: datetime.datetime | None

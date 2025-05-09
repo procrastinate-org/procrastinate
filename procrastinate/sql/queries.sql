@@ -3,14 +3,18 @@
     -- description
     -- %s-templated QUERY
 
--- defer_job --
--- Create and enqueue a job
-SELECT procrastinate_defer_job_v1(%(queue)s, %(task_name)s, %(priority)s, %(lock)s, %(queueing_lock)s, %(args)s, %(scheduled_at)s) AS id;
+-- defer_jobs --
+-- Create and enqueue one or more jobs
+SELECT  unnest(
+  procrastinate_defer_jobs_v1(
+    %(jobs)s::procrastinate_job_to_defer_v1[]
+  )
+) AS id;
 
 -- defer_periodic_job --
 -- Create a periodic job if it doesn't already exist, and delete periodic metadata
 -- for previous jobs in the same task.
-SELECT procrastinate_defer_periodic_job_v1(%(queue)s, %(lock)s, %(queueing_lock)s, %(task_name)s, %(priority)s, %(periodic_id)s, %(defer_timestamp)s, %(args)s) AS id;
+SELECT procrastinate_defer_periodic_job_v2(%(queue)s, %(lock)s, %(queueing_lock)s, %(task_name)s, %(priority)s, %(periodic_id)s, %(defer_timestamp)s, %(args)s) AS id;
 
 -- fetch_job --
 -- Get the first awaiting job

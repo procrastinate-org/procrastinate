@@ -3,6 +3,7 @@ from __future__ import annotations
 import contextlib
 import functools
 import logging
+import re
 from collections.abc import Generator, Iterator
 from typing import Any, Callable
 
@@ -11,7 +12,7 @@ import psycopg2.errors
 import psycopg2.pool
 from psycopg2.extras import Json, RealDictCursor
 
-from procrastinate import connector, exceptions
+from procrastinate import connector, exceptions, manager
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +25,18 @@ def wrap_exceptions() -> Generator[None, None, None]:
     try:
         yield
     except psycopg2.errors.UniqueViolation as exc:
-        raise exceptions.UniqueViolation(constraint_name=exc.diag.constraint_name)
+        constraint_name = exc.diag.constraint_name
+        queueing_lock = None
+        if constraint_name == manager.QUEUEING_LOCK_CONSTRAINT:
+            assert exc.diag.message_detail
+            match = re.search(r"Key \((.*?)\)=\((.*?)\)", exc.diag.message_detail)
+            assert match
+            column, queueing_lock = match.groups()
+            assert column == "queueing_lock"
+
+        raise exceptions.UniqueViolation(
+            constraint_name=constraint_name, queueing_lock=queueing_lock
+        )
     except psycopg2.Error as exc:
         raise exceptions.ConnectorException from exc
 
@@ -162,13 +174,18 @@ class Psycopg2Connector(connector.BaseConnector):
             raise exceptions.AppNotOpen
         return self._pool
 
+    def _wrap_value(self, value: Any) -> Any:
+        if isinstance(value, dict):
+            return Json(value, dumps=self.json_dumps)
+        elif isinstance(value, list):
+            return [self._wrap_value(item) for item in value]
+        elif isinstance(value, tuple):
+            return tuple([self._wrap_value(item) for item in value])
+        else:
+            return value
+
     def _wrap_json(self, arguments: dict[str, Any]):
-        return {
-            key: Json(value, dumps=self.json_dumps)
-            if isinstance(value, dict)
-            else value
-            for key, value in arguments.items()
-        }
+        return {key: self._wrap_value(value) for key, value in arguments.items()}
 
     @contextlib.contextmanager
     def _connection(self) -> Iterator[psycopg2.extensions.connection]:
