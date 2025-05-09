@@ -310,6 +310,12 @@ really ready for production.
 We'd love if you were to try out Procrastinate in a project of yours and
 provide us with feedback.
 
+## Does Procrastinate provide any benchmarks?
+
+We run some very [basic benchmarks](https://github.com/procrastinate-org/procrastinate/tree/main/tests/benchmarks)
+on every commit of the main branch to detect performance regressions.
+The visualized results can be viewed on our [Benchmarks GitHub Page](https://procrastinate-org.github.io/procrastinate/dev/bench/).
+
 ## Wasn't this project named "Cabbage" ?
 
 Yes, in early development, we planned to call this "cabbage" in reference to
