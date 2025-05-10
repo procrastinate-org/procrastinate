@@ -113,14 +113,15 @@ class Worker:
         job_result: job_context.JobResult | None,
         **kwargs: Any,
     ) -> types.JSONDict:
+        worker: types.JSONDict = {
+            "name": self.worker_name,
+            "worker_id": self.worker_id,
+            "job_id": context.job.id if context else None,
+            "queues": list(self.queues or []),
+        }
         extra: types.JSONDict = {
             "action": action,
-            "worker": {
-                "name": self.worker_name,
-                "worker_id": self.worker_id,
-                "job_id": context.job.id if context else None,
-                "queues": self.queues,
-            },
+            "worker": worker,
         }
         if context:
             extra["job"] = context.job.log_context()

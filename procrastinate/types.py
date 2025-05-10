@@ -1,15 +1,17 @@
 from __future__ import annotations
 
 import datetime
-import typing as t
+from typing import NamedTuple, TypedDict
 
-from typing_extensions import NotRequired
+from typing_extensions import NotRequired, TypeAlias
 
-JSONValue = t.Union[str, int, float, bool, None, dict[str, t.Any], list[t.Any]]
+JSONValue: TypeAlias = (
+    'dict[str, "JSONValue"] | list["JSONValue"] | str | int | float | bool | None'
+)
 JSONDict = dict[str, JSONValue]
 
 
-class TimeDeltaParams(t.TypedDict):
+class TimeDeltaParams(TypedDict):
     weeks: NotRequired[int]
     days: NotRequired[int]
     hours: NotRequired[int]
@@ -19,7 +21,7 @@ class TimeDeltaParams(t.TypedDict):
     microseconds: NotRequired[int]
 
 
-class JobToDefer(t.NamedTuple):
+class JobToDefer(NamedTuple):
     queue_name: str
     task_name: str
     priority: int

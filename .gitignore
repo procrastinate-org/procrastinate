@@ -13,3 +13,4 @@ docs/_build
 htmlcov
 VERSION.txt
 .benchmarks
+.python-version
