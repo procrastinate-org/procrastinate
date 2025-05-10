@@ -7,23 +7,28 @@ repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
     hooks:
-          # File names
-      - id: check-case-conflict
+      # File names
+      - id:
+          check-case-conflict
           # File formats
       - id: pretty-format-json
       - id: check-json
       - id: check-toml
-      - id: check-yaml
+      - id:
+          check-yaml
           # Executables
       - id: check-executables-have-shebangs
         exclude: dev-env
-      - id: check-shebang-scripts-are-executable
+      - id:
+          check-shebang-scripts-are-executable
           # Git shenanigans
       - id: check-merge-conflict
-      - id: check-added-large-files
+      - id:
+          check-added-large-files
           # Python issues
       - id: check-ast
-      - id: debug-statements
+      - id:
+          debug-statements
           # Whitespace
       - id: end-of-file-fixer
       - id: trailing-whitespace
@@ -107,7 +112,7 @@ repos:
     rev: 1.24.0
     hooks:
       - id: django-upgrade
-        args: [--target-version, '4.2']     # Replace with Django version
+        args: [--target-version, "4.2"] # Replace with Django version
 
   - repo: local
     hooks:
@@ -115,11 +120,13 @@ repos:
         name: Sync pre-commit hooks
         language: python
         entry: scripts/sync-pre-commit.py
+        files: \.pre-commit-config\.yaml|uv\.lock
         additional_dependencies:
           - uv
           - ruamel.yaml
 
-  - repo: https://github.com/astral-sh/uv-pre-commit
+  - repo:
+      https://github.com/astral-sh/uv-pre-commit
       # uv version.
     rev: 0.7.3
     hooks:
