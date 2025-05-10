@@ -140,17 +140,6 @@ jobs:
         with:
           version: ${{ steps.pre-commit-pyright-version.outputs.pyright-version }}
 
-  report-status:
-    name: success
-    runs-on: ubuntu-latest
-    needs:
-      - tests
-      - acceptance-tests
-      - static-typing
-    steps:
-      - name: Report success
-        run: echo 'Success !'
-
   coverage:
     name: Coverage
     runs-on: ubuntu-latest
