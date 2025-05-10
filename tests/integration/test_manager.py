@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import datetime
 import functools
 
@@ -315,6 +316,7 @@ async def test_get_stalled_jobs_by_heartbeat__pruned_worker(
 
 async def test_register_and_unregister_worker(pg_job_manager, psycopg_connector):
     then = utils.utcnow()
+    await asyncio.sleep(0)
     worker_id = await pg_job_manager.register_worker()
     assert worker_id is not None
 
