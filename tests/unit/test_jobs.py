@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import datetime
+import json
 
 import pytest
 
@@ -45,6 +46,15 @@ def test_job_get_context(job_factory, scheduled_at, context_scheduled_at):
         "abort_requested": False,
         "worker_id": None,
     }
+
+
+def test_log_context_does_not_grow_infinitely(job_factory):
+    large_arg_len = 10**5
+    job = job_factory(
+        task_kwargs={"large_arg": "a" * large_arg_len},
+    )
+
+    assert len(json.dumps(job.log_context())) < large_arg_len
 
 
 def test_job_evolve(job_factory):
