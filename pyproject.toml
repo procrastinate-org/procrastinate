@@ -9,6 +9,7 @@ source = "uv-dynamic-versioning"
 pattern = "default-unprefixed"
 
 [tool.hatch.build.targets.sdist]
+include = ["procrastinate"]
 exclude = ["procrastinate/demos"]
 
 [tool.hatch.build.targets.wheel]
