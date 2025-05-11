@@ -18,7 +18,7 @@ exclude = ["procrastinate/demos"]
 name = "procrastinate"
 dynamic = ["version"]
 description = "Postgres-based distributed task processing library"
-license = { file = "LICENSE.md" }
+license-files = ["LICENSE.md"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
