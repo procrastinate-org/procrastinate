@@ -6,7 +6,7 @@
 [![Continuous Integration](https://img.shields.io/github/actions/workflow/status/procrastinate-org/procrastinate/ci.yml?logo=github&branch=main)](https://github.com/procrastinate-org/procrastinate/actions?workflow=CI)
 [![Documentation](https://img.shields.io/readthedocs/procrastinate/stable?logo=read-the-docs&logoColor=white)](https://procrastinate.readthedocs.io/en/stable/badge=stable)
 [![Coverage badge](https://raw.githubusercontent.com/procrastinate-org/procrastinate/python-coverage-comment-action-data/badge.svg)](https://htmlpreview.github.io/?https://github.com/procrastinate-org/procrastinate/blob/python-coverage-comment-action-data/htmlcov/index.html)
-[![MIT License](https://img.shields.io/github/license/procrastinate-org/procrastinate?logo=open-source-initiative&logoColor=white)](https://github.com/procrastinate-org/procrastinate/blob/main/LICENSE)
+[![MIT License](https://img.shields.io/github/license/procrastinate-org/procrastinate?logo=open-source-initiative&logoColor=white)](https://github.com/procrastinate-org/procrastinate/blob/main/LICENSE.md)
 [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-v1.4%20adopted-ff69b4.svg)](https://github.com/procrastinate-org/procrastinate/blob/main/CODE_OF_CONDUCT.md)
 [![Discord](https://img.shields.io/discord/1197292025725329549?logo=discord&logoColor=white&label=Discord&color=%237289da)](https://discord.gg/JWZeNq6P6Z)
 
