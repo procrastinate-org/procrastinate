@@ -8,27 +8,22 @@ repos:
     rev: v5.0.0
     hooks:
       # File names
-      - id:
-          check-case-conflict
+      - id: check-case-conflict
           # File formats
       - id: pretty-format-json
       - id: check-json
       - id: check-toml
-      - id:
-          check-yaml
+      - id: check-yaml
           # Executables
       - id: check-executables-have-shebangs
         exclude: dev-env
-      - id:
-          check-shebang-scripts-are-executable
+      - id: check-shebang-scripts-are-executable
           # Git shenanigans
       - id: check-merge-conflict
-      - id:
-          check-added-large-files
+      - id: check-added-large-files
           # Python issues
       - id: check-ast
-      - id:
-          debug-statements
+      - id: debug-statements
           # Whitespace
       - id: end-of-file-fixer
       - id: trailing-whitespace
@@ -50,14 +45,14 @@ repos:
           - colorama==0.4.6 ; sys_platform == 'win32'
           - contextlib2==21.6.0 ; python_full_version < '3.10'
           - croniter==6.0.0
-          - django==4.2.20 ; python_full_version < '3.10'
-          - django==5.2 ; python_full_version >= '3.10'
+          - django==4.2.21 ; python_full_version < '3.10'
+          - django==5.2.1 ; python_full_version >= '3.10'
           - django-stubs==5.1.3 ; python_full_version < '3.10'
           - django-stubs==5.2.0 ; python_full_version >= '3.10'
           - django-stubs-ext==5.1.3 ; python_full_version < '3.10'
           - django-stubs-ext==5.2.0 ; python_full_version >= '3.10'
           - docutils==0.21.2
-          - greenlet==3.2.1 ; (python_full_version < '3.14' and platform_machine ==
+          - greenlet==3.2.2 ; (python_full_version < '3.14' and platform_machine ==
             'AMD64') or (python_full_version < '3.14' and platform_machine == 'WIN32')
             or (python_full_version < '3.14' and platform_machine == 'aarch64') or
             (python_full_version < '3.14' and platform_machine == 'amd64') or (python_full_version
@@ -70,7 +65,7 @@ repos:
           - jinja2==3.1.6
           - markupsafe==3.0.2
           - packaging==25.0
-          - psycopg==3.2.7
+          - psycopg==3.2.8
           - psycopg-pool==3.2.6
           - psycopg2-binary==2.9.10
           - pygments==2.19.1
@@ -79,7 +74,7 @@ repos:
           - requests==2.32.3
           - roman-numerals-py==3.1.0 ; python_full_version >= '3.11'
           - six==1.17.0
-          - snowballstemmer==2.2.0
+          - snowballstemmer==3.0.1
           - sphinx==7.4.7 ; python_full_version < '3.10'
           - sphinx==8.1.3 ; python_full_version == '3.10.*'
           - sphinx==8.2.3 ; python_full_version >= '3.11'
@@ -112,7 +107,7 @@ repos:
     rev: 1.24.0
     hooks:
       - id: django-upgrade
-        args: [--target-version, "4.2"] # Replace with Django version
+        args: [--target-version, '4.2'] # Replace with Django version
 
   - repo: local
     hooks:
@@ -125,8 +120,7 @@ repos:
           - uv
           - ruamel.yaml
 
-  - repo:
-      https://github.com/astral-sh/uv-pre-commit
+  - repo: https://github.com/astral-sh/uv-pre-commit
       # uv version.
     rev: 0.7.3
     hooks:
