@@ -167,6 +167,9 @@ jobs:
   benchmark:
     name: Benchmark
     runs-on: ubuntu-latest
+    permissions:
+      deployments: write
+      contents: write
 
     services:
       postgres:
@@ -190,11 +193,21 @@ jobs:
           python-version: "3.13"
 
       - name: Run benchmarks
-        run: uv run pytest -m "benchmark"
+        run: uv run pytest -m "benchmark" --benchmark-json output.json
         env:
           PGHOST: localhost
           PGUSER: postgres
           PGPASSWORD: postgres
+
+      - name: Store benchmark result
+        if: github.event_name == 'push' && github.ref_type == 'branch'
+        uses: benchmark-action/github-action-benchmark@d48d326b4ca9ba73ca0cd0d59f108f9e02a381c7 # v1
+        with:
+          name: Procrastinate Benchmarks
+          tool: "pytest"
+          output-file-path: output.json
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          auto-push: true
 
   publish:
     name: Publish package to PyPI
