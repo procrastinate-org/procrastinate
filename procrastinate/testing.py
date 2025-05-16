@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import asyncio
 import datetime
 import json
+import threading
 from collections import Counter
 from collections.abc import Iterable
 from itertools import count
@@ -93,6 +95,12 @@ class InMemoryConnector(connector.BaseAsyncConnector):
         self.states.append("open")
 
     async def open_async(self, pool: connector.Pool | None = None) -> None:
+        """
+        Save the current event loop and its thread id so that later notifications
+        can be scheduled on this loop.
+        """
+        self._loop = asyncio.get_running_loop()
+        self._loop_thread_id = threading.get_ident()
         self.states.append("open_async")
 
     def close(self) -> None:
@@ -213,7 +221,12 @@ class InMemoryConnector(connector.BaseAsyncConnector):
             if job["status"] in {"failed", "succeeded"}
         ]
 
-    async def _notify(self, queue_name: str, notification: jobs.Notification):
+    async def _notify(self, queue_name: str, notification: jobs.Notification) -> None:
+        """
+        Instead of directly awaiting on_notification, we check the current thread.
+        If we are not on the same thread as the one where the loop was saved,
+        we schedule the notification on the correct loop.
+        """
         if not self.on_notification:
             return
 
@@ -221,12 +234,18 @@ class InMemoryConnector(connector.BaseAsyncConnector):
             "procrastinate_any_queue_v1",
             f"procrastinate_queue_v1#{queue_name}",
         }
-
         for channel in set(self.notify_channels).intersection(destination_channels):
-            await self.on_notification(
-                channel=channel,
-                payload=json.dumps(notification),
+            coro = self.on_notification(
+                channel=channel, payload=json.dumps(notification)
             )
+            if threading.get_ident() == self._loop_thread_id:
+                # Already on the right thread: just await.
+                await coro
+            else:
+                # Not on the correct thread: schedule the coroutine on the saved loop.
+                future = asyncio.run_coroutine_threadsafe(coro, self._loop)
+                # Wrap the concurrent.futures.Future so we can await it.
+                await asyncio.wrap_future(future)
 
     async def fetch_job_one(self, queues: Iterable[str] | None, worker_id: int) -> dict:
         assert worker_id in self.workers, f"Worker {worker_id} not found"
