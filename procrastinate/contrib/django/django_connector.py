@@ -143,7 +143,6 @@ class DjangoConnector(connector.BaseAsyncConnector):
     ) -> list[dict[str, Any]]:
         with self.connection.cursor() as cursor:
             v = self._wrap_json(arguments)
-            print(f"Executing query: {query} with arguments: {v}")
             cursor.execute(query, v)
             return list(self._dictfetch(cursor))
 
