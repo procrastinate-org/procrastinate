@@ -142,9 +142,7 @@ class DjangoConnector(connector.BaseAsyncConnector):
         self, query: LiteralString, **arguments: Any
     ) -> list[dict[str, Any]]:
         with self.connection.cursor() as cursor:
-            v = self._wrap_json(arguments)
-            print(f"Executing query: {query} with arguments: {v}")
-            cursor.execute(query, v)
+            cursor.execute(query, self._wrap_json(arguments))
             return list(self._dictfetch(cursor))
 
     async def listen_notify(
