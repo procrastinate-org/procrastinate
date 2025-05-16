@@ -329,3 +329,17 @@ def queues_display(queues: Iterable[str] | None) -> str:
         return f"queues {', '.join(queues)}"
     else:
         return "all queues"
+
+
+def ellipsize_middle(
+    value: str, max_length: int = 100, suffix_length: int = 20, ellipsis: str = "..."
+) -> str:
+    """
+    Limits the length of a string to `max_length` by placing `ellipsis` in the middle, preserving `suffix_length` at the end.
+    """
+    prefix_length = max_length - len(ellipsis) - suffix_length
+
+    if len(value) > max_length:
+        return value[:prefix_length] + ellipsis + value[-suffix_length:]
+    else:
+        return value
