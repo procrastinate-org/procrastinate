@@ -16,7 +16,7 @@
 | procrastinate/contrib/aiopg/aiopg\_connector.py                   |      167 |        2 |       40 |        1 |     99% |   215-216 |
 | procrastinate/contrib/django/\_\_init\_\_.py                      |        4 |        0 |        0 |        0 |    100% |           |
 | procrastinate/contrib/django/apps.py                              |       29 |        1 |        6 |        0 |     97% |        24 |
-| procrastinate/contrib/django/django\_connector.py                 |       94 |        4 |       18 |        1 |     96% | 27-30, 38 |
+| procrastinate/contrib/django/django\_connector.py                 |       92 |        4 |       18 |        1 |     95% | 27-30, 38 |
 | procrastinate/contrib/django/exceptions.py                        |        6 |        0 |        0 |        0 |    100% |           |
 | procrastinate/contrib/django/healthchecks.py                      |       32 |        0 |        2 |        0 |    100% |           |
 | procrastinate/contrib/django/management/\_\_init\_\_.py           |        0 |        0 |        0 |        0 |    100% |           |
@@ -76,7 +76,7 @@
 | procrastinate/types.py                                            |       22 |        0 |        0 |        0 |    100% |           |
 | procrastinate/utils.py                                            |      165 |        0 |       36 |        0 |    100% |           |
 | procrastinate/worker.py                                           |      253 |        7 |       72 |        7 |     96% |72, 86, 196->199, 406->exit, 427-428, 432-433, 449->448, 466 |
-|                                                         **TOTAL** | **3016** |  **226** |  **506** |   **27** | **92%** |           |
+|                                                         **TOTAL** | **3014** |  **226** |  **506** |   **27** | **92%** |           |
 
 
 ## Setup coverage badge
