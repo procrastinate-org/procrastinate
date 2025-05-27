@@ -68,7 +68,7 @@ default-groups = ["release", "lint_format", "pg_implem", "test", "docs"]
 [dependency-groups]
 types = ["django-stubs"]
 release = ["dunamai"]
-lint_format = ["ruff"]
+lint_format = ["ruff", "django-upgrade"]
 pg_implem = [
     "aiopg",
     "sqlalchemy",
@@ -168,3 +168,15 @@ required-imports = ["from __future__ import annotations"]
 [tool.doc8]
 max-line-length = 88
 ignore-path = "docs/_build,.venv"
+
+[tool.sync-pre-commit-with-uv.pyright-python]
+pypi_package_name = "pyright"
+additional_dependencies_uv_params = [
+    "--group=types",
+    "--no-group=release",
+    "--no-group=lint_format",
+    "--no-group=pg_implem",
+    "--no-group=test",
+    "--no-group=docs",
+    "--all-extras",
+]

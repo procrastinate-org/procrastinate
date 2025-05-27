@@ -411,6 +411,18 @@ wheels = [
 ]
 
 [[package]]
+name = "django-upgrade"
+version = "1.25.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "tokenize-rt" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/55/a7/5140add1e41a0577355be460640136af0b9f48a40e2abd6c1bcf800ef047/django_upgrade-1.25.0.tar.gz", hash = "sha256:443fcb8e134e5d6455bdce1b41790f3fcf3a84481edd81862565566c17bf1c35", size = 36341, upload-time = "2025-05-13T21:41:39.866Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/a1/25/f68dbdf4911da6a109cc077234cf78cf56a0bd2e472e3dd2b1fd2f7e2146/django_upgrade-1.25.0-py3-none-any.whl", hash = "sha256:da369c52b9fec88a50b0ca493d163a2981b9c8c047e7ff29c4cf7083935586f4", size = 62872, upload-time = "2025-05-13T21:41:38.481Z" },
+]
+
+[[package]]
 name = "doc8"
 version = "1.1.2"
 source = { registry = "https://pypi.org/simple" }
@@ -843,6 +855,7 @@ docs = [
     { name = "sphinxcontrib-programoutput" },
 ]
 lint-format = [
+    { name = "django-upgrade" },
     { name = "ruff" },
 ]
 pg-implem = [
@@ -903,7 +916,10 @@ docs = [
     { name = "sphinxcontrib-mermaid" },
     { name = "sphinxcontrib-programoutput" },
 ]
-lint-format = [{ name = "ruff" }]
+lint-format = [
+    { name = "django-upgrade" },
+    { name = "ruff" },
+]
 pg-implem = [
     { name = "aiopg" },
     { name = "psycopg", extras = ["binary", "pool"], marker = "platform_machine != 'arm64' or sys_platform != 'darwin'" },
@@ -1686,6 +1702,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/28/3f/13cacea96900bbd31bb05c6b74135f85d15564fc583802be56976c940470/stevedore-5.4.1.tar.gz", hash = "sha256:3135b5ae50fe12816ef291baff420acb727fcd356106e3e9cbfa9e5985cd6f4b", size = 513858, upload-time = "2025-02-20T14:03:57.285Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/f7/45/8c4ebc0c460e6ec38e62ab245ad3c7fc10b210116cea7c16d61602aa9558/stevedore-5.4.1-py3-none-any.whl", hash = "sha256:d10a31c7b86cba16c1f6e8d15416955fc797052351a56af15e608ad20811fcfe", size = 49533, upload-time = "2025-02-20T14:03:55.849Z" },
+]
+
+[[package]]
+name = "tokenize-rt"
+version = "6.2.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/69/ed/8f07e893132d5051d86a553e749d5c89b2a4776eb3a579b72ed61f8559ca/tokenize_rt-6.2.0.tar.gz", hash = "sha256:8439c042b330c553fdbe1758e4a05c0ed460dbbbb24a606f11f0dee75da4cad6", size = 5476, upload-time = "2025-05-23T23:48:00.035Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/33/f0/3fe8c6e69135a845f4106f2ff8b6805638d4e85c264e70114e8126689587/tokenize_rt-6.2.0-py2.py3-none-any.whl", hash = "sha256:a152bf4f249c847a66497a4a95f63376ed68ac6abf092a2f7cfb29d044ecff44", size = 6004, upload-time = "2025-05-23T23:47:58.812Z" },
 ]
 
 [[package]]
