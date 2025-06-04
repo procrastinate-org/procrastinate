@@ -40,3 +40,11 @@ define the value when you register the task:
 def my_task(**kwargs):
     ...
 ```
+
+## Locks and Priority
+
+When multiple jobs share the same lock, they are processed one at a time in a specific order:
+- descending priority (higher priority first)
+- ascending creation time (older job first)
+
+If any job with the same lock is running, all other jobs with that lock must wait. A high-priority job cannot jump ahead of a currently running job, regardless of the running job's priority.

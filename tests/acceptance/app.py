@@ -74,6 +74,11 @@ def product_task(a, b):
     print(a * b)
 
 
+@app.task()
+def echo_task(value):
+    print(value)
+
+
 nb_tries = 0
 
 
