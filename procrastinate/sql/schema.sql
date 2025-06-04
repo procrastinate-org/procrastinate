@@ -204,15 +204,30 @@ BEGIN
         SELECT jobs.*
             FROM procrastinate_jobs AS jobs
             WHERE
-                -- reject the job if its lock has earlier jobs
+                -- reject the job if its lock has earlier or higher priority jobs
                 NOT EXISTS (
                     SELECT 1
-                        FROM procrastinate_jobs AS earlier_jobs
+                        FROM procrastinate_jobs AS other_jobs
                         WHERE
                             jobs.lock IS NOT NULL
-                            AND earlier_jobs.lock = jobs.lock
-                            AND earlier_jobs.status IN ('todo', 'doing')
-                            AND earlier_jobs.id < jobs.id)
+                            AND other_jobs.lock = jobs.lock
+                            AND (
+                                -- job with same lock is already running
+                                other_jobs.status = 'doing'
+                                OR
+                                -- job with same lock is waiting and has higher priority (or same priority but was queued first)
+                                (
+                                    other_jobs.status = 'todo'
+                                    AND (
+                                        other_jobs.priority > jobs.priority
+                                        OR (
+                                        other_jobs.priority = jobs.priority
+                                        AND other_jobs.id < jobs.id
+                                        )
+                                    )
+                                )
+                            )
+                )
                 AND jobs.status = 'todo'
                 AND (target_queue_names IS NULL OR jobs.queue_name = ANY( target_queue_names ))
                 AND (jobs.scheduled_at IS NULL OR jobs.scheduled_at <= now())
@@ -225,7 +240,7 @@ BEGIN
         WHERE procrastinate_jobs.id = candidate.id
         RETURNING procrastinate_jobs.* INTO found_jobs;
 
-	RETURN found_jobs;
+ RETURN found_jobs;
 END;
 $$;
 

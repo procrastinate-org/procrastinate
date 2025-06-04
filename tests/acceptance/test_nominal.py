@@ -131,27 +131,31 @@ def test_lock(defer, running_worker):
     """
     In this test, we launch 2 workers in two parallel threads, and ask them
     both to process tasks with the same lock. We check that the second task is
-    not started before the first one was finished.
+    not started before the first one was finished, irrespective of the task priority
     """
 
     defer(
         "sleep_and_write",
-        ["--lock", "a"],
+        ["--lock", "a", "--priority", "1"],
         sleep=0.5,
         write_before="before-1",
         write_after="after-1",
     )
+
+    # Run the 2 workers concurrently
+    process1 = running_worker(name="worker1")
+    process2 = running_worker(name="worker2")
+    time.sleep(0.1)
+
     defer(
         "sleep_and_write",
-        ["--lock", "a"],
+        ["--lock", "a", "--priority", "2"],
         sleep=0.001,
         write_before="before-2",
         write_after="after-2",
     )
-    # Run the 2 workers concurrently
-    process1 = running_worker(name="worker1")
-    process2 = running_worker(name="worker2")
-    time.sleep(2)
+
+    time.sleep(1)
     # And stop them
     process1.send_signal(signal.SIGINT)
     process2.send_signal(signal.SIGINT)
@@ -217,3 +221,18 @@ def test_periodic_deferrer(worker: Worker):
     assert [row[0] for row in results][:2] == [0, 1]
     assert [row[1] for row in results][:2] == [7, 7]
     assert results[1][2] == results[0][2] + 1
+
+
+@pytest.mark.skip_before_version("3.2.3")
+def test_priority_order(defer, worker):
+    # Defer two jobs for the same task, one with higher priority
+    defer("echo_task", ["--priority", "5", "--lock", "a"], value="low")
+    defer("echo_task", ["--priority", "10", "--lock", "a"], value="high")
+
+    stdout, stderr = worker()
+    print(stdout, stderr)
+
+    # The job with the highest priority ("high") should be processed first
+    lines = stdout.splitlines()
+    assert lines[0] == "high"
+    assert lines[1] == "low"
