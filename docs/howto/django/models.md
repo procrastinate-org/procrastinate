@@ -14,6 +14,7 @@ from procrastinate.contrib.django.models import (
     ProcrastinateJob,
     ProcrastinateEvent,
     ProcrastinatePeriodicDefer,
+    ProcrastinateWorker,
 )
 
 ProcrastinateJob.objects.filter(task_name="mytask").count()
@@ -29,7 +30,7 @@ or events through the ORM.
 
 ```{eval-rst}
 .. automodule:: procrastinate.contrib.django.models
-    :members: ProcrastinateJob, ProcrastinateEvent, ProcrastinatePeriodicDefer
+    :members: ProcrastinateJob, ProcrastinateEvent, ProcrastinatePeriodicDefer, ProcrastinateWorker
 ```
 
 
