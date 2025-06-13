@@ -8,6 +8,7 @@ from typing import Any, Callable
 
 import psycopg2.errors
 import sqlalchemy
+import sqlalchemy.exc
 from psycopg2.extras import Json
 
 from procrastinate import connector, exceptions, manager
@@ -20,7 +21,7 @@ def wrap_exceptions() -> Generator[None, None, None]:
     """
     try:
         yield
-    except sqlalchemy.exc.SQLAlchemyError as exc:
+    except sqlalchemy.exc.StatementError as exc:
         if isinstance(exc.orig, psycopg2.errors.UniqueViolation):
             exc = exc.orig
             constraint_name = exc.diag.constraint_name
@@ -35,6 +36,8 @@ def wrap_exceptions() -> Generator[None, None, None]:
             raise exceptions.UniqueViolation(
                 constraint_name=constraint_name, queueing_lock=queueing_lock
             )
+        raise exceptions.ConnectorException from exc
+    except sqlalchemy.exc.SQLAlchemyError as exc:
         raise exceptions.ConnectorException from exc
 
 
