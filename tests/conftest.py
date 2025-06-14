@@ -258,8 +258,8 @@ def not_opened_app(connector, reset_builtin_task_names) -> app_module.App:
 
 
 @pytest.fixture
-def app(not_opened_app: app_module.App):
-    with not_opened_app.open() as app:
+async def app(not_opened_app: app_module.App):
+    async with not_opened_app.open_async() as app:
         yield app
 
 
