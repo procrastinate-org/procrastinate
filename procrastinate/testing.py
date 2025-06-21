@@ -4,6 +4,7 @@ import asyncio
 import datetime
 import json
 import threading
+import typing
 from collections import Counter
 from collections.abc import Iterable
 from itertools import count
@@ -243,6 +244,17 @@ class InMemoryConnector(connector.BaseAsyncConnector):
                 await coro
             else:
                 # Not on the correct thread: schedule the coroutine on the saved loop.
+
+                # run_coroutine_threadsafe needs a coroutine, but coro may be any
+                # awaitable (coroutines are awaitable but the opposite is not true).
+                # Consequently, we ensure that coro is a coroutine.
+                if not isinstance(coro, typing.Coroutine):
+                    original_coro = coro
+
+                    async def _coro():
+                        return await original_coro
+
+                    coro = _coro()
                 future = asyncio.run_coroutine_threadsafe(coro, self._loop)
                 # Wrap the concurrent.futures.Future so we can await it.
                 await asyncio.wrap_future(future)
