@@ -16,11 +16,9 @@ By using the sync method:
 
 ```python
 my_task.batch_defer(
-    [
-        {"a": 1, "b": 2},
-        {"a": 3, "b": 4},
-        {"a": 5, "b": 6},
-    ]
+    {"a": 1, "b": 2},
+    {"a": 3, "b": 4},
+    {"a": 5, "b": 6},
 )
 ```
 
@@ -28,13 +26,13 @@ Or the async method:
 
 ```python
 await my_task.batch_defer_async(
-    [
-        {"a": 1, "b": 2},
-        {"a": 3, "b": 4},
-        {"a": 5, "b": 6},
-    ]
+    {"a": 1, "b": 2},
+    {"a": 3, "b": 4},
+    {"a": 5, "b": 6},
 )
 ```
+
+(If you have an iterable of payloads, you can use `*`, e.g. `my_task.batch_defer(*payloads)`.)
 
 ## With parameters
 
@@ -46,11 +44,9 @@ my_task.configure(
     schedule_in={"hours": 1},
     queue="not_the_default_queue"
 ).batch_defer(
-    [
-        {"a": 1, "b": 2},
-        {"a": 3, "b": 4},
-        {"a": 5, "b": 6},
-    ]
+    {"a": 1, "b": 2},
+    {"a": 3, "b": 4},
+    {"a": 5, "b": 6},
 )
 
 # or
@@ -59,11 +55,9 @@ await my_task.configure(
     schedule_in={"hours": 1},
     queue="not_the_default_queue"
 ).batch_defer_async(
-    [
-        {"a": 1, "b": 2},
-        {"a": 3, "b": 4},
-        {"a": 5, "b": 6},
-    ]
+    {"a": 1, "b": 2},
+    {"a": 3, "b": 4},
+    {"a": 5, "b": 6},
 )
 ```
 
