@@ -59,6 +59,7 @@ jobs:
           PGHOST: localhost
           PGUSER: postgres
           PGPASSWORD: postgres
+          PY_COLORS: 1
 
       - name: Store coverage file
         uses: actions/upload-artifact@v4
