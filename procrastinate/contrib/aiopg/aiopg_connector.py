@@ -303,7 +303,11 @@ class AiopgConnector(connector.BaseAsyncConnector):
 
     @wrap_exceptions()
     async def listen_notify(
-        self, on_notification: connector.Notify, channels: Iterable[str], *, listen_notify_reconnect_interval: float = 2.0
+        self,
+        on_notification: connector.Notify,
+        channels: Iterable[str],
+        *,
+        listen_notify_reconnect_interval: float = 2.0,
     ) -> None:
         # We need to acquire a dedicated connection, and use the listen
         # query

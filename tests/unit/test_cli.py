@@ -16,8 +16,7 @@ from procrastinate.connector import BaseConnector
     "verbosity, log_level", [(0, "INFO"), (1, "DEBUG"), (2, "DEBUG")]
 )
 def test_get_log_level(verbosity, log_level):
-    assert cli.get_log_level(
-        verbosity=verbosity) == getattr(logging, log_level)
+    assert cli.get_log_level(verbosity=verbosity) == getattr(logging, log_level)
 
 
 def test_configure_logging(mocker, caplog):
@@ -30,8 +29,7 @@ def test_configure_logging(mocker, caplog):
     config.assert_called_once_with(
         level=logging.DEBUG, format="{message}, yay!", style="{"
     )
-    records = [
-        record for record in caplog.records if record.action == "set_log_level"]
+    records = [record for record in caplog.records if record.action == "set_log_level"]
     assert len(records) == 1
     assert records[0].value == "DEBUG"
 

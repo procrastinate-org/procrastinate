@@ -254,7 +254,11 @@ class PsycopgConnector(connector.BaseAsyncConnector):
 
     @wrap_exceptions()
     async def listen_notify(
-        self, on_notification: connector.Notify, channels: Iterable[str], *, listen_notify_reconnect_interval: float = 2.0
+        self,
+        on_notification: connector.Notify,
+        channels: Iterable[str],
+        *,
+        listen_notify_reconnect_interval: float = 2.0,
     ) -> None:
         while True:
             try:
