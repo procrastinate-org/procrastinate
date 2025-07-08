@@ -67,7 +67,7 @@ class BaseConnector:
         on_notification: Notify,
         channels: Iterable[str],
         *,
-        listen_notify_reconnect_interval: float = 2.0,
+        reconnect_interval: float = 2.0,
     ) -> None:
         raise exceptions.SyncConnectorConfigurationError
 
@@ -110,6 +110,6 @@ class BaseAsyncConnector(BaseConnector):
         on_notification: Notify,
         channels: Iterable[str],
         *,
-        listen_notify_reconnect_interval: float = 2.0,
+        reconnect_interval: float = 2.0,
     ) -> None:
         raise NotImplementedError

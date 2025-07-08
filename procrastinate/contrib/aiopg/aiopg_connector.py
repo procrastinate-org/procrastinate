@@ -37,7 +37,8 @@ async def wrap_exceptions() -> AsyncGenerator[None, None]:
         queueing_lock = None
         if constraint_name == manager.QUEUEING_LOCK_CONSTRAINT:
             assert exc.diag.message_detail
-            match = re.search(r"Key \((.*?)\)=\((.*?)\)", exc.diag.message_detail)
+            match = re.search(r"Key \((.*?)\)=\((.*?)\)",
+                              exc.diag.message_detail)
             assert match
             column, queueing_lock = match.groups()
             assert column == "queueing_lock"
@@ -180,7 +181,8 @@ class AiopgConnector(connector.BaseAsyncConnector):
             if base_on_connect:
                 await base_on_connect(connection)
             if json_loads:
-                psycopg2.extras.register_default_jsonb(connection.raw, loads=json_loads)
+                psycopg2.extras.register_default_jsonb(
+                    connection.raw, loads=json_loads)
 
         final_args = {
             "dsn": "",
@@ -307,7 +309,7 @@ class AiopgConnector(connector.BaseAsyncConnector):
         on_notification: connector.Notify,
         channels: Iterable[str],
         *,
-        listen_notify_reconnect_interval: float = 2.0,
+        reconnect_interval: float = 2.0,
     ) -> None:
         # We need to acquire a dedicated connection, and use the listen
         # query

@@ -570,7 +570,7 @@ class JobManager:
         await self.connector.listen_notify(
             on_notification=handle_notification,
             channels=get_channel_for_queues(queues=queues),
-            listen_notify_reconnect_interval=listen_notify_reconnect_interval,
+            reconnect_interval=listen_notify_reconnect_interval,
         )
 
     async def check_connection_async(self) -> bool:

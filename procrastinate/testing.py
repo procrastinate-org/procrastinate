@@ -91,7 +91,7 @@ class InMemoryConnector(connector.BaseAsyncConnector):
         on_notification: connector.Notify,
         channels: Iterable[str],
         *,
-        listen_notify_reconnect_interval: float = 2.0,
+        reconnect_interval: float = 2.0,
     ) -> None:
         self.on_notification = on_notification
         self.notify_channels = list(channels)
