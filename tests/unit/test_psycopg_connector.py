@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import asyncio
+from contextlib import asynccontextmanager
+
 import psycopg
 import pytest
 
@@ -28,6 +31,55 @@ async def test_wrap_exceptions_success():
         return a, b
 
     assert await corofunc(1, 2) == (1, 2)
+
+
+def test_init_default_listen_notify_reconnect_interval():
+    connector = psycopg_connector.PsycopgConnector()
+    assert connector._listen_notify_reconnect_interval == 2.0
+
+
+def test_init_custom_listen_notify_reconnect_interval():
+    connector = psycopg_connector.PsycopgConnector(
+        listen_notify_reconnect_interval=5.0)
+    assert connector._listen_notify_reconnect_interval == 5.0
+
+
+@pytest.mark.parametrize(
+    "connector, expected_sleep_duration",
+    [
+        (psycopg_connector.PsycopgConnector(
+            listen_notify_reconnect_interval=1.5), 1.5),
+        (psycopg_connector.PsycopgConnector(), 2.0),
+    ]
+)
+async def test_listen_notify_reconnect_interval(mocker, connector, expected_sleep_duration):
+    mock_connection = mocker.AsyncMock()
+    mock_connection.execute.side_effect = psycopg.OperationalError(
+        "Connection lost")
+
+    @asynccontextmanager
+    async def mock_get_connection():
+        yield mock_connection
+
+    mocker.patch.object(connector, '_get_standalone_connection',
+                        side_effect=mock_get_connection)
+
+    sleep_call_count = 0
+
+    async def mock_sleep(duration):
+        nonlocal sleep_call_count
+        sleep_call_count += 1
+        if sleep_call_count >= 2:
+            raise asyncio.CancelledError("Stop the loop")
+        assert duration == expected_sleep_duration
+
+    mocker.patch('asyncio.sleep', side_effect=mock_sleep)
+    mocker.patch.object(connector, '_loop_notify')
+
+    with pytest.raises(asyncio.CancelledError):
+        await connector.listen_notify(mocker.AsyncMock(), ["test_channel"])
+
+    assert sleep_call_count >= 1
 
 
 @pytest.mark.parametrize(
