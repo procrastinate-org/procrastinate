@@ -275,7 +275,7 @@ class PsycopgConnector(connector.BaseAsyncConnector):
                     )
             except psycopg.OperationalError:
                 # Connection failed, we need to reconnect
-                await asyncio.sleep(listen_notify_reconnect_interval)
+                await asyncio.sleep(reconnect_interval)
                 continue
 
     @wrap_exceptions()
