@@ -198,7 +198,9 @@ def psycopg_connection_params(connection_params, make_psycopg_connection_params)
 
 @pytest.fixture
 async def not_opened_psycopg_connector(psycopg_connection_params):
-    yield async_psycopg_connector_module.PsycopgConnector(**psycopg_connection_params)
+    yield async_psycopg_connector_module.PsycopgConnector(
+        listen_notify_reconnect_interval=0.0, **psycopg_connection_params
+    )
 
 
 @pytest.fixture

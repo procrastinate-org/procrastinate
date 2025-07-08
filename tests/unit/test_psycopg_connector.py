@@ -11,7 +11,7 @@ from procrastinate import exceptions, psycopg_connector
 
 @pytest.fixture
 def connector():
-    return psycopg_connector.PsycopgConnector()
+    return psycopg_connector.PsycopgConnector(listen_notify_reconnect_interval=0.0)
 
 
 async def test_wrap_exceptions_wraps():
