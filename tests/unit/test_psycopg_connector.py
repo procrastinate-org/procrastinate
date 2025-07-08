@@ -33,16 +33,6 @@ async def test_wrap_exceptions_success():
     assert await corofunc(1, 2) == (1, 2)
 
 
-def test_init_default_listen_notify_reconnect_interval():
-    connector = psycopg_connector.PsycopgConnector()
-    assert connector._listen_notify_reconnect_interval == 2.0
-
-
-def test_init_custom_listen_notify_reconnect_interval():
-    connector = psycopg_connector.PsycopgConnector(listen_notify_reconnect_interval=5.0)
-    assert connector._listen_notify_reconnect_interval == 5.0
-
-
 @pytest.mark.parametrize(
     "connector, expected_sleep_duration",
     [
