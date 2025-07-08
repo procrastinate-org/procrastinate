@@ -66,6 +66,8 @@ class BaseConnector:
         self,
         on_notification: Notify,
         channels: Iterable[str],
+        *,
+        listen_notify_reconnect_interval: float = 2.0,
     ) -> None:
         raise exceptions.SyncConnectorConfigurationError
 
@@ -104,6 +106,6 @@ class BaseAsyncConnector(BaseConnector):
         return utils.async_to_sync(self.execute_query_all_async, query, **arguments)
 
     async def listen_notify(
-        self, on_notification: Notify, channels: Iterable[str]
+        self, on_notification: Notify, channels: Iterable[str], *, listen_notify_reconnect_interval: float = 2.0
     ) -> None:
         raise NotImplementedError

@@ -11,7 +11,7 @@ from procrastinate import exceptions, psycopg_connector
 
 @pytest.fixture
 def connector():
-    return psycopg_connector.PsycopgConnector(listen_notify_reconnect_interval=0.0)
+    return psycopg_connector.PsycopgConnector()
 
 
 async def test_wrap_exceptions_wraps():
@@ -33,18 +33,11 @@ async def test_wrap_exceptions_success():
     assert await corofunc(1, 2) == (1, 2)
 
 
-@pytest.mark.parametrize(
-    "connector, expected_sleep_duration",
-    [
-        (psycopg_connector.PsycopgConnector(listen_notify_reconnect_interval=1.5), 1.5),
-        (psycopg_connector.PsycopgConnector(), 2.0),
-    ],
-)
-async def test_listen_notify_reconnect_interval(
-    mocker, connector, expected_sleep_duration
-):
+async def test_listen_notify_reconnect_interval(mocker):
+    connector = psycopg_connector.PsycopgConnector()
     mock_connection = mocker.AsyncMock()
-    mock_connection.execute.side_effect = psycopg.OperationalError("Connection lost")
+    mock_connection.execute.side_effect = psycopg.OperationalError(
+        "Connection lost")
 
     @asynccontextmanager
     async def mock_get_connection():
@@ -55,6 +48,7 @@ async def test_listen_notify_reconnect_interval(
     )
 
     sleep_call_count = 0
+    expected_sleep_duration = 5
 
     async def mock_sleep(duration):
         nonlocal sleep_call_count
@@ -67,7 +61,11 @@ async def test_listen_notify_reconnect_interval(
     mocker.patch.object(connector, "_loop_notify")
 
     with pytest.raises(asyncio.CancelledError):
-        await connector.listen_notify(mocker.AsyncMock(), ["test_channel"])
+        await connector.listen_notify(
+            mocker.AsyncMock(),
+            ["test_channel"],
+            listen_notify_reconnect_interval=expected_sleep_duration
+        )
 
     assert sleep_call_count >= 1
 
@@ -88,7 +86,8 @@ def test_wrap_exceptions_applied(method_name, connector):
 
 
 async def test_open_async_no_pool_specified(mocker, connector):
-    mocker.patch.object(connector, "_create_pool", return_value=mocker.AsyncMock())
+    mocker.patch.object(connector, "_create_pool",
+                        return_value=mocker.AsyncMock())
 
     await connector.open_async()
 

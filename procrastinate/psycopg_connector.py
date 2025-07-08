@@ -50,7 +50,6 @@ class PsycopgConnector(connector.BaseAsyncConnector):
         pool_factory: Callable[
             ..., psycopg_pool.AsyncConnectionPool
         ] = psycopg_pool.AsyncConnectionPool,
-        listen_notify_reconnect_interval: float = 2.0,
         **kwargs: Any,
     ):
         """
@@ -86,9 +85,6 @@ class PsycopgConnector(connector.BaseAsyncConnector):
             Default is ``psycopg_pool.AsyncConnectionPool``.
             You can set this to ``psycopg_pool.AsyncNullConnectionPool`` to disable
             pooling.
-        listen_notify_reconnect_interval :
-            Time in seconds to wait before attempting to reconnect after a connection
-            failure in ``listen_notify``. Default is 2.0 seconds.
         """
         self._async_pool: psycopg_pool.AsyncConnectionPool | None = None
         self._pool_factory: Callable[..., psycopg_pool.AsyncConnectionPool] = (
@@ -97,7 +93,6 @@ class PsycopgConnector(connector.BaseAsyncConnector):
         self._pool_externally_set: bool = False
         self._json_loads = json_loads
         self._json_dumps = json_dumps
-        self._listen_notify_reconnect_interval = listen_notify_reconnect_interval
         self._pool_args = kwargs
         self._sync_connector: connector.BaseConnector | None = None
 
@@ -259,7 +254,7 @@ class PsycopgConnector(connector.BaseAsyncConnector):
 
     @wrap_exceptions()
     async def listen_notify(
-        self, on_notification: connector.Notify, channels: Iterable[str]
+        self, on_notification: connector.Notify, channels: Iterable[str], *, listen_notify_reconnect_interval: float = 2.0
     ) -> None:
         while True:
             try:
@@ -276,7 +271,7 @@ class PsycopgConnector(connector.BaseAsyncConnector):
                     )
             except psycopg.OperationalError:
                 # Connection failed, we need to reconnect
-                await asyncio.sleep(self._listen_notify_reconnect_interval)
+                await asyncio.sleep(listen_notify_reconnect_interval)
                 continue
 
     @wrap_exceptions()

@@ -146,7 +146,7 @@ class DjangoConnector(connector.BaseAsyncConnector):
             return list(self._dictfetch(cursor))
 
     async def listen_notify(
-        self, on_notification: connector.Notify, channels: Iterable[str]
+        self, on_notification: connector.Notify, channels: Iterable[str], *, listen_notify_reconnect_interval: float = 2.0
     ) -> None:
         raise NotImplementedError(
             "listen/notify is not supported with Django connector"
