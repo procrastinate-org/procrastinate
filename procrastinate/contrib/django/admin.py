@@ -1,15 +1,20 @@
 from __future__ import annotations
 
 import json
+import logging
 
-from django.contrib import admin
+from django.contrib import admin, messages
+from django.db import transaction
 from django.db.models import Prefetch
+from django.db.models.functions import Now
 from django.template.loader import render_to_string
 from django.utils import timezone
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 
 from . import models
+
+logger = logging.getLogger(__name__)
 
 JOB_STATUS_EMOJI_MAPPING = {
     "todo": "🗓️",
@@ -24,6 +29,51 @@ JOB_STATUS_EMOJI_MAPPING = {
 
 class ProcrastinateEventInline(admin.StackedInline):
     model = models.ProcrastinateEvent
+
+
+@admin.action(
+    description="Reschedule marked jobs to run now", permissions=["reschedule"]
+)
+def reschedule(modeladmin, request, queryset):
+    """
+    Reschedule marked jobs to run now.
+    Only processes jobs that are scheduled for the future and in 'todo' status.
+    """
+    # Use transaction to ensure atomic updates
+    with transaction.atomic():
+        # Filter to only jobs that are scheduled for the future and in 'todo' status
+        eligible_jobs = queryset.select_for_update().filter(
+            status="todo", scheduled_at__gt=Now()
+        )
+
+        # Count jobs for user feedback
+        total_selected = queryset.count()
+        eligible_count = eligible_jobs.count()
+        skipped_count = total_selected - eligible_count
+
+        try:
+            # Update the scheduled_at time to now for eligible jobs
+            updated_count = eligible_jobs.update(scheduled_at=Now())
+
+            if updated_count > 0:
+                messages.success(
+                    request,
+                    f"Successfully moved {updated_count} job{'s' if updated_count != 1 else ''} to run immediately.",
+                )
+
+            if skipped_count > 0:
+                messages.info(
+                    request,
+                    f"Skipped {skipped_count} job{'s' if skipped_count != 1 else ''} "
+                    "(not scheduled for future or not in 'todo' status).",
+                )
+
+        except Exception as e:
+            logger.exception("Failed to reschedule jobs")
+            messages.error(
+                request,
+                f"Failed to reschedule jobs: {e}",
+            )
 
 
 @admin.register(models.ProcrastinateJob)
@@ -57,6 +107,7 @@ class ProcrastinateJobAdmin(admin.ModelAdmin):
         "priority",
     ]
     inlines = [ProcrastinateEventInline]
+    actions = [reschedule]
 
     def get_readonly_fields(
         self,
@@ -77,6 +128,12 @@ class ProcrastinateJobAdmin(admin.ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return False
+
+    def has_reschedule_permission(self, request, obj=None):
+        """
+        Check if the user has change permission on ProcrastinateJob.
+        """
+        return super().has_change_permission(request)
 
     def get_queryset(self, request):
         return (
