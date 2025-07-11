@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import collections
+import asyncio
 
 import psycopg2
 import pytest
@@ -153,6 +154,45 @@ async def test_listen_notify_pool_one_connection(mocker, caplog, connector):
     await connector.listen_notify(None, None)
 
     assert {e.action for e in caplog.records} == {"listen_notify_disabled"}
+
+
+async def test_listen_notify_reconnect_on_pool_acquire_failure(mocker, connector):
+    mock_pool = mocker.Mock(maxsize=2)
+    await connector.open_async(mock_pool)
+
+    acquire_call_count = 0
+    sleep_calls = 0
+
+    class MockAcquire:
+        def __init__(self):
+            pass
+
+        async def __aenter__(self):
+            nonlocal acquire_call_count
+            acquire_call_count += 1
+            if acquire_call_count < 3:  # Fail first two times
+                raise psycopg2.OperationalError("connection failed")
+            raise asyncio.CancelledError
+
+        async def __aexit__(self, exc_type, exc_val, exc_tb):
+            return None
+
+    async def mock_sleep(interval):
+        nonlocal sleep_calls
+        sleep_calls += 1
+        assert interval == 2.0
+
+    mock_pool.acquire.return_value = MockAcquire()
+    mocker.patch("asyncio.sleep", side_effect=mock_sleep)
+
+    with pytest.raises(asyncio.CancelledError):
+        await connector.listen_notify(
+            on_notification=mocker.Mock(),
+            channels=["test_channel"],
+        )
+
+    assert acquire_call_count == 3
+    assert sleep_calls == 2
 
 
 # mocker and async don't play very well together (yet), so it's easier to create
