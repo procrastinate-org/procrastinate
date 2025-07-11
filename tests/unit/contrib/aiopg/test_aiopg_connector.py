@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import collections
 import asyncio
+import collections
 
 import psycopg2
 import pytest
