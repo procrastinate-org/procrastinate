@@ -326,7 +326,8 @@ class AiopgConnector(connector.BaseAsyncConnector):
                         await self._execute_query_connection(
                             connection=connection,
                             query=self._make_dynamic_query(
-                                query=sql.queries["listen_queue"], channel_name=channel_name
+                                query=sql.queries["listen_queue"],
+                                channel_name=channel_name,
                             ),
                         )
                     await self._loop_notify(
