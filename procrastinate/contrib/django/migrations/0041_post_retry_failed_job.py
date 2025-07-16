@@ -13,5 +13,5 @@ class Migration(migrations.Migration):
     ]
     name = "0040_retry_failed_job"
     dependencies = [
-        ("procrastinate", "0039_pre_priority_lock_fetch_job"),
+        ("procrastinate", "0040_pre_retry_failed_job"),
     ]
