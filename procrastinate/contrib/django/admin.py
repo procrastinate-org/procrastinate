@@ -11,7 +11,7 @@ from django.utils import timezone
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 
-from procrastinate import App
+from procrastinate import App, utils
 from procrastinate.contrib.django.apps import ProcrastinateConfig
 from procrastinate.jobs import Status
 
@@ -135,13 +135,15 @@ class ProcrastinateJobAdmin(admin.ModelAdmin):
             )
         return ""
 
-    @admin.action(description="Retry Failed Job")
+    @admin.action(description="Retry Job")
     def retry(self, request: HttpRequest, queryset: QuerySet[models.ProcrastinateJob]):
         app_config: ProcrastinateConfig = apps.get_app_config("procrastinate")  # pyright: ignore [reportAssignmentType]
         p_app: App = app_config.app
-        for job in queryset.filter(status=Status.FAILED.value):
-            p_app.job_manager.retry_failed_job_by_id(
-                job.id, job.priority, job.queue_name, job.lock
+        for job in queryset.filter(
+            status__in=(Status.FAILED.value, Status.DOING.value)
+        ):
+            p_app.job_manager.retry_job_by_id(
+                job.id, utils.utcnow(), job.priority, job.queue_name, job.lock
             )
 
     @admin.action(description="Cancel Job (only 'todo' jobs)")

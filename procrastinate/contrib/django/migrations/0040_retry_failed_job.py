@@ -8,11 +8,11 @@ from .. import migrations_utils
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("procrastinate", "0035_post_add_heartbeat"),
+        ("procrastinate", "0039_pre_priority_lock_fetch_job"),
     ]
 
     operations = [
         migrations_utils.RunProcrastinateSQL(
-            name="03.02.00_01_add_retry_failed_job_procedure.sql"
+            name="03.03.00_50_post_add_retry_failed_job_procedure.sql"
         ),
     ]
