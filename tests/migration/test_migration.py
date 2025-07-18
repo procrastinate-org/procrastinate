@@ -122,7 +122,7 @@ migration_files = sorted(
 
 @pytest.fixture(scope="module")
 def new_migrations(latest_version) -> set[pathlib.Path]:
-    # git diff latest_version..HEAD --name-only --diff-filter=A
+    # git diff latest_version..HEAD --name-only --diff-filter=A --no-renames -- procrastinate/sql/migrations
 
     try:
         out = subprocess.check_output(
@@ -132,6 +132,8 @@ def new_migrations(latest_version) -> set[pathlib.Path]:
                 f"{latest_version}..HEAD",
                 "--name-only",
                 "--diff-filter=A",
+                "--no-renames",
+                "--",
                 "procrastinate/sql/migrations",
             ],
             text=True,

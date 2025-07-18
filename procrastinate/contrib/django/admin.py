@@ -2,12 +2,18 @@ from __future__ import annotations
 
 import json
 
+from django.apps import apps
 from django.contrib import admin
-from django.db.models import Prefetch
+from django.db.models import Prefetch, QuerySet
+from django.http.request import HttpRequest
 from django.template.loader import render_to_string
 from django.utils import timezone
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
+
+from procrastinate import App, utils
+from procrastinate.contrib.django.apps import ProcrastinateConfig
+from procrastinate.jobs import Status
 
 from . import models
 
@@ -128,3 +134,30 @@ class ProcrastinateJobAdmin(admin.ModelAdmin):
                 ).strip()
             )
         return ""
+
+    @admin.action(description="Retry Job")
+    def retry(self, request: HttpRequest, queryset: QuerySet[models.ProcrastinateJob]):
+        app_config: ProcrastinateConfig = apps.get_app_config("procrastinate")  # pyright: ignore [reportAssignmentType]
+        p_app: App = app_config.app
+        for job in queryset.filter(
+            status__in=(Status.FAILED.value, Status.DOING.value)
+        ):
+            p_app.job_manager.retry_job_by_id(
+                job.id, utils.utcnow(), job.priority, job.queue_name, job.lock
+            )
+
+    @admin.action(description="Cancel Job (only 'todo' jobs)")
+    def cancel(self, request: HttpRequest, queryset: QuerySet[models.ProcrastinateJob]):
+        app_config: ProcrastinateConfig = apps.get_app_config("procrastinate")  # pyright: ignore [reportAssignmentType]
+        p_app: App = app_config.app
+        for job in queryset.filter(status=Status.TODO.value):
+            p_app.job_manager.cancel_job_by_id(job.id, abort=False)
+
+    @admin.action(description="Abort Job (includes 'todo' & 'doing' jobs)")
+    def abort(self, request: HttpRequest, queryset: QuerySet[models.ProcrastinateJob]):
+        app_config: ProcrastinateConfig = apps.get_app_config("procrastinate")  # pyright: ignore [reportAssignmentType]
+        p_app: App = app_config.app
+        for job in queryset.filter(status__in=(Status.TODO.value, Status.DOING.value)):
+            p_app.job_manager.cancel_job_by_id(job.id, abort=True)
+
+    actions = [retry, cancel, abort]
