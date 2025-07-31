@@ -28,6 +28,7 @@ WORKER_NAME = "worker"
 WORKER_CONCURRENCY = 1  # maximum number of parallel jobs
 FETCH_JOB_POLLING_INTERVAL = 5.0  # seconds
 ABORT_JOB_POLLING_INTERVAL = 5.0  # seconds
+LISTEN_NOTIFY_RECONNECT_INTERVAL = 2.0  # seconds
 
 
 class Worker:
@@ -42,6 +43,7 @@ class Worker:
         abort_job_polling_interval: float = ABORT_JOB_POLLING_INTERVAL,
         shutdown_graceful_timeout: float | None = None,
         listen_notify: bool = True,
+        listen_notify_reconnect_interval: float = LISTEN_NOTIFY_RECONNECT_INTERVAL,
         delete_jobs: str | jobs.DeleteJobCondition | None = None,
         additional_context: dict[str, Any] | None = None,
         install_signal_handlers: bool = True,
@@ -56,6 +58,7 @@ class Worker:
         self.fetch_job_polling_interval = fetch_job_polling_interval
         self.abort_job_polling_interval = abort_job_polling_interval
         self.listen_notify = listen_notify
+        self.listen_notify_reconnect_interval = listen_notify_reconnect_interval
         self.delete_jobs = (
             jobs.DeleteJobCondition(delete_jobs)
             if isinstance(delete_jobs, str)
@@ -541,6 +544,7 @@ class Worker:
             listener_coro = self.app.job_manager.listen_for_jobs(
                 on_notification=self._handle_notification,
                 queues=self.queues,
+                listen_notify_reconnect_interval=self.listen_notify_reconnect_interval,
             )
             side_tasks.append(asyncio.create_task(listener_coro, name="listener"))
         return side_tasks
