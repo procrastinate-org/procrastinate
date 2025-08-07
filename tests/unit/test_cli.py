@@ -55,10 +55,6 @@ def test_main(mocker):
             ["worker", "--delete-jobs", "never"],
             {"command": "worker", "delete_jobs": jobs.DeleteJobCondition.NEVER},
         ),
-        (
-            ["worker", "--listen-notify-reconnect-interval", "5.0"],
-            {"command": "worker", "listen_notify_reconnect_interval": 5.0},
-        ),
         (["defer", "x"], {"command": "defer", "task": "x"}),
         (["defer", "x", "{}"], {"command": "defer", "task": "x", "json_args": "{}"}),
         (

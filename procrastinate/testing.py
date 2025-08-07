@@ -87,11 +87,7 @@ class InMemoryConnector(connector.BaseAsyncConnector):
         return await self.generic_execute(query, "all", **arguments)
 
     async def listen_notify(
-        self,
-        on_notification: connector.Notify,
-        channels: Iterable[str],
-        *,
-        reconnect_interval: float = 2.0,
+        self, on_notification: connector.Notify, channels: Iterable[str]
     ) -> None:
         self.on_notification = on_notification
         self.notify_channels = list(channels)

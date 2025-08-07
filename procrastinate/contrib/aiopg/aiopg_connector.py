@@ -303,11 +303,7 @@ class AiopgConnector(connector.BaseAsyncConnector):
 
     @wrap_exceptions()
     async def listen_notify(
-        self,
-        on_notification: connector.Notify,
-        channels: Iterable[str],
-        *,
-        reconnect_interval: float = 2.0,
+        self, on_notification: connector.Notify, channels: Iterable[str]
     ) -> None:
         # We need to acquire a dedicated connection, and use the listen
         # query
@@ -320,23 +316,17 @@ class AiopgConnector(connector.BaseAsyncConnector):
             return
 
         while True:
-            try:
-                async with self.pool.acquire() as connection:
-                    for channel_name in channels:
-                        await self._execute_query_connection(
-                            connection=connection,
-                            query=self._make_dynamic_query(
-                                query=sql.queries["listen_queue"],
-                                channel_name=channel_name,
-                            ),
-                        )
-                    await self._loop_notify(
-                        on_notification=on_notification, connection=connection
+            async with self.pool.acquire() as connection:
+                for channel_name in channels:
+                    await self._execute_query_connection(
+                        connection=connection,
+                        query=self._make_dynamic_query(
+                            query=sql.queries["listen_queue"], channel_name=channel_name
+                        ),
                     )
-            except psycopg2.OperationalError:
-                # Connection failed, we need to reconnect
-                await asyncio.sleep(reconnect_interval)
-                continue
+                await self._loop_notify(
+                    on_notification=on_notification, connection=connection
+                )
 
     @wrap_exceptions()
     async def _loop_notify(

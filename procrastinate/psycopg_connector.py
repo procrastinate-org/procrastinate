@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 import contextlib
 import logging
 from collections.abc import AsyncGenerator, AsyncIterator, Iterable
@@ -254,29 +253,20 @@ class PsycopgConnector(connector.BaseAsyncConnector):
 
     @wrap_exceptions()
     async def listen_notify(
-        self,
-        on_notification: connector.Notify,
-        channels: Iterable[str],
-        *,
-        reconnect_interval: float = 2.0,
+        self, on_notification: connector.Notify, channels: Iterable[str]
     ) -> None:
         while True:
-            try:
-                async with self._get_standalone_connection() as connection:
-                    for channel_name in channels:
-                        await connection.execute(
-                            query=self._make_dynamic_query(
-                                query=sql.queries["listen_queue"],
-                                channel_name=channel_name,
-                            ),
-                        )
-                    await self._loop_notify(
-                        on_notification=on_notification, connection=connection
+            async with self._get_standalone_connection() as connection:
+                for channel_name in channels:
+                    await connection.execute(
+                        query=self._make_dynamic_query(
+                            query=sql.queries["listen_queue"],
+                            channel_name=channel_name,
+                        ),
                     )
-            except psycopg.OperationalError:
-                # Connection failed, we need to reconnect
-                await asyncio.sleep(reconnect_interval)
-                continue
+                await self._loop_notify(
+                    on_notification=on_notification, connection=connection
+                )
 
     @wrap_exceptions()
     async def _loop_notify(

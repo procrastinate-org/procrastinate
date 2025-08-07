@@ -338,13 +338,6 @@ def configure_worker_parser(subparsers: argparse._SubParsersAction):
     )
     add_argument(
         worker_parser,
-        "--listen-notify-reconnect-interval",
-        type=float,
-        help="How long to wait before attempting to reconnect after a connection failure in listen_notify",
-        envvar="WORKER_LISTEN_NOTIFY_RECONNECT_INTERVAL",
-    )
-    add_argument(
-        worker_parser,
         "--delete-jobs",
         choices=jobs.DeleteJobCondition,
         type=jobs.DeleteJobCondition,
