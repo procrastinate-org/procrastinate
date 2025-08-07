@@ -70,8 +70,7 @@ async def test_worker(entrypoint, cli_app, mocker):
     result = await entrypoint(
         "worker "
         "--queues a,b --name=w1 --fetch-job-polling-interval=8.3 --abort-job-polling-interval=20 "
-        "--one-shot --concurrency=10 --no-listen-notify --delete-jobs=always "
-        "--listen-notify-reconnect-interval=5.5"
+        "--one-shot --concurrency=10 --no-listen-notify --delete-jobs=always"
     )
 
     assert "Launching a worker on a, b" in result.stderr.strip()
@@ -85,7 +84,6 @@ async def test_worker(entrypoint, cli_app, mocker):
         wait=False,
         listen_notify=False,
         delete_jobs=jobs.DeleteJobCondition.ALWAYS,
-        listen_notify_reconnect_interval=5.5,
     )
 
 
