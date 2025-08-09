@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1754575464509,
+  "lastUpdate": 1754701251238,
   "repoUrl": "https://github.com/procrastinate-org/procrastinate",
   "entries": {
     "Procrastinate Benchmarks": [
@@ -3884,6 +3884,86 @@ window.BENCHMARK_DATA = {
             "unit": "iter/sec",
             "range": "stddev: 0.2837389763398927",
             "extra": "mean: 3.420863232800093 sec\nrounds: 5"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "29139614+renovate[bot]@users.noreply.github.com",
+            "name": "renovate[bot]",
+            "username": "renovate[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "d4e4485d4aada0cbbaba0245a3f10ec2b02e1ea0",
+          "message": "Merge pull request #1437 from procrastinate-org/renovate/major-all\n\nUpdate actions/download-artifact action to v5",
+          "timestamp": "2025-08-09T00:57:16Z",
+          "tree_id": "6c3ad36ae5f891b54f95e3b10f41c4bd7302b427",
+          "url": "https://github.com/procrastinate-org/procrastinate/commit/d4e4485d4aada0cbbaba0245a3f10ec2b02e1ea0"
+        },
+        "date": 1754701250881,
+        "tool": "pytest",
+        "benches": [
+          {
+            "name": "tests/benchmarks/test_benchmark_async.py::test_benchmark_1000_async_jobs[psycopg_connector]",
+            "value": 0.2754213595818402,
+            "unit": "iter/sec",
+            "range": "stddev: 0.07711541510557347",
+            "extra": "mean: 3.630800463399987 sec\nrounds: 5"
+          },
+          {
+            "name": "tests/benchmarks/test_benchmark_async.py::test_benchmark_1000_async_jobs[aiopg_connector]",
+            "value": 0.5170379700119134,
+            "unit": "iter/sec",
+            "range": "stddev: 0.026472342148984373",
+            "extra": "mean: 1.9340939311999819 sec\nrounds: 5"
+          },
+          {
+            "name": "tests/benchmarks/test_benchmark_async.py::test_benchmark_1000_async_batch_jobs[psycopg_connector]",
+            "value": 0.37115147503523505,
+            "unit": "iter/sec",
+            "range": "stddev: 0.24685637835501445",
+            "extra": "mean: 2.6943177307999804 sec\nrounds: 5"
+          },
+          {
+            "name": "tests/benchmarks/test_benchmark_async.py::test_benchmark_1000_async_batch_jobs[aiopg_connector]",
+            "value": 0.6071826105636993,
+            "unit": "iter/sec",
+            "range": "stddev: 0.23176041420943078",
+            "extra": "mean: 1.6469509874000097 sec\nrounds: 5"
+          },
+          {
+            "name": "tests/benchmarks/test_benchmark_sync.py::test_benchmark_1000_sync_jobs[sync_psycopg_connector]",
+            "value": 0.233085005749174,
+            "unit": "iter/sec",
+            "range": "stddev: 0.16249503000736176",
+            "extra": "mean: 4.290280263999966 sec\nrounds: 5"
+          },
+          {
+            "name": "tests/benchmarks/test_benchmark_sync.py::test_benchmark_1000_sync_jobs[psycopg2_connector]",
+            "value": 0.2757033352762802,
+            "unit": "iter/sec",
+            "range": "stddev: 0.12716864021540125",
+            "extra": "mean: 3.6270870607999997 sec\nrounds: 5"
+          },
+          {
+            "name": "tests/benchmarks/test_benchmark_sync.py::test_benchmark_1000_sync_batch_jobs[sync_psycopg_connector]",
+            "value": 0.32150325219042225,
+            "unit": "iter/sec",
+            "range": "stddev: 0.2113947862712408",
+            "extra": "mean: 3.110388442999988 sec\nrounds: 5"
+          },
+          {
+            "name": "tests/benchmarks/test_benchmark_sync.py::test_benchmark_1000_sync_batch_jobs[psycopg2_connector]",
+            "value": 0.3194925034262376,
+            "unit": "iter/sec",
+            "range": "stddev: 0.07063349536840507",
+            "extra": "mean: 3.1299638936000065 sec\nrounds: 5"
           }
         ]
       }
