@@ -6,7 +6,9 @@ from procrastinate.contrib.django import utils
 
 
 def test_connector_params():
-    assert "dbname" in utils.connector_params()
+    params, pool_params = utils.connector_params()
+    assert "dbname" in params
+    assert pool_params == {"min_size": 1, "max_size": 4}
 
 
 @pytest.mark.parametrize(
