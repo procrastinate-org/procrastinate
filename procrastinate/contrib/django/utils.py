@@ -7,7 +7,7 @@ from typing import Any
 from django.db import connections
 
 
-def connector_params(alias: str = "default") -> dict[str, Any]:
+def connector_params(alias: str = "default") -> tuple[dict[str, Any], dict[str, Any]]:
     """
     Returns parameters for in a format that is suitable to be passed to a
     connector constructor (see `howto/django`).
@@ -27,7 +27,9 @@ def connector_params(alias: str = "default") -> dict[str, Any]:
     params = wrapper.get_connection_params()
     params.pop("cursor_factory", None)
     params.pop("context", None)
-    return params
+    return params, wrapper.settings_dict.get("OPTIONS", {}).get(
+        "pool", {}
+    ) or {}  # During tests pool is False {"pool": False}
 
 
 def package_is_installed(name: str) -> bool:

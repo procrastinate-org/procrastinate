@@ -50,7 +50,7 @@ async def test_open_async_no_pool_specified(mocker, connector):
 
     await connector.open_async()
 
-    assert connector._create_pool.call_count == 1
+    connector._create_pool.assert_called_once_with({}, None)
     assert connector._async_pool.open.await_count == 1
 
 
