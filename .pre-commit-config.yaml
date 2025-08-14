@@ -53,13 +53,7 @@ repos:
           - django-stubs-ext==5.1.3 ; python_full_version < '3.10'
           - django-stubs-ext==5.2.1 ; python_full_version >= '3.10'
           - docutils==0.21.2
-          - greenlet==3.2.3 ; (python_full_version < '3.14' and platform_machine ==
-            'AMD64') or (python_full_version < '3.14' and platform_machine == 'WIN32')
-            or (python_full_version < '3.14' and platform_machine == 'aarch64') or
-            (python_full_version < '3.14' and platform_machine == 'amd64') or (python_full_version
-            < '3.14' and platform_machine == 'ppc64le') or (python_full_version <
-            '3.14' and platform_machine == 'win32') or (python_full_version < '3.14'
-            and platform_machine == 'x86_64')
+          - greenlet==3.2.3 ; (python_full_version < '3.14' and platform_machine == 'AMD64') or (python_full_version < '3.14' and platform_machine == 'WIN32') or (python_full_version < '3.14' and platform_machine == 'aarch64') or (python_full_version < '3.14' and platform_machine == 'amd64') or (python_full_version < '3.14' and platform_machine == 'ppc64le') or (python_full_version < '3.14' and platform_machine == 'win32') or (python_full_version < '3.14' and platform_machine == 'x86_64')
           - idna==3.10
           - imagesize==1.4.1
           - importlib-metadata==8.7.0 ; python_full_version < '3.10'
@@ -112,11 +106,11 @@ repos:
         args: [--target-version, '4.2'] # Replace with Django version
 
   - repo: https://github.com/ewjoachim/sync-pre-commit-with-uv
-    rev: 1.0.2
+    rev: 1.1.0
     hooks:
       - id: sync
 
   - repo: https://github.com/astral-sh/uv-pre-commit
-    rev: 0.7.13
+    rev: 0.8.10
     hooks:
       - id: uv-lock
