@@ -166,18 +166,19 @@ class DjangoConnector(connector.BaseAsyncConnector):
         """
         alias = settings.settings.DATABASE_ALIAS
 
+        kwargs, pool_kwargs = utils.connector_params(alias)
         if utils.package_is_installed("psycopg") and utils.package_is_version(
             "psycopg", 3
         ):
             from procrastinate import psycopg_connector
 
             return psycopg_connector.PsycopgConnector(
-                kwargs=utils.connector_params(alias)
+                kwargs=kwargs, pool_kwargs=pool_kwargs
             )
         if utils.package_is_installed("aiopg"):
             from procrastinate.contrib.aiopg import aiopg_connector
 
-            return aiopg_connector.AiopgConnector(**utils.connector_params(alias))
+            return aiopg_connector.AiopgConnector(**kwargs)
 
         raise django_exceptions.ImproperlyConfigured(
             "You must install either psycopg(3) or aiopg to use "
