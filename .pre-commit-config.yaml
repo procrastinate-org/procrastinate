@@ -30,7 +30,7 @@ repos:
       - id: mixed-line-ending
 
   - repo: https://github.com/RobertCraigie/pyright-python
-    rev: v1.1.402
+    rev: v1.1.403
     hooks:
       - id: pyright
         additional_dependencies:
@@ -88,7 +88,7 @@ repos:
           - urllib3==2.5.0
           - zipp==3.23.0 ; python_full_version < '3.10'
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.12.0
+    rev: v0.12.9
     hooks:
       - id: ruff
         args: [--fix, --unsafe-fixes, --show-fixes]
@@ -111,6 +111,6 @@ repos:
       - id: sync
 
   - repo: https://github.com/astral-sh/uv-pre-commit
-    rev: 0.8.10
+    rev: 0.8.11
     hooks:
       - id: uv-lock
