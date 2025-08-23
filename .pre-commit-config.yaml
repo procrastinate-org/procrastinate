@@ -30,7 +30,7 @@ repos:
       - id: mixed-line-ending
 
   - repo: https://github.com/RobertCraigie/pyright-python
-    rev: v1.1.403
+    rev: v1.1.404
     hooks:
       - id: pyright
         additional_dependencies:
@@ -66,7 +66,7 @@ repos:
           - pygments==2.19.2
           - python-dateutil==2.9.0.post0
           - pytz==2025.2
-          - requests==2.32.4
+          - requests==2.32.5
           - roman-numerals-py==3.1.0 ; python_full_version >= '3.11'
           - six==1.17.0
           - snowballstemmer==3.0.1
@@ -82,13 +82,13 @@ repos:
           - sqlalchemy==2.0.43
           - sqlparse==0.5.3
           - tomli==2.2.1 ; python_full_version < '3.11'
-          - types-pyyaml==6.0.12.20250809
+          - types-pyyaml==6.0.12.20250822
           - typing-extensions==4.14.1
           - tzdata==2025.2 ; sys_platform == 'win32'
           - urllib3==2.5.0
           - zipp==3.23.0 ; python_full_version < '3.10'
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.12.8
+    rev: v0.12.10
     hooks:
       - id: ruff
         args: [--fix, --unsafe-fixes, --show-fixes]
@@ -111,6 +111,6 @@ repos:
       - id: sync
 
   - repo: https://github.com/astral-sh/uv-pre-commit
-    rev: 0.8.11
+    rev: 0.8.13
     hooks:
       - id: uv-lock
