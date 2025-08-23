@@ -1,7 +1,7 @@
 DROP TRIGGER IF EXISTS procrastinate_trigger_status_events_update_v1 ON procrastinate_jobs;
-DROP FUNCTION IF EXISTS public.procrastinate_trigger_function_status_events_update_v1;
+DROP FUNCTION IF EXISTS procrastinate_trigger_function_status_events_update_v1;
 
-CREATE FUNCTION public.procrastinate_trigger_function_status_events_update_v1()
+CREATE FUNCTION procrastinate_trigger_function_status_events_update_v1()
  RETURNS trigger
  LANGUAGE plpgsql
 AS $function$
