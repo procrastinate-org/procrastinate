@@ -62,7 +62,7 @@ and/or contribute code or documentation if you have an opinion on this.
 
 ## How to apply migrations
 
-##1 The easier way, with service interruption
+### The easier way, with service interruption
 
 1. Shut down the services that use Procrastinate: both the services that defer tasks and
    the workers.
@@ -81,7 +81,7 @@ $ ...
 
 This, as you've noticed, only works if you're able to stop the services.
 
-## The safer way, without service interruption
+### The safer way, without service interruption
 
 If you need to ensure service continuity, you'll need to make intermediate upgrades.
 Basically, you'll need to stop at every version that provides migrations.
