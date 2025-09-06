@@ -30,7 +30,7 @@ repos:
       - id: mixed-line-ending
 
   - repo: https://github.com/RobertCraigie/pyright-python
-    rev: v1.1.405
+    rev: v1.1.404
     hooks:
       - id: pyright
         additional_dependencies:
@@ -88,7 +88,7 @@ repos:
           - urllib3==2.5.0
           - zipp==3.23.0 ; python_full_version < '3.10'
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.12.12
+    rev: v0.12.10
     hooks:
       - id: ruff
         args: [--fix, --unsafe-fixes, --show-fixes]
@@ -100,7 +100,7 @@ repos:
       - id: doc8
 
   - repo: https://github.com/adamchainz/django-upgrade
-    rev: 1.27.0
+    rev: 1.25.0
     hooks:
       - id: django-upgrade
         args: [--target-version, '4.2'] # Replace with Django version
