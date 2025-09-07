@@ -225,7 +225,7 @@ if __name__ == "__main__":
             if awatch is None:
                 # This should never happen due to __init__ check, but satisfy type checker
                 raise RuntimeError("watchfiles not available")
-            
+
             async for changes in awatch(
                 *existing_paths, watch_filter=self._should_reload
             ):
