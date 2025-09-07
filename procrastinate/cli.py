@@ -336,7 +336,7 @@ def configure_worker_parser(subparsers: argparse._SubParsersAction):
         envvar_help="use 0/n/f or 1/y/t",
         envvar_type=env_bool,
     )
-    
+
     # Reload options (similar to uvicorn)
     add_argument(
         worker_parser,
@@ -358,7 +358,7 @@ def configure_worker_parser(subparsers: argparse._SubParsersAction):
     add_argument(
         worker_parser,
         "--reload-include",
-        dest="reload_includes", 
+        dest="reload_includes",
         action="append",
         help="Set glob patterns to include while watching for files. Includes '*.py' by default. May be used multiple times",
         envvar="WORKER_RELOAD_INCLUDES",
@@ -367,7 +367,7 @@ def configure_worker_parser(subparsers: argparse._SubParsersAction):
         worker_parser,
         "--reload-exclude",
         dest="reload_excludes",
-        action="append", 
+        action="append",
         help="Set glob patterns to exclude while watching for files. May be used multiple times",
         envvar="WORKER_RELOAD_EXCLUDES",
     )
@@ -597,7 +597,7 @@ async def worker_(
     # Handle reload mode
     if kwargs.get("reload"):
         return run_worker_with_reload(app, **kwargs)
-    
+
     # Standard worker mode
     queues = kwargs.get("queues")
     print_stderr(
@@ -725,13 +725,13 @@ async def shell_(app: procrastinate.App, shell_command: list[str]):
 def run_worker_with_reload(app: procrastinate.App, **kwargs) -> int:
     """
     Run worker with auto-reload functionality.
-    
+
     This function switches from async context to sync and uses subprocess
     to enable file watching and process restarting.
     """
     # Import here to avoid import errors if watchfiles not installed
     from .reloader import run_with_reload
-    
+
     # Extract reload configuration
     reload_config = {
         "reload_dirs": kwargs.get("reload_dirs"),
@@ -739,26 +739,28 @@ def run_worker_with_reload(app: procrastinate.App, **kwargs) -> int:
         "reload_excludes": kwargs.get("reload_excludes"),
         "reload_delay": kwargs.get("reload_delay", 0.25),
     }
-    
+
     # Build command to run worker without reload
     # We need to reconstruct the CLI command
-    import shlex
-    
+
     # Start with base command
     cmd = [sys.executable, "-m", "procrastinate"]
-    
+
     # Add app parameter if available
-    app_import_string = getattr(app, '_import_string', None)
+    app_import_string = getattr(app, "_import_string", None)
     if app_import_string:
         cmd.extend(["--app", app_import_string])
-    
+
     # Add worker subcommand
     cmd.append("worker")
-    
+
     # Add worker-specific arguments (excluding reload options)
-    worker_args = {k: v for k, v in kwargs.items() 
-                  if not k.startswith("reload") and k != "reload" and v is not None}
-    
+    worker_args = {
+        k: v
+        for k, v in kwargs.items()
+        if not k.startswith("reload") and k != "reload" and v is not None
+    }
+
     for key, value in worker_args.items():
         cli_key = key.replace("_", "-")
         if isinstance(value, bool):
@@ -769,7 +771,7 @@ def run_worker_with_reload(app: procrastinate.App, **kwargs) -> int:
                 cmd.extend([f"--{cli_key}", str(item)])
         else:
             cmd.extend([f"--{cli_key}", str(value)])
-    
+
     # Run with reload
     print_stderr("🔄 Starting Procrastinate worker with auto-reload enabled")
     return run_with_reload(cmd, **reload_config)
