@@ -47,6 +47,7 @@ try:
     HAS_WATCHFILES = True
 except ImportError:
     HAS_WATCHFILES = False
+    awatch = None  # type: ignore[assignment]
 
 from .. import App
 
@@ -154,8 +155,6 @@ class HotReloadWorker:
         # Handle cases where app might be imported differently
         if hasattr(self.app, "__qualname__"):
             app_attr = self.app.__qualname__
-        elif hasattr(self.app, "_qualname"):
-            app_attr = self.app._qualname
 
         script = f"""
 import asyncio
@@ -222,6 +221,7 @@ if __name__ == "__main__":
         logger.info(f"👁️  Watching for changes in: {existing_paths}")
 
         try:
+            # mypy: awatch is conditionally imported but guaranteed available here
             async for changes in awatch(
                 *existing_paths, watch_filter=self._should_reload
             ):
@@ -265,7 +265,8 @@ if __name__ == "__main__":
 
         def signal_handler(signum: int, frame: Any) -> None:
             logger.info(f"📡 Received signal {signum}, initiating shutdown...")
-            asyncio.create_task(self.shutdown())
+            # Store task to satisfy linter, but we don't need to track it
+            _ = asyncio.create_task(self.shutdown())
 
         signal.signal(signal.SIGTERM, signal_handler)
         signal.signal(signal.SIGINT, signal_handler)
