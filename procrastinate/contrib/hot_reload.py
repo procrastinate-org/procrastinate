@@ -6,14 +6,14 @@ during development, automatically restarting when Python files change.
 
 Usage:
     from procrastinate.contrib.hot_reload import HotReloadWorker
-    
+
     # Create hot-reload worker
     worker = HotReloadWorker(
         app=your_procrastinate_app,
         watch_paths=["./app", "./tasks"],
         queues=["default", "high-priority"]
     )
-    
+
     # Run with hot-reload
     await worker.run()
 
@@ -56,10 +56,10 @@ logger = logging.getLogger(__name__)
 class HotReloadWorker:
     """
     Hot-reloadable Procrastinate worker for development.
-    
+
     Automatically restarts the worker process when Python files change,
     enabling rapid development and testing of background tasks.
-    
+
     Warning:
         This is intended for development use only. Do not use in production.
     """
@@ -74,13 +74,13 @@ class HotReloadWorker:
     ) -> None:
         """
         Initialize hot-reload worker.
-        
+
         Args:
             app: Procrastinate App instance
             watch_paths: Directories to watch for changes (default: ["./"])
             queues: Queues for worker to process (default: all queues)
             **worker_kwargs: Additional kwargs for run_worker_async()
-            
+
         Raises:
             ImportError: If watchfiles is not installed
         """
@@ -222,7 +222,9 @@ if __name__ == "__main__":
         logger.info(f"👁️  Watching for changes in: {existing_paths}")
 
         try:
-            async for changes in awatch(*existing_paths, watch_filter=self._should_reload):
+            async for changes in awatch(
+                *existing_paths, watch_filter=self._should_reload
+            ):
                 if self.shutdown_event.is_set():
                     break
 
@@ -300,7 +302,9 @@ if __name__ == "__main__":
                         not self.restart_requested.is_set()
                         and not self.shutdown_event.is_set()
                     ):
-                        logger.info("⏸️  Worker exited, waiting 5 seconds before restart...")
+                        logger.info(
+                            "⏸️  Worker exited, waiting 5 seconds before restart..."
+                        )
                         await asyncio.sleep(5)
 
                 except Exception as e:
@@ -328,11 +332,11 @@ if __name__ == "__main__":
 def create_hot_reload_worker(app: App, **kwargs: Any) -> HotReloadWorker:
     """
     Create a hot-reload worker with sensible defaults.
-    
+
     Args:
         app: Procrastinate App instance
         **kwargs: Additional arguments for HotReloadWorker
-        
+
     Returns:
         Configured HotReloadWorker instance
     """

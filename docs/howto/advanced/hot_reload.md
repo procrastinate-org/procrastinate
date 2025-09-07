@@ -24,7 +24,7 @@ async def main():
         watch_paths=["./myapp", "./tasks"],  # Directories to watch
         queues=["default", "high-priority"]   # Queues to process
     )
-    
+
     # Run with hot-reload enabled
     await hot_worker.run()
 
@@ -70,7 +70,7 @@ services:
       - ./data:/app/data  # Persistent data (read-write)
     depends_on:
       - postgres
-      
+
   postgres:
     image: postgres:16
     environment:
@@ -214,7 +214,7 @@ Here's a complete example for a typical development setup:
 ```
 myproject/
 ├── docker-compose.yml
-├── Dockerfile  
+├── Dockerfile
 ├── requirements.txt
 ├── myapp/
 │   ├── __init__.py
