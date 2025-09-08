@@ -49,6 +49,7 @@ sqlalchemy = ["sqlalchemy~=2.0"]
 aiopg = ["aiopg", "psycopg2-binary"]
 psycopg2 = ["psycopg2-binary"]
 sphinx = ["sphinx"]
+reload = ["watchfiles>=0.21.0"]
 
 [project.urls]
 homepage = "https://procrastinate.readthedocs.io/"
