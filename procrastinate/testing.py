@@ -251,7 +251,7 @@ class InMemoryConnector(connector.BaseAsyncConnector):
                 if not isinstance(coro, typing.Coroutine):
                     original_coro = coro
 
-                    async def _coro():
+                    async def _coro() -> None:
                         return await original_coro
 
                     coro = _coro()
