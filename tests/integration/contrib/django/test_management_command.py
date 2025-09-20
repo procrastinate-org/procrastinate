@@ -10,7 +10,7 @@ def test_procrastinate_command(capsys):
     with pytest.raises(SystemExit):
         call_command("procrastinate", "--help")
 
-    out, err = capsys.readouterr()
+    out, _err = capsys.readouterr()
     assert "usage:  procrastinate" in out
     assert "{worker,defer,healthchecks,shell}" in out
 
