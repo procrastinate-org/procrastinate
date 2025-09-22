@@ -627,7 +627,6 @@ class Worker:
                     )
                     await self._fetch_and_process_jobs()
         finally:
-            # Cancel the side task monitor
             if not side_tasks_monitor.done():
                 side_tasks_monitor.cancel()
             await self._shutdown(side_tasks=side_tasks)
