@@ -545,6 +545,39 @@ class Worker:
             side_tasks.append(asyncio.create_task(listener_coro, name="listener"))
         return side_tasks
 
+    async def _monitor_side_tasks(self, side_tasks: list[asyncio.Task]):
+        """Monitor side tasks and stop the worker if any task fails"""
+        try:
+            done, pending = await asyncio.wait(
+                side_tasks, return_when=asyncio.FIRST_COMPLETED
+            )
+            for task in done:
+                if exc := task.exception():
+                    self.logger.error(
+                        f"Side task {task.get_name()} failed with exception: {exc}, stopping worker",
+                        extra=self._log_extra(
+                            action="side_task_failed",
+                            context=None,
+                            job_result=None,
+                            task_name=task.get_name(),
+                            exception=str(exc),
+                        ),
+                        exc_info=exc,
+                    )
+                    self.stop()
+                    return
+        except Exception as exc:
+            self.logger.exception(
+                f"Side task monitor failed: {exc}",
+                extra=self._log_extra(
+                    action="side_task_monitor_failed",
+                    context=None,
+                    job_result=None,
+                    exception=str(exc),
+                ),
+            )
+            raise
+
     async def _run_loop(self):
         """
         Run all side coroutines, then start fetching/processing jobs in a loop
@@ -560,6 +593,9 @@ class Worker:
         self._running_jobs = {}
         self._job_semaphore = asyncio.Semaphore(self.concurrency)
         side_tasks = self._start_side_tasks()
+        side_tasks_monitor = asyncio.create_task(
+            self._monitor_side_tasks(side_tasks), name="side_tasks_monitor"
+        )
 
         context = (
             signals.on_stop(self.stop)
@@ -583,7 +619,7 @@ class Worker:
                     self._stop_event.set()
 
                 while not self._stop_event.is_set():
-                    # wait for a new job notification, a stop even or the next polling interval
+                    # wait for a new job notification, a stop event or the next polling interval
                     await utils.wait_any(
                         self._new_job_event.wait(),
                         asyncio.sleep(self.fetch_job_polling_interval),
@@ -591,4 +627,7 @@ class Worker:
                     )
                     await self._fetch_and_process_jobs()
         finally:
+            # Cancel the side task monitor
+            if not side_tasks_monitor.done():
+                side_tasks_monitor.cancel()
             await self._shutdown(side_tasks=side_tasks)
