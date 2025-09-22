@@ -836,28 +836,6 @@ async def test_worker_prunes_stalled_workers(app: App):
     assert worker2_id not in connector.workers
 
 
-async def test_worker_continues_running_when_side_task_fails_current_behavior(
-    app: App, mocker: MockerFixture
-):
-    async def failing_update_heartbeat(self):
-        raise ValueError("Simulated heartbeat failure")
-
-    mocker.patch.object(Worker, "_update_heartbeat", failing_update_heartbeat)
-
-    worker = Worker(app, fetch_job_polling_interval=0.1)
-    worker_task = asyncio.create_task(worker.run())
-    await asyncio.sleep(0.2)
-
-    assert not worker_task.done()
-
-    worker.stop()
-
-    await asyncio.wait_for(worker_task, timeout=1.0)
-
-    assert worker_task.done()
-    assert worker_task.exception() is None
-
-
 async def test_worker_stops_when_side_task_fails(
     app: App, caplog, mocker: MockerFixture
 ):
