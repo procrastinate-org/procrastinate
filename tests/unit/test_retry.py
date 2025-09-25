@@ -94,6 +94,17 @@ def test_get_none_retry_decision(attempts, wait, linear_wait, exponential_wait, 
     assert strategy.get_retry_decision(exception=Exception(), job=job_mock) is None
 
 
+def test_get_retry_decision_does_not_overflow(mocker):
+    # 5 ** 20s exceeds year 9999, the maximum representable by datetime.
+    # `retry_at` should be clamped to the maximum instead of crashing.
+    strategy = retry_module.RetryStrategy(exponential_wait=5)
+    job_mock = mocker.Mock(attempts=20)
+    retry_decision = strategy.get_retry_decision(exception=Exception(), job=job_mock)
+    assert isinstance(retry_decision, RetryDecision)
+    assert retry_decision.retry_at
+    assert retry_decision.retry_at.year == 9999
+
+
 def test_retry_exception(mocker):
     strategy = retry_module.RetryStrategy(retry_exceptions=[ValueError])
     job_mock = mocker.Mock(attempts=0)
