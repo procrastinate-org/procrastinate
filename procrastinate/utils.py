@@ -157,6 +157,10 @@ def utcnow() -> datetime.datetime:
     return datetime.datetime.now(tz=datetime.timezone.utc)
 
 
+def utcmax() -> datetime.datetime:
+    return datetime.datetime.max.replace(tzinfo=datetime.timezone.utc)
+
+
 def parse_datetime(raw: str) -> datetime.datetime:
     try:
         # this parser is the stricter one, so we try it first
@@ -321,7 +325,10 @@ def async_context_decorator(func: Callable) -> Callable:
 
 
 def datetime_from_timedelta_params(params: TimeDeltaParams) -> datetime.datetime:
-    return utcnow() + datetime.timedelta(**params)
+    try:
+        return utcnow() + datetime.timedelta(**params)
+    except OverflowError:
+        return utcmax()
 
 
 def queues_display(queues: Iterable[str] | None) -> str:
