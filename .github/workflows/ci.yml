@@ -82,7 +82,7 @@ jobs:
 
     services:
       postgres:
-        image: postgres:17
+        image: postgres:18
         # Set health checks to wait until postgres has started
         env:
           POSTGRES_PASSWORD: postgres
@@ -177,7 +177,7 @@ jobs:
 
     services:
       postgres:
-        image: postgres:17
+        image: postgres:18
         # Set health checks to wait until postgres has started
         env:
           POSTGRES_PASSWORD: postgres
