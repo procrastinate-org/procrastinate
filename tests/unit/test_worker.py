@@ -834,3 +834,30 @@ async def test_worker_prunes_stalled_workers(app: App):
 
     assert worker1_id in connector.workers
     assert worker2_id not in connector.workers
+
+
+async def test_worker_stops_when_side_task_fails(
+    app: App, caplog, mocker: MockerFixture
+):
+    caplog.set_level("INFO")
+
+    async def failing_update_heartbeat(self):
+        raise ValueError("Simulated heartbeat failure")
+
+    mocker.patch.object(Worker, "_update_heartbeat", failing_update_heartbeat)
+
+    worker = Worker(app)
+    await worker.run()
+
+    side_task_failed_records = [
+        record
+        for record in caplog.records
+        if hasattr(record, "action") and record.action == "side_task_failed"
+    ]
+
+    assert len(side_task_failed_records) == 1
+    error_record = side_task_failed_records[0]
+    assert "update_heartbeats failed with exception" in error_record.message
+    assert "Simulated heartbeat failure" in error_record.message
+    assert "stopping worker" in error_record.message
+    assert error_record.task_name == "update_heartbeats"
