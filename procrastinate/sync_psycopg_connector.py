@@ -50,6 +50,7 @@ class SyncPsycopgConnector(connector.BaseConnector):
         *,
         json_dumps: Callable | None = None,
         json_loads: Callable | None = None,
+        pool_kwargs: dict[str, Any] | None = None,
         **kwargs: Any,
     ):
         """
@@ -87,6 +88,7 @@ class SyncPsycopgConnector(connector.BaseConnector):
         self._json_loads = json_loads
         self._json_dumps = json_dumps
         self._pool_args = kwargs
+        self._pool_kwargs = pool_kwargs
 
     def get_sync_connector(self) -> connector.BaseConnector:
         return self
@@ -111,14 +113,17 @@ class SyncPsycopgConnector(connector.BaseConnector):
             self._pool_externally_set = True
             self._pool = pool
         else:
-            self._pool = self._create_pool(self._pool_args)
+            self._pool = self._create_pool(self._pool_args, self._pool_kwargs)
             self._pool.open(wait=True)
 
     @staticmethod
     @wrap_exceptions()
-    def _create_pool(pool_args: dict[str, Any]) -> psycopg_pool.ConnectionPool:
+    def _create_pool(
+        pool_args: dict[str, Any], pool_kwargs: dict[str, Any] | None
+    ) -> psycopg_pool.ConnectionPool:
+        pool_kwargs = pool_kwargs if pool_kwargs is not None else {}
         pool = psycopg_pool.ConnectionPool(
-            **pool_args,
+            kwargs=pool_args.get("kwargs", {}),
             # Not specifying open=False raises a warning and will be deprecated.
             # It makes sense, as we can't really make async I/Os in a constructor.
             open=False,
@@ -126,6 +131,7 @@ class SyncPsycopgConnector(connector.BaseConnector):
             # using the pool are still alive. If they have been closed by the
             # database, they will be seamlessly replaced by a new connection.
             check=psycopg_pool.ConnectionPool.check_connection,
+            **pool_kwargs,
         )
         return pool
 

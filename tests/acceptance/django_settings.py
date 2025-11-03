@@ -8,6 +8,7 @@ DATABASES = {
         "ENGINE": "django.db.backends.postgresql",
         "NAME": os.environ.get("PGDATABASE", "procrastinate"),
         "TEST": {"NAME": "procrastinate_django_test"},
+        "OPTIONS": {"pool": {"min_size": 1, "max_size": 4}},
     },
 }
 INSTALLED_APPS = [
