@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import asyncio
+from datetime import datetime
 import functools
 import logging
 import time
 from collections.abc import Iterable
 from typing import Callable, Generic, cast
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import attr
 import croniter
@@ -35,10 +37,26 @@ class PeriodicTask(Generic[P, R, Args]):
     cron: str
     periodic_id: str
     configure_kwargs: tasks.ConfigureTaskOptions
+    tzinfo:str|None|ZoneInfo=None
 
     @cached_property
     def croniter(self) -> croniter.croniter:
-        return croniter.croniter(self.cron)
+        croniter_instance = croniter.croniter(self.cron)
+        # croniter sets the timezone info object in
+        croniter_instance.tzinfo = self.get_tzinfo()
+        return croniter_instance
+
+    def get_tzinfo(self):
+        tzinfo = self.tzinfo
+        if isinstance(tzinfo, str):
+            try:
+                return ZoneInfo(tzinfo)
+            except (ZoneInfoNotFoundError, ValueError):
+                logger.error(f"{tzinfo} is not a valid timezone.")
+                return None
+        if isinstance(tzinfo, ZoneInfo):
+            return tzinfo
+        return None
 
 
 TaskAtTime = tuple[PeriodicTask, int]
@@ -52,6 +70,7 @@ class PeriodicRegistry:
         self,
         cron: str,
         periodic_id: str,
+        tzinfo:str|None|ZoneInfo=None,
         **configure_kwargs: Unpack[tasks.ConfigureTaskOptions],
     ) -> Callable[[tasks.Task[P, R, Concatenate[int, Args]]], tasks.Task[P, R, Args]]:
         """
@@ -59,7 +78,6 @@ class PeriodicRegistry:
         launch. This decorator should not be used directly, ``@app.periodic()`` is meant
         to be used instead.
         """
-
         def wrapper(
             task: tasks.Task[P, R, Concatenate[int, Args]],
         ) -> tasks.Task[P, R, Args]:
@@ -68,6 +86,7 @@ class PeriodicRegistry:
                 cron=cron,
                 periodic_id=periodic_id,
                 configure_kwargs=configure_kwargs,
+                tzinfo=tzinfo,
             )
             return cast(tasks.Task[P, R, Args], task)
 
@@ -79,6 +98,8 @@ class PeriodicRegistry:
         cron: str,
         periodic_id: str,
         configure_kwargs: tasks.ConfigureTaskOptions,
+        tzinfo:str|None|ZoneInfo=None,
+
     ) -> PeriodicTask[P, R, Concatenate[int, Args]]:
         key = (task.name, periodic_id)
         if key in self.periodic_tasks:
@@ -99,12 +120,12 @@ class PeriodicRegistry:
                 "kwargs": str(configure_kwargs),
             },
         )
-
         self.periodic_tasks[key] = periodic_task = PeriodicTask(
             task=task,
             cron=cron,
             periodic_id=periodic_id,
             configure_kwargs=configure_kwargs,
+            tzinfo=tzinfo
         )
         return periodic_task
 
