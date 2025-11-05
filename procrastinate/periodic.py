@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime
 import functools
 import logging
 import time
@@ -37,7 +36,7 @@ class PeriodicTask(Generic[P, R, Args]):
     cron: str
     periodic_id: str
     configure_kwargs: tasks.ConfigureTaskOptions
-    tzinfo:str|None|ZoneInfo=None
+    tzinfo: str | None | ZoneInfo = None
 
     @cached_property
     def croniter(self) -> croniter.croniter:
@@ -70,7 +69,7 @@ class PeriodicRegistry:
         self,
         cron: str,
         periodic_id: str,
-        tzinfo:str|None|ZoneInfo=None,
+        tzinfo: str | None | ZoneInfo = None,
         **configure_kwargs: Unpack[tasks.ConfigureTaskOptions],
     ) -> Callable[[tasks.Task[P, R, Concatenate[int, Args]]], tasks.Task[P, R, Args]]:
         """
@@ -78,6 +77,7 @@ class PeriodicRegistry:
         launch. This decorator should not be used directly, ``@app.periodic()`` is meant
         to be used instead.
         """
+
         def wrapper(
             task: tasks.Task[P, R, Concatenate[int, Args]],
         ) -> tasks.Task[P, R, Args]:
@@ -98,8 +98,7 @@ class PeriodicRegistry:
         cron: str,
         periodic_id: str,
         configure_kwargs: tasks.ConfigureTaskOptions,
-        tzinfo:str|None|ZoneInfo=None,
-
+        tzinfo: str | None | ZoneInfo = None,
     ) -> PeriodicTask[P, R, Concatenate[int, Args]]:
         key = (task.name, periodic_id)
         if key in self.periodic_tasks:
@@ -125,7 +124,7 @@ class PeriodicRegistry:
             cron=cron,
             periodic_id=periodic_id,
             configure_kwargs=configure_kwargs,
-            tzinfo=tzinfo
+            tzinfo=tzinfo,
         )
         return periodic_task
 

@@ -4,12 +4,12 @@ import functools
 import logging
 import sys
 from typing import TYPE_CHECKING, Callable, Literal, Union, cast, overload
+from zoneinfo import ZoneInfo
 
 from typing_extensions import Concatenate, ParamSpec, TypeVar, Unpack
 
 from procrastinate import exceptions, jobs, periodic, retry, utils
 from procrastinate.job_context import JobContext
-from zoneinfo import ZoneInfo
 
 if TYPE_CHECKING:
     from procrastinate.tasks import ConfigureTaskOptions, Task
