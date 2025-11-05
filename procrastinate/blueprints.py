@@ -10,6 +10,7 @@ from typing_extensions import ParamSpec, TypeVar, Unpack
 
 from procrastinate import exceptions, jobs, middleware, periodic, retry, utils
 from procrastinate.job_context import JobContext
+from zoneinfo import ZoneInfo
 
 if TYPE_CHECKING:
     from procrastinate.tasks import ConfigureTaskOptions, Task
@@ -196,6 +197,7 @@ class Blueprint:
                 task=periodic_task.task,
                 cron=periodic_task.cron,
                 periodic_id=periodic_task.periodic_id,
+                tzinfo=periodic_task.tzinfo,
                 configure_kwargs=periodic_task.configure_kwargs,
             )
 
@@ -361,6 +363,7 @@ class Blueprint:
         *,
         cron: str,
         periodic_id: str = "",
+        tzinfo: str | None | ZoneInfo = None,
         **configure_kwargs: Unpack[ConfigureTaskOptions],
     ) -> Callable[
         [Task[P, R, Concatenate[int, periodic.Args]]],
@@ -376,11 +379,17 @@ class Blueprint:
             Cron-like string. Optionally add a 6th column for seconds.
         periodic_id :
             Task name suffix. Used to distinguish periodic tasks with different kwargs.
-        **kwargs :
-            Additional parameters are passed to `Task.configure`.
+        tzinfo :
+            Timezone in which the cron expression should be interpreted. Accepts a
+            timezone name string (e.g., "Africa/Blantyre"), a `zoneinfo.ZoneInfo` instance,
+            or `None`. When `None` (the default), the underlying `croniter` library
+            will interpret the schedule in UTC (the current behaviour).
+        **configure_kwargs :
+            Additional parameters are passed to ``Task.configure``.
         """
+
         return self.periodic_registry.periodic_decorator(
-            cron=cron, periodic_id=periodic_id, **configure_kwargs
+            cron=cron, periodic_id=periodic_id, tzinfo=tzinfo, **configure_kwargs
         )
 
     def will_configure_task(self) -> None:
