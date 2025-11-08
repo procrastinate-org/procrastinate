@@ -61,6 +61,22 @@ def test_configure_logging_with_log_level(
     assert records[0].value == logging.getLevelName(expected_level)
 
 
+def test_configure_logging_default_level(mocker, caplog):
+    """Test that when no verbosity or log_level is set, default is INFO."""
+    config = mocker.patch("logging.basicConfig")
+
+    caplog.set_level("DEBUG")
+
+    cli.configure_logging()
+
+    config.assert_called_once_with(
+        level=logging.INFO, format=logging.BASIC_FORMAT, style="%"
+    )
+    records = [record for record in caplog.records if record.action == "set_log_level"]
+    assert len(records) == 1
+    assert records[0].value == "INFO"
+
+
 @pytest.mark.parametrize(
     "verbose_env, cli_flags, expected",
     [
