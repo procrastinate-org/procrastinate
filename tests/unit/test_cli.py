@@ -34,6 +34,138 @@ def test_configure_logging(mocker, caplog):
     assert records[0].value == "DEBUG"
 
 
+@pytest.mark.parametrize(
+    "log_level_name, expected_level",
+    [
+        ("debug", logging.DEBUG),
+        ("info", logging.INFO),
+        ("warning", logging.WARNING),
+        ("error", logging.ERROR),
+        ("critical", logging.CRITICAL),
+    ],
+)
+def test_configure_logging_with_log_level(mocker, caplog, log_level_name, expected_level):
+    config = mocker.patch("logging.basicConfig")
+
+    caplog.set_level("DEBUG")
+
+    cli.configure_logging(log_level=log_level_name)
+
+    config.assert_called_once_with(
+        level=expected_level, format=logging.BASIC_FORMAT, style="%"
+    )
+    records = [record for record in caplog.records if record.action == "set_log_level"]
+    assert len(records) == 1
+    assert records[0].value == logging.getLevelName(expected_level)
+
+
+@pytest.mark.parametrize(
+    "verbose_env, cli_flags, expected",
+    [
+        (None, [], 0),         # Default is 0
+        ("1", [], 1),          # PROCRASTINATE_VERBOSE works
+        ("0", ["-v"], 1),      # CLI flag overrides env=0
+        ("2", ["-v"], 1),      # CLI flag overrides env=2
+        (None, ["-v"], 1),     # -v gives verbosity 1
+        (None, ["-vv"], 2),    # -vv gives verbosity 2 (clamped to debug in get_log_level)
+    ],
+)
+async def test_verbose_env_vars(
+    monkeypatch, mocker, verbose_env, cli_flags, expected
+):
+    """Test that PROCRASTINATE_VERBOSE works and command line flags override environment variables."""
+    # Clear any existing values
+    monkeypatch.delenv("PROCRASTINATE_VERBOSE", raising=False)
+
+    # Set the env var if provided
+    if verbose_env is not None:
+        monkeypatch.setenv("PROCRASTINATE_VERBOSE", verbose_env)
+
+    # Mock execute_command to capture the verbosity value
+    captured_verbosity = None
+
+    async def mock_execute_command(parsed):
+        # Don't actually execute, just return
+        pass
+
+    original_configure_logging = cli.configure_logging
+
+    def mock_configure_logging(**kwargs):
+        nonlocal captured_verbosity
+        captured_verbosity = kwargs.get("verbosity")
+        # Call original to ensure it works
+        original_configure_logging(**kwargs)
+
+    mocker.patch("procrastinate.cli.execute_command", side_effect=mock_execute_command)
+    mocker.patch("procrastinate.cli.configure_logging", side_effect=mock_configure_logging)
+
+    # Run cli with the provided flags
+    args = cli_flags + ["--app=", "defer", "test"]
+    await cli.cli(args)
+
+    assert captured_verbosity == expected
+
+
+@pytest.mark.parametrize(
+    "log_level_env, cli_flags, expected_level",
+    [
+        (None, ["--log-level", "warning"], "warning"),      # CLI --log-level works
+        (None, ["--log-level", "error"], "error"),          # CLI --log-level=error works
+        (None, ["--log-level", "critical"], "critical"),    # CLI --log-level=critical works
+        ("warning", [], "warning"),                         # PROCRASTINATE_LOG_LEVEL works
+        ("error", [], "error"),                             # PROCRASTINATE_LOG_LEVEL=error works
+        ("warning", ["--log-level", "error"], "error"),     # CLI overrides env
+    ],
+)
+async def test_log_level_option(
+    monkeypatch, mocker, log_level_env, cli_flags, expected_level
+):
+    """Test that --log-level and PROCRASTINATE_LOG_LEVEL work correctly."""
+    # Clear any existing values
+    monkeypatch.delenv("PROCRASTINATE_LOG_LEVEL", raising=False)
+    monkeypatch.delenv("PROCRASTINATE_VERBOSE", raising=False)
+
+    # Set the env var if provided
+    if log_level_env is not None:
+        monkeypatch.setenv("PROCRASTINATE_LOG_LEVEL", log_level_env)
+
+    # Mock execute_command to capture the log level
+    captured_log_level = None
+
+    async def mock_execute_command(parsed):
+        pass
+
+    original_configure_logging = cli.configure_logging
+
+    def mock_configure_logging(**kwargs):
+        nonlocal captured_log_level
+        captured_log_level = kwargs.get("log_level")
+        original_configure_logging(**kwargs)
+
+    mocker.patch("procrastinate.cli.execute_command", side_effect=mock_execute_command)
+    mocker.patch("procrastinate.cli.configure_logging", side_effect=mock_configure_logging)
+
+    # Run cli with the provided flags
+    args = cli_flags + ["--app=", "defer", "test"]
+    await cli.cli(args)
+
+    assert captured_log_level == expected_level
+
+
+async def test_log_level_and_verbose_mutually_exclusive(monkeypatch):
+    """Test that --log-level and --verbose are mutually exclusive."""
+    monkeypatch.delenv("PROCRASTINATE_LOG_LEVEL", raising=False)
+    monkeypatch.delenv("PROCRASTINATE_VERBOSE", raising=False)
+
+    parser = cli.create_parser()
+    cli.add_arguments(parser)
+    cli.add_cli_features(parser)
+
+    # This should raise an error because they're mutually exclusive
+    with pytest.raises(SystemExit):
+        parser.parse_args(["--app=", "-v", "--log-level", "warning", "defer", "test"])
+
+
 def test_main(mocker):
     mock = mocker.patch("procrastinate.cli.cli", new=mocker.AsyncMock())
     cli.main()

@@ -56,21 +56,36 @@ In both case, the app you specify must have an asynchronous connector.
 
 ## Logging
 
-Three different options allow you to control how the command-line tool should log
-events:
+Several options allow you to control how the command-line tool should log events:
 
-- Verbosity controls the log level (you'll see message of this level and above):
+- **Verbosity** controls the log level (you'll see messages of this level and above):
 
-  | Flags | Environment equivalent    | Log level |
-  | ----- | ------------------------- | --------- |
-  |       | PROCRASTINATE_VERBOSITY=0 | `warning` |
-  | -v    | PROCRASTINATE_VERBOSITY=1 | `info`    |
-  | -vv   | PROCRASTINATE_VERBOSITY=2 | `debug`   |
+  | Flags          | Environment equivalent  | Log level |
+  | -------------- | ----------------------- | --------- |
+  |                | PROCRASTINATE_VERBOSE=0 | `info`    |
+  | -v (or higher) | PROCRASTINATE_VERBOSE=1 | `debug`   |
 
-- Log format: `--log-format=` / `PROCRASTINATE_LOG_FORMAT=` lets you control how
+  Note: Values beyond 1 have no additional effect.
+
+- **Log level** allows explicit control over the logging level (mutually exclusive with `-v`):
+
+  `--log-level=LEVEL` / `PROCRASTINATE_LOG_LEVEL=LEVEL` where `LEVEL` is one of:
+  `debug`, `info`, `warning`, `error`, or `critical`.
+
+  This option provides access to log levels not available through `-v` flags,
+  such as `warning`, `error`, and `critical`. You cannot use `--log-level` and
+  `-v` together.
+
+  Examples:
+  ```console
+  $ procrastinate --log-level=warning worker
+  $ PROCRASTINATE_LOG_LEVEL=error procrastinate worker
+  ```
+
+- **Log format**: `--log-format=` / `PROCRASTINATE_LOG_FORMAT=` lets you control how
   the log line will be formatted. It uses `%`-style placeholders by default.
 
-- Log format style: `--log-format-style=` / `PROCRASTINATE_LOG_FORMAT_STYLE=`
+- **Log format style**: `--log-format-style=` / `PROCRASTINATE_LOG_FORMAT_STYLE=`
   lets you choose different styles for the log-format, such as `{` or `$`.
 
 For more information on log formats, refer to the [Python documentation](https://docs.python.org/3/library/logging.html?highlight=logging#logrecord-attributes)

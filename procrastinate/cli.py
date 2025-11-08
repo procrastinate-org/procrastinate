@@ -31,8 +31,19 @@ def get_log_level(verbosity: int) -> int:
 Style = Union[Literal["%"], Literal["{"], Literal["$"]]
 
 
-def configure_logging(verbosity: int, format: str, style: Style) -> None:
-    level = get_log_level(verbosity=verbosity)
+def configure_logging(
+    verbosity: int | None = None,
+    log_level: str | None = None,
+    format: str = logging.BASIC_FORMAT,
+    style: Style = "%",
+) -> None:
+    if log_level is not None:
+        level = getattr(logging, log_level.upper())
+    elif verbosity is not None:
+        level = get_log_level(verbosity=verbosity)
+    else:
+        level = logging.INFO
+
     logging.basicConfig(level=level, format=format, style=style)
     level_name = logging.getLevelName(level)
     logger.debug(
@@ -176,18 +187,24 @@ def add_cli_features(parser: argparse.ArgumentParser):
     Add features to the parser to make it more CLI-friendly.
     This is not necessary when the parser is used as a subparser.
     """
-    add_argument(
-        parser,
+    log_group = parser.add_argument_group("Logging")
+
+    # Create mutually exclusive group for verbosity control
+    verbosity_group = log_group.add_mutually_exclusive_group()
+    verbosity_group.add_argument(
         "-v",
         "--verbose",
         default=0,
         action="count",
-        help="Use multiple times to increase verbosity",
-        envvar="VERBOSE",
-        envvar_help="set to desired verbosity level",
-        envvar_type=int,
+        help="Increase verbosity (0=info, 1+=debug) "
+        f"(env: {ENV_PREFIX}_VERBOSE)",
     )
-    log_group = parser.add_argument_group("Logging")
+    verbosity_group.add_argument(
+        "--log-level",
+        choices=["debug", "info", "warning", "error", "critical"],
+        help="Set log level explicitly "
+        f"(env: {ENV_PREFIX}_LOG_LEVEL)",
+    )
     add_argument(
         log_group,
         "--log-format",
@@ -517,11 +534,42 @@ async def cli(args):
     add_cli_features(parser)
     parsed = vars(parser.parse_args(args))
 
-    configure_logging(
-        verbosity=parsed.pop("verbose"),
-        format=parsed.pop("log_format"),
-        style=parsed.pop("log_format_style"),
-    )
+    # Determine log level from either --log-level or --verbose (mutually exclusive)
+    log_level = parsed.pop("log_level", None)
+    verbosity = parsed.pop("verbose")
+
+    # If --log-level was not specified on command line, check environment variable
+    if log_level is None:
+        log_level_env = os.environ.get(f"{ENV_PREFIX}_LOG_LEVEL")
+        if log_level_env and log_level_env.lower() in [
+            "debug",
+            "info",
+            "warning",
+            "error",
+            "critical",
+        ]:
+            log_level = log_level_env.lower()
+
+    # If --log-level is set (from CLI or env), use it; otherwise use --verbose
+    if log_level is not None:
+        configure_logging(
+            log_level=log_level,
+            format=parsed.pop("log_format"),
+            style=parsed.pop("log_format_style"),
+        )
+    else:
+        # If no -v flags were used on command line, check environment variable
+        if verbosity == 0:
+            verbose_value = os.environ.get(f"{ENV_PREFIX}_VERBOSE")
+            if verbose_value and verbose_value != "":
+                verbosity = int(verbose_value)
+
+        configure_logging(
+            verbosity=verbosity,
+            format=parsed.pop("log_format"),
+            style=parsed.pop("log_format_style"),
+        )
+
     await execute_command(parsed)
 
 
