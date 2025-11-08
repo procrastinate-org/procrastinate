@@ -44,7 +44,9 @@ def test_configure_logging(mocker, caplog):
         ("critical", logging.CRITICAL),
     ],
 )
-def test_configure_logging_with_log_level(mocker, caplog, log_level_name, expected_level):
+def test_configure_logging_with_log_level(
+    mocker, caplog, log_level_name, expected_level
+):
     config = mocker.patch("logging.basicConfig")
 
     caplog.set_level("DEBUG")
@@ -62,17 +64,15 @@ def test_configure_logging_with_log_level(mocker, caplog, log_level_name, expect
 @pytest.mark.parametrize(
     "verbose_env, cli_flags, expected",
     [
-        (None, [], 0),         # Default is 0
-        ("1", [], 1),          # PROCRASTINATE_VERBOSE works
-        ("0", ["-v"], 1),      # CLI flag overrides env=0
-        ("2", ["-v"], 1),      # CLI flag overrides env=2
-        (None, ["-v"], 1),     # -v gives verbosity 1
-        (None, ["-vv"], 2),    # -vv gives verbosity 2 (clamped to debug in get_log_level)
+        (None, [], 0),  # Default is 0
+        ("1", [], 1),  # PROCRASTINATE_VERBOSE works
+        ("0", ["-v"], 1),  # CLI flag overrides env=0
+        ("2", ["-v"], 1),  # CLI flag overrides env=2
+        (None, ["-v"], 1),  # -v gives verbosity 1
+        (None, ["-vv"], 2),  # -vv gives verbosity 2 (clamped to debug in get_log_level)
     ],
 )
-async def test_verbose_env_vars(
-    monkeypatch, mocker, verbose_env, cli_flags, expected
-):
+async def test_verbose_env_vars(monkeypatch, mocker, verbose_env, cli_flags, expected):
     """Test that PROCRASTINATE_VERBOSE works and command line flags override environment variables."""
     # Clear any existing values
     monkeypatch.delenv("PROCRASTINATE_VERBOSE", raising=False)
@@ -97,10 +97,12 @@ async def test_verbose_env_vars(
         original_configure_logging(**kwargs)
 
     mocker.patch("procrastinate.cli.execute_command", side_effect=mock_execute_command)
-    mocker.patch("procrastinate.cli.configure_logging", side_effect=mock_configure_logging)
+    mocker.patch(
+        "procrastinate.cli.configure_logging", side_effect=mock_configure_logging
+    )
 
     # Run cli with the provided flags
-    args = cli_flags + ["--app=", "defer", "test"]
+    args = [*cli_flags, "--app=", "defer", "test"]
     await cli.cli(args)
 
     assert captured_verbosity == expected
@@ -109,12 +111,16 @@ async def test_verbose_env_vars(
 @pytest.mark.parametrize(
     "log_level_env, cli_flags, expected_level",
     [
-        (None, ["--log-level", "warning"], "warning"),      # CLI --log-level works
-        (None, ["--log-level", "error"], "error"),          # CLI --log-level=error works
-        (None, ["--log-level", "critical"], "critical"),    # CLI --log-level=critical works
-        ("warning", [], "warning"),                         # PROCRASTINATE_LOG_LEVEL works
-        ("error", [], "error"),                             # PROCRASTINATE_LOG_LEVEL=error works
-        ("warning", ["--log-level", "error"], "error"),     # CLI overrides env
+        (None, ["--log-level", "warning"], "warning"),  # CLI --log-level works
+        (None, ["--log-level", "error"], "error"),  # CLI --log-level=error works
+        (
+            None,
+            ["--log-level", "critical"],
+            "critical",
+        ),  # CLI --log-level=critical works
+        ("warning", [], "warning"),  # PROCRASTINATE_LOG_LEVEL works
+        ("error", [], "error"),  # PROCRASTINATE_LOG_LEVEL=error works
+        ("warning", ["--log-level", "error"], "error"),  # CLI overrides env
     ],
 )
 async def test_log_level_option(
@@ -143,10 +149,12 @@ async def test_log_level_option(
         original_configure_logging(**kwargs)
 
     mocker.patch("procrastinate.cli.execute_command", side_effect=mock_execute_command)
-    mocker.patch("procrastinate.cli.configure_logging", side_effect=mock_configure_logging)
+    mocker.patch(
+        "procrastinate.cli.configure_logging", side_effect=mock_configure_logging
+    )
 
     # Run cli with the provided flags
-    args = cli_flags + ["--app=", "defer", "test"]
+    args = [*cli_flags, "--app=", "defer", "test"]
     await cli.cli(args)
 
     assert captured_log_level == expected_level

@@ -196,14 +196,12 @@ def add_cli_features(parser: argparse.ArgumentParser):
         "--verbose",
         default=0,
         action="count",
-        help="Increase verbosity (0=info, 1+=debug) "
-        f"(env: {ENV_PREFIX}_VERBOSE)",
+        help=f"Increase verbosity (0=info, 1+=debug) (env: {ENV_PREFIX}_VERBOSE)",
     )
     verbosity_group.add_argument(
         "--log-level",
         choices=["debug", "info", "warning", "error", "critical"],
-        help="Set log level explicitly "
-        f"(env: {ENV_PREFIX}_LOG_LEVEL)",
+        help=f"Set log level explicitly (env: {ENV_PREFIX}_LOG_LEVEL)",
     )
     add_argument(
         log_group,
