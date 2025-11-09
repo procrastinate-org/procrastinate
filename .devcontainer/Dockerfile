@@ -12,6 +12,3 @@ RUN sudo apt-get update \
   && rm -rf /var/lib/apt/lists/*
 
 USER vscode
-
-RUN pipx install uv \
-  && uv generate-shell-completion bash >> ~/.bash_completion
