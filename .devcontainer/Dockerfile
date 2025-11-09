@@ -12,3 +12,6 @@ RUN sudo apt-get update \
   && rm -rf /var/lib/apt/lists/*
 
 USER vscode
+
+# Add /home/vscode/.local/bin to PATH for uv tool installs
+ENV PATH="/home/vscode/.local/bin:${PATH}"
