@@ -4,7 +4,7 @@ scripts/bootstrap
 
 if ! pg_dump --schema-only --table=procrastinate_jobs 1>/dev/null 2>&1; then
     echo "Applying migrations"
-    procrastinate schema --apply || return
+    procrastinate schema --apply || exit 1
 fi
 
 echo "Migrations applied!"

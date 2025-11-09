@@ -1,5 +1,11 @@
 {
   "dockerComposeFile": "docker-compose.yml",
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {},
+    "ghcr.io/va-h/devcontainers-features/uv:1": {
+      "shellautocompletion": true
+    }
+  },
   "postCreateCommand": ".devcontainer/post-create.sh",
   "remoteEnv": {
     "PATH": "${containerWorkspaceFolder}/.venv/bin:${containerWorkspaceFolder}/scripts:${containerEnv:PATH}",
@@ -8,6 +14,7 @@
     "PGPASSWORD": "password",
     "PGUSER": "postgres",
     "PROCRASTINATE_APP": "procrastinate.demos.demo_async.app.app",
+    "UV_LINK_MODE": "copy",
     "VIRTUAL_ENV": "${containerWorkspaceFolder}/.venv"
   },
   "service": "app",

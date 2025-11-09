@@ -13,5 +13,5 @@ RUN sudo apt-get update \
 
 USER vscode
 
-RUN pipx install uv \
-  && uv generate-shell-completion bash >> ~/.bash_completion
+# Add /home/vscode/.local/bin to PATH for uv tool installs
+ENV PATH="/home/vscode/.local/bin:${PATH}"
