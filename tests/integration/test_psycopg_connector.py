@@ -7,8 +7,15 @@ import json
 import asgiref.sync
 import attr
 import pytest
+from psycopg.types.json import Jsonb
 
-from procrastinate import exceptions, manager, psycopg_connector, sync_psycopg_connector
+from procrastinate import (
+    PsycopgConnector,
+    exceptions,
+    manager,
+    psycopg_connector,
+    sync_psycopg_connector,
+)
 
 
 @pytest.fixture
@@ -283,3 +290,33 @@ async def test_get_sync_connector__not_open(not_opened_psycopg_connector):
     assert isinstance(sync, sync_psycopg_connector.SyncPsycopgConnector)
     assert not_opened_psycopg_connector.get_sync_connector() is sync
     assert sync._pool_args == not_opened_psycopg_connector._pool_args
+
+
+@pytest.mark.parametrize(
+    "arguments, expected",
+    [
+        ({"a": "a"}, {"a": "a"}),
+        ({"a": ("a", "b")}, ({"a": ("a", "b")})),
+        ({"a": ["a", "b"]}, ({"a": ["a", "b"]})),
+    ],
+)
+def test_wrap_json_makes_correct_psycopg_dict__simple(arguments, expected):
+    result = PsycopgConnector.wrap_json(arguments)
+
+    assert result == expected
+
+
+def test_wrap_json_makes_correct_psycopg_dict__inner_dict():
+    result = PsycopgConnector.wrap_json({"a": {"b": "c"}})
+
+    assert set(result.keys()) == {"a"}
+    assert isinstance(result["a"], Jsonb)
+    assert result["a"].obj == {"b": "c"}
+
+
+def test_wrap_json_makes_correct_psycopg_dict__inner_list():
+    result = PsycopgConnector.wrap_json({"a": [{"b": "c"}]})
+
+    assert set(result.keys()) == {"a"}
+    assert isinstance(result["a"][0], Jsonb)
+    assert result["a"][0].obj == {"b": "c"}
