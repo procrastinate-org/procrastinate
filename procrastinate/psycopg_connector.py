@@ -171,18 +171,20 @@ class PsycopgConnector(connector.BaseAsyncConnector):
         await self._async_pool.close()
         self._async_pool = None
 
-    def _wrap_value(self, value: Any) -> Any:
+    @classmethod
+    def _wrap_value(cls, value: Any) -> Any:
         if isinstance(value, dict):
             return psycopg.types.json.Jsonb(value)
         elif isinstance(value, list):
-            return [self._wrap_value(item) for item in value]
+            return [cls._wrap_value(item) for item in value]
         elif isinstance(value, tuple):
-            return tuple([self._wrap_value(item) for item in value])
+            return tuple([cls._wrap_value(item) for item in value])
         else:
             return value
 
-    def _wrap_json(self, arguments: dict[str, Any]):
-        return {key: self._wrap_value(value) for key, value in arguments.items()}
+    @classmethod
+    def wrap_json(cls, arguments: dict[str, Any]) -> dict[str, Any]:
+        return {key: cls._wrap_value(value) for key, value in arguments.items()}
 
     @contextlib.asynccontextmanager
     async def _get_cursor(
@@ -204,14 +206,14 @@ class PsycopgConnector(connector.BaseAsyncConnector):
     @wrap_exceptions()
     async def execute_query_async(self, query: LiteralString, **arguments: Any) -> None:
         async with self._get_cursor() as cursor:
-            await cursor.execute(query, self._wrap_json(arguments))
+            await cursor.execute(query, self.wrap_json(arguments))
 
     @wrap_exceptions()
     async def execute_query_one_async(
         self, query: LiteralString, **arguments: Any
     ) -> dict[str, Any]:
         async with self._get_cursor() as cursor:
-            await cursor.execute(query, self._wrap_json(arguments))
+            await cursor.execute(query, self.wrap_json(arguments))
 
             result = await cursor.fetchone()
 
@@ -224,7 +226,7 @@ class PsycopgConnector(connector.BaseAsyncConnector):
         self, query: LiteralString, **arguments: Any
     ) -> list[dict[str, Any]]:
         async with self._get_cursor() as cursor:
-            await cursor.execute(query, self._wrap_json(arguments))
+            await cursor.execute(query, self.wrap_json(arguments))
 
             return await cursor.fetchall()
 
