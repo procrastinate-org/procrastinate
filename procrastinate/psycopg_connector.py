@@ -49,6 +49,7 @@ class PsycopgConnector(connector.BaseAsyncConnector):
         pool_factory: Callable[
             ..., psycopg_pool.AsyncConnectionPool
         ] = psycopg_pool.AsyncConnectionPool,
+        pool_kwargs: dict[str, Any] | None = None,
         **kwargs: Any,
     ):
         """
@@ -93,6 +94,7 @@ class PsycopgConnector(connector.BaseAsyncConnector):
         self._json_loads = json_loads
         self._json_dumps = json_dumps
         self._pool_args = kwargs
+        self._pool_kwargs = pool_kwargs
         self._sync_connector: connector.BaseConnector | None = None
 
     def get_sync_connector(self) -> connector.BaseConnector:
@@ -140,17 +142,21 @@ class PsycopgConnector(connector.BaseAsyncConnector):
             self._pool_externally_set = True
             self._async_pool = pool
         else:
-            self._async_pool = await self._create_pool(self._pool_args)
+            self._async_pool = await self._create_pool(
+                self._pool_args, self._pool_kwargs
+            )
 
             await self._async_pool.open(wait=True)  # type: ignore
 
     @wrap_exceptions()
     async def _create_pool(
-        self,
-        pool_args: dict[str, Any],
+        self, pool_args: dict[str, Any], pool_kwargs: dict[str, Any] | None
     ) -> psycopg_pool.AsyncConnectionPool:
+        pool_kwargs = pool_kwargs if pool_kwargs is not None else {}
+        kwargs = pool_args.pop("kwargs", {})
+        pool_kwargs = pool_kwargs | pool_args
         return self._pool_factory(
-            **pool_args,
+            kwargs=kwargs,
             # Not specifying open=False raises a warning and will be deprecated.
             # It makes sense, as we can't really make async I/Os in a constructor.
             open=False,
@@ -158,6 +164,7 @@ class PsycopgConnector(connector.BaseAsyncConnector):
             # using the pool are still alive. If they have been closed by the
             # database, they will be seamlessly replaced by a new connection.
             check=psycopg_pool.AsyncConnectionPool.check_connection,
+            **pool_kwargs,
         )
 
     @wrap_exceptions()

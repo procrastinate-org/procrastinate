@@ -51,7 +51,7 @@ def test_open_no_pool_specified(mock_create_pool):
     connector.open()
 
     assert connector._pool_externally_set is False
-    mock_create_pool.assert_called_once_with(connector._pool_args)
+    mock_create_pool.assert_called_once_with(connector._pool_args, None)
 
 
 def test_open_pool_argument_specified(mock_create_pool, mocker):
