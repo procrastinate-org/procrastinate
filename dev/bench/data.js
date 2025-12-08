@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1763779819799,
+  "lastUpdate": 1765213318723,
   "repoUrl": "https://github.com/procrastinate-org/procrastinate",
   "entries": {
     "Procrastinate Benchmarks": [
@@ -5644,6 +5644,86 @@ window.BENCHMARK_DATA = {
             "unit": "iter/sec",
             "range": "stddev: 0.23474772905683483",
             "extra": "mean: 3.1811031512 sec\nrounds: 5"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "ewjoachim@gmail.com",
+            "name": "Joachim Jablon",
+            "username": "ewjoachim"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "8cb92c92cefdf92157e3210afa0f4a49ca1ffe6f",
+          "message": "Merge pull request #1463 from woolfred/stop-worker-when-side-task-fails",
+          "timestamp": "2025-12-08T17:58:35+01:00",
+          "tree_id": "e8361d9ba433d9499124f196e5b0c3151304c00c",
+          "url": "https://github.com/procrastinate-org/procrastinate/commit/8cb92c92cefdf92157e3210afa0f4a49ca1ffe6f"
+        },
+        "date": 1765213318386,
+        "tool": "pytest",
+        "benches": [
+          {
+            "name": "tests/benchmarks/test_benchmark_async.py::test_benchmark_1000_async_jobs[psycopg_connector]",
+            "value": 0.2837337148150226,
+            "unit": "iter/sec",
+            "range": "stddev: 0.05468518686266896",
+            "extra": "mean: 3.524431351600003 sec\nrounds: 5"
+          },
+          {
+            "name": "tests/benchmarks/test_benchmark_async.py::test_benchmark_1000_async_jobs[aiopg_connector]",
+            "value": 0.5286119926094835,
+            "unit": "iter/sec",
+            "range": "stddev: 0.02470002724010722",
+            "extra": "mean: 1.8917467140000326 sec\nrounds: 5"
+          },
+          {
+            "name": "tests/benchmarks/test_benchmark_async.py::test_benchmark_1000_async_batch_jobs[psycopg_connector]",
+            "value": 0.3665813830499832,
+            "unit": "iter/sec",
+            "range": "stddev: 0.28143594885782947",
+            "extra": "mean: 2.727907215800019 sec\nrounds: 5"
+          },
+          {
+            "name": "tests/benchmarks/test_benchmark_async.py::test_benchmark_1000_async_batch_jobs[aiopg_connector]",
+            "value": 0.609058143444897,
+            "unit": "iter/sec",
+            "range": "stddev: 0.2694610793925524",
+            "extra": "mean: 1.6418793686000073 sec\nrounds: 5"
+          },
+          {
+            "name": "tests/benchmarks/test_benchmark_sync.py::test_benchmark_1000_sync_jobs[sync_psycopg_connector]",
+            "value": 0.25231797533470623,
+            "unit": "iter/sec",
+            "range": "stddev: 0.20379611865463038",
+            "extra": "mean: 3.9632531081999787 sec\nrounds: 5"
+          },
+          {
+            "name": "tests/benchmarks/test_benchmark_sync.py::test_benchmark_1000_sync_jobs[psycopg2_connector]",
+            "value": 0.27959357429418236,
+            "unit": "iter/sec",
+            "range": "stddev: 0.09155561491375494",
+            "extra": "mean: 3.576620108399993 sec\nrounds: 5"
+          },
+          {
+            "name": "tests/benchmarks/test_benchmark_sync.py::test_benchmark_1000_sync_batch_jobs[sync_psycopg_connector]",
+            "value": 0.3202610316387475,
+            "unit": "iter/sec",
+            "range": "stddev: 0.08956312780073745",
+            "extra": "mean: 3.1224529406000103 sec\nrounds: 5"
+          },
+          {
+            "name": "tests/benchmarks/test_benchmark_sync.py::test_benchmark_1000_sync_batch_jobs[psycopg2_connector]",
+            "value": 0.3479419684784691,
+            "unit": "iter/sec",
+            "range": "stddev: 0.10255257137712331",
+            "extra": "mean: 2.874042485799987 sec\nrounds: 5"
           }
         ]
       }
