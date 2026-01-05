@@ -548,7 +548,7 @@ class Worker:
     async def _monitor_side_tasks(self, side_tasks: list[asyncio.Task]):
         """Monitor side tasks and stop the worker if any task fails"""
         try:
-            done, pending = await asyncio.wait(
+            done, _pending = await asyncio.wait(
                 side_tasks, return_when=asyncio.FIRST_COMPLETED
             )
             for task in done:
