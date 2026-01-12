@@ -3,9 +3,10 @@ from __future__ import annotations
 import functools
 import logging
 import sys
-from typing import TYPE_CHECKING, Callable, Literal, Union, cast, overload
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Concatenate, Literal, cast, overload
 
-from typing_extensions import Concatenate, ParamSpec, TypeVar, Unpack
+from typing_extensions import ParamSpec, TypeVar, Unpack
 
 from procrastinate import exceptions, jobs, periodic, retry, utils
 from procrastinate.job_context import JobContext
@@ -342,12 +343,10 @@ class Blueprint:
 
         if _func is None:  # Called as @app.task(...)
             return cast(
-                Union[
-                    Callable[[Callable[P, R]], Task[P, R, P]],
-                    Callable[
-                        [Callable[Concatenate[JobContext, P], R]],
-                        Task[Concatenate[JobContext, P], R, P],
-                    ],
+                Callable[[Callable[P, R]], Task[P, R, P]]
+                | Callable[
+                    [Callable[Concatenate[JobContext, P], R]],
+                    Task[Concatenate[JobContext, P], R, P],
                 ],
                 _wrap,
             )

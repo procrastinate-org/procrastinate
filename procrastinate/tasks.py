@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import datetime
 import logging
-from typing import Callable, Generic, TypedDict, cast
+from collections.abc import Callable
+from typing import Generic, TypedDict, cast
 
 from typing_extensions import NotRequired, ParamSpec, TypeVar, Unpack
 

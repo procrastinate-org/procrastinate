@@ -4,8 +4,8 @@ import contextlib
 import functools
 import logging
 import re
-from collections.abc import Generator, Iterator
-from typing import Any, Callable
+from collections.abc import Callable, Generator, Iterator
+from typing import Any
 
 import psycopg2
 import psycopg2.errors

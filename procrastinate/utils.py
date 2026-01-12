@@ -7,18 +7,17 @@ import importlib
 import inspect
 import logging
 import pathlib
-import sys
 import types
 from collections.abc import (
     AsyncGenerator,
     AsyncIterator,
     Awaitable,
+    Callable,
     Coroutine,
     Iterable,
 )
 from typing import (
     Any,
-    Callable,
     Generic,
     TypeVar,
 )
@@ -316,12 +315,7 @@ async def gen_with_timeout(
 
 
 def async_context_decorator(func: Callable) -> Callable:
-    if sys.version_info < (3, 10):
-        import contextlib2
-
-        return contextlib2.asynccontextmanager(func)
-    else:
-        return contextlib.asynccontextmanager(func)
+    return contextlib.asynccontextmanager(func)
 
 
 def datetime_from_timedelta_params(params: TimeDeltaParams) -> datetime.datetime:

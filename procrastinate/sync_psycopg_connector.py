@@ -3,8 +3,8 @@ from __future__ import annotations
 import contextlib
 import logging
 import re
-from collections.abc import Generator, Iterator
-from typing import Any, Callable
+from collections.abc import Callable, Generator, Iterator
+from typing import Any
 
 import psycopg
 import psycopg.rows

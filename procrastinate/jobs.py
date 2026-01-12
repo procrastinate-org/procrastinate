@@ -4,10 +4,9 @@ import datetime
 import functools
 import logging
 from enum import Enum
-from typing import TYPE_CHECKING, Any, TypedDict, Union
+from typing import TYPE_CHECKING, Any, Literal, TypedDict, Union
 
 import attr
-from typing_extensions import Literal
 
 from procrastinate import types
 

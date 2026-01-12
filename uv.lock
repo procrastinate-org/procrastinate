@@ -828,7 +828,6 @@ requires-dist = [
     { name = "aiopg", marker = "extra == 'aiopg'" },
     { name = "asgiref" },
     { name = "attrs" },
-    { name = "contextlib2", marker = "python_full_version < '3.10'" },
     { name = "croniter" },
     { name = "django", marker = "extra == 'django'", specifier = ">=2.2" },
     { name = "psycopg", extras = ["pool"] },

@@ -37,7 +37,6 @@ dependencies = [
     "psycopg[pool]",
     "asgiref",
     "attrs",
-    "contextlib2; python_version < '3.10'",
     "croniter",
     "python-dateutil",
     "typing-extensions",

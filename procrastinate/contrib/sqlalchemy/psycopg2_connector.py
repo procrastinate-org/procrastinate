@@ -3,8 +3,8 @@ from __future__ import annotations
 import contextlib
 import functools
 import re
-from collections.abc import Generator, Mapping
-from typing import Any, Callable
+from collections.abc import Callable, Generator, Mapping
+from typing import Any
 
 import psycopg2.errors
 import sqlalchemy

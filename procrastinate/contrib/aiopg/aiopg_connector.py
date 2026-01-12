@@ -4,8 +4,8 @@ import asyncio
 import functools
 import logging
 import re
-from collections.abc import AsyncGenerator, Coroutine, Iterable
-from typing import Any, Callable, TypeVar, cast
+from collections.abc import AsyncGenerator, Callable, Coroutine, Iterable
+from typing import Any, TypeVar, cast
 
 import aiopg
 import psycopg2

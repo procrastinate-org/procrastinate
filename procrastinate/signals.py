@@ -6,7 +6,8 @@ import logging
 import os
 import signal
 import threading
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 logger = logging.getLogger(__name__)
 

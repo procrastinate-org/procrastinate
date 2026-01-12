@@ -2,11 +2,10 @@ from __future__ import annotations
 
 import contextlib
 import logging
-from collections.abc import AsyncGenerator, AsyncIterator, Iterable
+from collections.abc import AsyncGenerator, AsyncIterator, Callable, Iterable
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
 )
 
 from typing_extensions import LiteralString
