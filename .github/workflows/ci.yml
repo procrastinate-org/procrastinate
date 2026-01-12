@@ -17,8 +17,6 @@ jobs:
     strategy:
       matrix:
         include:
-          - python-version: "3.9"
-            postgres-version: "13"
           - python-version: "3.10"
             postgres-version: "14"
           - python-version: "3.11"
@@ -27,6 +25,8 @@ jobs:
             postgres-version: "16"
           - python-version: "3.13"
             postgres-version: "17"
+          - python-version: "3.14"
+            postgres-version: "18"
 
     name: "py${{ matrix.python-version }}"
     runs-on: ubuntu-latest
