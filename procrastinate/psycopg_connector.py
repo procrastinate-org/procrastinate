@@ -3,10 +3,7 @@ from __future__ import annotations
 import contextlib
 import logging
 from collections.abc import AsyncGenerator, AsyncIterator, Callable, Iterable
-from typing import (
-    TYPE_CHECKING,
-    Any,
-)
+from typing import TYPE_CHECKING, Any
 
 from typing_extensions import LiteralString
 
@@ -14,7 +11,6 @@ from procrastinate import connector, exceptions, sql, sync_psycopg_connector, ut
 
 if TYPE_CHECKING:
     import psycopg
-    import psycopg.errors
     import psycopg.rows
     import psycopg.sql
     import psycopg.types.json
@@ -22,7 +18,6 @@ if TYPE_CHECKING:
 else:
     psycopg, *_ = utils.import_or_wrapper(
         "psycopg",
-        "psycopg.errors",
         "psycopg.rows",
         "psycopg.sql",
         "psycopg.types.json",
@@ -243,7 +238,10 @@ class PsycopgConnector(connector.BaseAsyncConnector):
         configure = self._pool_args.get("configure")
 
         async with await self.pool.connection_class.connect(
-            self.pool.conninfo, **self.pool.kwargs, autocommit=True
+            self.pool.conninfo,
+            # TODO: fix typing
+            **(self.pool.kwargs or {}),  # pyright: ignore[reportCallIssue]
+            autocommit=True,
         ) as connection:
             if configure:
                 await configure(connection)

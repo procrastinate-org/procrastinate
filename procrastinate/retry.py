@@ -8,7 +8,7 @@ from __future__ import annotations
 import datetime
 import warnings
 from collections.abc import Iterable
-from typing import Union, overload
+from typing import TypeAlias, overload
 
 import attr
 
@@ -208,7 +208,7 @@ class RetryStrategy(BaseRetryStrategy):
         return RetryDecision(retry_in={"seconds": wait})
 
 
-RetryValue = Union[bool, int, RetryStrategy]
+RetryValue: TypeAlias = bool | int | RetryStrategy
 
 
 def get_retry_strategy(retry: RetryValue) -> RetryStrategy | None:

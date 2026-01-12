@@ -274,7 +274,7 @@ def test_moved_elsewhere():
     me = utils.MovedElsewhere(name="foo", new_location="bar")
     with pytest.raises(
         exceptions.MovedElsewhere,
-        match="procrastinate.foo has been moved to bar",
+        match=r"procrastinate\.foo has been moved to bar",
     ):
         me.foo
 
@@ -283,7 +283,7 @@ def test_moved_elsewhere__call():
     me = utils.MovedElsewhere(name="foo", new_location="bar")
     with pytest.raises(
         exceptions.MovedElsewhere,
-        match="procrastinate.foo has been moved to bar",
+        match=r"procrastinate\.foo has been moved to bar",
     ):
         me()
 

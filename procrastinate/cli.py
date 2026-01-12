@@ -9,7 +9,7 @@ import os
 import shlex
 import sys
 from collections.abc import Awaitable, Callable
-from typing import Any, Literal, Union
+from typing import Any, Literal
 
 import procrastinate
 from procrastinate import connector, exceptions, jobs, shell, types, utils
@@ -28,7 +28,7 @@ def get_log_level(verbosity: int) -> int:
     return {0: logging.INFO, 1: logging.DEBUG}.get(min((1, verbosity)), 0)
 
 
-Style = Union[Literal["%"], Literal["{"], Literal["$"]]
+Style = Literal["%", "{", "$"]
 
 
 def configure_logging(verbosity: int, format: str, style: Style) -> None:
