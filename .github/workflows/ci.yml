@@ -124,7 +124,7 @@ jobs:
       - name: Install the latest version of uv
         uses: astral-sh/setup-uv@eb1897b8dc4b5d5bfe39a428a8f2304605e0983c # v7
         with:
-          python-version: "3.9"
+          python-version: "3.10"
 
       - name: Install dependencies
         run: uv sync --all-extras --group=types
