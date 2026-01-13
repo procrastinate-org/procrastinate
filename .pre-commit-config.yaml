@@ -1,5 +1,4 @@
 ci:
-  skip: [pyright]
   autoupdate_schedule: quarterly
 # See https://pre-commit.com for more information
 # See https://pre-commit.com/hooks.html for more hooks
@@ -29,10 +28,10 @@ repos:
       - id: trailing-whitespace
       - id: mixed-line-ending
 
-  - repo: https://github.com/RobertCraigie/pyright-python
-    rev: v1.1.408
+  - repo: https://github.com/DetachHead/basedpyright-prek-mirror
+    rev: 1.37.1
     hooks:
-      - id: pyright
+      - id: basedpyright
         additional_dependencies:
           - aiopg==1.4.0
           - alabaster==1.0.0

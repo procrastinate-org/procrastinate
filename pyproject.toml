@@ -97,7 +97,7 @@ docs = [
     "sphinxcontrib-mermaid",
     "myst-parser",
 ]
-dev = ["ruff", "pyright", "doc8"]
+dev = ["ruff", "basedpyright", "doc8"]
 
 [tool.pytest.ini_options]
 addopts = ["-vv", "--strict-markers", "-rfE", "--reuse-db", "-m not benchmark"]
@@ -139,8 +139,6 @@ exclude_lines = [
     "[ ]+\\.\\.\\.$",
 ]
 
-[tool.pyright]
-exclude = ["tests", ".venv", "scripts"]
 
 [tool.ruff]
 target-version = "py310"
@@ -169,8 +167,8 @@ required-imports = ["from __future__ import annotations"]
 max-line-length = 88
 ignore-path = "docs/_build,.venv"
 
-[tool.sync-pre-commit-with-uv.pyright-python]
-pypi_package_name = "pyright"
+[tool.sync-pre-commit-with-uv.basedpyright-prek-mirror]
+pypi_package_name = "basedpyright"
 additional_dependencies_uv_params = [
     "--group=types",
     "--no-group=release",
@@ -180,3 +178,23 @@ additional_dependencies_uv_params = [
     "--no-group=docs",
     "--all-extras",
 ]
+
+[tool.basedpyright]
+exclude = [".venv", ".nox", "tests", "dist", "noxfile.py"]
+# Please try and keep the following in alphabetical order.
+reportAny = false
+reportExplicitAny = false
+reportImplicitOverride = false
+reportImplicitStringConcatenation = false
+# reportImportCycles would be useful, but seems to produce false positives
+reportImportCycles = false
+reportMissingTypeArgument = false
+reportUnannotatedClassAttribute = false
+reportUnknownArgumentType = false
+reportUnknownLambdaType = false
+reportUnknownMemberType = false
+reportUnknownParameterType = false
+reportUnknownVariableType = false
+reportUnreachable = false
+reportUnusedCallResult = false
+reportUnusedParameter = false
