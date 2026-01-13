@@ -675,7 +675,11 @@ async def shell_(app: procrastinate.App, shell_command: list[str]):
 
 
 def main():
+    kwargs = {}
     if os.name == "nt":
         if sys.version_info < (3, 14):
             asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-    asyncio.run(cli(sys.argv[1:]))
+        else:
+            kwargs["loop_factory"] = asyncio.SelectorEventLoop
+
+    asyncio.run(cli(sys.argv[1:]), **kwargs)

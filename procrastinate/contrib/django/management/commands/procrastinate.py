@@ -28,9 +28,12 @@ class Command(BaseCommand):
     suppressed_base_arguments = {"-v", "--version"}
 
     def handle(self, *args: Any, **kwargs: Any):
+        run_kwargs = {}
         if os.name == "nt":
             if sys.version_info < (3, 14):
                 asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+            else:
+                run_kwargs["loop_factory"] = asyncio.SelectorEventLoop
 
         kwargs = {k: v for k, v in kwargs.items() if k not in self._django_options}
         context = contextlib.nullcontext()
@@ -40,4 +43,4 @@ class Command(BaseCommand):
             context = app.replace_connector(app.connector.get_worker_connector())
 
         with context:
-            asyncio.run(cli.execute_command(kwargs))
+            asyncio.run(cli.execute_command(kwargs), **run_kwargs)
