@@ -1,4 +1,5 @@
 ci:
+  skip: [basedpyright]
   autoupdate_schedule: quarterly
 # See https://pre-commit.com for more information
 # See https://pre-commit.com/hooks.html for more hooks
@@ -7,22 +8,27 @@ repos:
     rev: v6.0.0
     hooks:
       # File names
-      - id: check-case-conflict
+      - id:
+          check-case-conflict
           # File formats
       - id: pretty-format-json
       - id: check-json
       - id: check-toml
-      - id: check-yaml
+      - id:
+          check-yaml
           # Executables
       - id: check-executables-have-shebangs
         exclude: dev-env
-      - id: check-shebang-scripts-are-executable
+      - id:
+          check-shebang-scripts-are-executable
           # Git shenanigans
       - id: check-merge-conflict
-      - id: check-added-large-files
+      - id:
+          check-added-large-files
           # Python issues
       - id: check-ast
-      - id: debug-statements
+      - id:
+          debug-statements
           # Whitespace
       - id: end-of-file-fixer
       - id: trailing-whitespace
@@ -80,6 +86,7 @@ repos:
           - typing-extensions==4.15.0
           - tzdata==2025.3 ; sys_platform == 'win32'
           - urllib3==2.6.3
+
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.14.11
     hooks:
@@ -96,7 +103,7 @@ repos:
     rev: 1.29.1
     hooks:
       - id: django-upgrade
-        args: [--target-version, '4.2'] # Replace with Django version
+        args: [--target-version, "4.2"] # Replace with Django version
 
   - repo: https://github.com/ewjoachim/sync-pre-commit-with-uv
     rev: 1.1.0
