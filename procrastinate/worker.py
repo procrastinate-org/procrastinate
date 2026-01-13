@@ -464,7 +464,7 @@ class Worker:
         task = self.app.tasks.get(context.job.task_name)
         if not task:
             log_message = "Received a request to abort a job but the job has no associated task. No action to perform"
-        elif not asyncio.iscoroutinefunction(task.func):
+        elif not inspect.iscoroutinefunction(task.func):
             log_message = "Received a request to abort a synchronous job. Job is responsible for aborting by checking context.should_abort"
         else:
             log_message = "Received a request to abort an asynchronous job. Cancelling asyncio task"
