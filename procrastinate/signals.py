@@ -52,7 +52,7 @@ def on_stop(callback: Callable[[], None]):
     except RuntimeError:
         loop = None
 
-    def uninstall_and_callback(*args) -> None:
+    def uninstall_and_callback(*args: Any) -> None:
         nonlocal uninstalled
         uninstalled = True
         uninstall(

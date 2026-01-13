@@ -336,7 +336,7 @@ class Blueprint:
             # The signature of a function returned by functools.update_wrapper
             # is the same as the signature of the wrapped function (at least on pyright).
             # Here, we're actually returning a Task so a cast is needed to provide the correct signature.
-            return cast(
+            return cast(  # pyright: ignore[reportInvalidCast]
                 Task[P, R, P],
                 functools.update_wrapper(task, func, updated=()),
             )

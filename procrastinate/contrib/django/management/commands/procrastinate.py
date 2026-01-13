@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import argparse
 import asyncio
 import contextlib
 import os
+import sys
+from typing import Any
 
 from django.core.management.base import BaseCommand
 
@@ -13,8 +16,8 @@ from procrastinate.contrib.django import app, django_connector, healthchecks
 class Command(BaseCommand):
     help = "Access procrastinate commands"
 
-    def add_arguments(self, parser):
-        self._django_options = {a.dest for a in parser._actions}
+    def add_arguments(self, parser: argparse.ArgumentParser):
+        self._django_options = {a.dest for a in parser._actions}  # pyright: ignore[reportUninitializedInstanceVariable]
         cli.add_arguments(
             parser,
             include_app=False,
@@ -24,9 +27,10 @@ class Command(BaseCommand):
 
     suppressed_base_arguments = {"-v", "--version"}
 
-    def handle(self, *args, **kwargs):
+    def handle(self, *args: Any, **kwargs: Any):
         if os.name == "nt":
-            asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+            if sys.version_info < (3, 14):
+                asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
         kwargs = {k: v for k, v in kwargs.items() if k not in self._django_options}
         context = contextlib.nullcontext()

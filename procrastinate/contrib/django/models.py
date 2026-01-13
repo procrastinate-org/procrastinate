@@ -9,7 +9,7 @@ from procrastinate import jobs
 from . import exceptions, settings
 
 
-def _read_only(*args, **kwargs) -> NoReturn:
+def _read_only(*args: Any, **kwargs: Any) -> NoReturn:
     raise exceptions.ReadOnlyModel(
         "Procrastinate models exposed in Django, such as ProcrastinateJob "
         "are read-only. Please use the procrastinate CLI to interact with "
@@ -22,15 +22,15 @@ def _is_readonly() -> bool:
 
 
 class ProcrastinateReadOnlyModelMixin:
-    def save(self, *args, **kwargs) -> Any:
+    def save(self, *args: Any, **kwargs: Any) -> Any:
         if _is_readonly():
             _read_only()
-        return super().save(*args, **kwargs)  # type: ignore
+        return super().save(*args, **kwargs)  # pyright: ignore[reportAttributeAccessIssue]
 
-    def delete(self, *args, **kwargs) -> Any:
+    def delete(self, *args: Any, **kwargs: Any) -> Any:
         if _is_readonly():
             _read_only()
-        return super().delete(*args, **kwargs)  # type: ignore
+        return super().delete(*args, **kwargs)  # pyright: ignore[reportAttributeAccessIssue]
 
 
 _edit_methods = frozenset(
@@ -149,7 +149,7 @@ class ProcrastinateEvent(ProcrastinateReadOnlyModelMixin, models.Model):
         get_latest_by = "at"
 
     def __str__(self) -> str:
-        return f"Event {self.id} - Job {self.job_id}: {self.type} at {self.at}"  # type: ignore
+        return f"Event {self.id} - Job {self.job_id}: {self.type} at {self.at}"  # pyright: ignore[reportAttributeAccessIssue]
 
 
 class ProcrastinatePeriodicDefer(ProcrastinateReadOnlyModelMixin, models.Model):

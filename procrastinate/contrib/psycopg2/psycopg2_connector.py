@@ -55,7 +55,7 @@ def wrap_query_exceptions(func: Callable) -> Callable:
     """
 
     @functools.wraps(func)
-    def wrapped(*args, **kwargs):
+    def wrapped(*args: Any, **kwargs: Any):
         final_exc = None
         try:
             max_tries = args[0]._pool.maxconn + 1
@@ -220,7 +220,7 @@ class Psycopg2Connector(connector.BaseConnector):
                 cursor.execute(query, self._wrap_json(arguments))
                 # psycopg2's type say it returns a tuple, but it actually returns a
                 # dict when configured with RealDictCursor
-                return cursor.fetchone()  # type: ignore
+                return cursor.fetchone()  # pyright: ignore[reportReturnType]
 
     @wrap_exceptions()
     @wrap_query_exceptions
@@ -230,4 +230,4 @@ class Psycopg2Connector(connector.BaseConnector):
                 cursor.execute(query, self._wrap_json(arguments))
                 # psycopg2's type say it returns a tuple, but it actually returns a
                 # dict when configured with RealDictCursor
-                return cursor.fetchall()  # type: ignore
+                return cursor.fetchall()  # pyright: ignore[reportReturnType]

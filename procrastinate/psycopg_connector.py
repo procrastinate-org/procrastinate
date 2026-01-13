@@ -135,8 +135,8 @@ class PsycopgConnector(connector.BaseAsyncConnector):
             self._async_pool = pool
         else:
             self._async_pool = await self._create_pool(self._pool_args)
-
-            await self._async_pool.open(wait=True)  # type: ignore
+            assert self._async_pool
+            await self._async_pool.open(wait=True)
 
     @wrap_exceptions()
     async def _create_pool(

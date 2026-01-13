@@ -5,9 +5,9 @@ import datetime
 import json
 import threading
 from collections import Counter
-from collections.abc import Coroutine, Iterable
+from collections.abc import Coroutine, Iterable, Iterator
 from itertools import count
-from typing import Any
+from typing import Any, Literal
 
 from procrastinate import (
     connector,
@@ -39,13 +39,15 @@ class InMemoryConnector(connector.BaseAsyncConnector):
         self.reverse_queries[schema.SchemaManager.get_schema()] = "apply_schema"
         #: Mapping of ``{<job id>: <Job database row as a dictionary>}``
         self.jobs: dict[int, JobRow] = {}
+        self._loop: asyncio.AbstractEventLoop | None = None
+        self._loop_thread_id: int | None = None
 
     def reset(self) -> None:
         """
         Removes anything the in-memory pseudo-database contains, to ensure test
         independence.
         """
-        self.jobs: dict[int, JobRow] = {}
+        self.jobs = {}
         self.events: dict[int, list[EventRow]] = {}
         self.workers: dict[int, datetime.datetime] = {}
         self.job_counter = count(1)
@@ -59,7 +61,9 @@ class InMemoryConnector(connector.BaseAsyncConnector):
     def get_sync_connector(self) -> connector.BaseConnector:
         return self
 
-    async def generic_execute(self, query, suffix, **arguments) -> Any:
+    async def generic_execute(
+        self, query: str, suffix: Literal["run", "one", "all"], **arguments: Any
+    ) -> Any:
         """
         Calling a query will call the <query_name>_<suffix> method
         on this class. Suffix is "run" if no result is expected,
@@ -69,7 +73,7 @@ class InMemoryConnector(connector.BaseAsyncConnector):
         self.queries.append((query_name, arguments))
         return await getattr(self, f"{query_name}_{suffix}")(**arguments)
 
-    def make_dynamic_query(self, query, **identifiers: str) -> str:
+    def make_dynamic_query(self, query: str, **identifiers: str) -> str:
         return query.format(**identifiers)
 
     async def execute_query_async(self, query: str, **arguments: Any) -> None:
@@ -254,11 +258,14 @@ class InMemoryConnector(connector.BaseAsyncConnector):
                         return await original_coro
 
                     coro: Any = _coro()
+                assert self._loop
                 future = asyncio.run_coroutine_threadsafe(coro, self._loop)
                 # Wrap the concurrent.futures.Future so we can await it.
                 await asyncio.wrap_future(future)
 
-    async def fetch_job_one(self, queues: Iterable[str] | None, worker_id: int) -> dict:
+    async def fetch_job_one(
+        self, queues: Iterable[str] | None, worker_id: int
+    ) -> dict[str, Any]:
         assert worker_id in self.workers, f"Worker {worker_id} not found"
 
         filtered_jobs = [
@@ -294,7 +301,9 @@ class InMemoryConnector(connector.BaseAsyncConnector):
         job_row["abort_requested"] = False
         self.events[job_id].append({"type": status, "at": utils.utcnow()})
 
-    async def cancel_job_one(self, job_id: int, abort: bool, delete_job: bool) -> dict:
+    async def cancel_job_one(
+        self, job_id: int, abort: bool, delete_job: bool
+    ) -> dict[str, Any]:
         job_row = self.jobs[job_id]
 
         if job_row["status"] == "todo":
@@ -319,7 +328,7 @@ class InMemoryConnector(connector.BaseAsyncConnector):
 
         return {"id": None}
 
-    async def get_job_status_one(self, job_id: int) -> dict:
+    async def get_job_status_one(self, job_id: int) -> dict[str, Any]:
         return {"status": self.jobs[job_id]["status"]}
 
     async def retry_job_run(
@@ -343,7 +352,9 @@ class InMemoryConnector(connector.BaseAsyncConnector):
         self.events[job_id].append({"type": "scheduled", "at": retry_at})
         self.events[job_id].append({"type": "deferred_for_retry", "at": utils.utcnow()})
 
-    async def select_stalled_jobs_by_started_all(self, nb_seconds, queue, task_name):
+    async def select_stalled_jobs_by_started_all(
+        self, nb_seconds: int, queue: str, task_name: str
+    ) -> Iterator[JobRow]:
         return (
             job
             for job in self.jobs.values()
@@ -355,7 +366,7 @@ class InMemoryConnector(connector.BaseAsyncConnector):
         )
 
     async def select_stalled_jobs_by_heartbeat_all(
-        self, queue, task_name, seconds_since_heartbeat
+        self, queue: str, task_name: str, seconds_since_heartbeat: int
     ):
         return (
             job
@@ -372,7 +383,9 @@ class InMemoryConnector(connector.BaseAsyncConnector):
             )
         )
 
-    async def delete_old_jobs_run(self, nb_hours, queue, statuses):
+    async def delete_old_jobs_run(
+        self, nb_hours: int, queue: str, statuses: Iterable[str]
+    ):
         for id, job in list(self.jobs.items()):
             if (
                 job["status"] in statuses
@@ -390,7 +403,7 @@ class InMemoryConnector(connector.BaseAsyncConnector):
     async def apply_schema_run(self) -> None:
         pass
 
-    async def list_jobs_all(self, **kwargs):
+    async def list_jobs_all(self, **kwargs: Any):
         jobs: list[JobRow] = []
         for job in self.jobs.values():
             if all(
@@ -400,8 +413,8 @@ class InMemoryConnector(connector.BaseAsyncConnector):
                 jobs.append(job)
         return iter(jobs)
 
-    async def list_queues_all(self, **kwargs):
-        result: list[dict] = []
+    async def list_queues_all(self, **kwargs: Any):
+        result: list[dict[str, Any]] = []
         jobs = list(await self.list_jobs_all(**kwargs))
         queues = sorted({job["queue_name"] for job in jobs})
         for queue in queues:
@@ -412,8 +425,8 @@ class InMemoryConnector(connector.BaseAsyncConnector):
             )
         return iter(result)
 
-    async def list_tasks_all(self, **kwargs):
-        result: list[dict] = []
+    async def list_tasks_all(self, **kwargs: Any):
+        result: list[dict[str, Any]] = []
         jobs = list(await self.list_jobs_all(**kwargs))
         tasks = sorted({job["task_name"] for job in jobs})
         for task in tasks:
@@ -422,8 +435,8 @@ class InMemoryConnector(connector.BaseAsyncConnector):
             result.append({"name": task, "jobs_count": len(task_jobs), "stats": stats})
         return result
 
-    async def list_locks_all(self, **kwargs):
-        result: list[dict] = []
+    async def list_locks_all(self, **kwargs: Any):
+        result: list[dict[str, Any]] = []
         jobs = list(await self.list_jobs_all(**kwargs))
         locks = sorted({job["lock"] for job in jobs})
         for lock in locks:
@@ -439,7 +452,7 @@ class InMemoryConnector(connector.BaseAsyncConnector):
             )
         )
 
-    async def set_job_status_run(self, id, status):
+    async def set_job_status_run(self, id: int, status: str):
         id = int(id)
         self.jobs[id]["status"] = status
 
@@ -451,16 +464,16 @@ class InMemoryConnector(connector.BaseAsyncConnector):
         self.workers[worker_id] = utils.utcnow()
         return {"worker_id": worker_id}
 
-    async def unregister_worker_run(self, worker_id):
+    async def unregister_worker_run(self, worker_id: int):
         self.workers.pop(worker_id)
         for job in self.jobs.values():
             if job["worker_id"] == worker_id:
                 job["worker_id"] = None
 
-    async def update_heartbeat_run(self, worker_id):
+    async def update_heartbeat_run(self, worker_id: int):
         self.workers[worker_id] = utils.utcnow()
 
-    async def prune_stalled_workers_all(self, seconds_since_heartbeat):
+    async def prune_stalled_workers_all(self, seconds_since_heartbeat: int):
         pruned_workers = []
         for worker_id, heartbeat in list(self.workers.items()):
             if heartbeat < utils.utcnow() - datetime.timedelta(

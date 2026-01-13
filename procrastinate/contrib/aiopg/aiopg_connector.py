@@ -65,7 +65,7 @@ def wrap_query_exceptions(coro: T) -> T:
     """
 
     @functools.wraps(coro)
-    async def wrapped(*args, **kwargs):
+    async def wrapped(*args: Any, **kwargs: Any):
         final_exc = None
         try:
             max_tries = args[0]._pool.maxsize + 1
@@ -176,7 +176,7 @@ class AiopgConnector(connector.BaseAsyncConnector):
         base_on_connect = pool_args.pop("on_connect", None)
 
         @wrap_exceptions()
-        async def on_connect(connection):
+        async def on_connect(connection: Any):
             if base_on_connect:
                 await base_on_connect(connection)
             if json_loads:
@@ -237,8 +237,8 @@ class AiopgConnector(connector.BaseAsyncConnector):
             # This is a hack, and if something breaks around connection closing in the
             # future, it's a good idea to start looking here.
             self._pool.terminate()
-            while self._pool._free:
-                self._pool._free.popleft().close()
+            while self._pool._free:  # pyright: ignore[reportPrivateUsage]
+                self._pool._free.popleft().close()  # pyright: ignore[reportPrivateUsage]
 
     def _wrap_value(self, value: Any) -> Any:
         if isinstance(value, dict):

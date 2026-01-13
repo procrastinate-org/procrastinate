@@ -329,7 +329,7 @@ class App(blueprints.Blueprint):
         worker = self._worker(**kwargs)
         await worker.run()
 
-    def run_worker(self, **kwargs) -> None:
+    def run_worker(self, **kwargs: Any) -> None:
         """
         Synchronous version of `App.run_worker_async`.
         Create the event loop and open the app, then run the worker.
@@ -397,5 +397,5 @@ class App(blueprints.Blueprint):
     def __enter__(self) -> App:
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         self.close()

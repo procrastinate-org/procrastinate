@@ -92,7 +92,9 @@ def caller_module_name(prefix: str = "procrastinate") -> str:
         raise exceptions.CallerModuleUnknown from exc
 
 
-def async_to_sync(awaitable: Callable[..., Awaitable[T]], *args, **kwargs) -> T:
+def async_to_sync(
+    awaitable: Callable[..., Awaitable[T]], *args: Any, **kwargs: Any
+) -> T:
     """
     Given a callable returning an awaitable, call the callable, await it
     synchronously. Returns the result after it's done.
@@ -100,7 +102,7 @@ def async_to_sync(awaitable: Callable[..., Awaitable[T]], *args, **kwargs) -> T:
     return sync.async_to_sync(awaitable)(*args, **kwargs)
 
 
-async def sync_to_async(func: Callable[..., T], *args, **kwargs) -> T:
+async def sync_to_async(func: Callable[..., T], *args: Any, **kwargs: Any) -> T:
     """
     Given a callable, return a callable that will call the original one in an
     async context.
@@ -187,8 +189,8 @@ class AwaitableContext(Generic[U]):
 
     def __init__(
         self,
-        open_coro: Callable[[], Awaitable],
-        close_coro: Callable[[], Awaitable],
+        open_coro: Callable[[], Awaitable[Any]],
+        close_coro: Callable[[], Awaitable[Any]],
         return_value: U,
     ):
         self._open_coro = open_coro
@@ -199,7 +201,7 @@ class AwaitableContext(Generic[U]):
         await self._open_coro()
         return self._return_value
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
+    async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any):
         await self._close_coro()
 
     def __await__(self):
@@ -210,12 +212,12 @@ class AwaitableContext(Generic[U]):
         return _inner_coro().__await__()
 
 
-async def cancel_and_capture_errors(tasks: list[asyncio.Task]):
+async def cancel_and_capture_errors(tasks: list[asyncio.Task[Any]]):
     """
     Cancel all tasks and capture any error returned by any of those tasks (except the CancellationError itself)
     """
 
-    def log_task_exception(task: asyncio.Task, error: BaseException):
+    def log_task_exception(task: asyncio.Task[Any], error: BaseException):
         logger.exception(
             f"{task.get_name()} error: {error!r}",
             exc_info=error,
@@ -237,7 +239,7 @@ async def cancel_and_capture_errors(tasks: list[asyncio.Task]):
             logger.debug(f"Cancelled task {task.get_name()}")
 
 
-async def wait_any(*coros_or_futures: Coroutine | asyncio.Future):
+async def wait_any(*coros_or_futures: Coroutine[Any, Any, Any] | asyncio.Future[Any]):
     """Starts and wait on the first coroutine to complete and return it
     Other pending coroutines are either cancelled or left running"""
     futures = set(asyncio.ensure_future(fut) for fut in coros_or_futures)
@@ -270,10 +272,10 @@ def import_or_wrapper(*names: str) -> Iterable[types.ModuleType]:
         exception = exc
 
         class Wrapper:
-            def __getattr__(self, item):
+            def __getattr__(self, item: str):
                 raise exception
 
-        yield Wrapper()  # type: ignore
+        yield Wrapper()  # pyright: ignore[reportReturnType]
 
 
 class MovedElsewhere:
@@ -284,7 +286,7 @@ class MovedElsewhere:
     def __call__(self, *args: Any, **kwargs: Any) -> Any:
         self.x
 
-    def __getattr__(self, item):
+    def __getattr__(self, item: str):
         raise exceptions.MovedElsewhere(
             f"procrastinate.{self.name} has been moved to {self.new_location}"
         )
@@ -314,7 +316,7 @@ async def gen_with_timeout(
                 return
 
 
-def async_context_decorator(func: Callable) -> Callable:
+def async_context_decorator(func: Callable[..., Any]) -> Callable[..., Any]:
     return contextlib.asynccontextmanager(func)
 
 

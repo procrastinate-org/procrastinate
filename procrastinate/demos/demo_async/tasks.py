@@ -4,7 +4,7 @@ from .app import app
 
 
 @app.task(queue="sums")
-async def sum(a, b):
+async def sum(a: int, b: int) -> int:
     """Sum two numbers."""
     return a + b
 
