@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+import io
 import os
 import pathlib
-import shutil
 import tempfile
+import zipfile
 
+import httpx
 import nox  # type: ignore
+import nox_uv
 import packaging.version
 
 
@@ -36,13 +39,13 @@ def get_pre_migration(latest_tag: packaging.version.Version) -> str:
     return pre_migration.name
 
 
-@nox.session
+@nox_uv.session
 def current_version_with_post_migration(session: nox.Session):
     session.run("uv", "sync", "--all-extras", external=True)
     session.run("uv", "run", "pytest", *session.posargs, external=True)
 
 
-@nox.session
+@nox_uv.session
 def current_version_without_post_migration(session: nox.Session):
     latest_tag = fetch_latest_tag(session)
     pre_migration = get_pre_migration(latest_tag)
@@ -65,7 +68,21 @@ def current_version_without_post_migration(session: nox.Session):
     )
 
 
-@nox.session
+def get_zip_repo(client: httpx.Client, ref: str) -> zipfile.ZipFile:
+    response = client.get(
+        f"https://api.github.com/repos/procrastinate-org/procrastinate/zipball/{ref}",
+        headers={"Accept": "application/vnd.github+json"},
+        follow_redirects=True,
+    )
+    response.raise_for_status()
+    return zipfile.ZipFile(io.BytesIO(response.content))
+
+
+# TODO: set to None after procrastinate 3.7.0 is released
+PIN_PYTHON: str | None = "3.13"
+
+
+@nox_uv.session(python=PIN_PYTHON)
 def stable_version_without_post_migration(session: nox.Session):
     latest_tag = fetch_latest_tag(session)
     pre_migration = get_pre_migration(latest_tag)
@@ -74,12 +91,31 @@ def stable_version_without_post_migration(session: nox.Session):
         session.chdir(temp_dir)
 
         temp_path = pathlib.Path(temp_dir)
-        base_path = pathlib.Path(__file__).parent
 
-        # Install test dependencies and copy tests
-        shutil.copytree(base_path / "tests", temp_path / "tests")
-        shutil.copy(base_path / "pyproject.toml", temp_path / "pyproject.toml")
-        shutil.copy(base_path / "uv.lock", temp_path / "uv.lock")
+        # https://api.github.com/repos/procrastinate-org/procrastinate/contents
+        # application/vnd.github.raw+json
+
+        try:
+            headers = {"Authorization": f"Bearer {os.environ['GITHUB_TOKEN']}"}
+        except KeyError:
+            headers = {}
+
+        client = httpx.Client(headers=headers)
+
+        zip_repo = get_zip_repo(client=client, ref=str(latest_tag))
+
+        for file in zip_repo.namelist():
+            if file.endswith("/"):
+                continue
+            repo_file = file.split("/", 1)[-1]
+            if repo_file.startswith("tests") or repo_file in (
+                "pyproject.toml",
+                "uv.lock",
+            ):
+                file_path = temp_path / repo_file
+                file_path.parent.mkdir(parents=True, exist_ok=True)
+                file_path.write_bytes(zip_repo.read(name=file))
+
         session.run(
             "uv",
             "sync",
@@ -89,6 +125,7 @@ def stable_version_without_post_migration(session: nox.Session):
             "--no-install-project",
             external=True,
             env={
+                **({"UV_PYTHON": PIN_PYTHON} if PIN_PYTHON else {}),
                 "UV_PROJECT_ENVIRONMENT": session.virtualenv.location,
             },
         )
