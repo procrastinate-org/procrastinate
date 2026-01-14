@@ -99,7 +99,7 @@ jobs:
       - name: Install the latest version of uv
         uses: astral-sh/setup-uv@eb1897b8dc4b5d5bfe39a428a8f2304605e0983c # v7
         with:
-          python-version: "3.14"
+          python-version: "3.13"
 
       - name: Get latest tag
         id: get-latest-tag
