@@ -103,7 +103,7 @@ docs = [
 dev = ["ruff", "basedpyright", "doc8"]
 
 [tool.pytest.ini_options]
-addopts = ["-vv", "--strict-pypr", "-rfE", "--reuse-db", "-m not benchmark"]
+addopts = ["-vv", "--strict-markers", "-rfE", "--reuse-db", "-m not benchmark"]
 testpaths = [
     "tests/unit",
     "tests/integration",
