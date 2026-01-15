@@ -2,8 +2,16 @@ from __future__ import annotations
 
 import contextlib
 import logging
-from collections.abc import AsyncGenerator, AsyncIterator, Callable, Iterable
-from typing import TYPE_CHECKING, Any
+from collections.abc import (
+    AsyncGenerator,
+    AsyncIterator,
+    Callable,
+    Iterable,
+)
+from typing import (
+    TYPE_CHECKING,
+    Any,
+)
 
 from typing_extensions import LiteralString
 
@@ -236,12 +244,12 @@ class PsycopgConnector(connector.BaseAsyncConnector):
         self,
     ) -> AsyncIterator[psycopg.AsyncConnection]:
         configure = self._pool_args.get("configure")
+        # These 2 lines means we are only compatible with psycopg 3.3.0 and up.
+        conninfo = await self.pool._resolve_conninfo()  # pyright: ignore[reportPrivateUsage]
+        kwargs = await self.pool._resolve_kwargs()  # pyright: ignore[reportPrivateUsage]
 
         async with await self.pool.connection_class.connect(
-            self.pool.conninfo,
-            # TODO: fix typing
-            **(self.pool.kwargs or {}),  # pyright: ignore[reportCallIssue]
-            autocommit=True,
+            conninfo, **kwargs, autocommit=True
         ) as connection:
             if configure:
                 await configure(connection)

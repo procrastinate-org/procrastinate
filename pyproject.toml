@@ -34,7 +34,7 @@ readme = "README.md"
 keywords = ["postgres", "task-queue"]
 requires-python = ">=3.10"
 dependencies = [
-    "psycopg[pool]",
+    "psycopg[pool]>=3.3.0",
     "asgiref",
     "attrs",
     "croniter",
@@ -87,9 +87,7 @@ test = [
     # (pkg_resources).
     "setuptools",
 ]
-migration_test = [
-    "nox", "httpx", "nox-uv"
-]
+migration_test = ["nox", "httpx", "nox-uv"]
 docs = [
     "django>=2.2",
     "furo",
