@@ -1038,7 +1038,7 @@ requires-dist = [
     { name = "attrs" },
     { name = "croniter" },
     { name = "django", marker = "extra == 'django'", specifier = ">=2.2" },
-    { name = "psycopg", extras = ["pool"], specifier = ">=3.3.0" },
+    { name = "psycopg", extras = ["pool"] },
     { name = "psycopg2-binary", marker = "extra == 'aiopg'" },
     { name = "psycopg2-binary", marker = "extra == 'psycopg2'" },
     { name = "python-dateutil" },

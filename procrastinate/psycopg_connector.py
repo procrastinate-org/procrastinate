@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import contextlib
+import importlib.metadata
 import logging
 from collections.abc import (
     AsyncGenerator,
@@ -13,6 +14,7 @@ from typing import (
     Any,
 )
 
+import packaging.version
 from typing_extensions import LiteralString
 
 from procrastinate import connector, exceptions, sql, sync_psycopg_connector, utils
@@ -23,6 +25,8 @@ if TYPE_CHECKING:
     import psycopg.sql
     import psycopg.types.json
     import psycopg_pool
+
+    psycopg_pool_version: packaging.version.Version | None = None
 else:
     psycopg, *_ = utils.import_or_wrapper(
         "psycopg",
@@ -31,6 +35,13 @@ else:
         "psycopg.types.json",
     )
     (psycopg_pool,) = utils.import_or_wrapper("psycopg_pool")
+
+    try:
+        psycopg_pool_version = packaging.version.parse(
+            importlib.metadata.version("psycopg_pool")
+        )
+    except (packaging.version.InvalidVersion, importlib.metadata.PackageNotFoundError):
+        psycopg_pool_version = None
 
 
 logger = logging.getLogger(__name__)
@@ -244,9 +255,17 @@ class PsycopgConnector(connector.BaseAsyncConnector):
         self,
     ) -> AsyncIterator[psycopg.AsyncConnection]:
         configure = self._pool_args.get("configure")
-        # These 2 lines means we are only compatible with psycopg 3.3.0 and up.
-        conninfo = await self.pool._resolve_conninfo()  # pyright: ignore[reportPrivateUsage]
-        kwargs = await self.pool._resolve_kwargs()  # pyright: ignore[reportPrivateUsage]
+
+        if (
+            # In case version cannot be detected, assume recent psycopg_pool.
+            not psycopg_pool_version
+            or psycopg_pool_version >= packaging.version.Version("3.3.0")
+        ):
+            conninfo: str = await self.pool._resolve_conninfo()  # pyright: ignore[reportPrivateUsage]
+            kwargs: dict[str, Any] = await self.pool._resolve_kwargs()  # pyright: ignore[reportPrivateUsage]
+        else:
+            conninfo = self.pool.conninfo  # pyright: ignore[reportAssignmentType]
+            kwargs = self.pool.kwargs  # pyright: ignore[reportAssignmentType]
 
         async with await self.pool.connection_class.connect(
             conninfo, **kwargs, autocommit=True

@@ -34,7 +34,7 @@ readme = "README.md"
 keywords = ["postgres", "task-queue"]
 requires-python = ">=3.10"
 dependencies = [
-    "psycopg[pool]>=3.3.0",
+    "psycopg[pool]",
     "asgiref",
     "attrs",
     "croniter",
