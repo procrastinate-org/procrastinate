@@ -28,3 +28,17 @@ extensions = [
 
 That's it. Your tasks will now be picked up by `autodoc` and included in your
 documentation.
+
+:::{warning}
+A [recent refactor](https://github.com/sphinx-doc/sphinx/issues/14089) of Autodoc in
+`Sphinx>=9` broke the ability for Procrastinate to provide a working extension.
+For now, a flag `autodoc_use_legacy_class_based` lets the extension use the legacy
+implementation, and keep working. We don't know yet when this flag will be removed,
+but by the time it is, it's quite probable that there will be a new API to make the
+extension work. All in all this means that this extension still works, but does so
+by changing a user-defined configuration flag, and it cannot know that this
+won't affect the documentation in other ways (e.g. if other extensions require the
+new implementation. This is unlikely for the time being.)
+
+Please feel free to open a ticket if this ends up being a problem for you.
+:::

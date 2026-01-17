@@ -47,7 +47,7 @@ django = ["django>=2.2"]
 sqlalchemy = ["sqlalchemy~=2.0"]
 aiopg = ["aiopg", "psycopg2-binary"]
 psycopg2 = ["psycopg2-binary"]
-sphinx = ["sphinx<9"]
+sphinx = ["sphinx"]
 
 [project.urls]
 homepage = "https://procrastinate.readthedocs.io/"
