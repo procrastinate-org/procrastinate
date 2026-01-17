@@ -17,8 +17,6 @@ jobs:
     strategy:
       matrix:
         include:
-          - python-version: "3.9"
-            postgres-version: "13"
           - python-version: "3.10"
             postgres-version: "14"
           - python-version: "3.11"
@@ -27,6 +25,8 @@ jobs:
             postgres-version: "16"
           - python-version: "3.13"
             postgres-version: "17"
+          - python-version: "3.14"
+            postgres-version: "18"
 
     name: "py${{ matrix.python-version }}"
     runs-on: ubuntu-latest
@@ -108,7 +108,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run tests
-        run: uvx nox -s ${{ matrix.mode }}
+        run: uv run --only-group migration_test nox -s ${{ matrix.mode }}
         env:
           PGHOST: localhost
           PGUSER: postgres
@@ -116,33 +116,20 @@ jobs:
           LATEST_TAG: ${{ steps.get-latest-tag.outputs.latest_tag }}
 
   static-typing:
-    name: Run Pyright
+    name: Run type checking
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6
+      - name: Checkout
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6
 
-      - name: Install the latest version of uv
+      - name: Install uv
         uses: astral-sh/setup-uv@eb1897b8dc4b5d5bfe39a428a8f2304605e0983c # v7
-        with:
-          python-version: "3.9"
 
-      - name: Install dependencies
-        run: uv sync --all-extras --group=types
+      - name: Install deps
+        run: uv sync --all-groups
 
-      - name: Activate virtualenv
-        run: echo ".venv/bin" >> $GITHUB_PATH
-
-      - name: Extract pyright version from pre-commit
-        id: pre-commit-pyright-version
-        run: >
-          yq '.repos
-          | filter(.repo == "https://github.com/RobertCraigie/pyright-python").0.rev
-          | "pyright-version="+sub("^v", "") | sub(".post\d+$"; "")'
-          .pre-commit-config.yaml >> $GITHUB_OUTPUT
-
-      - uses: jakebailey/pyright-action@v2
-        with:
-          version: ${{ steps.pre-commit-pyright-version.outputs.pyright-version }}
+      - name: Run type checker
+        run: uv run basedpyright
 
   coverage:
     name: Coverage
@@ -194,7 +181,7 @@ jobs:
       - name: Install the latest version of uv
         uses: astral-sh/setup-uv@eb1897b8dc4b5d5bfe39a428a8f2304605e0983c # v7
         with:
-          python-version: "3.13"
+          python-version: "3.14"
 
       - name: Run benchmarks
         run: uv run pytest -m "benchmark" --benchmark-json output.json

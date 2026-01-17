@@ -365,7 +365,7 @@ class JobManager:
         return True
 
     async def cancel_job_by_id_async(
-        self, job_id: int, abort: bool = False, delete_job=False
+        self, job_id: int, abort: bool = False, delete_job: bool = False
     ) -> bool:
         """
         Cancel a job by id.

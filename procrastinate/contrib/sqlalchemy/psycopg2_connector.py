@@ -3,8 +3,8 @@ from __future__ import annotations
 import contextlib
 import functools
 import re
-from collections.abc import Generator, Mapping
-from typing import Any, Callable
+from collections.abc import Callable, Generator, Mapping
+from typing import Any
 
 import psycopg2.errors
 import sqlalchemy
@@ -41,7 +41,7 @@ def wrap_exceptions() -> Generator[None, None, None]:
         raise exceptions.ConnectorException from exc
 
 
-def wrap_query_exceptions(func: Callable) -> Callable:
+def wrap_query_exceptions(func: Callable[..., Any]) -> Callable[..., Any]:
     """
     Detect "admin shutdown" errors and retry once.
 
@@ -52,7 +52,7 @@ def wrap_query_exceptions(func: Callable) -> Callable:
     """
 
     @functools.wraps(func)
-    def wrapped(*args, **kwargs):
+    def wrapped(*args: Any, **kwargs: Any):
         try:
             return func(*args, **kwargs)
         except sqlalchemy.exc.DBAPIError as exc:
@@ -71,8 +71,8 @@ class SQLAlchemyPsycopg2Connector(connector.BaseConnector):
         self,
         *,
         dsn: str = "postgresql://",
-        json_dumps: Callable | None = None,
-        json_loads: Callable | None = None,
+        json_dumps: Callable[..., Any] | None = None,
+        json_loads: Callable[..., Any] | None = None,
         **kwargs: Any,
     ):
         """
@@ -103,7 +103,7 @@ class SQLAlchemyPsycopg2Connector(connector.BaseConnector):
         self._engine_externally_set = False
 
     @wrap_exceptions()
-    def open(self, engine: sqlalchemy.engine.Engine | None = None) -> None:  # type: ignore
+    def open(self, engine: sqlalchemy.engine.Engine | None = None) -> None:  # pyright: ignore[reportIncompatibleMethodOverride]
         """
         Create an SQLAlchemy engine for the connector.
 
@@ -177,7 +177,7 @@ class SQLAlchemyPsycopg2Connector(connector.BaseConnector):
             mapping = cursor_result.mappings()
             # psycopg2's type say it returns a tuple, but it actually returns a
             # dict when configured with RealDictCursor
-            return mapping.fetchone()  # type: ignore
+            return mapping.fetchone()  # pyright: ignore[reportReturnType]
 
     @wrap_exceptions()
     @wrap_query_exceptions
@@ -191,4 +191,4 @@ class SQLAlchemyPsycopg2Connector(connector.BaseConnector):
             mapping = cursor_result.mappings()
             # psycopg2's type say it returns a tuple, but it actually returns a
             # dict when configured with RealDictCursor
-            return mapping.all()  # type: ignore
+            return mapping.all()  # pyright: ignore[reportReturnType]

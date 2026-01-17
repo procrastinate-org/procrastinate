@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from procrastinate.retry import RetryDecision
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from procrastinate.retry import RetryDecision
 
 
 class ProcrastinateException(Exception):
@@ -8,7 +11,7 @@ class ProcrastinateException(Exception):
     Unexpected Procrastinate error.
     """
 
-    def __init__(self, message=None):
+    def __init__(self, message: str | None = None):
         if not message:
             message = self.__doc__
         super().__init__(message)
@@ -34,7 +37,7 @@ class TaskAlreadyRegistered(ProcrastinateException):
     """
 
 
-class LoadFromPathError(ImportError, ProcrastinateException):
+class LoadFromPathError(ProcrastinateException, ImportError):  # pyright: ignore[reportUnsafeMultipleInheritance]
     """
     App was not found at the provided path, or the loaded object is not an App.
     """
@@ -87,7 +90,9 @@ class UniqueViolation(ConnectorException):
     ``exception.constraint_name``.
     """
 
-    def __init__(self, *args, constraint_name: str | None, queueing_lock: str | None):
+    def __init__(
+        self, *args: Any, constraint_name: str | None, queueing_lock: str | None
+    ):
         super().__init__(*args)
         self.constraint_name = constraint_name
         self.queueing_lock = queueing_lock

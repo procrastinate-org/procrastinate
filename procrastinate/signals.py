@@ -6,7 +6,8 @@ import logging
 import os
 import signal
 import threading
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +52,7 @@ def on_stop(callback: Callable[[], None]):
     except RuntimeError:
         loop = None
 
-    def uninstall_and_callback(*args) -> None:
+    def uninstall_and_callback(*args: Any) -> None:
         nonlocal uninstalled
         uninstalled = True
         uninstall(

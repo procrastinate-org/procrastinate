@@ -12,7 +12,7 @@
 
 **Procrastinate is looking for** [additional maintainers!](https://github.com/procrastinate-org/procrastinate/discussions/748)
 
-Procrastinate is an open-source Python 3.9+ distributed task processing
+Procrastinate is an open-source Python 3.10+ distributed task processing
 library, leveraging PostgreSQL 13+ to store task definitions, manage locks and
 dispatch tasks. It can be used within both sync and async code,
 has [Django] integration, and is easy to use with ASGI frameworks.

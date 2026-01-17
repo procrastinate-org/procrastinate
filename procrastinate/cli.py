@@ -8,8 +8,8 @@ import logging
 import os
 import shlex
 import sys
-from collections.abc import Awaitable
-from typing import Any, Callable, Literal, Union
+from collections.abc import Awaitable, Callable
+from typing import Any, Literal
 
 import procrastinate
 from procrastinate import connector, exceptions, jobs, shell, types, utils
@@ -28,7 +28,7 @@ def get_log_level(verbosity: int) -> int:
     return {0: logging.INFO, 1: logging.DEBUG}.get(min((1, verbosity)), 0)
 
 
-Style = Union[Literal["%"], Literal["{"], Literal["$"]]
+Style = Literal["%", "{", "$"]
 
 
 def configure_logging(verbosity: int, format: str, style: Style) -> None:
@@ -41,7 +41,7 @@ def configure_logging(verbosity: int, format: str, style: Style) -> None:
     )
 
 
-def print_stderr(*args):
+def print_stderr(*args: Any):
     print(*args, file=sys.stderr)
 
 
@@ -49,46 +49,46 @@ class MissingAppConnector(connector.BaseAsyncConnector):
     def get_sync_connector(self) -> connector.BaseConnector:
         return self
 
-    def open(self, *args, **kwargs):
+    def open(self, *args: Any, **kwargs: Any):
         pass
 
-    def close(self, *args, **kwargs):
+    def close(self, *args: Any, **kwargs: Any):
         pass
 
-    async def open_async(self, *args, **kwargs):
+    async def open_async(self, *args: Any, **kwargs: Any):
         pass
 
-    async def close_async(self, *args, **kwargs):
+    async def close_async(self, *args: Any, **kwargs: Any):
         pass
 
-    def execute_query(self, *args, **kwargs):
+    def execute_query(self, *args: Any, **kwargs: Any):
         raise exceptions.MissingApp
 
-    def execute_query_one(self, *args, **kwargs):
+    def execute_query_one(self, *args: Any, **kwargs: Any):
         raise exceptions.MissingApp
 
-    def execute_query_all(self, *args, **kwargs):
+    def execute_query_all(self, *args: Any, **kwargs: Any):
         raise exceptions.MissingApp
 
-    async def execute_query_async(self, *args, **kwargs):
+    async def execute_query_async(self, *args: Any, **kwargs: Any):
         raise exceptions.MissingApp
 
-    async def execute_query_one_async(self, *args, **kwargs):
+    async def execute_query_one_async(self, *args: Any, **kwargs: Any):
         raise exceptions.MissingApp
 
-    async def execute_query_all_async(self, *args, **kwargs):
+    async def execute_query_all_async(self, *args: Any, **kwargs: Any):
         raise exceptions.MissingApp
 
-    async def listen_notify(self, *args, **kwargs):
+    async def listen_notify(self, *args: Any, **kwargs: Any):
         raise exceptions.MissingApp
 
 
-class ActionWithNegative(argparse._StoreTrueAction):
-    def __init__(self, *args, negative: str | None, **kwargs):
+class ActionWithNegative(argparse._StoreTrueAction):  # pyright: ignore[reportPrivateUsage]
+    def __init__(self, *args: Any, negative: str | None, **kwargs: Any):
         super().__init__(*args, **kwargs)
         self.negative = negative
 
-    def __call__(self, parser, ns, values, option=None):
+    def __call__(self, parser: Any, ns: Any, values: Any, option: Any = None):
         if self.negative is None:
             setattr(ns, self.dest, option and not option.startswith("--no-"))
             return
@@ -145,12 +145,12 @@ def env_bool(value: str) -> bool:
 
 
 def add_argument(
-    parser: argparse._ActionsContainer,
-    *args,
+    parser: argparse._ActionsContainer,  # pyright: ignore[reportPrivateUsage]
+    *args: Any,
     envvar: str | None = None,
     envvar_help: str = "",
-    envvar_type: Callable | None = None,
-    **kwargs,
+    envvar_type: Callable[..., Any] | None = None,
+    **kwargs: Any,
 ):
     if envvar is not None:
         envvar = f"{ENV_PREFIX}_{envvar.upper()}"
@@ -225,7 +225,7 @@ def create_parser() -> argparse.ArgumentParser:
     return argparse.ArgumentParser(
         prog=PROGRAM_NAME,
         description="Interact with a Procrastinate app. See subcommands for details.",
-        **parser_options,
+        **parser_options,  # pyright: ignore[reportArgumentType]
     )
 
 
@@ -256,14 +256,14 @@ def add_arguments(
     return parser
 
 
-def configure_worker_parser(subparsers: argparse._SubParsersAction):
+def configure_worker_parser(subparsers: argparse._SubParsersAction[Any]):  # pyright: ignore[reportPrivateUsage]
     # --- Worker ---
     worker_parser = subparsers.add_parser(
         "worker",
         help="Launch a worker, listening on the given queues (or all queues). "
         "Values default to App.worker_defaults and then App.run_worker() defaults values.",
         argument_default=argparse.SUPPRESS,
-        **parser_options,
+        **parser_options,  # pyright: ignore[reportArgumentType]
     )
     worker_parser.set_defaults(func=worker_)
     add_argument(
@@ -346,14 +346,14 @@ def configure_worker_parser(subparsers: argparse._SubParsersAction):
     )
 
 
-def configure_defer_parser(subparsers: argparse._SubParsersAction):
+def configure_defer_parser(subparsers: argparse._SubParsersAction[Any]):  # pyright: ignore[reportPrivateUsage]
     # --- Defer ---
     defer_parser = subparsers.add_parser(
         "defer",
         help="Create a job from the given task, to be executed by a worker. "
         "TASK should be the name or dotted path to a task. "
         "JSON_ARGS should be a json object (a.k.a dictionary) with the job parameters",
-        **parser_options,
+        **parser_options,  # pyright: ignore[reportArgumentType]
     )
     defer_parser.set_defaults(func=defer)
     add_argument(
@@ -447,13 +447,13 @@ def configure_defer_parser(subparsers: argparse._SubParsersAction):
     )
 
 
-def configure_schema_parser(subparsers: argparse._SubParsersAction):
+def configure_schema_parser(subparsers: argparse._SubParsersAction[Any]):  # pyright: ignore[reportPrivateUsage]
     # --- Schema ---
     schema_parser = subparsers.add_parser(
         "schema",
         help="Apply SQL schema to the empty database. This won't work if the schema has already "
         "been applied.",
-        **parser_options,
+        **parser_options,  # pyright: ignore[reportArgumentType]
     )
     schema_parser.set_defaults(func=schema)
     add_argument(
@@ -483,24 +483,24 @@ def configure_schema_parser(subparsers: argparse._SubParsersAction):
 
 
 def configure_healthchecks_parser(
-    subparsers: argparse._SubParsersAction,
+    subparsers: argparse._SubParsersAction[Any],  # pyright: ignore[reportPrivateUsage],
     custom_healthchecks: Callable[[procrastinate.App], Awaitable[None]] | None = None,
 ):
     # --- Healthchecks ---
     healthchecks_parser = subparsers.add_parser(
         "healthchecks",
         help="Check the state of procrastinate",
-        **parser_options,
+        **parser_options,  # pyright: ignore[reportArgumentType],
     )
     healthchecks_parser.set_defaults(func=custom_healthchecks or healthchecks)
 
 
-def configure_shell_parser(subparsers: argparse._SubParsersAction):
+def configure_shell_parser(subparsers: argparse._SubParsersAction[Any]):  # pyright: ignore[reportPrivateUsage]
     # --- Shell ---
     shell_parser = subparsers.add_parser(
         "shell",
         help="Administration shell for procrastinate",
-        **parser_options,
+        **parser_options,  # pyright: ignore[reportArgumentType]
     )
     add_argument(
         shell_parser,
@@ -511,7 +511,7 @@ def configure_shell_parser(subparsers: argparse._SubParsersAction):
     shell_parser.set_defaults(func=shell_)
 
 
-async def cli(args):
+async def cli(args: list[str]):
     parser = create_parser()
     add_arguments(parser)
     add_cli_features(parser)
@@ -525,7 +525,7 @@ async def cli(args):
     await execute_command(parsed)
 
 
-async def execute_command(parsed):
+async def execute_command(parsed: dict[str, Any]):
     parsed.pop("command")
     try:
         async with parsed.pop("app").open_async() as app:
@@ -545,7 +545,7 @@ async def execute_command(parsed):
 
 async def worker_(
     app: procrastinate.App,
-    **kwargs,
+    **kwargs: Any,
 ):
     """
     Launch a worker, listening on the given queues (or all queues).
@@ -564,7 +564,7 @@ async def defer(
     json_args: str | None,
     ignore_already_enqueued: bool,
     unknown: bool,
-    **configure_kwargs,
+    **configure_kwargs: Any,
 ):
     """
     Create a job from the given task, to be executed by a worker.
@@ -599,7 +599,7 @@ async def defer(
         print_stderr(f"{exc} (ignored)")
 
 
-def load_json_args(json_args: str, json_loads: Callable) -> types.JSONDict:
+def load_json_args(json_args: str | None, json_loads: Callable) -> types.JSONDict:
     if json_args is None:
         return {}
     else:
@@ -675,6 +675,11 @@ async def shell_(app: procrastinate.App, shell_command: list[str]):
 
 
 def main():
+    kwargs = {}
     if os.name == "nt":
-        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-    asyncio.run(cli(sys.argv[1:]))
+        if sys.version_info < (3, 14):
+            asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+        else:
+            kwargs["loop_factory"] = asyncio.SelectorEventLoop
+
+    asyncio.run(cli(sys.argv[1:]), **kwargs)

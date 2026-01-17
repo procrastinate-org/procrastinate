@@ -16,7 +16,7 @@ the following assumptions:
 -   You're using `MacOS` or `Linux`, and `bash` or `zsh`.
 -   You already have `python3` available
 -   Either:
-    -   you already have `uv`, `pre-commit` and `nox` installed
+    -   you already have `uv`, `pre-commit` installed
     -   or you have `uv` installed and you're ok installing the 2 other tools with `uv`
     -   or you don't have `uv` installed but it's ok if we install it for you
 -   Either:
@@ -82,17 +82,16 @@ $ /usr/local/opt/libpq/bin/createdb
 
 The development environment is managed by [uv]. It's a tool that manages
 dependencies and virtual environments. We also use [pre-commit] to keep the code
-clean and [nox] to run some tests.
+clean.
 
-If you don't already have `uv`, `pre-commit` or `nox` installed, you can
+If you don't already have `uv` or `pre-commit` installed, you can
 install them with:
 
 ```console
 $ scripts/bootstrap
 ```
 
-This will install [uv] if necessary and use it to install `nox` and
-`pre-commit`.
+This will install [uv] if necessary and use it to install `pre-commit`.
 
 Then, install Procrastinate with development dependencies in a virtual environment:
 
@@ -292,6 +291,28 @@ There are cases where new acceptance tests cannot work on the last released vers
 In that case, the tests can be skipped by adding `@pytest.mark.skip_before_version("x.y.z")`,
 where `x.y.z` is the version of Procrastinate where the test would start running.
 
+Sometimes, the `stable_version_without_post_migration` test will need to be pinned to
+a specific version of Python. You can do it by setting `PIN_PYTHON` in noxfile.py.
+
+Install nox and dependencies with
+
+```console
+$ # Minimally:
+$ uv sync --group migration_test
+$ # Maximally:
+$ uv sync --all-extras --all-groups
+```
+
+Run nox tests with:
+
+```console
+$ (venv) nox
+$ # Run a single set of tests
+$ (venv) nox -s stable_version_without_post_migration
+$ # Pass options to the underlying pytest:
+$ (venv) nox -s stable_version_without_post_migration -- --sw
+```
+
 ## Try our demos
 
 See the demos page for instructions on how to run the demos ({doc}`demos`).
@@ -463,4 +484,3 @@ also rebuild the stable and latest doc on [readthedocs](https://readthedocs.org/
 [pre-commit]: https://pre-commit.com/
 [Procrastinate releases]: https://github.com/procrastinate-org/procrastinate/releases
 [Pytest]: https://docs.pytest.org/en/latest/
-[nox]: https://nox.thea.codes/en/stable/

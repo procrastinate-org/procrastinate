@@ -4,10 +4,9 @@ import datetime
 import functools
 import logging
 from enum import Enum
-from typing import TYPE_CHECKING, Any, TypedDict, Union
+from typing import TYPE_CHECKING, Any, Literal, TypeAlias, TypedDict
 
 import attr
-from typing_extensions import Literal
 
 from procrastinate import types
 
@@ -33,7 +32,7 @@ class AbortJobRequested(TypedDict):
     job_id: int
 
 
-Notification = Union[JobInserted, AbortJobRequested]
+Notification: TypeAlias = JobInserted | AbortJobRequested
 
 
 def check_aware(

@@ -144,7 +144,7 @@ class ProcrastinateFilter(logging.Filter):
             if not key.startswith("_") and key not in self._reserved_log_keys | {
                 "procrastinate"
             }:
-                record.procrastinate[key] = value  # type: ignore
+                record.procrastinate[key] = value  # pyright: ignore[reportAttributeAccessIssue]
         return True
 
 

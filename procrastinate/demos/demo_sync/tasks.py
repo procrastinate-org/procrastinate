@@ -4,7 +4,7 @@ from .app import app
 
 
 @app.task(queue="sums")
-def sum(a, b):
+def sum(a: int, b: int) -> None:
     print(f"{a} + {b} = {a + b}")
 
 

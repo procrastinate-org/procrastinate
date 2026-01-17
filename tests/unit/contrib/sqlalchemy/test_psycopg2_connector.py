@@ -3,6 +3,7 @@ from __future__ import annotations
 import psycopg2
 import pytest
 import sqlalchemy
+import sqlalchemy.exc
 
 from procrastinate import exceptions
 from procrastinate.contrib.sqlalchemy import (

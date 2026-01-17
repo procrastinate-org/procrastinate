@@ -36,10 +36,10 @@ class ProcrastinateShell(cmd.Cmd):
         super().__init__()
         self.job_manager = job_manager
 
-    def async_to_sync(self, coro: Any, **kwargs) -> Any:
+    def async_to_sync(self, coro: Any, **kwargs: Any) -> Any:
         return utils.async_to_sync(coro, **kwargs)
 
-    def onecmd(self, line):
+    def onecmd(self, line: str):
         try:
             return super().onecmd(line)
         except Exception:

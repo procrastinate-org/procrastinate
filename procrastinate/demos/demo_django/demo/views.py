@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from django.views import generic
 
 from . import models, tasks
@@ -10,9 +12,9 @@ class CreateBookView(generic.CreateView):
     fields = ["title", "author"]
     success_url = "/"
 
-    def form_valid(self, form):
+    def form_valid(self, form: Any):
         response = super().form_valid(form)
-        tasks.index_book.defer(book_id=self.object.id)  # type: ignore
+        tasks.index_book.defer(book_id=self.object.id)  # pyright: ignore[reportOptionalMemberAccess]
         return response
 
 

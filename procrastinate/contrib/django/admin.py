@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from typing import Any
 
 from django.apps import apps
 from django.contrib import admin
@@ -65,26 +66,26 @@ class ProcrastinateJobAdmin(admin.ModelAdmin):
     inlines = [ProcrastinateEventInline]
 
     def get_readonly_fields(
-        self,
-        request,
-        obj=None,
+        self, request: Any, obj: models.ProcrastinateJob | None = None
     ):
-        return [
-            field.name
-            for field in type(obj)._meta.get_fields()  # type: ignore
-            if field.concrete
-        ]
+        return [field.name for field in self.model._meta.get_fields() if field.concrete]
 
-    def has_change_permission(self, request, obj=None):
+    def has_change_permission(
+        self, request: Any, obj: models.ProcrastinateJob | None = None
+    ):
         return False
 
-    def has_add_permission(self, request, obj=None):
+    def has_add_permission(
+        self, request: Any, obj: models.ProcrastinateJob | None = None
+    ):
         return False
 
-    def has_delete_permission(self, request, obj=None):
+    def has_delete_permission(
+        self, request: Any, obj: models.ProcrastinateJob | None = None
+    ):
         return False
 
-    def get_queryset(self, request):
+    def get_queryset(self, request: Any):
         return (
             super()
             .get_queryset(request)
@@ -122,7 +123,7 @@ class ProcrastinateJobAdmin(admin.ModelAdmin):
 
     @admin.display(description="Summary")
     def summary(self, instance: models.ProcrastinateJob) -> str:
-        if last_event := instance.procrastinateevent_set.first():  # type: ignore[attr-defined]
+        if last_event := instance.procrastinateevent_set.first():  # pyright: ignore[reportAttributeAccessIssue]
             return mark_safe(
                 render_to_string(
                     "procrastinate/admin/summary.html",

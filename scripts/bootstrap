@@ -4,20 +4,17 @@ set -eu
 # This script will take care of installing uv (though if you're in a real
 # computer and not a container or anything, you may rather want to install it
 # differently, e.g. via brew).
-# pre-commit and nox are all tools that manage their own virtual environements,
-# and are useful as tools to have around, and unlikely to cause version clashes
-# between projects, so we're installing them too, via uv, if they're not around.
+# pre-commit is a tool that manages its own virtual environements,
+# and is useful as tool to have around, and unlikely to cause version clashes
+# between projects, so we're installing it too, via uv, if it's not around.
 
 
-if ! which uv || ! which pre-commit || ! which nox; then
+if ! which uv || ! which pre-commit; then
     if ! which uv; then
         python3 -m pip install --user uv
     fi
     if ! which pre-commit; then
         uv tool install pre-commit
-    fi
-    if ! which nox; then
-        uv tool install nox
     fi
 fi
 
