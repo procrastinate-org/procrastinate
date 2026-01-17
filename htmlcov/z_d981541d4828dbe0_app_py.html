@@ -3,9 +3,9 @@
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <title>Coverage for procrastinate/app.py: 100%</title>
-    <link rel="icon" sizes="32x32" href="favicon_32_cb_58284776.png">
-    <link rel="stylesheet" href="style_cb_8432e98f.css" type="text/css">
-    <script src="coverage_html_cb_bcae5fc4.js" defer></script>
+    <link rel="icon" sizes="32x32" href="favicon_32_cb_c827f16f.png">
+    <link rel="stylesheet" href="style_cb_9ff733b0.css" type="text/css">
+    <script src="coverage_html_cb_dd2e7eb5.js" defer></script>
 </head>
 <body class="pyfile">
 <header>
@@ -17,7 +17,7 @@
         <aside id="help_panel_wrapper">
             <input id="help_panel_state" type="checkbox">
             <label for="help_panel_state">
-                <img id="keyboard_icon" src="keybd_closed_cb_ce680311.png" alt="Show/hide keyboard shortcuts">
+                <img id="keyboard_icon" src="keybd_closed_cb_900cfef5.png" alt="Show/hide keyboard shortcuts">
             </label>
             <div id="help_panel">
                 <p class="legend">Shortcuts on this page</p>
@@ -66,8 +66,8 @@
             <a id="indexLink" class="nav" href="index.html">&Hat; index</a> &nbsp; &nbsp;
             <a id="nextFileLink" class="nav" href="z_d981541d4828dbe0_blueprints_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
-            <a class="nav" href="https://coverage.readthedocs.io/en/7.12.0">coverage.py v7.12.0</a>,
-            created at 2025-12-08 17:01 +0000
+            <a class="nav" href="https://coverage.readthedocs.io/en/7.13.1">coverage.py v7.13.1</a>,
+            created at 2026-01-17 23:09 +0000
         </p>
         <aside class="hidden">
             <button type="button" class="button_next_chunk" data-shortcut="j"></button>
@@ -413,7 +413,7 @@
     <p class="run"><span class="n"><a id="t329" href="#t329">329</a></span><span class="t">        <span class="nam">worker</span> <span class="op">=</span> <span class="nam">self</span><span class="op">.</span><span class="nam">_worker</span><span class="op">(</span><span class="op">**</span><span class="nam">kwargs</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t330" href="#t330">330</a></span><span class="t">        <span class="key">await</span> <span class="nam">worker</span><span class="op">.</span><span class="nam">run</span><span class="op">(</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t331" href="#t331">331</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t332" href="#t332">332</a></span><span class="t">    <span class="key">def</span> <span class="nam">run_worker</span><span class="op">(</span><span class="nam">self</span><span class="op">,</span> <span class="op">**</span><span class="nam">kwargs</span><span class="op">)</span> <span class="op">-></span> <span class="key">None</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t332" href="#t332">332</a></span><span class="t">    <span class="key">def</span> <span class="nam">run_worker</span><span class="op">(</span><span class="nam">self</span><span class="op">,</span> <span class="op">**</span><span class="nam">kwargs</span><span class="op">:</span> <span class="nam">Any</span><span class="op">)</span> <span class="op">-></span> <span class="key">None</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t333" href="#t333">333</a></span><span class="t">        <span class="str">"""</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t334" href="#t334">334</a></span><span class="t"><span class="str">        Synchronous version of `App.run_worker_async`.</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t335" href="#t335">335</a></span><span class="t"><span class="str">        Create the event loop and open the app, then run the worker.</span>&nbsp;</span><span class="r"></span></p>
@@ -481,7 +481,7 @@
     <p class="run"><span class="n"><a id="t397" href="#t397">397</a></span><span class="t">    <span class="key">def</span> <span class="nam">__enter__</span><span class="op">(</span><span class="nam">self</span><span class="op">)</span> <span class="op">-></span> <span class="nam">App</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t398" href="#t398">398</a></span><span class="t">        <span class="key">return</span> <span class="nam">self</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t399" href="#t399">399</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t400" href="#t400">400</a></span><span class="t">    <span class="key">def</span> <span class="nam">__exit__</span><span class="op">(</span><span class="nam">self</span><span class="op">,</span> <span class="nam">exc_type</span><span class="op">,</span> <span class="nam">exc_val</span><span class="op">,</span> <span class="nam">exc_tb</span><span class="op">)</span> <span class="op">-></span> <span class="key">None</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t400" href="#t400">400</a></span><span class="t">    <span class="key">def</span> <span class="nam">__exit__</span><span class="op">(</span><span class="nam">self</span><span class="op">,</span> <span class="nam">exc_type</span><span class="op">:</span> <span class="nam">Any</span><span class="op">,</span> <span class="nam">exc_val</span><span class="op">:</span> <span class="nam">Any</span><span class="op">,</span> <span class="nam">exc_tb</span><span class="op">:</span> <span class="nam">Any</span><span class="op">)</span> <span class="op">-></span> <span class="key">None</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t401" href="#t401">401</a></span><span class="t">        <span class="nam">self</span><span class="op">.</span><span class="nam">close</span><span class="op">(</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
 </main>
 <footer>
@@ -491,8 +491,8 @@
             <a class="nav" href="index.html">&Hat; index</a> &nbsp; &nbsp;
             <a class="nav" href="z_d981541d4828dbe0_blueprints_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
-            <a class="nav" href="https://coverage.readthedocs.io/en/7.12.0">coverage.py v7.12.0</a>,
-            created at 2025-12-08 17:01 +0000
+            <a class="nav" href="https://coverage.readthedocs.io/en/7.13.1">coverage.py v7.13.1</a>,
+            created at 2026-01-17 23:09 +0000
         </p>
     </div>
 </footer>
