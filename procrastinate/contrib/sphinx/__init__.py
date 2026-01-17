@@ -29,6 +29,8 @@ def setup(app: Sphinx):
 
     app.add_autodocumenter(ProcrastinateTaskDocumenter)
 
+    app.config.autodoc_use_legacy_class_based = True
+
     return {
         "version": "1",
         "parallel_read_safe": True,
