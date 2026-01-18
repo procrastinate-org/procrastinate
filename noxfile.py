@@ -78,8 +78,7 @@ def get_zip_repo(client: httpx.Client, ref: str) -> zipfile.ZipFile:
     return zipfile.ZipFile(io.BytesIO(response.content))
 
 
-# TODO: set to None after procrastinate 3.7.0 is released
-PIN_PYTHON: str | None = "3.13"
+PIN_PYTHON: str | None = None
 
 
 @nox_uv.session(python=PIN_PYTHON)
