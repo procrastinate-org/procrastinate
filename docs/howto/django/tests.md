@@ -126,7 +126,7 @@ class TestingTaskClass(TransactionTestCase):
         my_task.defer(a=1, b=2)
 
         # Start worker
-        with app.replace_connector(app.connector.get_worker_connector())
+        with app.replace_connector(app.connector.get_worker_connector()):
             app.run_worker(wait=False, install_signal_handlers=False, listen_notify=False)
 
         # Check task has been executed
@@ -144,7 +144,7 @@ def test_task():
     my_task.defer(a=1, b=2)
 
     # Start worker
-    with app.replace_connector(app.connector.get_worker_connector())
+    with app.replace_connector(app.connector.get_worker_connector()):
         app.run_worker(wait=False, install_signal_handlers=False, listen_notify=False)
 
     # Check task has been executed
@@ -153,7 +153,7 @@ def test_task():
 # Or with a fixture
 @pytest.fixture
 def worker(transactional_db):
-    with app.replace_connector(app.connector.get_worker_connector())
+    with app.replace_connector(app.connector.get_worker_connector()):
         def f():
             app.run_worker(wait=False, install_signal_handlers=False, listen_notify=False)
             return app
