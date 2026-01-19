@@ -8,5 +8,5 @@ class Book(models.Model):
     author = models.CharField(max_length=100)
     indexed = models.BooleanField(default=False)
 
-    class Meta:  # pyright: ignore [reportIncompatibleVariableOverride]
+    class Meta:
         app_label = "demo"

@@ -14,10 +14,6 @@ logger = logging.getLogger(__name__)
 
 QUEUEING_LOCK_CONSTRAINT = "procrastinate_jobs_queueing_lock_idx_v1"
 
-# TODO: Only necessary to make it work with the pre-migration of v3.0.0.
-# We can remove this in the next minor version.
-QUEUEING_LOCK_CONSTRAINT_LEGACY = "procrastinate_jobs_queueing_lock_idx"
-
 
 class NotificationCallback(Protocol):
     def __call__(
@@ -123,10 +119,7 @@ class JobManager:
     def _raise_already_enqueued(
         self, exc: exceptions.UniqueViolation, queueing_lock: str | None
     ) -> NoReturn:
-        if exc.constraint_name in [
-            QUEUEING_LOCK_CONSTRAINT,
-            QUEUEING_LOCK_CONSTRAINT_LEGACY,
-        ]:
+        if exc.constraint_name == QUEUEING_LOCK_CONSTRAINT:
             raise exceptions.AlreadyEnqueued(
                 "Job cannot be enqueued: there is already a job in the queue "
                 f"with the queueing lock {queueing_lock}"
@@ -365,7 +358,7 @@ class JobManager:
         return True
 
     async def cancel_job_by_id_async(
-        self, job_id: int, abort: bool = False, delete_job=False
+        self, job_id: int, abort: bool = False, delete_job: bool = False
     ) -> bool:
         """
         Cancel a job by id.

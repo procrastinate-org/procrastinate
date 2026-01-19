@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import functools
-from typing import NoReturn, cast
+from typing import Any, NoReturn, cast
 
 from procrastinate import app as app_module
 from procrastinate import blueprints
@@ -9,7 +9,7 @@ from procrastinate import blueprints
 from . import exceptions
 
 
-def _not_ready(_method: str, *args, **kwargs) -> NoReturn:
+def _not_ready(_method: str, *args: Any, **kwargs: Any) -> NoReturn:
     base_text = (
         f"Cannot call procrastinate.contrib.app.{_method}() before "
         "the 'procrastinate.contrib.django' django app is ready."
@@ -57,17 +57,17 @@ class ProxyApp:
     def __repr__(self) -> str:
         return repr(current_app)
 
-    def __getattr__(self, name):
+    def __getattr__(self, name: str):
         return getattr(current_app, name)
 
 
 # Users may import the app before it's ready, so we're defining a proxy
 # that references either the pre-app or the real app.
-app: app_module.App = cast(app_module.App, ProxyApp())
+app: app_module.App = cast(app_module.App, ProxyApp())  # pyright: ignore[reportInvalidCast]
 
 # Before the Django app is ready, we're defining the app as a blueprint so
 # that tasks can be registered. The real app will be initialized in the
 # ProcrastinateConfig.ready() method.
 # This blueprint has special implementations for App methods so that if
 # users try to use the app before it's ready, they get a helpful error message.
-current_app: app_module.App = cast(app_module.App, FutureApp())
+current_app: app_module.App = cast(app_module.App, FutureApp())  # pyright: ignore[reportInvalidCast]

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import inspect
 
 import pytest
 
@@ -8,7 +9,7 @@ import pytest
 @pytest.fixture
 def aio_benchmark(benchmark):
     def _wrapper(func, *args, **kwargs):
-        if asyncio.iscoroutinefunction(func):
+        if inspect.iscoroutinefunction(func):
             event_loop = asyncio.get_event_loop()
 
             @benchmark

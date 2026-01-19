@@ -1,34 +1,47 @@
 from __future__ import annotations
 
 import contextlib
+import importlib.metadata
 import logging
-from collections.abc import AsyncGenerator, AsyncIterator, Iterable
+from collections.abc import (
+    AsyncGenerator,
+    AsyncIterator,
+    Callable,
+    Iterable,
+)
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
 )
 
+import packaging.version
 from typing_extensions import LiteralString
 
 from procrastinate import connector, exceptions, sql, sync_psycopg_connector, utils
 
 if TYPE_CHECKING:
     import psycopg
-    import psycopg.errors
     import psycopg.rows
     import psycopg.sql
     import psycopg.types.json
     import psycopg_pool
+
+    psycopg_pool_version: packaging.version.Version | None = None
 else:
     psycopg, *_ = utils.import_or_wrapper(
         "psycopg",
-        "psycopg.errors",
         "psycopg.rows",
         "psycopg.sql",
         "psycopg.types.json",
     )
     (psycopg_pool,) = utils.import_or_wrapper("psycopg_pool")
+
+    try:
+        psycopg_pool_version = packaging.version.parse(
+            importlib.metadata.version("psycopg_pool")
+        )
+    except (packaging.version.InvalidVersion, importlib.metadata.PackageNotFoundError):
+        psycopg_pool_version = None
 
 
 logger = logging.getLogger(__name__)
@@ -141,8 +154,8 @@ class PsycopgConnector(connector.BaseAsyncConnector):
             self._async_pool = pool
         else:
             self._async_pool = await self._create_pool(self._pool_args)
-
-            await self._async_pool.open(wait=True)  # type: ignore
+            assert self._async_pool
+            await self._async_pool.open(wait=True)
 
     @wrap_exceptions()
     async def _create_pool(
@@ -243,8 +256,19 @@ class PsycopgConnector(connector.BaseAsyncConnector):
     ) -> AsyncIterator[psycopg.AsyncConnection]:
         configure = self._pool_args.get("configure")
 
+        if (
+            # In case version cannot be detected, assume recent psycopg_pool.
+            not psycopg_pool_version
+            or psycopg_pool_version >= packaging.version.Version("3.3.0")
+        ):
+            conninfo: str = await self.pool._resolve_conninfo()  # pyright: ignore[reportPrivateUsage]
+            kwargs: dict[str, Any] = await self.pool._resolve_kwargs()  # pyright: ignore[reportPrivateUsage]
+        else:
+            conninfo = self.pool.conninfo  # pyright: ignore[reportAssignmentType]
+            kwargs = self.pool.kwargs  # pyright: ignore[reportAssignmentType]
+
         async with await self.pool.connection_class.connect(
-            self.pool.conninfo, **self.pool.kwargs, autocommit=True
+            conninfo, **kwargs, autocommit=True
         ) as connection:
             if configure:
                 await configure(connection)

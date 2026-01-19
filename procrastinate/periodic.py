@@ -4,12 +4,12 @@ import asyncio
 import functools
 import logging
 import time
-from collections.abc import Iterable
-from typing import Callable, Generic, cast
+from collections.abc import Callable, Iterable
+from typing import Concatenate, Generic, cast
 
 import attr
 import croniter
-from typing_extensions import Concatenate, ParamSpec, TypeVar, Unpack
+from typing_extensions import ParamSpec, TypeVar, Unpack
 
 from procrastinate import exceptions, tasks
 

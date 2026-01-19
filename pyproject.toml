@@ -21,7 +21,7 @@ dynamic = ["version"]
 description = "Postgres-based distributed task processing library"
 license-files = ["LICENSE.md"]
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
 ]
@@ -32,12 +32,11 @@ authors = [
 ]
 readme = "README.md"
 keywords = ["postgres", "task-queue"]
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dependencies = [
     "psycopg[pool]",
     "asgiref",
     "attrs",
-    "contextlib2; python_version < '3.10'",
     "croniter",
     "python-dateutil",
     "typing-extensions",
@@ -69,14 +68,7 @@ default-groups = ["release", "lint_format", "pg_implem", "test", "docs"]
 types = ["django-stubs"]
 release = ["dunamai"]
 lint_format = ["ruff", "django-upgrade"]
-pg_implem = [
-    "aiopg",
-    "sqlalchemy",
-    "psycopg2-binary",
-    "psycopg[binary,pool]; sys_platform != 'darwin' or platform_machine != 'arm64'",
-    "psycopg[binary,pool]; sys_platform == 'darwin' and platform_machine == 'arm64' and python_version >= '3.10'",
-    "psycopg[pool]; sys_platform == 'darwin' and platform_machine == 'arm64' and python_version < '3.10'",
-]
+pg_implem = ["aiopg", "sqlalchemy", "psycopg2-binary", "psycopg[binary,pool]"]
 test = [
     "pytest-asyncio",
     "pytest-benchmark",
@@ -88,6 +80,7 @@ test = [
     # (pkg_resources).
     "setuptools",
 ]
+migration_test = ["nox", "httpx", "nox-uv"]
 docs = [
     "django>=2.2",
     "furo",
@@ -98,7 +91,7 @@ docs = [
     "sphinxcontrib-mermaid",
     "myst-parser",
 ]
-dev = ["ruff", "pyright", "doc8"]
+dev = ["ruff", "basedpyright", "doc8"]
 
 [tool.pytest.ini_options]
 addopts = ["-vv", "--strict-markers", "-rfE", "--reuse-db", "-m not benchmark"]
@@ -140,11 +133,9 @@ exclude_lines = [
     "[ ]+\\.\\.\\.$",
 ]
 
-[tool.pyright]
-exclude = ["tests", ".venv", "scripts"]
 
 [tool.ruff]
-target-version = "py39"
+target-version = "py310"
 extend-exclude = [".venv"]
 
 [tool.ruff.lint]
@@ -170,8 +161,8 @@ required-imports = ["from __future__ import annotations"]
 max-line-length = 88
 ignore-path = "docs/_build,.venv"
 
-[tool.sync-pre-commit-with-uv.pyright-python]
-pypi_package_name = "pyright"
+[tool.sync-pre-commit-with-uv.basedpyright-prek-mirror]
+pypi_package_name = "basedpyright"
 additional_dependencies_uv_params = [
     "--group=types",
     "--no-group=release",
@@ -181,3 +172,23 @@ additional_dependencies_uv_params = [
     "--no-group=docs",
     "--all-extras",
 ]
+
+[tool.basedpyright]
+exclude = [".venv", ".nox", "tests", "dist", "noxfile.py"]
+# Please try and keep the following in alphabetical order.
+reportAny = false
+reportExplicitAny = false
+reportImplicitOverride = false
+reportImplicitStringConcatenation = false
+# reportImportCycles would be useful, but seems to produce false positives
+reportImportCycles = false
+reportMissingTypeArgument = false
+reportUnannotatedClassAttribute = false
+reportUnknownArgumentType = false
+reportUnknownLambdaType = false
+reportUnknownMemberType = false
+reportUnknownParameterType = false
+reportUnknownVariableType = false
+reportUnreachable = false
+reportUnusedCallResult = false
+reportUnusedParameter = false
