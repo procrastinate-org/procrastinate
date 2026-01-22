@@ -40,6 +40,7 @@ dependencies = [
     "croniter",
     "python-dateutil",
     "typing-extensions",
+    "packaging",
 ]
 
 [project.optional-dependencies]
