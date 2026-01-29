@@ -31,8 +31,21 @@ def get_log_level(verbosity: int) -> int:
 Style = Literal["%", "{", "$"]
 
 
-def configure_logging(verbosity: int, format: str, style: Style) -> None:
-    level = get_log_level(verbosity=verbosity)
+def configure_logging(
+    verbosity: int | None = None,
+    log_level: str | None = None,
+    format: str = logging.BASIC_FORMAT,
+    style: Style = "%",
+) -> None:
+    # Determine which level to use
+    # log_level takes precedence over verbosity
+    if log_level is not None:
+        level = getattr(logging, log_level.upper())
+    elif verbosity is not None:
+        level = get_log_level(verbosity=verbosity)
+    else:
+        level = logging.INFO  # Default if neither provided
+
     logging.basicConfig(level=level, format=format, style=style)
     level_name = logging.getLevelName(level)
     logger.debug(
@@ -176,18 +189,34 @@ def add_cli_features(parser: argparse.ArgumentParser):
     Add features to the parser to make it more CLI-friendly.
     This is not necessary when the parser is used as a subparser.
     """
+    log_group = parser.add_argument_group("Logging")
+
+    # Create mutually exclusive group for verbosity control
+    verbosity_group = log_group.add_mutually_exclusive_group()
+
+    # Use add_argument helper for consistent env var handling
     add_argument(
-        parser,
+        verbosity_group,
         "-v",
         "--verbose",
         default=0,
         action="count",
-        help="Use multiple times to increase verbosity",
+        help="Increase verbosity (0=info, 1+=debug)",
         envvar="VERBOSE",
-        envvar_help="set to desired verbosity level",
+        envvar_help="set to desired verbosity level (0=info, 1+=debug)",
         envvar_type=int,
     )
-    log_group = parser.add_argument_group("Logging")
+
+    # Use add_argument helper for --log-level too
+    add_argument(
+        verbosity_group,
+        "--log-level",
+        choices=["debug", "info", "warning", "error", "critical"],
+        help="Set log level explicitly",
+        envvar="LOG_LEVEL",
+        envvar_help="set to desired log level",
+    )
+
     add_argument(
         log_group,
         "--log-format",
@@ -517,8 +546,11 @@ async def cli(args: list[str]):
     add_cli_features(parser)
     parsed = vars(parser.parse_args(args))
 
+    # Simple: argparse already handled env vars via add_argument()
+    # Just pass the values directly
     configure_logging(
-        verbosity=parsed.pop("verbose"),
+        verbosity=parsed.pop("verbose", None),
+        log_level=parsed.pop("log_level", None),
         format=parsed.pop("log_format"),
         style=parsed.pop("log_format_style"),
     )
