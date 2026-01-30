@@ -5,6 +5,7 @@ import datetime
 import io
 import json
 import logging
+import warnings
 
 import pytest
 
@@ -42,7 +43,9 @@ def test_configure_logging(mocker, caplog):
 
     caplog.set_level("DEBUG")
 
-    cli.configure_logging(verbosity=1, format="{message}, yay!", style="{")
+    # Expect deprecation warning when using verbosity
+    with pytest.warns(PendingDeprecationWarning):
+        cli.configure_logging(verbosity=1, format="{message}, yay!", style="{")
 
     config.assert_called_once_with(
         level=logging.DEBUG, format="{message}, yay!", style="{"
@@ -50,6 +53,25 @@ def test_configure_logging(mocker, caplog):
     records = [record for record in caplog.records if record.action == "set_log_level"]
     assert len(records) == 1
     assert records[0].value == "DEBUG"
+
+
+def test_configure_logging_deprecation_warning(mocker):
+    """Test that using -v/--verbose triggers a deprecation warning."""
+    mocker.patch("logging.basicConfig")
+
+    # verbosity > 0 should trigger warning
+    with pytest.warns(PendingDeprecationWarning, match="verbose.*deprecated"):
+        cli.configure_logging(verbosity=1)
+
+    # verbosity=0 should NOT trigger warning (default level)
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")  # Turn warnings into errors
+        cli.configure_logging(verbosity=0)  # Should not raise
+
+    # log_level should NOT trigger warning (new way)
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        cli.configure_logging(log_level="debug")  # Should not raise
 
 
 @pytest.mark.parametrize(
@@ -85,8 +107,10 @@ async def test_verbose_env_vars(monkeypatch, mocker, verbose_env, cli_flags, exp
     def mock_configure_logging(**kwargs):
         nonlocal captured_verbosity
         captured_verbosity = kwargs.get("verbosity")
-        # Call original to ensure it works
-        original_configure_logging(**kwargs)
+        # Call original to ensure it works, suppressing deprecation warnings
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", PendingDeprecationWarning)
+            original_configure_logging(**kwargs)
 
     mocker.patch("procrastinate.cli.execute_command", side_effect=mock_execute_command)
     mocker.patch(

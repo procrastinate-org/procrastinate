@@ -8,6 +8,7 @@ import logging
 import os
 import shlex
 import sys
+import warnings
 from collections.abc import Awaitable, Callable
 from typing import Any, Literal
 
@@ -60,6 +61,16 @@ def configure_logging(
 
     This function only performs operations - all logic is in get_log_level().
     """
+    # Issue deprecation warning when -v/--verbose is actively used
+    if verbosity is not None and verbosity > 0:
+        warnings.warn(
+            "The -v/--verbose flag and PROCRASTINATE_VERBOSE environment variable "
+            "are deprecated and will be removed in a future version. "
+            "Use --log-level or PROCRASTINATE_LOG_LEVEL instead.",
+            PendingDeprecationWarning,
+            stacklevel=2,
+        )
+
     level = get_log_level(verbosity=verbosity, log_level=log_level)
     logging.basicConfig(level=level, format=format, style=style)
     level_name = logging.getLevelName(level)
