@@ -13,10 +13,28 @@ from procrastinate.connector import BaseConnector
 
 
 @pytest.mark.parametrize(
-    "verbosity, log_level", [(0, "INFO"), (1, "DEBUG"), (2, "DEBUG")]
+    "verbosity, log_level, expected",
+    [
+        # Test verbosity alone
+        (0, None, logging.INFO),
+        (1, None, logging.DEBUG),
+        (2, None, logging.DEBUG),
+        # Test log_level alone
+        (None, "debug", logging.DEBUG),
+        (None, "info", logging.INFO),
+        (None, "warning", logging.WARNING),
+        (None, "error", logging.ERROR),
+        (None, "critical", logging.CRITICAL),
+        # Test precedence: log_level wins
+        (1, "warning", logging.WARNING),
+        (0, "debug", logging.DEBUG),
+        # Test default
+        (None, None, logging.INFO),
+    ],
 )
-def test_get_log_level(verbosity, log_level):
-    assert cli.get_log_level(verbosity=verbosity) == getattr(logging, log_level)
+def test_get_log_level(verbosity, log_level, expected):
+    """Test get_log_level with various combinations."""
+    assert cli.get_log_level(verbosity=verbosity, log_level=log_level) == expected
 
 
 def test_configure_logging(mocker, caplog):
@@ -32,65 +50,6 @@ def test_configure_logging(mocker, caplog):
     records = [record for record in caplog.records if record.action == "set_log_level"]
     assert len(records) == 1
     assert records[0].value == "DEBUG"
-
-
-@pytest.mark.parametrize(
-    "log_level_name, expected_level",
-    [
-        ("debug", logging.DEBUG),
-        ("info", logging.INFO),
-        ("warning", logging.WARNING),
-        ("error", logging.ERROR),
-        ("critical", logging.CRITICAL),
-    ],
-)
-def test_configure_logging_with_log_level(
-    mocker, caplog, log_level_name, expected_level
-):
-    config = mocker.patch("logging.basicConfig")
-
-    caplog.set_level("DEBUG")
-
-    cli.configure_logging(log_level=log_level_name)
-
-    config.assert_called_once_with(
-        level=expected_level, format=logging.BASIC_FORMAT, style="%"
-    )
-    records = [record for record in caplog.records if record.action == "set_log_level"]
-    assert len(records) == 1
-    assert records[0].value == logging.getLevelName(expected_level)
-
-
-def test_configure_logging_default_level(mocker, caplog):
-    """Test that when no verbosity or log_level is set, default is INFO."""
-    config = mocker.patch("logging.basicConfig")
-
-    caplog.set_level("DEBUG")
-
-    cli.configure_logging()
-
-    config.assert_called_once_with(
-        level=logging.INFO, format=logging.BASIC_FORMAT, style="%"
-    )
-    records = [record for record in caplog.records if record.action == "set_log_level"]
-    assert len(records) == 1
-    assert records[0].value == "INFO"
-
-
-def test_configure_logging_log_level_takes_precedence(mocker, caplog):
-    """Test that log_level takes precedence over verbosity."""
-    config = mocker.patch("logging.basicConfig")
-
-    caplog.set_level("DEBUG")
-
-    cli.configure_logging(verbosity=1, log_level="warning")
-
-    config.assert_called_once_with(
-        level=logging.WARNING, format=logging.BASIC_FORMAT, style="%"
-    )
-    records = [record for record in caplog.records if record.action == "set_log_level"]
-    assert len(records) == 1
-    assert records[0].value == "WARNING"
 
 
 @pytest.mark.parametrize(
