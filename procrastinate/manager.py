@@ -319,7 +319,7 @@ class JobManager:
             job_id=job_id,
             status=status.value,
             delete_job=delete_job,
-            exc_info=str(exc_info) if exc_info else "",
+            exc_info=str(exc_info) if exc_info else None,
         )
 
     def cancel_job_by_id(

@@ -246,7 +246,7 @@ BEGIN
 END;
 $$;
 
-CREATE FUNCTION procrastinate_finish_job_v1(job_id bigint, end_status procrastinate_job_status, delete_job boolean, result text default null)
+CREATE FUNCTION procrastinate_finish_job_v1(job_id bigint, end_status procrastinate_job_status, delete_job boolean, job_result text default null)
     RETURNS void
     LANGUAGE plpgsql
 AS $$
@@ -264,7 +264,7 @@ BEGIN
         UPDATE procrastinate_jobs
         SET status = end_status,
             abort_requested = false,
-            result = result,
+            result = job_result,
             attempts = CASE status
                 WHEN 'doing' THEN attempts + 1 ELSE attempts
             END
