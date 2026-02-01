@@ -57,10 +57,7 @@ def configure_logging(
     format: str = logging.BASIC_FORMAT,
     style: Style = "%",
 ) -> None:
-    """Configure the Python logging system.
-
-    This function only performs operations - all logic is in get_log_level().
-    """
+    """Configure the Python logging system."""
     # Issue deprecation warning when -v/--verbose is actively used
     if verbosity is not None and verbosity > 0:
         warnings.warn(
