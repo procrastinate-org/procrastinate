@@ -67,7 +67,7 @@
             <a id="nextFileLink" class="nav" href="index.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.13.1">coverage.py v7.13.1</a>,
-            created at 2026-02-03 19:33 +0000
+            created at 2026-02-07 02:08 +0000
         </p>
         <aside class="hidden">
             <button type="button" class="button_next_chunk" data-shortcut="j"></button>
@@ -438,9 +438,9 @@
     <p class="run run2"><span class="n"><a id="t354" href="#t354">354</a></span><span class="t">                <span class="key">if</span> <span class="nam">self</span><span class="op">.</span><span class="nam">additional_context</span>&nbsp;</span><span class="r"></span></p>
     <p class="run run2"><span class="n"><a id="t355" href="#t355">355</a></span><span class="t">                <span class="key">else</span> <span class="op">{</span><span class="op">}</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
     <p class="run run2"><span class="n"><a id="t356" href="#t356">356</a></span><span class="t">                <span class="nam">job</span><span class="op">=</span><span class="nam">job</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run run2"><span class="n"><a id="t357" href="#t357">357</a></span><span class="t">                <span class="nam">abort_reason</span><span class="op">=</span><span class="key">lambda</span><span class="op">:</span> <span class="nam">self</span><span class="op">.</span><span class="nam">_job_ids_to_abort</span><span class="op">.</span><span class="nam">get</span><span class="op">(</span><span class="nam">job_id</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run run2"><span class="n"><a id="t358" href="#t358">358</a></span><span class="t">                <span class="key">if</span> <span class="nam">job_id</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run run2"><span class="n"><a id="t359" href="#t359">359</a></span><span class="t">                <span class="key">else</span> <span class="key">None</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t357" href="#t357">357</a></span><span class="t">                <span class="nam">abort_reason</span><span class="op">=</span><span class="key">lambda</span><span class="op">:</span> <span class="op">(</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t358" href="#t358">358</a></span><span class="t">                    <span class="nam">self</span><span class="op">.</span><span class="nam">_job_ids_to_abort</span><span class="op">.</span><span class="nam">get</span><span class="op">(</span><span class="nam">job_id</span><span class="op">)</span> <span class="key">if</span> <span class="nam">job_id</span> <span class="key">else</span> <span class="key">None</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t359" href="#t359">359</a></span><span class="t">                <span class="op">)</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
     <p class="run run2"><span class="n"><a id="t360" href="#t360">360</a></span><span class="t">                <span class="nam">start_timestamp</span><span class="op">=</span><span class="nam">time</span><span class="op">.</span><span class="nam">time</span><span class="op">(</span><span class="op">)</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
     <p class="run run2"><span class="n"><a id="t361" href="#t361">361</a></span><span class="t">            <span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t362" href="#t362">362</a></span><span class="t">            <span class="nam">job_task</span> <span class="op">=</span> <span class="nam">asyncio</span><span class="op">.</span><span class="nam">create_task</span><span class="op">(</span>&nbsp;</span><span class="r"></span></p>
@@ -724,7 +724,7 @@
             <a class="nav" href="index.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.13.1">coverage.py v7.13.1</a>,
-            created at 2026-02-03 19:33 +0000
+            created at 2026-02-07 02:08 +0000
         </p>
     </div>
 </footer>
