@@ -192,3 +192,16 @@ class SQLAlchemyPsycopg2Connector(connector.BaseConnector):
             # psycopg2's type say it returns a tuple, but it actually returns a
             # dict when configured with RealDictCursor
             return mapping.all()  # pyright: ignore[reportReturnType]
+
+    @wrap_exceptions()
+    def execute_query_all_with_connection(  # pyright: ignore[reportIncompatibleMethodOverride]
+        self,
+        connection: sqlalchemy.engine.Connection,
+        query: str,
+        **arguments: Any,
+    ) -> list[Mapping[str, Any]]:
+        cursor_result = connection.exec_driver_sql(
+            PERCENT_PATTERN.sub("%%", query), self._wrap_json(arguments)
+        )
+        mapping = cursor_result.mappings()
+        return mapping.all()  # pyright: ignore[reportReturnType]

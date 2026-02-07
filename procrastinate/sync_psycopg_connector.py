@@ -155,9 +155,16 @@ class SyncPsycopgConnector(connector.BaseConnector):
         return {key: self._wrap_value(value) for key, value in arguments.items()}
 
     @contextlib.contextmanager
-    def _get_cursor(self) -> Iterator[psycopg.Cursor[psycopg.rows.DictRow]]:
-        with self.pool.connection() as connection:
-            with connection.cursor(row_factory=psycopg.rows.dict_row) as cursor:
+    def _get_cursor(
+        self, connection: psycopg.Connection | None = None
+    ) -> Iterator[psycopg.Cursor[psycopg.rows.DictRow]]:
+        conn_ctx = (
+            contextlib.nullcontext(connection)
+            if connection is not None
+            else self.pool.connection()
+        )
+        with conn_ctx as conn:
+            with conn.cursor(row_factory=psycopg.rows.dict_row) as cursor:
                 if self._json_loads:
                     psycopg.types.json.set_json_loads(
                         loads=self._json_loads, context=cursor
@@ -192,6 +199,15 @@ class SyncPsycopgConnector(connector.BaseConnector):
         self, query: LiteralString, **arguments: Any
     ) -> list[dict[str, Any]]:
         with self._get_cursor() as cursor:
+            cursor.execute(query, self._wrap_json(arguments))
+
+            return cursor.fetchall()
+
+    @wrap_exceptions()
+    def execute_query_all_with_connection(
+        self, connection: psycopg.Connection, query: LiteralString, **arguments: Any
+    ) -> list[dict[str, Any]]:
+        with self._get_cursor(connection=connection) as cursor:
             cursor.execute(query, self._wrap_json(arguments))
 
             return cursor.fetchall()
