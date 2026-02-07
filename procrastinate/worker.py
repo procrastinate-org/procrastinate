@@ -140,6 +140,7 @@ class Worker:
         retry_decision: retry.RetryDecision | None,
         context: job_context.JobContext,
         job_result: job_context.JobResult | None,
+        exc_info: bool | BaseException = False,
     ):
         if retry_decision:
             await self.app.job_manager.retry_job(
@@ -156,7 +157,7 @@ class Worker:
                 jobs.DeleteJobCondition.SUCCESSFUL: status == jobs.Status.SUCCEEDED,
             }[self.delete_jobs]
             await self.app.job_manager.finish_job(
-                job=job, status=status, delete_job=delete_job
+                job=job, status=status, delete_job=delete_job, exc_info=exc_info
             )
 
         assert job.id
@@ -314,6 +315,7 @@ class Worker:
                     retry_decision=retry_decision,
                     context=context,
                     job_result=job_result,
+                    exc_info=exc_info,
                 )
             )
             try:
