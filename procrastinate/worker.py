@@ -354,9 +354,9 @@ class Worker:
                 if self.additional_context
                 else {},
                 job=job,
-                abort_reason=lambda: self._job_ids_to_abort.get(job_id)
-                if job_id
-                else None,
+                abort_reason=lambda: (
+                    self._job_ids_to_abort.get(job_id) if job_id else None
+                ),
                 start_timestamp=time.time(),
             )
             job_task = asyncio.create_task(
