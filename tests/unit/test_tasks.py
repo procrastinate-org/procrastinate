@@ -159,6 +159,19 @@ def test_task_configure_override_queue(app):
     assert job.queue == "other_queue"
 
 
+def test_configure_task_connection(job_manager):
+    mock_conn = object()
+    deferrer = tasks.configure_task(
+        name="my_name", job_manager=job_manager, connection=mock_conn
+    )
+    assert deferrer.connection is mock_conn
+
+
+def test_configure_task_no_connection(job_manager):
+    deferrer = tasks.configure_task(name="my_name", job_manager=job_manager)
+    assert deferrer.connection is None
+
+
 def test_task_get_retry_exception_none(app):
     task = tasks.Task(task_func, blueprint=app, queue="queue")
     job = task.configure().job
