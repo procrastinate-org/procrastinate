@@ -155,13 +155,13 @@ def test_migration_properly_named(
     )
 
     if migration.name in {m.name for m in new_migrations}:
-        assert (
-            mig_version == next_minor
-        ), f"New migration {migration.name} should be named with {next_minor} but is {mig_version}"
+        assert mig_version == next_minor, (
+            f"New migration {migration.name} should be named with {next_minor} but is {mig_version}"
+        )
     else:
-        assert (
-            mig_version <= latest_version
-        ), f"Migration {migration.name} should be named with at most {latest_version} but is {mig_version}"
+        assert mig_version <= latest_version, (
+            f"Migration {migration.name} should be named with at most {latest_version} but is {mig_version}"
+        )
 
     # All migrations before 3.0.0 are pre migrations
     if mig_version < packaging.version.Version("3.0.0"):
@@ -172,22 +172,22 @@ def test_migration_properly_named(
 
     index = int(index_str)
     if pre_post == "pre":
-        assert (
-            1 <= index < 50
-        ), f"Pre migration {migration.name} should have an index between 1 and 49, but is {index}"
+        assert 1 <= index < 50, (
+            f"Pre migration {migration.name} should have an index between 1 and 49, but is {index}"
+        )
     elif pre_post == "post":
-        assert (
-            50 <= index < 100
-        ), f"Post migration {migration.name} should have an index of at least 50, but is {index}"
+        assert 50 <= index < 100, (
+            f"Post migration {migration.name} should have an index of at least 50, but is {index}"
+        )
     else:
         assert False, f"Invalid migration name: expecting 'pre' or 'post': {pre_post}"
 
-    assert (
-        name == name.lower()
-    ), f"Migration {migration.name} should be lower case, but is {name}"
-    assert (
-        "-" not in name
-    ), f"Migration {migration.name} should not contain dashes, but is {name}"
-    assert (
-        " " not in name
-    ), f"Migration {migration.name} should not contain spaces, but is {name}"
+    assert name == name.lower(), (
+        f"Migration {migration.name} should be lower case, but is {name}"
+    )
+    assert "-" not in name, (
+        f"Migration {migration.name} should not contain dashes, but is {name}"
+    )
+    assert " " not in name, (
+        f"Migration {migration.name} should not contain spaces, but is {name}"
+    )
