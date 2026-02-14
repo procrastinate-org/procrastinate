@@ -3,26 +3,15 @@ from __future__ import annotations
 import contextlib
 import pathlib
 import subprocess
-import warnings
 
 import packaging.version
+import psycopg
 import pytest
 from django.core import management
 from django.db import connection
-from sqlalchemy.pool import NullPool
-from sqlbag import S
+from results.dbdiff import Migration
 
 from procrastinate import psycopg_connector, schema
-
-with warnings.catch_warnings(record=True):
-    # migra uses schemainspect which uses pkg_resources which is deprecated
-    warnings.filterwarnings(
-        action="ignore", category=DeprecationWarning, module="pkg_resources"
-    )
-    warnings.filterwarnings(
-        action="ignore", category=DeprecationWarning, module="schemainspect"
-    )
-    from migra import Migration
 
 
 @pytest.fixture
@@ -72,19 +61,19 @@ def test_migration(schema_database, migrations_database, run_migrations):
     # apply the migrations on the migrations_database database
     run_migrations(migrations_database)
 
-    # use migra to verify that the databases "schema_database" and "migrations_database"
-    # have nos differences
+    # use results to verify that the databases "schema_database" and
+    # "migrations_database" have no differences
 
     with contextlib.ExitStack() as stack:
-        # we use a NullPool to avoid issues when dropping the databases because
-        # of opened database sessions
-        schema_db_session = stack.enter_context(
-            S(f"postgresql:///{schema_database}", poolclass=NullPool)
+        schema_db_conn = stack.enter_context(
+            psycopg.connect(f"postgresql:///{schema_database}")
         )
-        migrations_db_session = stack.enter_context(
-            S(f"postgresql:///{migrations_database}", poolclass=NullPool)
+        migrations_db_conn = stack.enter_context(
+            psycopg.connect(f"postgresql:///{migrations_database}")
         )
-        m = Migration(migrations_db_session, schema_db_session)
+        schema_db_cursor = stack.enter_context(schema_db_conn.cursor())
+        migrations_db_cursor = stack.enter_context(migrations_db_conn.cursor())
+        m = Migration(migrations_db_cursor, schema_db_cursor)
         m.set_safety(False)
         m.add_all_changes()
 
@@ -166,13 +155,13 @@ def test_migration_properly_named(
     )
 
     if migration.name in {m.name for m in new_migrations}:
-        assert mig_version == next_minor, (
-            f"New migration {migration.name} should be named with {next_minor} but is {mig_version}"
-        )
+        assert (
+            mig_version == next_minor
+        ), f"New migration {migration.name} should be named with {next_minor} but is {mig_version}"
     else:
-        assert mig_version <= latest_version, (
-            f"Migration {migration.name} should be named with at most {latest_version} but is {mig_version}"
-        )
+        assert (
+            mig_version <= latest_version
+        ), f"Migration {migration.name} should be named with at most {latest_version} but is {mig_version}"
 
     # All migrations before 3.0.0 are pre migrations
     if mig_version < packaging.version.Version("3.0.0"):
@@ -183,22 +172,22 @@ def test_migration_properly_named(
 
     index = int(index_str)
     if pre_post == "pre":
-        assert 1 <= index < 50, (
-            f"Pre migration {migration.name} should have an index between 1 and 49, but is {index}"
-        )
+        assert (
+            1 <= index < 50
+        ), f"Pre migration {migration.name} should have an index between 1 and 49, but is {index}"
     elif pre_post == "post":
-        assert 50 <= index < 100, (
-            f"Post migration {migration.name} should have an index of at least 50, but is {index}"
-        )
+        assert (
+            50 <= index < 100
+        ), f"Post migration {migration.name} should have an index of at least 50, but is {index}"
     else:
         assert False, f"Invalid migration name: expecting 'pre' or 'post': {pre_post}"
 
-    assert name == name.lower(), (
-        f"Migration {migration.name} should be lower case, but is {name}"
-    )
-    assert "-" not in name, (
-        f"Migration {migration.name} should not contain dashes, but is {name}"
-    )
-    assert " " not in name, (
-        f"Migration {migration.name} should not contain spaces, but is {name}"
-    )
+    assert (
+        name == name.lower()
+    ), f"Migration {migration.name} should be lower case, but is {name}"
+    assert (
+        "-" not in name
+    ), f"Migration {migration.name} should not contain dashes, but is {name}"
+    assert (
+        " " not in name
+    ), f"Migration {migration.name} should not contain spaces, but is {name}"
