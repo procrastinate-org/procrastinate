@@ -200,9 +200,15 @@ class PsycopgConnector(connector.BaseAsyncConnector):
     @contextlib.asynccontextmanager
     async def _get_cursor(
         self,
+        connection: psycopg.AsyncConnection | None = None,
     ) -> AsyncIterator[psycopg.AsyncCursor[psycopg.rows.DictRow]]:
-        async with self.pool.connection() as connection:
-            async with connection.cursor(row_factory=psycopg.rows.dict_row) as cursor:
+        conn_ctx = (
+            contextlib.nullcontext(connection)
+            if connection is not None
+            else self.pool.connection()
+        )
+        async with conn_ctx as conn:
+            async with conn.cursor(row_factory=psycopg.rows.dict_row) as cursor:
                 if self._json_loads:
                     psycopg.types.json.set_json_loads(
                         loads=self._json_loads, context=cursor
@@ -237,6 +243,18 @@ class PsycopgConnector(connector.BaseAsyncConnector):
         self, query: LiteralString, **arguments: Any
     ) -> list[dict[str, Any]]:
         async with self._get_cursor() as cursor:
+            await cursor.execute(query, self._wrap_json(arguments))
+
+            return await cursor.fetchall()
+
+    @wrap_exceptions()
+    async def execute_query_all_async_with_connection(
+        self,
+        connection: psycopg.AsyncConnection,
+        query: LiteralString,
+        **arguments: Any,
+    ) -> list[dict[str, Any]]:
+        async with self._get_cursor(connection=connection) as cursor:
             await cursor.execute(query, self._wrap_json(arguments))
 
             return await cursor.fetchall()

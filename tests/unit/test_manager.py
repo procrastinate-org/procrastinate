@@ -699,3 +699,42 @@ async def test_check_connection_async(job_manager, connector):
 def test_check_connection(job_manager, connector):
     assert job_manager.check_connection() is True
     assert connector.queries == [("check_connection", {})]
+
+
+async def test_manager_defer_job_no_connection_uses_normal_path(
+    mocker, job_manager, job_factory, connector
+):
+    spy = mocker.spy(connector, "execute_query_all_async")
+    await job_manager.defer_job_async(
+        job=job_factory(id=None, task_kwargs={"a": "b"}, task_name="bla"),
+    )
+    spy.assert_called_once()
+
+
+async def test_manager_defer_job_with_connection_uses_connection_path(
+    mocker, job_manager, job_factory, connector
+):
+    spy = mocker.spy(connector, "execute_query_all_async_with_connection")
+    mock_conn = object()
+    await job_manager.defer_job_async(
+        job=job_factory(id=None, task_kwargs={"a": "b"}, task_name="bla"),
+        connection=mock_conn,
+    )
+    spy.assert_called_once()
+    assert spy.call_args[0][0] is mock_conn
+
+
+def test_unsupported_connector_raises():
+    from procrastinate.connector import BaseConnector
+
+    c = BaseConnector()
+    with pytest.raises(exceptions.ConnectorException, match="does not support"):
+        c.execute_query_all_with_connection(object(), "SELECT 1")
+
+
+async def test_unsupported_connector_raises_async():
+    from procrastinate.connector import BaseConnector
+
+    c = BaseConnector()
+    with pytest.raises(exceptions.ConnectorException, match="does not support"):
+        await c.execute_query_all_async_with_connection(object(), "SELECT 1")

@@ -32,7 +32,11 @@ class JobManager:
     def __init__(self, connector: connector.BaseConnector):
         self.connector = connector
 
-    async def defer_job_async(self, job: jobs_module.Job) -> jobs_module.Job:
+    async def defer_job_async(
+        self,
+        job: jobs_module.Job,
+        connection: Any | None = None,
+    ) -> jobs_module.Job:
         """
         Add a job in its queue for later processing by a worker.
 
@@ -40,16 +44,20 @@ class JobManager:
         ----------
         job:
             The job to defer
+        connection:
+            Optional external database connection to use for the query.
 
         Returns
         -------
         :
             A copy of the job instance with the id set.
         """
-        return (await self.batch_defer_jobs_async(jobs=[job]))[0]
+        return (await self.batch_defer_jobs_async(jobs=[job], connection=connection))[0]
 
     async def batch_defer_jobs_async(
-        self, jobs: list[jobs_module.Job]
+        self,
+        jobs: list[jobs_module.Job],
+        connection: Any | None = None,
     ) -> list[jobs_module.Job]:
         """
         Add multiple jobs in their queue for later processing by a worker.
@@ -58,6 +66,8 @@ class JobManager:
         ----------
         jobs:
             The jobs to defer
+        connection:
+            Optional external database connection to use for the query.
 
         Returns
         -------
@@ -66,9 +76,14 @@ class JobManager:
         """
         # Make sure this code stays synchronized with .batch_defer_jobs()
         try:
-            results = await self.connector.execute_query_all_async(
-                **self._defer_jobs_query_kwargs(jobs=jobs)
-            )
+            if connection is not None:
+                results = await self.connector.execute_query_all_async_with_connection(
+                    connection, **self._defer_jobs_query_kwargs(jobs=jobs)
+                )
+            else:
+                results = await self.connector.execute_query_all_async(
+                    **self._defer_jobs_query_kwargs(jobs=jobs)
+                )
         except exceptions.UniqueViolation as exc:
             self._raise_already_enqueued(exc=exc, queueing_lock=exc.queueing_lock)
 
@@ -77,20 +92,33 @@ class JobManager:
             for index, job in enumerate(jobs)
         ]
 
-    def defer_job(self, job: jobs_module.Job) -> jobs_module.Job:
+    def defer_job(
+        self,
+        job: jobs_module.Job,
+        connection: Any | None = None,
+    ) -> jobs_module.Job:
         """
         Sync version of `defer_job_async`.
         """
-        return self.batch_defer_jobs(jobs=[job])[0]
+        return self.batch_defer_jobs(jobs=[job], connection=connection)[0]
 
-    def batch_defer_jobs(self, jobs: list[jobs_module.Job]) -> list[jobs_module.Job]:
+    def batch_defer_jobs(
+        self,
+        jobs: list[jobs_module.Job],
+        connection: Any | None = None,
+    ) -> list[jobs_module.Job]:
         """
         Sync version of `batch_defer_jobs_async`.
         """
         try:
-            results = self.connector.get_sync_connector().execute_query_all(
-                **self._defer_jobs_query_kwargs(jobs=jobs)
-            )
+            if connection is not None:
+                results = self.connector.get_sync_connector().execute_query_all_with_connection(
+                    connection, **self._defer_jobs_query_kwargs(jobs=jobs)
+                )
+            else:
+                results = self.connector.get_sync_connector().execute_query_all(
+                    **self._defer_jobs_query_kwargs(jobs=jobs)
+                )
         except exceptions.UniqueViolation as exc:
             self._raise_already_enqueued(exc=exc, queueing_lock=exc.queueing_lock)
 
