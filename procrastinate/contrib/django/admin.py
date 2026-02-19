@@ -146,7 +146,7 @@ class ProcrastinateJobAdmin(admin.ModelAdmin):
         for job in queryset.filter(
             status__in=(Status.FAILED.value, Status.DOING.value)
         ):
-            with transaction.atomic(), suppress(AlreadyEnqueued):
+            with suppress(AlreadyEnqueued), transaction.atomic():
                 p_app.job_manager.retry_job_by_id(
                     job.id, utils.utcnow(), job.priority, job.queue_name, job.lock
                 )
