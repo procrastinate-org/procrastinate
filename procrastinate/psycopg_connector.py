@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import contextlib
 import importlib.metadata
 import logging
@@ -299,9 +300,11 @@ class PsycopgConnector(connector.BaseAsyncConnector):
         connection: psycopg.AsyncConnection,
         timeout: float = connector.LISTEN_TIMEOUT,
     ) -> None:
-        # We'll leave this loop with a CancelledError, when we get cancelled
-
         while True:
+            # Allow to raise CancelledError to leave this loop when the task is cancelled.
+            # CancelledErrors from follwing functions might be hidden due to internal handling of the exception.
+            await asyncio.sleep(0)
+
             try:
                 async for notification in utils.gen_with_timeout(
                     aiterable=connection.notifies(),
