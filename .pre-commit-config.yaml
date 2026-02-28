@@ -30,7 +30,7 @@ repos:
       - id: mixed-line-ending
 
   - repo: https://github.com/DetachHead/basedpyright-prek-mirror
-    rev: 1.37.2
+    rev: 1.38.2
     hooks:
       - id: basedpyright
         additional_dependencies:
@@ -82,7 +82,7 @@ repos:
           - tzdata==2025.3 ; sys_platform == 'win32'
           - urllib3==2.6.3
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.14.14
+    rev: v0.15.4
     hooks:
       - id: ruff
         args: [--fix, --unsafe-fixes, --show-fixes]
@@ -94,7 +94,7 @@ repos:
       - id: doc8
 
   - repo: https://github.com/adamchainz/django-upgrade
-    rev: 1.29.1
+    rev: 1.30.0
     hooks:
       - id: django-upgrade
         args: [--target-version, '4.2'] # Replace with Django version
