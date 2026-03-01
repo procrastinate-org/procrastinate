@@ -76,10 +76,7 @@ test = [
     "pytest-cov",
     "pytest-django",
     "pytest-mock",
-    "migra",
-    # migra depends on schemainspect, which has an implicit dependency on setuptools
-    # (pkg_resources).
-    "setuptools",
+    "results>=1.4,<2",
 ]
 migration_test = ["nox", "httpx", "nox-uv"]
 docs = [
