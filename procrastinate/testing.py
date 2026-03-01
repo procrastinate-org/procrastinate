@@ -290,7 +290,13 @@ class InMemoryConnector(connector.BaseAsyncConnector):
         self.events[job["id"]].append({"type": "started", "at": utils.utcnow()})
         return job
 
-    async def finish_job_run(self, job_id: int, status: str, delete_job: bool) -> None:
+    async def finish_job_run(
+        self,
+        job_id: int,
+        status: str,
+        delete_job: bool,
+        exc_info: bool | BaseException = False,
+    ) -> None:
         if delete_job:
             self.jobs.pop(job_id)
             return
