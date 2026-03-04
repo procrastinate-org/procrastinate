@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1772241502230,
+  "lastUpdate": 1772664358964,
   "repoUrl": "https://github.com/procrastinate-org/procrastinate",
   "entries": {
     "Procrastinate Benchmarks": [
@@ -7644,6 +7644,86 @@ window.BENCHMARK_DATA = {
             "unit": "iter/sec",
             "range": "stddev: 0.02937784712383471",
             "extra": "mean: 3.075983321000007 sec\nrounds: 5"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "29139614+renovate[bot]@users.noreply.github.com",
+            "name": "renovate[bot]",
+            "username": "renovate[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "7452539af05dfee9b31302d694644b26eacb2efc",
+          "message": "Merge pull request #1524 from procrastinate-org/renovate/pypi-django-vulnerability\n\nchore(deps): update dependency django to v6.0.3 [security]",
+          "timestamp": "2026-03-04T22:42:12Z",
+          "tree_id": "3a310e0fd9f605821d7ca3cc3051773b02d60c26",
+          "url": "https://github.com/procrastinate-org/procrastinate/commit/7452539af05dfee9b31302d694644b26eacb2efc"
+        },
+        "date": 1772664358459,
+        "tool": "pytest",
+        "benches": [
+          {
+            "name": "tests/benchmarks/test_benchmark_async.py::test_benchmark_1000_async_jobs[psycopg_connector]",
+            "value": 0.25044209451016336,
+            "unit": "iter/sec",
+            "range": "stddev: 0.0786363765885277",
+            "extra": "mean: 3.992938974400002 sec\nrounds: 5"
+          },
+          {
+            "name": "tests/benchmarks/test_benchmark_async.py::test_benchmark_1000_async_jobs[aiopg_connector]",
+            "value": 0.49064280066830684,
+            "unit": "iter/sec",
+            "range": "stddev: 0.022220047404286764",
+            "extra": "mean: 2.038142613400004 sec\nrounds: 5"
+          },
+          {
+            "name": "tests/benchmarks/test_benchmark_async.py::test_benchmark_1000_async_batch_jobs[psycopg_connector]",
+            "value": 0.3431046063525811,
+            "unit": "iter/sec",
+            "range": "stddev: 0.2490948160324365",
+            "extra": "mean: 2.9145630267999962 sec\nrounds: 5"
+          },
+          {
+            "name": "tests/benchmarks/test_benchmark_async.py::test_benchmark_1000_async_batch_jobs[aiopg_connector]",
+            "value": 0.5886111817723131,
+            "unit": "iter/sec",
+            "range": "stddev: 0.23037919994696063",
+            "extra": "mean: 1.698914378400002 sec\nrounds: 5"
+          },
+          {
+            "name": "tests/benchmarks/test_benchmark_sync.py::test_benchmark_1000_sync_jobs[sync_psycopg_connector]",
+            "value": 0.2192895834735108,
+            "unit": "iter/sec",
+            "range": "stddev: 0.07099194743527024",
+            "extra": "mean: 4.560180124199997 sec\nrounds: 5"
+          },
+          {
+            "name": "tests/benchmarks/test_benchmark_sync.py::test_benchmark_1000_sync_jobs[psycopg2_connector]",
+            "value": 0.2470491385614337,
+            "unit": "iter/sec",
+            "range": "stddev: 0.18420942856487976",
+            "extra": "mean: 4.0477777247999995 sec\nrounds: 5"
+          },
+          {
+            "name": "tests/benchmarks/test_benchmark_sync.py::test_benchmark_1000_sync_batch_jobs[sync_psycopg_connector]",
+            "value": 0.30098369623772936,
+            "unit": "iter/sec",
+            "range": "stddev: 0.1176103464886555",
+            "extra": "mean: 3.322439097199998 sec\nrounds: 5"
+          },
+          {
+            "name": "tests/benchmarks/test_benchmark_sync.py::test_benchmark_1000_sync_batch_jobs[psycopg2_connector]",
+            "value": 0.30625249783403635,
+            "unit": "iter/sec",
+            "range": "stddev: 0.22330003184634226",
+            "extra": "mean: 3.2652794902000037 sec\nrounds: 5"
           }
         ]
       }
