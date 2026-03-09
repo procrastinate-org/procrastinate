@@ -3,7 +3,7 @@ from __future__ import annotations
 import datetime
 import logging
 from collections.abc import Callable
-from typing import Generic, TypedDict, cast
+from typing import Any, Generic, TypedDict, cast
 
 from typing_extensions import NotRequired, ParamSpec, TypeVar, Unpack
 
@@ -27,6 +27,7 @@ class ConfigureTaskOptions(TypedDict):
     schedule_in: NotRequired[types.TimeDeltaParams | None]
     queue: NotRequired[str | None]
     priority: NotRequired[int | None]
+    connection: NotRequired[Any | None]
 
 
 def configure_task(
@@ -38,6 +39,7 @@ def configure_task(
     schedule_at = options.get("schedule_at")
     schedule_in = options.get("schedule_in")
     priority = options.get("priority")
+    connection = options.get("connection")
 
     if schedule_at and schedule_in is not None:
         raise ValueError("Cannot set both schedule_at and schedule_in")
@@ -61,6 +63,7 @@ def configure_task(
             priority=priority,
         ),
         job_manager=job_manager,
+        connection=connection,
     )
 
 
@@ -199,6 +202,12 @@ class Task(Generic[P, R, Args]):
             Set the priority of the job as an integer. Jobs with higher priority
             are run first. Priority can be positive or negative. The default priority
             is 0.
+        connection :
+            An optional external database connection. When provided, the job INSERT
+            will run on this connection instead of the connector's pool, allowing
+            atomic deferral within a user-managed transaction. The user is
+            responsible for committing. Supported by ``SyncPsycopgConnector``,
+            ``PsycopgConnector``, and ``SQLAlchemyPsycopg2Connector``.
 
         Returns
         -------
@@ -219,6 +228,7 @@ class Task(Generic[P, R, Args]):
         schedule_in = options.get("schedule_in")
         queue = options.get("queue")
         priority = options.get("priority")
+        connection = options.get("connection")
 
         app = cast(app_module.App, self.blueprint)
         return configure_task(
@@ -233,6 +243,7 @@ class Task(Generic[P, R, Args]):
             schedule_in=schedule_in,
             queue=queue if queue is not None else self.queue,
             priority=priority if priority is not None else self.priority,
+            connection=connection,
         )
 
     def get_retry_exception(
