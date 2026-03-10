@@ -359,7 +359,10 @@ class Blueprint:
         cron: str,
         periodic_id: str = "",
         **configure_kwargs: Unpack[ConfigureTaskOptions],
-    ):
+    ) -> Callable[
+        [Task[P, R, Concatenate[int, periodic.Args]]],
+        Task[P, R, periodic.Args],
+    ]:
         """
         Task decorator, marks task as being scheduled for periodic deferring (see
         `howto/advanced/cron`).
