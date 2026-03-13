@@ -67,7 +67,7 @@
             <a id="nextFileLink" class="nav" href="z_d981541d4828dbe0_builtin_tasks_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.13.1">coverage.py v7.13.1</a>,
-            created at 2026-03-07 01:17 +0000
+            created at 2026-03-13 08:53 +0000
         </p>
         <aside class="hidden">
             <button type="button" class="button_next_chunk" data-shortcut="j"></button>
@@ -443,26 +443,29 @@
     <p class="run run2"><span class="n"><a id="t359" href="#t359">359</a></span><span class="t">        <span class="nam">cron</span><span class="op">:</span> <span class="nam">str</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
     <p class="run run2"><span class="n"><a id="t360" href="#t360">360</a></span><span class="t">        <span class="nam">periodic_id</span><span class="op">:</span> <span class="nam">str</span> <span class="op">=</span> <span class="str">""</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
     <p class="run run2"><span class="n"><a id="t361" href="#t361">361</a></span><span class="t">        <span class="op">**</span><span class="nam">configure_kwargs</span><span class="op">:</span> <span class="nam">Unpack</span><span class="op">[</span><span class="nam">ConfigureTaskOptions</span><span class="op">]</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run run2"><span class="n"><a id="t362" href="#t362">362</a></span><span class="t">    <span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t363" href="#t363">363</a></span><span class="t">        <span class="str">"""</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t364" href="#t364">364</a></span><span class="t"><span class="str">        Task decorator, marks task as being scheduled for periodic deferring (see</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t365" href="#t365">365</a></span><span class="t"><span class="str">        `howto/advanced/cron`).</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t366" href="#t366">366</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t367" href="#t367">367</a></span><span class="t"><span class="str">        Parameters</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t368" href="#t368">368</a></span><span class="t"><span class="str">        ----------</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t369" href="#t369">369</a></span><span class="t"><span class="str">        cron :</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t370" href="#t370">370</a></span><span class="t"><span class="str">            Cron-like string. Optionally add a 6th column for seconds.</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t371" href="#t371">371</a></span><span class="t"><span class="str">        periodic_id :</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t372" href="#t372">372</a></span><span class="t"><span class="str">            Task name suffix. Used to distinguish periodic tasks with different kwargs.</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t373" href="#t373">373</a></span><span class="t"><span class="str">        **kwargs :</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t374" href="#t374">374</a></span><span class="t"><span class="str">            Additional parameters are passed to `Task.configure`.</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t375" href="#t375">375</a></span><span class="t"><span class="str">        """</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t376" href="#t376">376</a></span><span class="t">        <span class="key">return</span> <span class="nam">self</span><span class="op">.</span><span class="nam">periodic_registry</span><span class="op">.</span><span class="nam">periodic_decorator</span><span class="op">(</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run run2"><span class="n"><a id="t377" href="#t377">377</a></span><span class="t">            <span class="nam">cron</span><span class="op">=</span><span class="nam">cron</span><span class="op">,</span> <span class="nam">periodic_id</span><span class="op">=</span><span class="nam">periodic_id</span><span class="op">,</span> <span class="op">**</span><span class="nam">configure_kwargs</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run run2"><span class="n"><a id="t378" href="#t378">378</a></span><span class="t">        <span class="op">)</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t379" href="#t379">379</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t380" href="#t380">380</a></span><span class="t">    <span class="key">def</span> <span class="nam">will_configure_task</span><span class="op">(</span><span class="nam">self</span><span class="op">)</span> <span class="op">-></span> <span class="key">None</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t381" href="#t381">381</a></span><span class="t">        <span class="key">raise</span> <span class="nam">exceptions</span><span class="op">.</span><span class="nam">UnboundTaskError</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t362" href="#t362">362</a></span><span class="t">    <span class="op">)</span> <span class="op">-></span> <span class="nam">Callable</span><span class="op">[</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t363" href="#t363">363</a></span><span class="t">        <span class="op">[</span><span class="nam">Task</span><span class="op">[</span><span class="nam">P</span><span class="op">,</span> <span class="nam">R</span><span class="op">,</span> <span class="nam">Concatenate</span><span class="op">[</span><span class="nam">int</span><span class="op">,</span> <span class="nam">periodic</span><span class="op">.</span><span class="nam">Args</span><span class="op">]</span><span class="op">]</span><span class="op">]</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t364" href="#t364">364</a></span><span class="t">        <span class="nam">Task</span><span class="op">[</span><span class="nam">P</span><span class="op">,</span> <span class="nam">R</span><span class="op">,</span> <span class="nam">periodic</span><span class="op">.</span><span class="nam">Args</span><span class="op">]</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t365" href="#t365">365</a></span><span class="t">    <span class="op">]</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t366" href="#t366">366</a></span><span class="t">        <span class="str">"""</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t367" href="#t367">367</a></span><span class="t"><span class="str">        Task decorator, marks task as being scheduled for periodic deferring (see</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t368" href="#t368">368</a></span><span class="t"><span class="str">        `howto/advanced/cron`).</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t369" href="#t369">369</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t370" href="#t370">370</a></span><span class="t"><span class="str">        Parameters</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t371" href="#t371">371</a></span><span class="t"><span class="str">        ----------</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t372" href="#t372">372</a></span><span class="t"><span class="str">        cron :</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t373" href="#t373">373</a></span><span class="t"><span class="str">            Cron-like string. Optionally add a 6th column for seconds.</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t374" href="#t374">374</a></span><span class="t"><span class="str">        periodic_id :</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t375" href="#t375">375</a></span><span class="t"><span class="str">            Task name suffix. Used to distinguish periodic tasks with different kwargs.</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t376" href="#t376">376</a></span><span class="t"><span class="str">        **kwargs :</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t377" href="#t377">377</a></span><span class="t"><span class="str">            Additional parameters are passed to `Task.configure`.</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t378" href="#t378">378</a></span><span class="t"><span class="str">        """</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t379" href="#t379">379</a></span><span class="t">        <span class="key">return</span> <span class="nam">self</span><span class="op">.</span><span class="nam">periodic_registry</span><span class="op">.</span><span class="nam">periodic_decorator</span><span class="op">(</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t380" href="#t380">380</a></span><span class="t">            <span class="nam">cron</span><span class="op">=</span><span class="nam">cron</span><span class="op">,</span> <span class="nam">periodic_id</span><span class="op">=</span><span class="nam">periodic_id</span><span class="op">,</span> <span class="op">**</span><span class="nam">configure_kwargs</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t381" href="#t381">381</a></span><span class="t">        <span class="op">)</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t382" href="#t382">382</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t383" href="#t383">383</a></span><span class="t">    <span class="key">def</span> <span class="nam">will_configure_task</span><span class="op">(</span><span class="nam">self</span><span class="op">)</span> <span class="op">-></span> <span class="key">None</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t384" href="#t384">384</a></span><span class="t">        <span class="key">raise</span> <span class="nam">exceptions</span><span class="op">.</span><span class="nam">UnboundTaskError</span>&nbsp;</span><span class="r"></span></p>
 </main>
 <footer>
     <div class="content">
@@ -472,7 +475,7 @@
             <a class="nav" href="z_d981541d4828dbe0_builtin_tasks_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.13.1">coverage.py v7.13.1</a>,
-            created at 2026-03-07 01:17 +0000
+            created at 2026-03-13 08:53 +0000
         </p>
     </div>
 </footer>
