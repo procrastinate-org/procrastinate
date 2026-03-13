@@ -33,7 +33,7 @@ class InMemoryConnector(connector.BaseAsyncConnector):
     methods and attributes to ease testing.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.reset()
         self.reverse_queries = {value: key for key, value in sql.queries.items()}
         self.reverse_queries[schema.SchemaManager.get_schema()] = "apply_schema"
