@@ -236,6 +236,18 @@ wheels = [
 ]
 
 [[package]]
+name = "click"
+version = "8.3.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "colorama", marker = "sys_platform == 'win32'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/3d/fa/656b739db8587d7b5dfa22e22ed02566950fbfbcdc20311993483657a5c0/click-8.3.1.tar.gz", hash = "sha256:12ff4785d337a1bb490bb7e9c2b1ee5da3112e94a8622f26a6c77f5d2fc6842a", size = 295065, upload-time = "2025-11-15T20:45:42.706Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/98/78/01c019cdb5d6498122777c1a43056ebb3ebfeef2076d9d026bfe15583b2b/click-8.3.1-py3-none-any.whl", hash = "sha256:981153a64e25f12d547d3426c367a4857371575ee7ad18df2a6183ab0545b2a6", size = 108274, upload-time = "2025-11-15T20:45:41.139Z" },
+]
+
+[[package]]
 name = "colorama"
 version = "0.4.6"
 source = { registry = "https://pypi.org/simple" }
@@ -827,20 +839,6 @@ wheels = [
 ]
 
 [[package]]
-name = "migra"
-version = "3.0.1663481299"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "schemainspect" },
-    { name = "six" },
-    { name = "sqlbag" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/0e/fb/4761e69d6028909f4b68f175f53ac69c521b75b11e977087b6ce6ec3b006/migra-3.0.1663481299.tar.gz", hash = "sha256:0cf0c125d553008d9ff5402663a51703ccc474bb65b5a4f4727906dbf58e217f", size = 10083, upload-time = "2022-09-18T06:08:24.5Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/20/66/79bf13b29c2c3a3e72d8dead21fde7ae15f84e78038c92a35e62b3e9c229/migra-3.0.1663481299-py3-none-any.whl", hash = "sha256:061643e9af63488e085d729f267ed4af4249789979732b703ddeb2c478ec9a93", size = 10537, upload-time = "2022-09-18T06:08:22.982Z" },
-]
-
-[[package]]
 name = "myst-parser"
 version = "4.0.1"
 source = { registry = "https://pypi.org/simple" }
@@ -1029,13 +1027,12 @@ release = [
     { name = "dunamai" },
 ]
 test = [
-    { name = "migra" },
     { name = "pytest-asyncio" },
     { name = "pytest-benchmark" },
     { name = "pytest-cov" },
     { name = "pytest-django" },
     { name = "pytest-mock" },
-    { name = "setuptools" },
+    { name = "results", specifier = ">=1.4,<2" },
 ]
 types = [
     { name = "django-stubs" },
@@ -1092,13 +1089,12 @@ pg-implem = [
 ]
 release = [{ name = "dunamai" }]
 test = [
-    { name = "migra" },
     { name = "pytest-asyncio" },
     { name = "pytest-benchmark" },
     { name = "pytest-cov" },
     { name = "pytest-django" },
     { name = "pytest-mock" },
-    { name = "setuptools" },
+    { name = "results", specifier = ">=1.4,<2" },
 ]
 types = [{ name = "django-stubs" }]
 
@@ -1474,6 +1470,19 @@ wheels = [
 ]
 
 [[package]]
+name = "results"
+version = "1.4.1770293316"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "click" },
+    { name = "psycopg", extra = ["pool"] },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/0b/32/35ddba08684c7f6769d1760163e787098c5213f18e71396c595c7720cb22/results-1.4.1770293316.tar.gz", hash = "sha256:415be66c82e20e9e8aafdecebf4357736cbd80e7925681c724338ed31cc49e7c", size = 51312, upload-time = "2026-02-05T12:08:40.525Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/de/96/ecc95c746b656bdfb0660e0817da047b8616b007b2e20cac955c3b6fd47f/results-1.4.1770293316-py3-none-any.whl", hash = "sha256:3ff24a0b4a465f5804cf7be311bf805c810155e7b633944aec42a5bab4c81cb2", size = 62265, upload-time = "2026-02-05T12:08:41.629Z" },
+]
+
+[[package]]
 name = "roman-numerals"
 version = "4.1.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1506,27 +1515,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/2c/aa/9f89c719c467dfaf8ad799b9bae0df494513fb21d31a6059cb5870e57e74/ruff-0.14.14-py3-none-win32.whl", hash = "sha256:b530c191970b143375b6a68e6f743800b2b786bbcf03a7965b06c4bf04568167", size = 10502442, upload-time = "2026-01-22T22:30:38.93Z" },
     { url = "https://files.pythonhosted.org/packages/87/44/90fa543014c45560cae1fffc63ea059fb3575ee6e1cb654562197e5d16fb/ruff-0.14.14-py3-none-win_amd64.whl", hash = "sha256:3dde1435e6b6fe5b66506c1dff67a421d0b7f6488d466f651c07f4cab3bf20fd", size = 11630486, upload-time = "2026-01-22T22:30:10.852Z" },
     { url = "https://files.pythonhosted.org/packages/9e/6a/40fee331a52339926a92e17ae748827270b288a35ef4a15c9c8f2ec54715/ruff-0.14.14-py3-none-win_arm64.whl", hash = "sha256:56e6981a98b13a32236a72a8da421d7839221fa308b223b9283312312e5ac76c", size = 10920448, upload-time = "2026-01-22T22:30:15.417Z" },
-]
-
-[[package]]
-name = "schemainspect"
-version = "3.1.1663587362"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "sqlalchemy" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/00/41/c2ea77a94a7dcbde0d5b9cce70018a730e4ab5504628c14ced657c87217a/schemainspect-3.1.1663587362.tar.gz", hash = "sha256:a295ad56f7a19c09e5e1ef9f16dadbf6392e26196cb5f05b5afe613c99ce7468", size = 28520, upload-time = "2022-09-19T11:36:06.373Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/0b/e2/eea82cd82c91c840f1f32cfc874db831ac3a742fbd9dfe713cae851441f1/schemainspect-3.1.1663587362-py3-none-any.whl", hash = "sha256:3071265712863c4d4e742940a4b44ac685135af3c93416872ec1bb6c822c4aca", size = 37373, upload-time = "2022-09-19T11:36:05.069Z" },
-]
-
-[[package]]
-name = "setuptools"
-version = "80.10.2"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/76/95/faf61eb8363f26aa7e1d762267a8d602a1b26d4f3a1e758e92cb3cb8b054/setuptools-80.10.2.tar.gz", hash = "sha256:8b0e9d10c784bf7d262c4e5ec5d4ec94127ce206e8738f29a437945fbc219b70", size = 1200343, upload-time = "2026-01-25T22:38:17.252Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/94/b8/f1f62a5e3c0ad2ff1d189590bfa4c46b4f3b6e49cef6f26c6ee4e575394d/setuptools-80.10.2-py3-none-any.whl", hash = "sha256:95b30ddfb717250edb492926c92b5221f7ef3fbcc2b07579bcd4a27da21d0173", size = 1064234, upload-time = "2026-01-25T22:38:15.216Z" },
 ]
 
 [[package]]
@@ -1831,20 +1819,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/33/75/f28622ba6dde79cd545055ea7bd4062dc934e0621f7b3be2891f8563f8de/sqlalchemy-2.0.46-cp314-cp314t-musllinux_1_2_aarch64.whl", hash = "sha256:ff33c6e6ad006bbc0f34f5faf941cfc62c45841c64c0a058ac38c799f15b5ede", size = 3470008, upload-time = "2026-01-21T18:33:11.725Z" },
     { url = "https://files.pythonhosted.org/packages/a9/42/4afecbbc38d5e99b18acef446453c76eec6fbd03db0a457a12a056836e22/sqlalchemy-2.0.46-cp314-cp314t-musllinux_1_2_x86_64.whl", hash = "sha256:82ec52100ec1e6ec671563bbd02d7c7c8d0b9e71a0723c72f22ecf52d1755330", size = 3476137, upload-time = "2026-01-21T18:45:15.001Z" },
     { url = "https://files.pythonhosted.org/packages/fc/a1/9c4efa03300926601c19c18582531b45aededfb961ab3c3585f1e24f120b/sqlalchemy-2.0.46-py3-none-any.whl", hash = "sha256:f9c11766e7e7c0a2767dda5acb006a118640c9fc0a4104214b96269bfb78399e", size = 1937882, upload-time = "2026-01-21T18:22:10.456Z" },
-]
-
-[[package]]
-name = "sqlbag"
-version = "0.1.1617247075"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "packaging" },
-    { name = "six" },
-    { name = "sqlalchemy" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/07/6f/46171ef9ef6d177b94dff96e6403c7fb7466de5c9ee767b0218a21945fdb/sqlbag-0.1.1617247075.tar.gz", hash = "sha256:b9d7862c3b2030356d796ca872907962fd54704066978d7ae89383f5123366ed", size = 11652, upload-time = "2021-04-01T03:22:24.096Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/27/c8/1d4bd038d4b34f3810fd8ab70a48cc6f3d2373666f2797f0298a97b088c9/sqlbag-0.1.1617247075-py2.py3-none-any.whl", hash = "sha256:ecdef26d661f8640711030ac6ee618deb92b91f9f0fc2efbf8a3b133af13092d", size = 14971, upload-time = "2021-04-01T03:22:22.654Z" },
 ]
 
 [[package]]
