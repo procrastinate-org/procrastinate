@@ -61,7 +61,7 @@ repos:
           - pygments==2.19.2
           - python-dateutil==2.9.0.post0
           - pytz==2025.2
-          - requests==2.32.5
+          - requests==2.33.0
           - roman-numerals==4.1.0 ; python_full_version >= '3.11'
           - six==1.17.0
           - snowballstemmer==3.0.1
