@@ -89,6 +89,16 @@ class InMemoryConnector(connector.BaseAsyncConnector):
     ) -> list[dict[str, Any]]:
         return await self.generic_execute(query, "all", **arguments)
 
+    def execute_query_all_with_connection(
+        self, connection: Any, query: str, **arguments: Any
+    ) -> list[dict[str, Any]]:
+        return utils.async_to_sync(self.execute_query_all_async, query, **arguments)
+
+    async def execute_query_all_async_with_connection(
+        self, connection: Any, query: str, **arguments: Any
+    ) -> list[dict[str, Any]]:
+        return await self.execute_query_all_async(query, **arguments)
+
     async def listen_notify(
         self, on_notification: connector.Notify, channels: Iterable[str]
     ) -> None:

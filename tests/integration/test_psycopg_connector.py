@@ -283,3 +283,165 @@ async def test_get_sync_connector__not_open(not_opened_psycopg_connector):
     assert isinstance(sync, sync_psycopg_connector.SyncPsycopgConnector)
     assert not_opened_psycopg_connector.get_sync_connector() is sync
     assert sync._pool_args == not_opened_psycopg_connector._pool_args
+
+
+async def test_execute_query_all_async_with_connection(psycopg_connector):
+    async with psycopg_connector.pool.connection() as conn:
+        result = await psycopg_connector.execute_query_all_async_with_connection(
+            conn, "SELECT %(arg)s as col", arg=1
+        )
+    assert result == [{"col": 1}]
+
+
+async def test_defer_with_external_connection_commit(
+    psycopg_connector, connection_params
+):
+    import psycopg
+
+    from procrastinate import App, sql
+
+    app = App(connector=psycopg_connector)
+    await app.open_async()
+
+    @app.task
+    def my_async_task(x):
+        pass
+
+    conninfo = psycopg.conninfo.make_conninfo(**connection_params)
+    async with await psycopg.AsyncConnection.connect(
+        conninfo, autocommit=False
+    ) as conn:
+        await my_async_task.configure(connection=conn).defer_async(x=1)
+        await conn.commit()
+
+    # Job should be in DB after commit
+    jobs = await psycopg_connector.execute_query_all_async(
+        query=sql.queries["list_jobs"],
+        id=None,
+        queue_name=None,
+        task_name=None,
+        status=None,
+        lock=None,
+        queueing_lock=None,
+        worker_id=None,
+    )
+    assert len(jobs) >= 1
+    assert any(
+        j["task_name"] == "tests.integration.test_psycopg_connector.my_async_task"
+        for j in jobs
+    )
+
+
+async def test_defer_with_external_connection_rollback(
+    psycopg_connector, connection_params
+):
+    import psycopg
+
+    from procrastinate import App, sql
+
+    app = App(connector=psycopg_connector)
+    await app.open_async()
+
+    @app.task
+    def my_async_rollback_task(x):
+        pass
+
+    conninfo = psycopg.conninfo.make_conninfo(**connection_params)
+    async with await psycopg.AsyncConnection.connect(
+        conninfo, autocommit=False
+    ) as conn:
+        await my_async_rollback_task.configure(connection=conn).defer_async(x=1)
+        await conn.rollback()
+
+    # Job should NOT be in DB after rollback
+    jobs = await psycopg_connector.execute_query_all_async(
+        query=sql.queries["list_jobs"],
+        id=None,
+        queue_name=None,
+        task_name="tests.integration.test_psycopg_connector.my_async_rollback_task",
+        status=None,
+        lock=None,
+        queueing_lock=None,
+        worker_id=None,
+    )
+    assert len(jobs) == 0
+
+
+async def test_batch_defer_with_external_connection_commit(
+    psycopg_connector, connection_params
+):
+    import psycopg
+
+    from procrastinate import App, sql
+
+    app = App(connector=psycopg_connector)
+    await app.open_async()
+
+    @app.task
+    def my_async_batch_task(x):
+        pass
+
+    conninfo = psycopg.conninfo.make_conninfo(**connection_params)
+    async with await psycopg.AsyncConnection.connect(
+        conninfo, autocommit=False
+    ) as conn:
+        await my_async_batch_task.configure(connection=conn).batch_defer_async(
+            {"x": 1}, {"x": 2}
+        )
+        await conn.commit()
+
+    jobs = await psycopg_connector.execute_query_all_async(
+        query=sql.queries["list_jobs"],
+        id=None,
+        queue_name=None,
+        task_name=None,
+        status=None,
+        lock=None,
+        queueing_lock=None,
+        worker_id=None,
+    )
+    assert len(jobs) >= 2
+    assert (
+        sum(
+            j["task_name"]
+            == "tests.integration.test_psycopg_connector.my_async_batch_task"
+            for j in jobs
+        )
+        == 2
+    )
+
+
+async def test_batch_defer_with_external_connection_rollback(
+    psycopg_connector, connection_params
+):
+    import psycopg
+
+    from procrastinate import App, sql
+
+    app = App(connector=psycopg_connector)
+    await app.open_async()
+
+    @app.task
+    def my_async_batch_rollback_task(x):
+        pass
+
+    conninfo = psycopg.conninfo.make_conninfo(**connection_params)
+    async with await psycopg.AsyncConnection.connect(
+        conninfo, autocommit=False
+    ) as conn:
+        await my_async_batch_rollback_task.configure(connection=conn).batch_defer_async(
+            {"x": 1}, {"x": 2}
+        )
+        await conn.rollback()
+
+    jobs = await psycopg_connector.execute_query_all_async(
+        query=sql.queries["list_jobs"],
+        id=None,
+        queue_name=None,
+        task_name="tests.integration.test_psycopg_connector.my_async_batch_rollback_task",
+        status=None,
+        lock=None,
+        queueing_lock=None,
+        worker_id=None,
+    )
+    assert len(jobs) == 0

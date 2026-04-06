@@ -147,9 +147,15 @@ class JobDeferrer:
     doesn't need a job_manager property.
     """
 
-    def __init__(self, job_manager: manager.JobManager, job: Job):
+    def __init__(
+        self,
+        job_manager: manager.JobManager,
+        job: Job,
+        connection: Any | None = None,
+    ):
         self.job = job
         self.job_manager = job_manager
+        self.connection = connection
 
     def make_new_job(self, **task_kwargs: types.JSONValue) -> Job:
         final_kwargs = self.job.task_kwargs.copy()
@@ -184,7 +190,9 @@ class JobDeferrer:
         # Make sure this code stays synchronized with .defer()
         job = self.make_new_job(**task_kwargs)
         self._log_before_defer_jobs(jobs=[job])
-        job = await self.job_manager.defer_job_async(job=job)
+        job = await self.job_manager.defer_job_async(
+            job=job, connection=self.connection
+        )
         self._log_after_defer_jobs(jobs=[job])
         assert job.id  # for mypy
         return job.id
@@ -195,7 +203,9 @@ class JobDeferrer:
         """
         jobs = [self.make_new_job(**kwargs) for kwargs in task_kwargs]
         self._log_before_defer_jobs(jobs=jobs)
-        jobs = await self.job_manager.batch_defer_jobs_async(jobs=jobs)
+        jobs = await self.job_manager.batch_defer_jobs_async(
+            jobs=jobs, connection=self.connection
+        )
         self._log_after_defer_jobs(jobs=jobs)
 
         job_ids: list[int] = []
@@ -211,7 +221,7 @@ class JobDeferrer:
         # Make sure this code stays synchronized with .defer_async()
         job = self.make_new_job(**task_kwargs)
         self._log_before_defer_jobs(jobs=[job])
-        job = self.job_manager.defer_job(job=job)
+        job = self.job_manager.defer_job(job=job, connection=self.connection)
         self._log_after_defer_jobs(jobs=[job])
         assert job.id  # for mypy
         return job.id
@@ -222,7 +232,7 @@ class JobDeferrer:
         """
         jobs = [self.make_new_job(**kwargs) for kwargs in task_kwargs]
         self._log_before_defer_jobs(jobs=jobs)
-        jobs = self.job_manager.batch_defer_jobs(jobs=jobs)
+        jobs = self.job_manager.batch_defer_jobs(jobs=jobs, connection=self.connection)
         self._log_after_defer_jobs(jobs=jobs)
 
         job_ids: list[int] = []
