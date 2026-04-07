@@ -374,7 +374,7 @@ class App(blueprints.Blueprint):
 
     def open_async(
         self, pool: connector_module.Pool | None = None
-    ) -> utils.AwaitableContext:
+    ) -> utils.AwaitableContext[App]:
         """
         Open the app asynchronously.
 
