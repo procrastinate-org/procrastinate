@@ -781,6 +781,42 @@ async def test_list_jobs(fixture_jobs, kwargs, expected, pg_job_manager):
     ] == expected
 
 
+async def test_list_jobs_by_ids(fixture_jobs, pg_job_manager):
+    result = await pg_job_manager.list_jobs_by_ids_async([4, 999, 2, 2, 1])
+
+    assert [job.id for job in result] == [1, 2, 4]
+
+
+def test_list_jobs_by_ids_sync(sync_psycopg_connector, job_factory):
+    pg_job_manager = manager.JobManager(connector=sync_psycopg_connector)
+    job1 = pg_job_manager.defer_job(
+        job=job_factory(
+            id=None,
+            queue="queue_a",
+            task_name="task_a",
+            task_kwargs={},
+            lock="lock_a",
+            queueing_lock=None,
+        )
+    )
+    job2 = pg_job_manager.defer_job(
+        job=job_factory(
+            id=None,
+            queue="queue_b",
+            task_name="task_b",
+            task_kwargs={},
+            lock="lock_b",
+            queueing_lock=None,
+        )
+    )
+    assert job1.id is not None
+    assert job2.id is not None
+
+    result = pg_job_manager.list_jobs_by_ids([job2.id, 999, job1.id, job1.id])
+
+    assert [job.id for job in result] == [job1.id, job2.id]
+
+
 async def test_list_queues_dict(fixture_jobs, pg_job_manager):
     assert (await pg_job_manager.list_queues_async())[0] == {
         "name": "q1",

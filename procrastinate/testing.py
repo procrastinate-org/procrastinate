@@ -423,6 +423,10 @@ class InMemoryConnector(connector.BaseAsyncConnector):
                 jobs.append(job)
         return iter(jobs)
 
+    async def list_jobs_by_ids_all(self, job_ids: Iterable[int]):
+        unique_job_ids = {int(job_id) for job_id in job_ids}
+        return [self.jobs[job_id] for job_id in sorted(unique_job_ids) if job_id in self.jobs]
+
     async def list_queues_all(self, **kwargs: Any):
         result: list[dict[str, Any]] = []
         jobs = list(await self.list_jobs_all(**kwargs))
