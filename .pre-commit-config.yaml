@@ -58,7 +58,7 @@ repos:
           - psycopg==3.3.2
           - psycopg-pool==3.3.0
           - psycopg2-binary==2.9.11
-          - pygments==2.19.2
+          - pygments==2.20.0
           - python-dateutil==2.9.0.post0
           - pytz==2025.2
           - requests==2.32.5
