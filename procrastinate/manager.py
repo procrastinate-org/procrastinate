@@ -659,6 +659,31 @@ class JobManager:
         )
         return [jobs_module.Job.from_row(row) for row in rows]
 
+    async def list_jobs_by_ids_async(
+        self, job_ids: Iterable[int]
+    ) -> list[jobs_module.Job]:
+        """
+        List procrastinate jobs matching the provided IDs in a single query.
+
+        Parameters
+        ----------
+        job_ids:
+            Iterable of job IDs to fetch. Missing IDs are ignored and results are
+            ordered by ascending job ID.
+
+        Returns
+        -------
+        :
+        """
+        job_ids = list(dict.fromkeys(job_ids))
+        if not job_ids:
+            return []
+
+        rows = await self.connector.execute_query_all_async(
+            query=sql.queries["list_jobs_by_ids"], job_ids=job_ids
+        )
+        return [jobs_module.Job.from_row(row) for row in rows]
+
     def list_jobs(
         self,
         id: int | None = None,
@@ -681,6 +706,19 @@ class JobManager:
             lock=lock,
             queueing_lock=queueing_lock,
             worker_id=worker_id,
+        )
+        return [jobs_module.Job.from_row(row) for row in rows]
+
+    def list_jobs_by_ids(self, job_ids: Iterable[int]) -> list[jobs_module.Job]:
+        """
+        Sync version of `list_jobs_by_ids_async`.
+        """
+        job_ids = list(dict.fromkeys(job_ids))
+        if not job_ids:
+            return []
+
+        rows = self.connector.get_sync_connector().execute_query_all(
+            query=sql.queries["list_jobs_by_ids"], job_ids=job_ids
         )
         return [jobs_module.Job.from_row(row) for row in rows]
 

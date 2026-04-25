@@ -120,6 +120,24 @@ SELECT id,
    AND (%(worker_id)s::bigint IS NULL OR worker_id = %(worker_id)s)
  ORDER BY id ASC;
 
+-- list_jobs_by_ids --
+-- Get list of jobs filtered by multiple ids
+SELECT id,
+       queue_name,
+       task_name,
+       priority,
+       lock,
+       queueing_lock,
+       args,
+       status,
+       scheduled_at,
+       attempts,
+       abort_requested,
+       worker_id
+  FROM procrastinate_jobs
+ WHERE id = ANY(%(job_ids)s::bigint[])
+ ORDER BY id ASC;
+
 -- list_queues --
 -- Get list of queues and number of jobs per queue
 WITH jobs AS (
