@@ -76,6 +76,7 @@ test = [
     "pytest-cov",
     "pytest-django",
     "pytest-mock",
+    "freezegun",
     "migra",
     # migra depends on schemainspect, which has an implicit dependency on setuptools
     # (pkg_resources).

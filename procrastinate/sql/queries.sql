@@ -235,3 +235,25 @@ SELECT procrastinate_update_heartbeat_v1(%(worker_id)s)
 -- prune_stalled_workers --
 -- Delete stalled workers that haven't sent a heartbeat in a while
 SELECT * FROM procrastinate_prune_stalled_workers_v1(%(seconds_since_heartbeat)s)
+
+-- testing_override_time --
+-- Create a schema for testing overrides, set search path, and override time functions
+CREATE SCHEMA IF NOT EXISTS _procrastinate_testing;
+SET search_path TO _procrastinate_testing, public, pg_catalog;
+CREATE OR REPLACE FUNCTION _procrastinate_testing.now() RETURNS timestamp with time zone AS $$
+    SELECT '{time_str}'::timestamp with time zone;
+$$ LANGUAGE sql;
+CREATE OR REPLACE FUNCTION _procrastinate_testing.transaction_timestamp() RETURNS timestamp with time zone AS $$
+    SELECT '{time_str}'::timestamp with time zone;
+$$ LANGUAGE sql;
+CREATE OR REPLACE FUNCTION _procrastinate_testing.statement_timestamp() RETURNS timestamp with time zone AS $$
+    SELECT '{time_str}'::timestamp with time zone;
+$$ LANGUAGE sql;
+CREATE OR REPLACE FUNCTION _procrastinate_testing.clock_timestamp() RETURNS timestamp with time zone AS $$
+    SELECT '{time_str}'::timestamp with time zone;
+$$ LANGUAGE sql;
+
+-- testing_unoverride_time --
+-- Drop the testing schema and reset search path
+DROP SCHEMA IF EXISTS _procrastinate_testing CASCADE;
+RESET search_path;
