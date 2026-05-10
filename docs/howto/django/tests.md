@@ -147,12 +147,12 @@ from mypackage.procrastinate import my_task
 def test_task_time_travel(run_procrastinate_jobs):
     with freezegun.freeze_time("2025-01-01T00:00:00Z"):
         my_task.defer(a=1, b=2)
-        
+
         # Modify the job via ORM to schedule it for tomorrow
         ProcrastinateJob.objects.update(
             scheduled_at=datetime.datetime(2025, 1, 2, 0, 0, 0, tzinfo=datetime.timezone.utc)
         )
-        
+
         # Worker shouldn't pick it up yet
         run_procrastinate_jobs()
         assert ProcrastinateJob.objects.filter(status="todo").exists()
