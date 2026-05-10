@@ -60,6 +60,9 @@ changelog = "https://github.com/procrastinate-org/procrastinate/releases"
 [project.scripts]
 procrastinate = 'procrastinate.cli:main'
 
+[project.entry-points.pytest11]
+procrastinate = "procrastinate.pytest_plugin"
+
 [tool.uv]
 cache-keys = [{ git = { commit = true, tags = true } }]
 required-version = ">=0.5.21"
