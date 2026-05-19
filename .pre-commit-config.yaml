@@ -50,7 +50,7 @@ repos:
           - django-stubs-ext==5.2.9
           - docutils==0.21.2
           - greenlet==3.3.1 ; platform_machine == 'AMD64' or platform_machine == 'WIN32' or platform_machine == 'aarch64' or platform_machine == 'amd64' or platform_machine == 'ppc64le' or platform_machine == 'win32' or platform_machine == 'x86_64'
-          - idna==3.11
+          - idna==3.15
           - imagesize==1.4.1
           - jinja2==3.1.6
           - markupsafe==3.0.3
