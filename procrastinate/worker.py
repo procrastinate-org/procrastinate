@@ -149,6 +149,21 @@ class Worker:
 
         self.buffer_concurrency = new_buffer
 
+    @property
+    def running_jobs_count(self) -> int:
+        """Number of jobs currently being processed."""
+        return len(self._running_jobs)
+
+    @property
+    def spare_concurrency(self) -> int:
+        """Number of active concurrency slots currently free.
+
+        Returns 0 when the worker is saturated (all slots occupied).
+        A positive value means the worker could process more jobs right now
+        if they were available — i.e. concurrency is NOT the bottleneck.
+        """
+        return max(0, self.concurrency - len(self._running_jobs))
+
     async def _periodic_deferrer(self):
         deferrer = periodic.PeriodicDeferrer(
             registry=self.app.periodic_registry,
