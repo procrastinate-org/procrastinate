@@ -53,6 +53,32 @@ in Django's settings (see {doc}`logs`).
 See {doc}`../basics/command_line` for more details on the CLI.
 If you prefer writing your own scripts, see {doc}`scripts`.
 
+## Database connections
+
+The worker manages Django's database connections around each task the same way
+Django does around an HTTP request: per-thread connections are closed before and
+after every task (sync or async) via `close_old_connections()`. You don't need to
+manage connections in your tasks, and `CONN_MAX_AGE` is respected, so persistent
+connections are reused between tasks rather than force-closed.
+
+Because the connection is only closed at these task boundaries (not in between), a
+connection opened early in a long-running task stays open until the task finishes,
+even across a long stretch of non-database work. If that matters — to free a
+connection slot, or to avoid reusing a connection that may have dropped while
+idle — close it from within the task once you're done with the database for a
+while:
+
+```python
+from django.db import close_old_connections
+
+@app.task
+def long_task():
+    do_early_db_work()
+    close_old_connections()  # release the connection before the long idle stretch
+    do_hours_of_non_db_work()
+    do_late_db_work()  # reconnects fresh
+```
+
 ## Deferring jobs
 
 Defer jobs from your views works as you would expect:

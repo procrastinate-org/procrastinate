@@ -7,7 +7,7 @@ from django.utils import module_loading
 
 import procrastinate
 
-from . import django_connector, procrastinate_app, settings
+from . import db_cleanup, django_connector, procrastinate_app, settings
 
 
 class ProcrastinateConfig(apps.AppConfig):
@@ -38,7 +38,7 @@ def create_app(blueprint: procrastinate.Blueprint) -> procrastinate.App:
     connector = django_connector.DjangoConnector(
         alias=settings.settings.DATABASE_ALIAS,
     )
-    app = procrastinate.App(
+    app = db_cleanup.DjangoApp(
         connector=connector,
         import_paths=list(get_import_paths()),
         worker_defaults=settings.settings.WORKER_DEFAULTS,
