@@ -57,9 +57,11 @@ If you prefer writing your own scripts, see {doc}`scripts`.
 
 The worker manages Django's database connections around each task the same way
 Django does around an HTTP request: per-thread connections are closed before and
-after every task (sync or async) via `close_old_connections()`. You don't need to
-manage connections in your tasks, and `CONN_MAX_AGE` is respected, so persistent
-connections are reused between tasks rather than force-closed.
+after every task (sync or async) via `close_old_connections()`, and Django's
+query log (only populated under `DEBUG=True`) is cleared with `reset_queries()`.
+You don't need to manage connections in your tasks, and `CONN_MAX_AGE` is
+respected, so persistent connections are reused between tasks rather than
+force-closed.
 
 Because the connection is only closed at these task boundaries (not in between), a
 connection opened early in a long-running task stays open until the task finishes,

@@ -20,16 +20,21 @@ def test_wrap_task_sync_closes_before_and_after(mocker):
         "close_old_connections",
         side_effect=lambda: events.append("close"),
     )
+    # reset_queries clears the (DEBUG-only) query log and runs only after the task.
+    mocker.patch.object(
+        db_cleanup, "reset_queries", side_effect=lambda: events.append("reset")
+    )
     task = make_task(lambda: events.append("run"))
 
     db_cleanup.wrap_task(task)
     task.func()
 
-    assert events == ["close", "run", "close"]
+    assert events == ["close", "run", "close", "reset"]
 
 
-def test_wrap_task_sync_closes_even_on_error(mocker):
+def test_wrap_task_sync_cleans_up_even_on_error(mocker):
     close = mocker.patch.object(db_cleanup, "close_old_connections")
+    reset = mocker.patch.object(db_cleanup, "reset_queries")
 
     def boom():
         raise ValueError("boom")
@@ -40,7 +45,9 @@ def test_wrap_task_sync_closes_even_on_error(mocker):
     with pytest.raises(ValueError):
         task.func()
 
+    # before + after close, and the after-task reset, all still happen.
     assert close.call_count == 2
+    assert reset.call_count == 1
 
 
 async def test_wrap_task_async_closes_before_and_after(mocker):
@@ -50,6 +57,9 @@ async def test_wrap_task_async_closes_before_and_after(mocker):
         "close_old_connections",
         side_effect=lambda: events.append("close"),
     )
+    mocker.patch.object(
+        db_cleanup, "reset_queries", side_effect=lambda: events.append("reset")
+    )
 
     async def coro():
         events.append("run")
@@ -58,7 +68,7 @@ async def test_wrap_task_async_closes_before_and_after(mocker):
     db_cleanup.wrap_task(task)
     await task.func()
 
-    assert events == ["close", "run", "close"]
+    assert events == ["close", "run", "close", "reset"]
 
 
 def test_wrap_task_preserves_sync_or_async_nature():

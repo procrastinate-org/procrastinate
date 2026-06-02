@@ -5,7 +5,7 @@ import inspect
 from typing import TYPE_CHECKING, Any
 
 from asgiref import sync as asgiref_sync
-from django.db import close_old_connections
+from django.db import close_old_connections, reset_queries
 
 from procrastinate import app as app_module
 from procrastinate import blueprints
@@ -18,23 +18,40 @@ if TYPE_CHECKING:
 _WRAPPED_FLAG = "_procrastinate_django_db_cleanup"
 
 
+def _cleanup_before() -> None:
+    # Drop a persistent connection (``CONN_MAX_AGE > 0``) that may have died while
+    # the worker thread was idle between tasks, so the task transparently
+    # reconnects instead of failing on a dead socket.
+    close_old_connections()
+
+
+def _cleanup_after() -> None:
+    # Don't leak the connection past the unit of work...
+    close_old_connections()
+    # ...and clear Django's per-connection query log. It is only populated when
+    # settings.DEBUG is True (and closing the connection does not clear it, since
+    # the log lives on the persistent connection wrapper), so without this a
+    # worker run with DEBUG=True slowly accumulates it. Mirrors what Django does
+    # at request_started; a no-op when DEBUG is False.
+    reset_queries()
+
+
 def wrap_task(task: tasks.Task) -> None:
     """
     Wrap a task's function so that Django's per-thread database connections are
-    closed before and after the task runs.
+    managed around the task, the same way Django manages them around a request.
 
     Procrastinate sync tasks run inside an asgiref ``sync_to_async`` worker-pool
     thread (see ``procrastinate.worker``). Django's connection cache is
     thread-local and the caller owns closing connections in non-request contexts,
     so without this the connection opened by a sync ORM call leaks for the
-    lifetime of the (reused) pool thread. We mirror Django's own request lifecycle
-    (``close_old_connections`` wired to both ``request_started`` and
-    ``request_finished``) by closing around each task:
+    lifetime of the (reused) pool thread. We close around each task:
 
-    - before: drop a persistent connection (``CONN_MAX_AGE > 0``) that may have
-      died while the pool thread was idle between tasks, so the task transparently
-      reconnects instead of failing on a dead socket;
-    - after: don't leak the connection past the unit of work.
+    - before: drop a persistent connection that may have died while the pool
+      thread was idle between tasks, so the task transparently reconnects instead
+      of failing on a dead socket;
+    - after: don't leak the connection past the unit of work, and clear the
+      (DEBUG-only) query log.
 
     ``close_old_connections`` respects ``CONN_MAX_AGE``: a healthy persistent
     connection is kept, while with the default ``CONN_MAX_AGE = 0`` every
@@ -48,20 +65,19 @@ def wrap_task(task: tasks.Task) -> None:
         return
 
     if inspect.iscoroutinefunction(func):
+        # The task runs in the event-loop thread. Django's connection.close() is
+        # @async_unsafe, so run the cleanup in Django's thread-sensitive context
+        # (where the async ORM ran its sync work) via sync_to_async.
+        before = asgiref_sync.sync_to_async(_cleanup_before, thread_sensitive=True)
+        after = asgiref_sync.sync_to_async(_cleanup_after, thread_sensitive=True)
 
         @functools.wraps(func)
         async def async_wrapper(*args: Any, **kwargs: Any) -> Any:
-            # The task runs in the event-loop thread. Django's connection.close()
-            # is @async_unsafe, so we close in Django's thread-sensitive context
-            # (where the async ORM ran its sync work) via sync_to_async.
-            aclose = asgiref_sync.sync_to_async(
-                close_old_connections, thread_sensitive=True
-            )
-            await aclose()
+            await before()
             try:
                 return await func(*args, **kwargs)
             finally:
-                await aclose()
+                await after()
 
         wrapper = async_wrapper
 
@@ -72,14 +88,14 @@ def wrap_task(task: tasks.Task) -> None:
             # Runs in the worker's sync_to_async pool thread, the same thread
             # Django opened its per-thread connection in.
             # Note: for the rare sync function that returns an awaitable without
-            # being a coroutine function (awaited later by the worker), the final
-            # close happens after the sync portion returns the awaitable, not
+            # being a coroutine function (awaited later by the worker), the
+            # cleanup happens after the sync portion returns the awaitable, not
             # after it is awaited. That edge case is out of scope here.
-            close_old_connections()
+            _cleanup_before()
             try:
                 return func(*args, **kwargs)
             finally:
-                close_old_connections()
+                _cleanup_after()
 
         wrapper = sync_wrapper
 
