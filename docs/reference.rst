@@ -100,6 +100,8 @@ Django
 
 .. automodule:: procrastinate.contrib.django
 
+.. autoclass:: procrastinate.contrib.django.DjangoApp
+
 
 SQLAlchemy
 ----------

@@ -120,3 +120,19 @@ def test_django_app_wraps_tasks_from_both_registration_paths():
     assert getattr(app.tasks["ns:from_blueprint"].func, flag, False) is True
     # Builtin tasks (registered via add_tasks_from in App.__init__) too.
     assert all(getattr(t.func, flag, False) for t in app.tasks.values())
+
+
+def test_django_app_is_publicly_exported():
+    # Users build a throwaway DjangoApp in tests (see howto/django/tests); it must
+    # be importable from the package and wrap tasks so those tests don't leak.
+    from procrastinate.contrib.django import DjangoApp
+
+    assert DjangoApp is db_cleanup.DjangoApp
+
+    app = DjangoApp(connector=testing.InMemoryConnector())
+
+    @app.task(name="user_task")
+    def user_task():
+        pass
+
+    assert getattr(app.tasks["user_task"].func, db_cleanup._WRAPPED_FLAG, False) is True

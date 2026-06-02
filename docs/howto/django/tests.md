@@ -78,13 +78,17 @@ def test_my_task():
 :::{note}
 Registering a new task on the django procrastinate app within a test will
 make this task available even after the test has run. You probably want to
-avoid this, for example by creating a new app within each of those tests:
+avoid this, for example by creating a new app within each of those tests. Use
+{py:class}`~procrastinate.contrib.django.DjangoApp` (the same app class the
+contrib uses) so tasks run by a worker still get the automatic connection
+cleanup (see {doc}`basic_usage`) and don't leak connections at test database
+teardown:
 
 ```python
-from procrastinate.contrib.django import app
+from procrastinate.contrib.django import DjangoApp, app
 
 def test_my_task():
-    new_app = procrastinate_app.ProcrastinateApp(app.connector)
+    new_app = DjangoApp(connector=app.connector)
 
     @new_app.task
     def my_task(a, b):

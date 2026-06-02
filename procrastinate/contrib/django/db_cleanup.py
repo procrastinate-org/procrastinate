@@ -105,8 +105,18 @@ def wrap_task(task: tasks.Task) -> None:
 
 class DjangoApp(app_module.App):
     """
-    A :class:`procrastinate.App` that automatically closes Django's per-thread
+    A :class:`procrastinate.App` that automatically manages Django's per-thread
     database connections around each task execution (see :func:`wrap_task`).
+
+    This is the app the Django contrib uses (``procrastinate.contrib.django.app``).
+    It is also the app you want when building a throwaway app in a test (e.g. to
+    avoid leaving a task registered on the global app), so that tasks run by a
+    worker get the same connection cleanup and don't leak connections at test
+    database teardown::
+
+        from procrastinate.contrib.django import DjangoApp, app
+
+        new_app = DjangoApp(connector=app.connector)
 
     Every task reaches the registry through ``_register_task`` (the ``@app.task``
     decorator) or ``add_tasks_from`` (builtin tasks, the contrib ``FutureApp``
