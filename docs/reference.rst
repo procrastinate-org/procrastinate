@@ -31,6 +31,13 @@ Tasks
 When tasks are created with argument ``pass_context``, they are provided a
 `JobContext` argument:
 
+Middleware
+----------
+
+.. autofunction:: procrastinate.middleware.compose
+
+.. autofunction:: procrastinate.middleware.is_async_middleware
+
 .. autoclass:: procrastinate.JobContext
     :members: app, worker_name, worker_queues, job, task, should_abort
 

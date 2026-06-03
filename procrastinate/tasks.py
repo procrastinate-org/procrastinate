@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import datetime
+import inspect
 import logging
 from collections.abc import Callable
 from typing import Any, Generic, TypedDict, cast
@@ -9,6 +10,7 @@ from typing_extensions import NotRequired, ParamSpec, TypeVar, Unpack
 
 from procrastinate import app as app_module
 from procrastinate import blueprints, exceptions, jobs, manager, types, utils
+from procrastinate import middleware as middleware_module
 from procrastinate import retry as retry_module
 
 logger = logging.getLogger(__name__)
@@ -89,6 +91,7 @@ class Task(Generic[P, R, Args]):
         priority: int = jobs.DEFAULT_PRIORITY,
         lock: str | None = None,
         queueing_lock: str | None = None,
+        task_middleware: list[middleware_module.TaskMiddleware] | None = None,
     ):
         #: Default queue to send deferred jobs to. The queue can be overridden
         #: when a job is deferred.
@@ -117,6 +120,21 @@ class Task(Generic[P, R, Args]):
         #: Default queueing lock. The queuing lock can be overridden when a job
         #: is deferred.
         self.queueing_lock: str | None = queueing_lock
+        #: Middlewares wrapping this task's execution (innermost relative to any
+        #: worker-wide middleware). Each must match the task's sync/async nature.
+        self.middlewares: list[middleware_module.TaskMiddleware] = task_middleware or []
+        task_is_async = inspect.iscoroutinefunction(func)
+        for mw in self.middlewares:
+            if middleware_module.is_async_middleware(mw) != task_is_async:
+                task_kind = "async" if task_is_async else "sync"
+                mw_kind = (
+                    "async" if middleware_module.is_async_middleware(mw) else "sync"
+                )
+                mw_name = getattr(mw, "__name__", repr(mw))
+                raise exceptions.MiddlewareKindMismatch(
+                    f"{mw_kind} middleware {mw_name!r} cannot wrap {task_kind} task "
+                    f"{self.name!r}; {task_kind} tasks require {task_kind} middleware."
+                )
 
     def add_namespace(self, namespace: str) -> None:
         """

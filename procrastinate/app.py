@@ -13,7 +13,15 @@ from typing import (
 
 from typing_extensions import NotRequired, Unpack
 
-from procrastinate import blueprints, exceptions, jobs, manager, schema, utils
+from procrastinate import (
+    blueprints,
+    exceptions,
+    jobs,
+    manager,
+    middleware,
+    schema,
+    utils,
+)
 from procrastinate import connector as connector_module
 
 if TYPE_CHECKING:
@@ -36,6 +44,7 @@ class WorkerOptions(TypedDict):
     install_signal_handlers: NotRequired[bool]
     update_heartbeat_interval: NotRequired[float]
     stalled_worker_timeout: NotRequired[float]
+    task_middleware: NotRequired[list[middleware.TaskMiddleware]]
 
 
 class App(blueprints.Blueprint):
@@ -324,6 +333,10 @@ class App(blueprints.Blueprint):
             Time in seconds after which a worker is considered stalled if no heartbeat has
             been received. A worker prunes stalled workers from the database at startup.
             (defaults to 30)
+        task_middleware: ``Optional[list[TaskMiddleware]]``
+            A list of middlewares wrapping every task this worker runs. Sync
+            middlewares apply to sync tasks, async middlewares to async tasks.
+            See `howto/advanced/middleware`. (defaults to no middleware)
         """
         self.perform_import_paths()
         worker = self._worker(**kwargs)

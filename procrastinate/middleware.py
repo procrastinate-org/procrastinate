@@ -1,0 +1,60 @@
+from __future__ import annotations
+
+import functools
+import inspect
+from collections.abc import Awaitable, Callable, Sequence
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from procrastinate import job_context, worker
+
+# A *task* middleware wraps one task's execution. It receives a zero-arg
+# ``call_next`` (the next middleware, or the task itself), the JobContext and the
+# Worker, and must call/await ``call_next()`` and return the result.
+#
+# A sync task middleware wraps a sync task (and runs in the task's worker thread);
+# an async task middleware wraps an async task (and runs on the event loop).
+#
+# (A future "worker middleware" — always-async, wrapping the whole job on the loop
+# — will be added to this module with its own ``WorkerMiddleware`` type. The
+# ``compose`` and ``is_async_middleware`` helpers below are generic and shared.)
+SyncCallNext = Callable[[], Any]
+AsyncCallNext = Callable[[], Awaitable[Any]]
+SyncTaskMiddleware = Callable[
+    [SyncCallNext, "job_context.JobContext", "worker.Worker"], Any
+]
+AsyncTaskMiddleware = Callable[
+    [AsyncCallNext, "job_context.JobContext", "worker.Worker"], Awaitable[Any]
+]
+TaskMiddleware = SyncTaskMiddleware | AsyncTaskMiddleware
+
+
+def is_async_middleware(middleware: TaskMiddleware) -> bool:
+    """
+    Whether a middleware is a coroutine function (and thus wraps async tasks).
+    Handles plain functions, ``functools.partial`` and callable objects.
+    """
+    func = middleware
+    while isinstance(func, functools.partial):
+        func = func.func
+    if inspect.iscoroutinefunction(func):
+        return True
+    call = getattr(func, "__call__", None)
+    return bool(call is not None and inspect.iscoroutinefunction(call))
+
+
+def compose(
+    middlewares: Sequence[Callable[..., Any]],
+    run_task: Callable[[], Any],
+    context: job_context.JobContext | None,
+    worker: worker.Worker | None,
+) -> Callable[[], Any]:
+    """
+    Nest ``middlewares`` around ``run_task``, first item outermost. Returns a
+    zero-arg callable: call it for sync tasks, await its result for async tasks.
+    An empty sequence returns ``run_task`` unchanged (no-op).
+    """
+    call_next = run_task
+    for middleware in reversed(list(middlewares)):
+        call_next = functools.partial(middleware, call_next, context, worker)
+    return call_next
