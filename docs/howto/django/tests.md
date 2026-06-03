@@ -96,9 +96,76 @@ def test_my_task():
 
 :::
 
-In addition, you can also run a worker in your integration tests. Whether you
-use `pytest-django` or Django's `TestCase` subclasses, this requires some
-additonal configuration.
+In addition, you can also run a worker in your integration tests.
+
+### DjangoTestingConnector and Pytest Plugin
+
+If you need to test jobs while being closer to reality—like modifying job scheduling via the ORM—you can use the `DjangoTestingConnector`. This connector leverages your test database but handles `listen/notify` in-memory.
+
+To make things easier, Procrastinate provides a pytest plugin (automatically enabled if both `pytest` and `django` are installed). It offers the `run_procrastinate_jobs` and `arun_procrastinate_jobs` fixtures, which act as a shortcut to replace the connector and run the worker.
+
+Here is an example:
+
+```python
+import pytest
+from procrastinate.contrib.django.models import ProcrastinateJob
+from mypackage.procrastinate import my_task
+
+@pytest.mark.django_db(transaction=True)
+def test_task(run_procrastinate_jobs):
+    # Run tasks
+    my_task.defer(a=1, b=2)
+
+    # You can interact with jobs using the ORM to mimic reality
+    # (e.g. changing scheduled_at or statuses)
+
+    # Process awaiting jobs
+    run_procrastinate_jobs()
+
+    # Check task has been executed
+    assert ProcrastinateJob.objects.filter(task_name="my_task").first().status == "succeeded"
+
+@pytest.mark.asyncio
+@pytest.mark.django_db(transaction=True)
+async def test_async_task(arun_procrastinate_jobs):
+    await my_task.defer_async(a=1, b=2)
+    await arun_procrastinate_jobs()
+```
+
+### Time traveling with freezegun
+
+You can also use tools like `freezegun` with `run_procrastinate_jobs` to test scheduled jobs by traveling through time. Note that if you intend to travel through time or modify jobs via ORM, you must have `transaction=True` on your `django_db` marker.
+
+```python
+import datetime
+import pytest
+import freezegun
+from procrastinate.contrib.django.models import ProcrastinateJob
+from mypackage.procrastinate import my_task
+
+@pytest.mark.django_db(transaction=True)
+def test_task_time_travel(run_procrastinate_jobs):
+    with freezegun.freeze_time("2025-01-01T00:00:00Z"):
+        my_task.defer(a=1, b=2)
+
+        # Modify the job via ORM to schedule it for tomorrow
+        ProcrastinateJob.objects.update(
+            scheduled_at=datetime.datetime(2025, 1, 2, 0, 0, 0, tzinfo=datetime.timezone.utc)
+        )
+
+        # Worker shouldn't pick it up yet
+        run_procrastinate_jobs()
+        assert ProcrastinateJob.objects.filter(status="todo").exists()
+
+    with freezegun.freeze_time("2025-01-02T01:00:00Z"):
+        # The job is now ready to be processed
+        run_procrastinate_jobs()
+        assert ProcrastinateJob.objects.filter(status="succeeded").exists()
+```
+
+### Manual configuration without the pytest plugin
+
+If you use `pytest-django` without using the fixtures, or Django's `TestCase` subclasses, running a worker requires some additional configuration.
 
 1. In order to run the worker, use the syntax outlined here: {doc}`scripts`.
 2. In order for Procrastinate to be able to use `SELECT FOR UPDATE`, use
@@ -116,6 +183,7 @@ additonal configuration.
 
 ```python
 from procrastinate.contrib.django import app
+from procrastinate.contrib.django.testing import DjangoTestingConnector
 from django.test import TransactionTestCase
 
 from mypackage.procrastinate import my_task
@@ -126,48 +194,11 @@ class TestingTaskClass(TransactionTestCase):
         my_task.defer(a=1, b=2)
 
         # Start worker
-        with app.replace_connector(app.connector.get_worker_connector()):
+        with app.replace_connector(DjangoTestingConnector()):
             app.run_worker(wait=False, install_signal_handlers=False, listen_notify=False)
 
         # Check task has been executed
-        assert ProcrastinateJob.objects.filter(task_name="my_task").status == "succeeded"
-```
-
-```python
-from procrastinate.contrib.django import app
-
-from mypackage.procrastinate import my_task
-
-@pytest.mark.django_db(transaction=True)
-def test_task():
-    # Run tasks
-    my_task.defer(a=1, b=2)
-
-    # Start worker
-    with app.replace_connector(app.connector.get_worker_connector()):
-        app.run_worker(wait=False, install_signal_handlers=False, listen_notify=False)
-
-    # Check task has been executed
-    assert ProcrastinateJob.objects.filter(task_name="my_task").status == "succeeded"
-
-# Or with a fixture
-@pytest.fixture
-def worker(transactional_db):
-    with app.replace_connector(app.connector.get_worker_connector()):
-        def f():
-            app.run_worker(wait=False, install_signal_handlers=False, listen_notify=False)
-            return app
-    yield f
-
-def test_task(worker):
-    # Run tasks
-    my_task.defer(a=1, b=2)
-
-    # Start worker
-    worker()
-
-    # Check task has been executed
-    assert ProcrastinateJob.objects.filter(task_name="my_task").status == "succeeded"
+        assert ProcrastinateJob.objects.filter(task_name="my_task").first().status == "succeeded"
 ```
 
 ## Making the models writable in tests
