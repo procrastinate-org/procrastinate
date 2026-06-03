@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import ast
 import contextlib
 import pathlib
 import subprocess
+import textwrap
 import warnings
 
 import packaging.version
@@ -90,6 +92,146 @@ def test_migration(schema_database, migrations_database, run_migrations):
 
     print(m.sql)
     assert not m.statements
+
+
+def make_alembic_config(tmp_path, dbname, *version_locations):
+    alembic_config = pytest.importorskip("alembic.config")
+
+    script_location = tmp_path / "alembic"
+    script_location.mkdir()
+    (script_location / "env.py").write_text(
+        textwrap.dedent(
+            """
+            from alembic import context
+            from sqlalchemy import engine_from_config, pool
+
+            config = context.config
+            target_metadata = None
+
+
+            def run_migrations_online():
+                connectable = engine_from_config(
+                    config.get_section(config.config_ini_section),
+                    prefix="sqlalchemy.",
+                    poolclass=pool.NullPool,
+                )
+                with connectable.connect() as connection:
+                    context.configure(connection=connection)
+                    with context.begin_transaction():
+                        context.run_migrations()
+
+
+            run_migrations_online()
+            """
+        ),
+        encoding="utf-8",
+    )
+
+    config = alembic_config.Config()
+    config.set_main_option("script_location", str(script_location))
+    config.set_main_option("sqlalchemy.url", f"postgresql+psycopg:///{dbname}")
+    config.set_main_option(
+        "version_locations", " ".join(str(path) for path in version_locations)
+    )
+    return config
+
+
+def run_alembic_migrations(tmp_path, dbname, *version_locations):
+    alembic_command = pytest.importorskip("alembic.command")
+
+    config = make_alembic_config(tmp_path, dbname, *version_locations)
+    alembic_command.upgrade(config, "heads")
+
+
+@pytest.fixture
+def alembic_database(db_factory):
+    dbname = "procrastinate_alembic"
+    db_factory(dbname=dbname)
+
+    return dbname
+
+
+def test_alembic_migration(schema_database, alembic_database, tmp_path):
+    run_alembic_migrations(
+        tmp_path,
+        alembic_database,
+        schema.SchemaManager.get_alembic_versions_path(),
+    )
+
+    with contextlib.ExitStack() as stack:
+        schema_db_session = stack.enter_context(
+            S(f"postgresql:///{schema_database}", poolclass=NullPool)
+        )
+        alembic_db_session = stack.enter_context(
+            S(f"postgresql:///{alembic_database}", poolclass=NullPool)
+        )
+        m = Migration(alembic_db_session, schema_db_session)
+        m.set_safety(False)
+        m.add_all_changes()
+
+    print(m.sql)
+    assert not m.statements
+
+
+def test_alembic_multiple_version_locations(db_factory, db_execute, tmp_path):
+    dbname = "procrastinate_alembic_multi_base"
+    db_factory(dbname=dbname)
+    user_versions = tmp_path / "user_versions"
+    user_versions.mkdir()
+    (user_versions / "user_0001.py").write_text(
+        textwrap.dedent(
+            """
+            from __future__ import annotations
+
+            from alembic import op
+
+            revision = "user_0001"
+            down_revision = None
+            branch_labels = ("user",)
+            depends_on = None
+
+
+            def upgrade() -> None:
+                op.execute("CREATE TABLE user_alembic_revision (id integer PRIMARY KEY)")
+
+
+            def downgrade() -> None:
+                op.execute("DROP TABLE user_alembic_revision")
+            """
+        ),
+        encoding="utf-8",
+    )
+
+    run_alembic_migrations(
+        tmp_path,
+        dbname,
+        user_versions,
+        schema.SchemaManager.get_alembic_versions_path(),
+    )
+
+    procrastinate_head = sorted(
+        pathlib.Path(schema.SchemaManager.get_alembic_versions_path()).glob(
+            "procrastinate_*.py"
+        )
+    )[-1]
+    module = ast.parse(procrastinate_head.read_text(encoding="utf-8"))
+    procrastinate_head_revision = next(
+        node.value.value
+        for node in module.body
+        if isinstance(node, ast.Assign)
+        and len(node.targets) == 1
+        and isinstance(node.targets[0], ast.Name)
+        and node.targets[0].id == "revision"
+        and isinstance(node.value, ast.Constant)
+        and isinstance(node.value.value, str)
+    )
+    with db_execute(dbname) as execute:
+        execute("SELECT * FROM procrastinate_jobs")
+        execute("SELECT * FROM user_alembic_revision")
+        cursor = execute("SELECT version_num FROM alembic_version")
+        heads = {row[0] for row in cursor.fetchall()}
+
+    assert heads == {procrastinate_head_revision, "user_0001"}
 
 
 def test_django_migrations_run_properly(django_db):

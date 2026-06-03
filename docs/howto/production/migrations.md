@@ -22,6 +22,13 @@ ALTER TABLE procrastinate_jobs ADD COLUMN extra TEXT;
 The migration scripts are pure-SQL scripts, meaning that they may be applied to the
 database using any PostgreSQL client, including `psql` and `PGAdmin`.
 
+Procrastinate also ships optional Alembic revisions that wrap the same SQL
+migration scripts. Install them with:
+
+```console
+$ pip install "procrastinate[alembic]"
+```
+
 :::{note}
 If you use Django, instead of using the SQL migration scripts directly, you way want
 to rely on the Procrastinate Django app, and the Django database migration scripts
@@ -36,6 +43,28 @@ on PyPI. A simple way to list all the migrations is to use the command:
 $ procrastinate schema --migrations-path
 /home/me/my_venv/lib/python3.x/lib/site-packages/procrastinate/sql/migrations
 ```
+
+If your project already uses Alembic, add Procrastinate's packaged Alembic
+versions directory to your Alembic `version_locations`, then run Alembic normally:
+
+```console
+$ procrastinate schema --alembic-versions-path
+/home/me/my_venv/lib/python3.x/lib/site-packages/procrastinate/alembic/versions
+```
+
+You can also print a minimal configuration snippet:
+
+```console
+$ procrastinate schema --alembic-config-snippet
+[alembic]
+version_locations = %(here)s/versions /home/me/my_venv/lib/python3.x/lib/site-packages/procrastinate/alembic/versions
+```
+
+The Procrastinate Alembic tree uses revision IDs prefixed with `procrastinate_`
+and a `procrastinate` branch label, so it can live alongside your own revisions.
+Most projects should keep the Procrastinate and application revision trees
+independent. If your own schema changes must run after a specific Procrastinate
+revision, your revision may set `down_revision` to that Procrastinate revision.
 
 It's your responsibility to keep track of which migrations have been applied yet
 or not. Thankfully, the names of procrastinate migrations should help you: they

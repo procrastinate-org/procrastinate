@@ -112,6 +112,21 @@ async def test_schema_migrations_path(entrypoint):
     assert result.exit_code == 0
 
 
+async def test_schema_alembic_versions_path(entrypoint):
+    result = await entrypoint("schema --alembic-versions-path")
+
+    assert result.stdout.endswith("alembic/versions\n")
+    assert result.exit_code == 0
+
+
+async def test_schema_alembic_config_snippet(entrypoint):
+    result = await entrypoint("schema --alembic-config-snippet")
+
+    assert "version_locations = %(here)s/versions" in result.stdout
+    assert "alembic/versions" in result.stdout
+    assert result.exit_code == 0
+
+
 async def test_healthchecks(entrypoint, cli_app):
     result = await entrypoint("healthchecks")
 

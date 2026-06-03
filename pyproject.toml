@@ -44,6 +44,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+alembic = ["alembic"]
 django = ["django>=2.2"]
 sqlalchemy = ["sqlalchemy~=2.0"]
 aiopg = ["aiopg", "psycopg2-binary"]
@@ -71,6 +72,7 @@ release = ["dunamai"]
 lint_format = ["ruff", "django-upgrade"]
 pg_implem = ["aiopg", "sqlalchemy", "psycopg2-binary", "psycopg[binary,pool]"]
 test = [
+    "alembic",
     "pytest-asyncio",
     "pytest-benchmark",
     "pytest-cov",

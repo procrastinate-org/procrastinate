@@ -9,6 +9,7 @@ from typing_extensions import LiteralString
 from procrastinate import connector as connector_module
 
 migrations_path = pathlib.Path(__file__).parent / "sql" / "migrations"
+alembic_versions_path = pathlib.Path(__file__).parent / "alembic" / "versions"
 
 
 class SchemaManager:
@@ -28,6 +29,18 @@ class SchemaManager:
     @staticmethod
     def get_migrations_path() -> str:
         return str(migrations_path)
+
+    @staticmethod
+    def get_alembic_versions_path() -> str:
+        return str(alembic_versions_path)
+
+    @classmethod
+    def get_alembic_config_snippet(cls) -> str:
+        return (
+            "[alembic]\n"
+            "version_locations = %(here)s/versions "
+            f"{cls.get_alembic_versions_path()}\n"
+        )
 
     def apply_schema(self) -> None:
         queries = self.get_schema()
