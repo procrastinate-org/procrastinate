@@ -52,6 +52,14 @@ class Worker:
         self.app = app
         self.queues = queues
         self.worker_name = name
+        if concurrency < 0 or buffer_concurrency < 0:
+            raise ValueError(
+                "concurrency and buffer_concurrency must be non-negative"
+            )
+        if concurrency + buffer_concurrency <= 0:
+            raise ValueError(
+                "concurrency + buffer_concurrency must be greater than 0"
+            )
         self.concurrency = concurrency
         self.buffer_concurrency = buffer_concurrency
         self.total_capacity = concurrency + buffer_concurrency
