@@ -53,13 +53,9 @@ class Worker:
         self.queues = queues
         self.worker_name = name
         if concurrency < 0 or buffer_concurrency < 0:
-            raise ValueError(
-                "concurrency and buffer_concurrency must be non-negative"
-            )
+            raise ValueError("concurrency and buffer_concurrency must be non-negative")
         if concurrency + buffer_concurrency <= 0:
-            raise ValueError(
-                "concurrency + buffer_concurrency must be greater than 0"
-            )
+            raise ValueError("concurrency + buffer_concurrency must be greater than 0")
         self.concurrency = concurrency
         self.buffer_concurrency = buffer_concurrency
         self.total_capacity = concurrency + buffer_concurrency
@@ -124,9 +120,7 @@ class Worker:
             return
 
         if new_concurrency < 0 or new_concurrency > self.total_capacity:
-            raise ValueError(
-                f"Concurrency must be between 0 and {self.total_capacity}"
-            )
+            raise ValueError(f"Concurrency must be between 0 and {self.total_capacity}")
 
         old_concurrency = self.concurrency
         old_buffer = self.buffer_concurrency
@@ -423,7 +417,9 @@ class Worker:
                 )
             finally:
                 if should_release:
-                    if (not job or self._stop_event.is_set()) and acquire_sem_task.done():
+                    if (
+                        not job or self._stop_event.is_set()
+                    ) and acquire_sem_task.done():
                         self._job_semaphore.release()
                     self._new_job_event.clear()
 

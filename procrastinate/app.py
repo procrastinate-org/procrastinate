@@ -343,7 +343,9 @@ class App(blueprints.Blueprint):
 
         asyncio.run(f())
 
-    async def run_worker_async_background(self, **kwargs: Unpack[WorkerOptions]) -> worker.Worker:
+    async def run_worker_async_background(
+        self, **kwargs: Unpack[WorkerOptions]
+    ) -> worker.Worker:
         """
         Run a worker as a background asyncio task.
 
