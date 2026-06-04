@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import pathlib
 from collections import defaultdict
 
 
@@ -9,6 +10,13 @@ def test_get_schema(app):
 
 def test_get_migrations_path(app):
     assert app.schema_manager.get_migrations_path().endswith("sql/migrations")
+
+
+def test_get_alembic_versions_path(app):
+    path = pathlib.Path(app.schema_manager.get_alembic_versions_path())
+
+    assert path.name == "versions"
+    assert path.parent.name == "alembic"
 
 
 def test_apply_schema(app, connector):
