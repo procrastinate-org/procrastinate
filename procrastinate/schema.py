@@ -7,6 +7,7 @@ from typing import LiteralString, cast
 from procrastinate import connector as connector_module
 
 migrations_path = pathlib.Path(__file__).parent / "sql" / "migrations"
+alembic_versions_path = pathlib.Path(__file__).parent / "alembic" / "versions"
 
 
 class SchemaManager:
@@ -26,6 +27,10 @@ class SchemaManager:
     @staticmethod
     def get_migrations_path() -> str:
         return str(migrations_path)
+
+    @staticmethod
+    def get_alembic_versions_path() -> str:
+        return str(alembic_versions_path)
 
     def apply_schema(self) -> None:
         queries = self.get_schema()
