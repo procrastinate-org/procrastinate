@@ -8,7 +8,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision = "procrastinate_0013"
-down_revision = "procrastinate_0012"
+down_revision: str | None = "procrastinate_0012"
 branch_labels = ("procrastinate",) if down_revision is None else None
 depends_on = None
 
