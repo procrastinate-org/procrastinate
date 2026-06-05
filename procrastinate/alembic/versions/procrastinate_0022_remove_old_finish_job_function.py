@@ -9,7 +9,7 @@ from alembic import op
 
 revision = "procrastinate_0022"
 down_revision: str | None = "procrastinate_0021"
-branch_labels = ("procrastinate",) if down_revision is None else None
+branch_labels = None
 depends_on = None
 
 MIGRATION_FILE = "01.00.00_01_remove_old_finish_job_function.sql"
