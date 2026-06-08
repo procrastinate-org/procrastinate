@@ -8,10 +8,6 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from procrastinate import job_context, worker
 
-# A *task* middleware wraps one task's execution. It receives a zero-arg
-# ``call_next`` (the next middleware, or the task itself), the JobContext and the
-# Worker, and must call/await ``call_next()`` and return the result.
-#
 # A sync task middleware wraps a sync task (and runs in the task's worker thread);
 # an async task middleware wraps an async task (and runs on the event loop).
 #
@@ -26,6 +22,13 @@ SyncTaskMiddleware = Callable[
 AsyncTaskMiddleware = Callable[
     [AsyncCallNext, "job_context.JobContext", "worker.Worker"], Awaitable[Any]
 ]
+#: A task middleware wraps the execution of a single task. It is a callable
+#: taking ``(call_next, context, worker)`` — where ``call_next`` runs the next
+#: middleware or the task itself, ``context`` is the
+#: :class:`~procrastinate.JobContext` and ``worker`` is the running worker — and
+#: must call (or await) ``call_next()`` and return the result. Sync middlewares
+#: (plain ``def``) wrap sync tasks; async middlewares (``async def``) wrap async
+#: tasks. See :doc:`howto/advanced/middleware`.
 TaskMiddleware = SyncTaskMiddleware | AsyncTaskMiddleware
 
 

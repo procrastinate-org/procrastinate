@@ -67,6 +67,9 @@ class Worker:
         self.update_heartbeat_interval = update_heartbeat_interval
         self.stalled_worker_timeout = stalled_worker_timeout
         self.task_middleware: list[middleware.TaskMiddleware] = task_middleware or []
+        for mw in self.task_middleware:
+            if not callable(mw):
+                raise TypeError(f"Task middleware {mw!r} is not callable.")
 
         if self.worker_name:
             self.logger = logger.getChild(self.worker_name)
@@ -226,14 +229,21 @@ class Worker:
     def _resolve_task_middlewares(
         self, task: tasks.Task, task_is_async: bool
     ) -> list[middleware.TaskMiddleware]:
-        # Worker-wide middlewares matching the task's nature (outermost), then the
-        # task's own middlewares (innermost, already validated to match).
-        worker_wide = [
-            mw
-            for mw in self.task_middleware
-            if middleware.is_async_middleware(mw) == task_is_async
-        ]
-        return worker_wide + task.middlewares
+        # Worker-wide task middlewares matching the task's nature (outermost), then
+        # the task's own middlewares (innermost, already validated to match).
+        worker_wide = []
+        for mw in self.task_middleware:
+            if middleware.is_async_middleware(mw) == task_is_async:
+                worker_wide.append(mw)
+            else:
+                task_kind = "async" if task_is_async else "sync"
+                mw_kind = "sync" if task_is_async else "async"
+                self.logger.debug(
+                    f"Skipping worker-wide {mw_kind} middleware "
+                    f"{getattr(mw, '__name__', repr(mw))!r} for {task_kind} task "
+                    f"{task.name!r}"
+                )
+        return worker_wide + task.task_middleware
 
     async def _process_job(self, context: job_context.JobContext):
         """
@@ -289,11 +299,11 @@ class Worker:
                         middleware.compose(middlewares, run_sync_task, context, self)
                     )
 
-                # In some cases, the task function might be a synchronous function
-                # that returns an awaitable without actually being a
-                # coroutinefunction. In that case, in the await above, we haven't
-                # actually called the task, but merely generated the awaitable that
-                # implements the task. In that case, we want to wait this awaitable.
+                # A *sync* task function might return an awaitable without being a
+                # coroutinefunction. In that case, the await above merely created
+                # the awaitable; await it here to actually run the task. Note that
+                # middlewares then only wrapped the *creation* of the awaitable —
+                # their "after" code has already run at this point.
                 if inspect.isawaitable(task_result):
                     task_result = await task_result
 

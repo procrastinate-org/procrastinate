@@ -35,6 +35,10 @@ async def async_log_mw(call_next, context, worker):
         print(f"finished {context.task.name}")
 ```
 
+A middleware's kind is detected with {py:func}`inspect.iscoroutinefunction`: if
+you build a middleware out of wrappers or decorators, keep the outermost
+callable an `async def` for it to count as async middleware.
+
 ## Per-task middleware
 
 ```python
@@ -43,8 +47,9 @@ def my_task():
     ...
 ```
 
-A mismatch (an async middleware on a sync task, or vice versa) raises an error when
-the task is declared.
+A mismatch (an async middleware on a sync task, or vice versa) raises
+{py:class}`~procrastinate.exceptions.MiddlewareKindMismatch` when the task is
+declared.
 
 ## Worker-wide middleware
 
@@ -64,9 +69,20 @@ For a given task, the chain is, outermost to innermost: worker-wide middleware (
 list order) → per-task middleware (in list order) → the task function. The first
 middleware in a list runs its "before" code first and its "after" code last.
 
+## Middleware and task failures
+
+Exceptions raised by the task (or by an inner middleware) flow through the
+chain to the worker, which uses them to decide the job's final status: retries,
+failure, and abortion ({py:class}`~procrastinate.exceptions.JobAborted`) all
+rely on the exception reaching the worker. A middleware that swallows
+exceptions (e.g. with a bare `except Exception:`) would mark the job succeeded,
+skip retries, and ignore abort requests — run cleanup code in a `try`/`finally`
+block and always re-raise.
+
 ## Stopping the worker
 
-A middleware can stop the worker (after currently-running jobs finish):
+A middleware can stop the worker (after currently-running jobs finish, subject
+to `shutdown_graceful_timeout`):
 
 ```python
 def stop_after_one(call_next, context, worker):

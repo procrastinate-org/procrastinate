@@ -92,9 +92,9 @@ def _make_task(func, task_middleware=None):
     )
 
 
-def test_task_defaults_to_no_middleware():
+def test_task_defaults_to_no_task_middleware():
     task = _make_task(lambda: None)
-    assert task.middlewares == []
+    assert task.task_middleware == []
 
 
 def test_task_accepts_matching_sync_middleware():
@@ -102,7 +102,7 @@ def test_task_accepts_matching_sync_middleware():
         return call_next()
 
     task = _make_task(lambda: None, task_middleware=[sync_mw])
-    assert task.middlewares == [sync_mw]
+    assert task.task_middleware == [sync_mw]
 
 
 def test_task_rejects_async_middleware_on_sync_task():
@@ -124,6 +124,16 @@ def test_task_rejects_sync_middleware_on_async_task():
         _make_task(my_async_func, task_middleware=[sync_mw])
 
 
+def test_task_rejects_non_callable_task_middleware():
+    with pytest.raises(TypeError, match="not callable"):
+        _make_task(lambda: None, task_middleware=["oops"])  # type: ignore[list-item]
+
+
+def test_worker_rejects_non_callable_task_middleware(not_opened_app):
+    with pytest.raises(TypeError, match="not callable"):
+        Worker(not_opened_app, task_middleware=["oops"])  # type: ignore[list-item]
+
+
 def test_decorator_passes_middleware_to_task():
     bp = blueprints.Blueprint()
 
@@ -134,7 +144,7 @@ def test_decorator_passes_middleware_to_task():
     def decorated():
         return None
 
-    assert bp.tasks["decorated"].middlewares == [sync_mw]
+    assert bp.tasks["decorated"].task_middleware == [sync_mw]
 
 
 def test_worker_stores_task_middleware(not_opened_app):
@@ -150,7 +160,7 @@ def test_worker_defaults_to_no_task_middleware(not_opened_app):
     assert worker.task_middleware == []
 
 
-async def test_sync_middleware_runs_in_the_task_thread(app):
+async def test_sync_task_middleware_runs_in_the_task_thread(app):
     main_thread = threading.get_ident()
     seen = {}
 
@@ -173,7 +183,7 @@ async def test_sync_middleware_runs_in_the_task_thread(app):
     assert seen["task_thread"] != main_thread
 
 
-async def test_async_middleware_wraps_async_task(app):
+async def test_async_task_middleware_wraps_async_task(app):
     order = []
 
     async def async_mw(call_next, context, worker):
@@ -195,7 +205,7 @@ async def test_async_middleware_wraps_async_task(app):
     assert order == ["before", "task", "after"]
 
 
-async def test_worker_wide_middleware_is_filtered_by_kind(app):
+async def test_worker_wide_task_middleware_is_filtered_by_kind(app):
     seen = []
 
     async def async_mw(call_next, context, worker):
@@ -215,23 +225,94 @@ async def test_worker_wide_middleware_is_filtered_by_kind(app):
     assert seen == []
 
 
-async def test_middleware_can_transform_result(app):
+async def test_mixed_kind_worker_wide_task_middlewares_wrap_matching_tasks(app):
+    # The documented way to cover both task kinds worker-wide: one middleware
+    # of each kind; each task gets exactly the matching one.
+    seen = []
+
+    def sync_mw(call_next, context, worker):
+        seen.append(f"sync_mw:{context.task.name}")
+        return call_next()
+
+    async def async_mw(call_next, context, worker):
+        seen.append(f"async_mw:{context.task.name}")
+        return await call_next()
+
+    @app.task(name="sync_task")
+    def sync_task():
+        return None
+
+    @app.task(name="async_task")
+    async def async_task():
+        return None
+
+    await sync_task.defer_async()
+    await async_task.defer_async()
+    await app.run_worker_async(
+        wait=False, install_signal_handlers=False, task_middleware=[sync_mw, async_mw]
+    )
+
+    assert sorted(seen) == ["async_mw:async_task", "sync_mw:sync_task"]
+
+
+async def test_worker_wide_task_middleware_wraps_outside_per_task_middleware(app):
+    order = []
+
+    def make_mw(label):
+        def mw(call_next, context, worker):
+            order.append(f"before:{label}")
+            result = call_next()
+            order.append(f"after:{label}")
+            return result
+
+        return mw
+
+    @app.task(name="ordered", task_middleware=[make_mw("per_task")])
+    def ordered():
+        order.append("task")
+
+    await ordered.defer_async()
+    await app.run_worker_async(
+        wait=False,
+        install_signal_handlers=False,
+        task_middleware=[make_mw("worker_wide")],
+    )
+
+    assert order == [
+        "before:worker_wide",
+        "before:per_task",
+        "task",
+        "after:per_task",
+        "after:worker_wide",
+    ]
+
+
+async def test_task_middleware_can_transform_result(app):
+    seen = []
+
     def doubling_mw(call_next, context, worker):
         return call_next() * 2
 
-    @app.task(name="returns_three")
+    def recording_mw(call_next, context, worker):
+        result = call_next()
+        seen.append(result)
+        return result
+
+    @app.task(name="returns_three", task_middleware=[doubling_mw])
     def returns_three():
         return 3
 
     job_id = await returns_three.defer_async()
     await app.run_worker_async(
-        wait=False, install_signal_handlers=False, task_middleware=[doubling_mw]
+        wait=False, install_signal_handlers=False, task_middleware=[recording_mw]
     )
 
+    # The worker-wide middleware observes the per-task middleware's transformation.
+    assert seen == [6]
     assert app.connector.jobs[job_id]["status"] == "succeeded"
 
 
-async def test_no_middleware_runs_task_normally(app):
+async def test_no_task_middleware_runs_task_normally(app):
     ran = []
 
     @app.task(name="plain")
@@ -244,7 +325,7 @@ async def test_no_middleware_runs_task_normally(app):
     assert ran == [True]
 
 
-async def test_middleware_exception_propagates_to_job_status(app):
+async def test_task_middleware_exception_propagates_to_job_status(app):
     def passthrough_mw(call_next, context, worker):
         return call_next()
 
@@ -261,7 +342,48 @@ async def test_middleware_exception_propagates_to_job_status(app):
     assert app.connector.jobs[job_id]["status"] == "failed"
 
 
-async def test_stop_from_sync_middleware_stops_the_worker(app):
+async def test_job_aborted_propagates_through_task_middleware(app):
+    def passthrough_mw(call_next, context, worker):
+        return call_next()
+
+    @app.task(name="aborting")
+    def aborting():
+        raise exceptions.JobAborted
+
+    job_id = await aborting.defer_async()
+    await app.run_worker_async(
+        wait=False, install_signal_handlers=False, task_middleware=[passthrough_mw]
+    )
+
+    # JobAborted must reach the worker's status classification unchanged: the
+    # job ends aborted, not failed.
+    assert app.connector.jobs[job_id]["status"] == "aborted"
+
+
+async def test_retry_works_through_task_middleware(app):
+    mw_calls = []
+
+    def counting_mw(call_next, context, worker):
+        mw_calls.append(context.job.id)
+        return call_next()
+
+    @app.task(name="flaky", retry=1)
+    def flaky():
+        raise ValueError("nope")
+
+    job_id = await flaky.defer_async()
+    await app.run_worker_async(
+        wait=False, install_signal_handlers=False, task_middleware=[counting_mw]
+    )
+
+    # The retry strategy still sees the task's exception through the middleware;
+    # both attempts run, each wrapped by the middleware.
+    assert app.connector.jobs[job_id]["status"] == "failed"
+    assert app.connector.jobs[job_id]["attempts"] == 2
+    assert mw_calls == [job_id, job_id]
+
+
+async def test_stop_from_sync_task_middleware_stops_the_worker(app):
     processed = []
 
     def stopping_mw(call_next, context, worker):

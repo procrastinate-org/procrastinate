@@ -121,15 +121,21 @@ class Task(Generic[P, R, Args]):
         #: is deferred.
         self.queueing_lock: str | None = queueing_lock
         #: Middlewares wrapping this task's execution (innermost relative to any
-        #: worker-wide middleware). Each must match the task's sync/async nature.
-        self.middlewares: list[middleware_module.TaskMiddleware] = task_middleware or []
+        #: worker-wide task middleware). Each must match the task's sync/async
+        #: nature.
+        self.task_middleware: list[middleware_module.TaskMiddleware] = (
+            task_middleware or []
+        )
         task_is_async = inspect.iscoroutinefunction(func)
-        for mw in self.middlewares:
-            if middleware_module.is_async_middleware(mw) != task_is_async:
-                task_kind = "async" if task_is_async else "sync"
-                mw_kind = (
-                    "async" if middleware_module.is_async_middleware(mw) else "sync"
+        for mw in self.task_middleware:
+            if not callable(mw):
+                raise TypeError(
+                    f"Task middleware {mw!r} of task {self.name!r} is not callable."
                 )
+            mw_is_async = middleware_module.is_async_middleware(mw)
+            if mw_is_async != task_is_async:
+                task_kind = "async" if task_is_async else "sync"
+                mw_kind = "async" if mw_is_async else "sync"
                 mw_name = getattr(mw, "__name__", repr(mw))
                 raise exceptions.MiddlewareKindMismatch(
                     f"{mw_kind} middleware {mw_name!r} cannot wrap {task_kind} task "
