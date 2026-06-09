@@ -205,6 +205,25 @@ async def test_async_task_middleware_wraps_async_task(app):
     assert order == ["before", "task", "after"]
 
 
+async def test_per_task_async_middleware_wraps_async_task(app):
+    order = []
+
+    async def async_mw(call_next, context, worker):
+        order.append("before")
+        result = await call_next()
+        order.append("after")
+        return result
+
+    @app.task(name="async_task", task_middleware=[async_mw])
+    async def async_task():
+        order.append("task")
+
+    await async_task.defer_async()
+    await app.run_worker_async(wait=False, install_signal_handlers=False)
+
+    assert order == ["before", "task", "after"]
+
+
 async def test_worker_wide_task_middleware_is_filtered_by_kind(app):
     seen = []
 

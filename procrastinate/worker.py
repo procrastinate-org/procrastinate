@@ -444,6 +444,10 @@ class Worker:
             self.stop()
             await loop_task
             raise
+        finally:
+            # The loop is about to go away; a late stop() (e.g. from another
+            # thread) must not try to wake it.
+            self._loop = None
 
     async def _handle_notification(
         self, *, channel: str, notification: jobs.Notification

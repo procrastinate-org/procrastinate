@@ -28,7 +28,7 @@ AsyncTaskMiddleware = Callable[
 #: :class:`~procrastinate.JobContext` and ``worker`` is the running worker — and
 #: must call (or await) ``call_next()`` and return the result. Sync middlewares
 #: (plain ``def``) wrap sync tasks; async middlewares (``async def``) wrap async
-#: tasks. See :doc:`howto/advanced/middleware`.
+#: tasks. See :doc:`/howto/advanced/middleware`.
 TaskMiddleware = SyncTaskMiddleware | AsyncTaskMiddleware
 
 
@@ -58,6 +58,6 @@ def compose(
     An empty sequence returns ``run_task`` unchanged (no-op).
     """
     call_next = run_task
-    for middleware in reversed(list(middlewares)):
-        call_next = functools.partial(middleware, call_next, context, worker)
+    for mw in reversed(list(middlewares)):
+        call_next = functools.partial(mw, call_next, context, worker)
     return call_next
