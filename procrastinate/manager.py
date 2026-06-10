@@ -348,7 +348,11 @@ class JobManager:
         )
 
     def cancel_job_by_id(
-        self, job_id: int, abort: bool = False, delete_job: bool = False
+        self,
+        job_id: int,
+        abort: bool = False,
+        delete_job: bool = False,
+        connection: Any | None = None,
     ) -> bool:
         """
         Cancel a job by id.
@@ -364,6 +368,8 @@ class JobManager:
         delete_job:
             If True, the job will be deleted from the database after being cancelled. Does
             not affect the jobs that should be aborted.
+        connection:
+            Optional external database connection to use for the query.
 
         Returns
         -------
@@ -372,12 +378,23 @@ class JobManager:
             nothing was done: either there is no job with this id or it's not in a state
             where it may be cancelled (i.e. `todo` or `doing`)
         """
-        result = self.connector.get_sync_connector().execute_query_one(
-            query=sql.queries["cancel_job"],
-            job_id=job_id,
-            abort=abort,
-            delete_job=delete_job,
-        )
+        if connection is not None:
+            result = (
+                self.connector.get_sync_connector().execute_query_one_with_connection(
+                    connection,
+                    query=sql.queries["cancel_job"],
+                    job_id=job_id,
+                    abort=abort,
+                    delete_job=delete_job,
+                )
+            )
+        else:
+            result = self.connector.get_sync_connector().execute_query_one(
+                query=sql.queries["cancel_job"],
+                job_id=job_id,
+                abort=abort,
+                delete_job=delete_job,
+            )
 
         if result["id"] is None:
             return False
@@ -386,7 +403,11 @@ class JobManager:
         return True
 
     async def cancel_job_by_id_async(
-        self, job_id: int, abort: bool = False, delete_job: bool = False
+        self,
+        job_id: int,
+        abort: bool = False,
+        delete_job: bool = False,
+        connection: Any | None = None,
     ) -> bool:
         """
         Cancel a job by id.
@@ -402,6 +423,8 @@ class JobManager:
         delete_job:
             If True, the job will be deleted from the database after being cancelled. Does
             not affect the jobs that should be aborted.
+        connection:
+            Optional external database connection to use for the query.
 
         Returns
         -------
@@ -410,12 +433,21 @@ class JobManager:
             nothing was done: either there is no job with this id or it's not in a state
             where it may be cancelled (i.e. `todo` or `doing`)
         """
-        result = await self.connector.execute_query_one_async(
-            query=sql.queries["cancel_job"],
-            job_id=job_id,
-            abort=abort,
-            delete_job=delete_job,
-        )
+        if connection is not None:
+            result = await self.connector.execute_query_one_async_with_connection(
+                connection,
+                query=sql.queries["cancel_job"],
+                job_id=job_id,
+                abort=abort,
+                delete_job=delete_job,
+            )
+        else:
+            result = await self.connector.execute_query_one_async(
+                query=sql.queries["cancel_job"],
+                job_id=job_id,
+                abort=abort,
+                delete_job=delete_job,
+            )
 
         if result["id"] is None:
             return False
@@ -423,7 +455,9 @@ class JobManager:
         assert result["id"] == job_id
         return True
 
-    def get_job_status(self, job_id: int) -> jobs_module.Status:
+    def get_job_status(
+        self, job_id: int, connection: Any | None = None
+    ) -> jobs_module.Status:
         """
         Get the status of a job by id.
 
@@ -431,17 +465,28 @@ class JobManager:
         ----------
         job_id:
             The id of the job to get the status of
+        connection:
+            Optional external database connection to use for the query.
 
         Returns
         -------
         :
         """
-        result = self.connector.get_sync_connector().execute_query_one(
-            query=sql.queries["get_job_status"], job_id=job_id
-        )
+        if connection is not None:
+            result = (
+                self.connector.get_sync_connector().execute_query_one_with_connection(
+                    connection, query=sql.queries["get_job_status"], job_id=job_id
+                )
+            )
+        else:
+            result = self.connector.get_sync_connector().execute_query_one(
+                query=sql.queries["get_job_status"], job_id=job_id
+            )
         return jobs_module.Status(result["status"])
 
-    async def get_job_status_async(self, job_id: int) -> jobs_module.Status:
+    async def get_job_status_async(
+        self, job_id: int, connection: Any | None = None
+    ) -> jobs_module.Status:
         """
         Get the status of a job by id.
 
@@ -449,14 +494,21 @@ class JobManager:
         ----------
         job_id:
             The id of the job to get the status of
+        connection:
+            Optional external database connection to use for the query.
 
         Returns
         -------
         :
         """
-        result = await self.connector.execute_query_one_async(
-            query=sql.queries["get_job_status"], job_id=job_id
-        )
+        if connection is not None:
+            result = await self.connector.execute_query_one_async_with_connection(
+                connection, query=sql.queries["get_job_status"], job_id=job_id
+            )
+        else:
+            result = await self.connector.execute_query_one_async(
+                query=sql.queries["get_job_status"], job_id=job_id
+            )
         return jobs_module.Status(result["status"])
 
     async def retry_job(

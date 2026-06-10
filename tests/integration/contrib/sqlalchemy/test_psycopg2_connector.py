@@ -289,3 +289,71 @@ def test_batch_defer_with_external_connection_rollback(sqlalchemy_psycopg2_conne
         worker_id=None,
     )
     assert len(jobs) == 0
+
+
+def test_execute_query_one_with_connection(sqlalchemy_psycopg2_connector):
+    with sqlalchemy_psycopg2_connector.engine.connect() as conn:
+        result = sqlalchemy_psycopg2_connector.execute_query_one_with_connection(
+            conn, "SELECT %(arg)s as col", arg=1
+        )
+    assert result == {"col": 1}
+
+
+def test_cancel_job_with_external_connection_commit(sqlalchemy_psycopg2_connector):
+    from procrastinate import App, jobs
+
+    app = App(connector=sqlalchemy_psycopg2_connector)
+    app.open()
+
+    @app.task
+    def my_sqla_cancel_task(x):
+        pass
+
+    job_id = my_sqla_cancel_task.defer(x=1)
+
+    with sqlalchemy_psycopg2_connector.engine.connect() as conn:
+        cancelled = app.job_manager.cancel_job_by_id(job_id, connection=conn)
+        assert cancelled is True
+        conn.commit()
+
+    status = app.job_manager.get_job_status(job_id)
+    assert status == jobs.Status.CANCELLED
+
+
+def test_cancel_job_with_external_connection_rollback(sqlalchemy_psycopg2_connector):
+    from procrastinate import App, jobs
+
+    app = App(connector=sqlalchemy_psycopg2_connector)
+    app.open()
+
+    @app.task
+    def my_sqla_cancel_rollback_task(x):
+        pass
+
+    job_id = my_sqla_cancel_rollback_task.defer(x=1)
+
+    with sqlalchemy_psycopg2_connector.engine.connect() as conn:
+        cancelled = app.job_manager.cancel_job_by_id(job_id, connection=conn)
+        assert cancelled is True
+        conn.rollback()
+
+    # The cancellation was rolled back, the job is still up for grabs
+    status = app.job_manager.get_job_status(job_id)
+    assert status == jobs.Status.TODO
+
+
+def test_get_job_status_with_external_connection(sqlalchemy_psycopg2_connector):
+    from procrastinate import App, jobs
+
+    app = App(connector=sqlalchemy_psycopg2_connector)
+    app.open()
+
+    @app.task
+    def my_sqla_status_task(x):
+        pass
+
+    job_id = my_sqla_status_task.defer(x=1)
+
+    with sqlalchemy_psycopg2_connector.engine.connect() as conn:
+        status = app.job_manager.get_job_status(job_id, connection=conn)
+    assert status == jobs.Status.TODO

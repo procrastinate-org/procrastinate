@@ -738,3 +738,69 @@ async def test_unsupported_connector_raises_async():
     c = BaseConnector()
     with pytest.raises(exceptions.ConnectorException, match="does not support"):
         await c.execute_query_all_async_with_connection(object(), "SELECT 1")
+
+
+async def test_manager_cancel_job_no_connection_uses_normal_path(
+    mocker, job_manager, job_factory, connector
+):
+    job = await job_manager.defer_job_async(
+        job=job_factory(id=None, task_kwargs={"a": "b"}, task_name="bla"),
+    )
+    spy = mocker.spy(connector, "execute_query_one_async")
+    assert await job_manager.cancel_job_by_id_async(job.id) is True
+    spy.assert_called_once()
+
+
+async def test_manager_cancel_job_with_connection_uses_connection_path(
+    mocker, job_manager, job_factory, connector
+):
+    job = await job_manager.defer_job_async(
+        job=job_factory(id=None, task_kwargs={"a": "b"}, task_name="bla"),
+    )
+    spy = mocker.spy(connector, "execute_query_one_async_with_connection")
+    mock_conn = object()
+    cancelled = await job_manager.cancel_job_by_id_async(job.id, connection=mock_conn)
+    assert cancelled is True
+    spy.assert_called_once()
+    assert spy.call_args[0][0] is mock_conn
+
+
+async def test_manager_get_job_status_no_connection_uses_normal_path(
+    mocker, job_manager, job_factory, connector
+):
+    job = await job_manager.defer_job_async(
+        job=job_factory(id=None, task_kwargs={"a": "b"}, task_name="bla"),
+    )
+    spy = mocker.spy(connector, "execute_query_one_async")
+    assert await job_manager.get_job_status_async(job.id) == jobs.Status.TODO
+    spy.assert_called_once()
+
+
+async def test_manager_get_job_status_with_connection_uses_connection_path(
+    mocker, job_manager, job_factory, connector
+):
+    job = await job_manager.defer_job_async(
+        job=job_factory(id=None, task_kwargs={"a": "b"}, task_name="bla"),
+    )
+    spy = mocker.spy(connector, "execute_query_one_async_with_connection")
+    mock_conn = object()
+    status = await job_manager.get_job_status_async(job.id, connection=mock_conn)
+    assert status == jobs.Status.TODO
+    spy.assert_called_once()
+    assert spy.call_args[0][0] is mock_conn
+
+
+def test_unsupported_connector_raises_query_one():
+    from procrastinate.connector import BaseConnector
+
+    c = BaseConnector()
+    with pytest.raises(exceptions.ConnectorException, match="does not support"):
+        c.execute_query_one_with_connection(object(), "SELECT 1")
+
+
+async def test_unsupported_connector_raises_query_one_async():
+    from procrastinate.connector import BaseConnector
+
+    c = BaseConnector()
+    with pytest.raises(exceptions.ConnectorException, match="does not support"):
+        await c.execute_query_one_async_with_connection(object(), "SELECT 1")

@@ -445,3 +445,96 @@ async def test_batch_defer_with_external_connection_rollback(
         worker_id=None,
     )
     assert len(jobs) == 0
+
+
+async def test_execute_query_one_async_with_connection(psycopg_connector):
+    async with psycopg_connector.pool.connection() as conn:
+        result = await psycopg_connector.execute_query_one_async_with_connection(
+            conn, "SELECT %(arg)s as col", arg=1
+        )
+    assert result == {"col": 1}
+
+
+async def test_cancel_job_with_external_connection_commit(
+    psycopg_connector, connection_params
+):
+    import psycopg
+
+    from procrastinate import App, jobs
+
+    app = App(connector=psycopg_connector)
+    await app.open_async()
+
+    @app.task
+    def my_async_cancel_task(x):
+        pass
+
+    job_id = await my_async_cancel_task.defer_async(x=1)
+
+    conninfo = psycopg.conninfo.make_conninfo(**connection_params)
+    async with await psycopg.AsyncConnection.connect(
+        conninfo, autocommit=False
+    ) as conn:
+        cancelled = await app.job_manager.cancel_job_by_id_async(
+            job_id, connection=conn
+        )
+        assert cancelled is True
+        await conn.commit()
+
+    status = await app.job_manager.get_job_status_async(job_id)
+    assert status == jobs.Status.CANCELLED
+
+
+async def test_cancel_job_with_external_connection_rollback(
+    psycopg_connector, connection_params
+):
+    import psycopg
+
+    from procrastinate import App, jobs
+
+    app = App(connector=psycopg_connector)
+    await app.open_async()
+
+    @app.task
+    def my_async_cancel_rollback_task(x):
+        pass
+
+    job_id = await my_async_cancel_rollback_task.defer_async(x=1)
+
+    conninfo = psycopg.conninfo.make_conninfo(**connection_params)
+    async with await psycopg.AsyncConnection.connect(
+        conninfo, autocommit=False
+    ) as conn:
+        cancelled = await app.job_manager.cancel_job_by_id_async(
+            job_id, connection=conn
+        )
+        assert cancelled is True
+        await conn.rollback()
+
+    # The cancellation was rolled back, the job is still up for grabs
+    status = await app.job_manager.get_job_status_async(job_id)
+    assert status == jobs.Status.TODO
+
+
+async def test_get_job_status_with_external_connection(
+    psycopg_connector, connection_params
+):
+    import psycopg
+
+    from procrastinate import App, jobs
+
+    app = App(connector=psycopg_connector)
+    await app.open_async()
+
+    @app.task
+    def my_async_status_task(x):
+        pass
+
+    job_id = await my_async_status_task.defer_async(x=1)
+
+    conninfo = psycopg.conninfo.make_conninfo(**connection_params)
+    async with await psycopg.AsyncConnection.connect(
+        conninfo, autocommit=False
+    ) as conn:
+        status = await app.job_manager.get_job_status_async(job_id, connection=conn)
+    assert status == jobs.Status.TODO

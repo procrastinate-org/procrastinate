@@ -62,6 +62,20 @@ class BaseConnector:
     ) -> list[dict[str, Any]]:
         raise exceptions.SyncConnectorConfigurationError
 
+    def execute_query_one_with_connection(
+        self, connection: Any, query: LiteralString, **arguments: Any
+    ) -> dict[str, Any]:
+        raise exceptions.ConnectorException(
+            f"{type(self).__name__} does not support external connections"
+        )
+
+    async def execute_query_one_async_with_connection(
+        self, connection: Any, query: LiteralString, **arguments: Any
+    ) -> dict[str, Any]:
+        raise exceptions.ConnectorException(
+            f"{type(self).__name__} does not support external connections"
+        )
+
     def execute_query_all_with_connection(
         self, connection: Any, query: LiteralString, **arguments: Any
     ) -> list[dict[str, Any]]:
@@ -116,6 +130,16 @@ class BaseAsyncConnector(BaseConnector):
         self, query: LiteralString, **arguments: Any
     ) -> list[dict[str, Any]]:
         return utils.async_to_sync(self.execute_query_all_async, query, **arguments)
+
+    def execute_query_one_with_connection(
+        self, connection: Any, query: LiteralString, **arguments: Any
+    ) -> dict[str, Any]:
+        return utils.async_to_sync(
+            self.execute_query_one_async_with_connection,
+            connection,
+            query,
+            **arguments,
+        )
 
     def execute_query_all_with_connection(
         self, connection: Any, query: LiteralString, **arguments: Any
