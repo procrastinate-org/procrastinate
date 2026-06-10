@@ -80,6 +80,8 @@ your own tables when cancelling a job and want both changes to commit (or roll b
 together:
 
 ```python
+job_id = 33
+
 async with await psycopg.AsyncConnection.connect("...") as conn:
     await conn.execute("UPDATE orders SET state = 'cancelled' WHERE id = %s", [42])
     await app.job_manager.cancel_job_by_id_async(job_id, connection=conn)
