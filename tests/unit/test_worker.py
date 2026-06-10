@@ -4,6 +4,7 @@ import asyncio
 import datetime
 import signal
 from typing import cast
+from unittest import mock
 
 import pytest
 from pytest_mock import MockerFixture
@@ -81,6 +82,24 @@ async def test_worker_run_wait_stop(app: App, caplog):
         "Stopped worker on all queues",
         "No periodic task found, periodic deferrer will not run.",
     }
+
+
+def test_stop_after_run_exited_with_error_does_not_raise(not_opened_app: App):
+    # If run() dies on an exception (e.g. a database error), the stop event is
+    # never set and the worker's event loop ends up closed. A late stop() (e.g.
+    # from a signal handler or another thread) must not try to wake that loop.
+    worker = Worker(not_opened_app, wait=True, install_signal_handlers=False)
+
+    async def run_until_error():
+        async with not_opened_app.open_async():
+            failing_fetch = mock.Mock(side_effect=ConnectionError("db down"))
+            worker._fetch_and_process_jobs = failing_fetch
+            await worker.run()
+
+    with pytest.raises(ConnectionError):
+        asyncio.run(run_until_error())
+
+    worker.stop()
 
 
 async def test_worker_run_once_log_messages(app: App, caplog):
