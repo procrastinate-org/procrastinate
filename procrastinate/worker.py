@@ -421,6 +421,11 @@ class Worker:
         Run the worker
         This will run forever until asked to stop/cancelled, or until no more job is available is configured not to wait
         """
+        # Reset a stale stop request from a previous run. This must happen before
+        # the first await: anything later (e.g. the top of the run loop task) can
+        # run after a fresh stop() and erase it, leaving the worker unstoppable.
+        self._stop_event.clear()
+
         logger.debug("Pruning stalled workers with old heartbeats")
         pruned_workers = await self.app.job_manager.prune_stalled_workers(
             self.stalled_worker_timeout
@@ -640,7 +645,6 @@ class Worker:
             ),
         )
         self._new_job_event.clear()
-        self._stop_event.clear()
         self._running_jobs = {}
         self._job_semaphore = asyncio.Semaphore(self.concurrency)
         side_tasks = self._start_side_tasks()

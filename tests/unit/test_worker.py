@@ -84,6 +84,23 @@ async def test_worker_run_wait_stop(app: App, caplog):
     }
 
 
+async def test_stop_requested_before_run_loop_starts_is_not_lost(app: App):
+    worker = Worker(app, wait=True, install_signal_handlers=False)
+
+    original_run_loop = worker._run_loop
+
+    async def run_loop_with_late_start():
+        # Simulate a stop() landing after run() scheduled the run loop task but
+        # before the task's first statement; if it gets erased, with wait=True
+        # the worker runs forever.
+        worker.stop()
+        await original_run_loop()
+
+    worker._run_loop = run_loop_with_late_start
+
+    await asyncio.wait_for(worker.run(), timeout=2)
+
+
 def test_stop_after_run_exited_with_error_does_not_raise(not_opened_app: App):
     # If run() dies on an exception (e.g. a database error), the stop event is
     # never set and the worker's event loop ends up closed. A late stop() (e.g.

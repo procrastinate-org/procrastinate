@@ -24,6 +24,16 @@ async def async_app(request, psycopg_connector, connection_params):
         yield app
 
 
+async def wait_for_job_status(
+    app: app_module.App, job_id: int, status: Status, timeout: float = 5
+):
+    async def poll():
+        while await app.job_manager.get_job_status_async(job_id) != status:
+            await asyncio.sleep(0.02)
+
+    await asyncio.wait_for(poll(), timeout)
+
+
 async def test_defer(async_app: app_module.App):
     sum_results = []
     product_results = []
@@ -349,7 +359,7 @@ async def test_stop_worker_aborts_async_jobs_past_shutdown_graceful_timeout(
     run_task = asyncio.create_task(
         async_app.run_worker_async(wait=False, shutdown_graceful_timeout=0.3)
     )
-    await asyncio.sleep(0.05)
+    await wait_for_job_status(async_app, slow_job_id, Status.DOING)
 
     with pytest.raises(asyncio.CancelledError):
         run_task.cancel()
@@ -382,7 +392,7 @@ async def test_stop_worker_retries_async_jobs_past_shutdown_graceful_timeout(
     run_task = asyncio.create_task(
         async_app.run_worker_async(wait=False, shutdown_graceful_timeout=0.3)
     )
-    await asyncio.sleep(0.05)
+    await wait_for_job_status(async_app, slow_job_id, Status.DOING)
 
     with pytest.raises(asyncio.CancelledError):
         run_task.cancel()
@@ -417,7 +427,7 @@ async def test_stop_worker_aborts_sync_jobs_past_shutdown_graceful_timeout(
     run_task = asyncio.create_task(
         async_app.run_worker_async(wait=False, shutdown_graceful_timeout=0.3)
     )
-    await asyncio.sleep(0.05)
+    await wait_for_job_status(async_app, slow_job_id, Status.DOING)
 
     with pytest.raises(asyncio.CancelledError):
         run_task.cancel()
@@ -452,7 +462,7 @@ async def test_stop_worker_retries_sync_jobs_past_shutdown_graceful_timeout(
     run_task = asyncio.create_task(
         async_app.run_worker_async(wait=False, shutdown_graceful_timeout=0.3)
     )
-    await asyncio.sleep(0.05)
+    await wait_for_job_status(async_app, slow_job_id, Status.DOING)
 
     with pytest.raises(asyncio.CancelledError):
         run_task.cancel()
