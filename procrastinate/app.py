@@ -4,7 +4,7 @@ import asyncio
 import contextlib
 import functools
 import logging
-from collections.abc import Iterable, Iterator
+from collections.abc import Generator, Iterable
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -161,7 +161,7 @@ class App(blueprints.Blueprint):
     @contextlib.contextmanager
     def replace_connector(
         self, connector: connector_module.BaseConnector
-    ) -> Iterator[App]:
+    ) -> Generator[App]:
         """
         Replace the connector of the app while in the context block, then restore it.
         The context variable is the same app as this method is called on.
