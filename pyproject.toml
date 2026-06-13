@@ -79,7 +79,7 @@ test = [
     "migra",
     # migra depends on schemainspect, which has an implicit dependency on setuptools
     # (pkg_resources). setuptools 81 removed pkg_resources, so pin below that.
-    "setuptools<81",
+    "setuptools<83",
 ]
 migration_test = ["nox", "httpx", "nox-uv"]
 docs = [
