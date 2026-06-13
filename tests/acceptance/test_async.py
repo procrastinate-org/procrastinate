@@ -149,11 +149,15 @@ async def test_no_job_to_cancel_found(async_app: app_module.App):
 async def test_abort_async_task(async_app: app_module.App, mode):
     @async_app.task(queue="default", name="task1")
     async def task1():
-        await asyncio.sleep(0.5)
+        # Outlasts the wait_for timeouts below, so the abort always wins; on
+        # success the sleep is cancelled and the duration never elapses.
+        await asyncio.sleep(3)
 
     job_id = await task1.defer_async()
 
-    abort_job_polling_interval = 0.1
+    # In listen mode, the polling interval is far beyond the wait_for timeout
+    # below, so the test can only pass through the notification path.
+    abort_job_polling_interval = 0.1 if mode == "poll" else 30
 
     worker_task = asyncio.create_task(
         async_app.run_worker_async(
@@ -164,15 +168,13 @@ async def test_abort_async_task(async_app: app_module.App, mode):
         )
     )
 
-    await asyncio.sleep(0.05)
+    await wait_for_job_status(async_app, job_id, Status.DOING)
     result = await async_app.job_manager.cancel_job_by_id_async(job_id, abort=True)
     assert result is True
 
-    # when listening for notifications, job should cancel within ms
-    # if notifications are disabled, job will only cancel after abort_job_polling_interval
-    await asyncio.wait_for(
-        worker_task, timeout=0.1 if mode == "listen" else abort_job_polling_interval * 2
-    )
+    # Generous multiples of the expected latency (notification: ms, polling: one
+    # 0.1s interval) so a slow CI runner doesn't fail the test.
+    await asyncio.wait_for(worker_task, timeout=1 if mode == "listen" else 2)
 
     status = await async_app.job_manager.get_job_status_async(job_id)
     assert status == Status.ABORTED
@@ -189,7 +191,9 @@ async def test_abort_sync_task(async_app: app_module.App, mode):
 
     job_id = await task1.defer_async()
 
-    abort_job_polling_interval = 0.1
+    # In listen mode, the polling interval is far beyond the wait_for timeout
+    # below, so the test can only pass through the notification path.
+    abort_job_polling_interval = 0.1 if mode == "poll" else 30
 
     worker_task = asyncio.create_task(
         async_app.run_worker_async(
@@ -200,15 +204,13 @@ async def test_abort_sync_task(async_app: app_module.App, mode):
         )
     )
 
-    await asyncio.sleep(0.05)
+    await wait_for_job_status(async_app, job_id, Status.DOING)
     result = await async_app.job_manager.cancel_job_by_id_async(job_id, abort=True)
     assert result is True
 
-    # when listening for notifications, job should cancel within ms
-    # if notifications are disabled, job will only cancel after abort_job_polling_interval
-    await asyncio.wait_for(
-        worker_task, timeout=0.1 if mode == "listen" else abort_job_polling_interval * 2
-    )
+    # Generous multiples of the expected latency (notification: ms, polling: one
+    # 0.1s interval) so a slow CI runner doesn't fail the test.
+    await asyncio.wait_for(worker_task, timeout=1 if mode == "listen" else 2)
 
     status = await async_app.job_manager.get_job_status_async(job_id)
     assert status == Status.ABORTED
