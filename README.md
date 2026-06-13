@@ -64,7 +64,7 @@
 | procrastinate/metadata.py                                         |        6 |        0 |        0 |        0 |    100% |           |
 | procrastinate/middleware.py                                       |       23 |        0 |        6 |        0 |    100% |           |
 | procrastinate/periodic.py                                         |      105 |        0 |       20 |        0 |    100% |           |
-| procrastinate/psycopg\_connector.py                               |      135 |        8 |       34 |        3 |     93% |43-44, 148-150, 238, 285-286 |
+| procrastinate/psycopg\_connector.py                               |      135 |        8 |       34 |        3 |     93% |42-43, 147-149, 237, 284-285 |
 | procrastinate/retry.py                                            |       66 |        0 |       18 |        1 |     99% |   77-\>80 |
 | procrastinate/schema.py                                           |       25 |        0 |        0 |        0 |    100% |           |
 | procrastinate/shell.py                                            |       61 |        3 |       12 |        0 |     96% |     45-47 |
