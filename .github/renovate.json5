@@ -14,11 +14,6 @@
     enabled: true,
     automerge: true,
   },
-  // pre-commit.ci pushes autofix commits onto Renovate branches; without this,
-  // Renovate treats them as manual edits and stops updating the PR.
-  gitIgnoredAuthors: [
-    '66853113+pre-commit-ci[bot]@users.noreply.github.com',
-  ],
   packageRules: [
     {
       groupName: 'all dependencies',
