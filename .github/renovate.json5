@@ -2,6 +2,7 @@
   extends: [
     'config:recommended',
     ':enablePreCommit',
+    'helpers:pinGitHubActionDigests',
   ],
   schedule: [
     'before 4am on Saturday',
