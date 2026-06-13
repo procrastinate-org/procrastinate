@@ -326,7 +326,8 @@ async def test_stop_worker(async_app: app_module.App):
     job_ids.append(await appender.defer_async(a=2))
 
     run_task = asyncio.create_task(async_app.run_worker_async(concurrency=2, wait=True))
-    await asyncio.sleep(0.5)
+    for job_id in job_ids:
+        await wait_for_job_status(async_app, job_id, Status.SUCCEEDED)
 
     with pytest.raises(asyncio.CancelledError):
         run_task.cancel()
@@ -434,8 +435,6 @@ async def test_stop_worker_aborts_sync_jobs_past_shutdown_graceful_timeout(
     with pytest.raises(asyncio.CancelledError):
         run_task.cancel()
         await run_task
-
-    await asyncio.sleep(0.05)
 
     fast_job_status = await async_app.job_manager.get_job_status_async(fast_job_id)
     slow_job_status = await async_app.job_manager.get_job_status_async(slow_job_id)
