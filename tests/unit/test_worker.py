@@ -738,7 +738,7 @@ async def test_run_log_actions(app: App, caplog, worker):
     await asyncio.wait_for(done.wait(), timeout=0.05)
 
     connector = cast(InMemoryConnector, app.connector)
-    assert [q[0] for q in connector.queries] == [
+    expected_actions = [
         "defer_jobs",
         "prune_stalled_workers",
         "register_worker",
@@ -746,6 +746,14 @@ async def test_run_log_actions(app: App, caplog, worker):
         "finish_job",
         "fetch_job",
     ]
+
+    async def wait_for_actions():
+        while len(connector.queries) < len(expected_actions):
+            await asyncio.sleep(0.001)
+
+    await asyncio.wait_for(wait_for_actions(), timeout=1)
+
+    assert [q[0] for q in connector.queries] == expected_actions
 
     logs = {(r.action, r.levelname) for r in caplog.records if hasattr(r, "action")}
     # remove the periodic_deferrer_no_task log record because that makes the test flaky
