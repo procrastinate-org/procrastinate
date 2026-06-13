@@ -192,7 +192,7 @@ jobs:
 
       - name: Store benchmark result
         if: github.event_name == 'push' && github.ref_type == 'branch'
-        uses: benchmark-action/github-action-benchmark@d48d326b4ca9ba73ca0cd0d59f108f9e02a381c7 # v1
+        uses: benchmark-action/github-action-benchmark@4bdcce38c94cec68da58d012ac24b7b1155efe8b # v1.22.1
         with:
           name: Procrastinate Benchmarks
           tool: "pytest"
