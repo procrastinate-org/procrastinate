@@ -3,7 +3,7 @@ from __future__ import annotations
 import contextlib
 import logging
 import re
-from collections.abc import Callable, Generator, Iterator
+from collections.abc import Callable, Generator
 from typing import Any
 
 import psycopg
@@ -157,7 +157,7 @@ class SyncPsycopgConnector(connector.BaseConnector):
     @contextlib.contextmanager
     def _get_cursor(
         self, connection: psycopg.Connection | None = None
-    ) -> Iterator[psycopg.Cursor[psycopg.rows.DictRow]]:
+    ) -> Generator[psycopg.Cursor[psycopg.rows.DictRow]]:
         conn_ctx = (
             contextlib.nullcontext(connection)
             if connection is not None
