@@ -145,7 +145,7 @@ extend-select = [
     "RUF", # ruff
 ]
 fixable = ["ALL"]
-extend-ignore = [
+ignore = [
     "E501", # line too long
     # It's not exactly false but it's not supported enough by our dependencies,
     # so ruff is fighting with Pyright on this.
