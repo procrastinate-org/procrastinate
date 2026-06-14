@@ -119,13 +119,13 @@ async def test_sync_task_runs_in_parallel(
     @sync_app.task(queue="default", name="sync_task_1")
     def sync_task_1():
         timings["task_1_start"] = time.monotonic()
-        time.sleep(0.3)
+        time.sleep(0.2)
         timings["task_1_end"] = time.monotonic()
 
     @sync_app.task(queue="default", name="sync_task_2")
     def sync_task_2():
         timings["task_2_start"] = time.monotonic()
-        time.sleep(0.3)
+        time.sleep(0.2)
         timings["task_2_end"] = time.monotonic()
 
     sync_task_1.defer()
@@ -134,10 +134,6 @@ async def test_sync_task_runs_in_parallel(
     async_app.tasks = sync_app.tasks
     await async_app.run_worker_async(queues=["default"], concurrency=2, wait=False)
 
-    # If the tasks ran in parallel, their execution intervals overlap. If they
-    # ran sequentially, one task would finish before the other started. Checking
-    # the overlap avoids depending on an absolute duration threshold, which is
-    # sensitive to scheduling jitter on loaded CI.
     assert timings["task_1_start"] < timings["task_2_end"]
     assert timings["task_2_start"] < timings["task_1_end"]
 
