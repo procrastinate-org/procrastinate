@@ -2,19 +2,6 @@
 requires = ["hatchling", "uv-dynamic-versioning"]
 build-backend = "hatchling.build"
 
-[tool.hatch.version]
-source = "uv-dynamic-versioning"
-
-[tool.uv-dynamic-versioning]
-pattern = "default-unprefixed"
-
-[tool.hatch.build.targets.sdist]
-include = ["procrastinate"]
-exclude = ["procrastinate/demos"]
-
-[tool.hatch.build.targets.wheel]
-exclude = ["procrastinate/demos"]
-
 [project]
 name = "procrastinate"
 dynamic = ["version"]
@@ -60,11 +47,6 @@ changelog = "https://github.com/procrastinate-org/procrastinate/releases"
 [project.scripts]
 procrastinate = 'procrastinate.cli:main'
 
-[tool.uv]
-cache-keys = [{ git = { commit = true, tags = true } }]
-required-version = ">=0.5.21"
-default-groups = ["release", "lint_format", "pg_implem", "test", "docs"]
-
 [dependency-groups]
 types = ["django-stubs"]
 release = ["dunamai"]
@@ -90,6 +72,24 @@ docs = [
     "myst-parser",
 ]
 dev = ["ruff", "basedpyright", "doc8"]
+
+[tool.hatch.version]
+source = "uv-dynamic-versioning"
+
+[tool.uv-dynamic-versioning]
+pattern = "default-unprefixed"
+
+[tool.hatch.build.targets.sdist]
+include = ["procrastinate"]
+exclude = ["procrastinate/demos"]
+
+[tool.hatch.build.targets.wheel]
+exclude = ["procrastinate/demos"]
+
+[tool.uv]
+cache-keys = [{ git = { commit = true, tags = true } }]
+required-version = ">=0.5.21"
+default-groups = ["release", "lint_format", "pg_implem", "test", "docs"]
 
 [tool.pytest.ini_options]
 addopts = ["-vv", "--strict-markers", "-rfE", "--reuse-db", "-m not benchmark"]
