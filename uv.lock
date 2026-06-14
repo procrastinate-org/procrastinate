@@ -1140,7 +1140,7 @@ test = [
     { name = "pytest-cov" },
     { name = "pytest-django" },
     { name = "pytest-mock" },
-    { name = "results", specifier = ">=1.4,<2" },
+    { name = "results" },
 ]
 types = [{ name = "django-stubs" }]
 

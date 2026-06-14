@@ -76,7 +76,7 @@ test = [
     "pytest-cov",
     "pytest-django",
     "pytest-mock",
-    "results>=1.4,<2",
+    "results",
 ]
 migration_test = ["nox", "httpx", "nox-uv"]
 docs = [
