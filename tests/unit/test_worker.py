@@ -4,6 +4,7 @@ import asyncio
 import datetime
 import signal
 from typing import cast
+from unittest import mock
 
 import pytest
 from pytest_mock import MockerFixture
@@ -81,6 +82,41 @@ async def test_worker_run_wait_stop(app: App, caplog):
         "Stopped worker on all queues",
         "No periodic task found, periodic deferrer will not run.",
     }
+
+
+async def test_stop_requested_before_run_loop_starts_is_not_lost(app: App):
+    worker = Worker(app, wait=True, install_signal_handlers=False)
+
+    original_run_loop = worker._run_loop
+
+    async def run_loop_with_late_start():
+        # Simulate a stop() landing after run() scheduled the run loop task but
+        # before the task's first statement; if it gets erased, with wait=True
+        # the worker runs forever.
+        worker.stop()
+        await original_run_loop()
+
+    worker._run_loop = run_loop_with_late_start
+
+    await asyncio.wait_for(worker.run(), timeout=2)
+
+
+def test_stop_after_run_exited_with_error_does_not_raise(not_opened_app: App):
+    # If run() dies on an exception (e.g. a database error), the stop event is
+    # never set and the worker's event loop ends up closed. A late stop() (e.g.
+    # from a signal handler or another thread) must not try to wake that loop.
+    worker = Worker(not_opened_app, wait=True, install_signal_handlers=False)
+
+    async def run_until_error():
+        async with not_opened_app.open_async():
+            failing_fetch = mock.Mock(side_effect=ConnectionError("db down"))
+            worker._fetch_and_process_jobs = failing_fetch
+            await worker.run()
+
+    with pytest.raises(ConnectionError):
+        asyncio.run(run_until_error())
+
+    worker.stop()
 
 
 async def test_worker_run_once_log_messages(app: App, caplog):
@@ -702,7 +738,7 @@ async def test_run_log_actions(app: App, caplog, worker):
     await asyncio.wait_for(done.wait(), timeout=0.05)
 
     connector = cast(InMemoryConnector, app.connector)
-    assert [q[0] for q in connector.queries] == [
+    expected_actions = [
         "defer_jobs",
         "prune_stalled_workers",
         "register_worker",
@@ -710,6 +746,14 @@ async def test_run_log_actions(app: App, caplog, worker):
         "finish_job",
         "fetch_job",
     ]
+
+    async def wait_for_actions():
+        while len(connector.queries) < len(expected_actions):
+            await asyncio.sleep(0.001)
+
+    await asyncio.wait_for(wait_for_actions(), timeout=1)
+
+    assert [q[0] for q in connector.queries] == expected_actions
 
     logs = {(r.action, r.levelname) for r in caplog.records if hasattr(r, "action")}
     # remove the periodic_deferrer_no_task log record because that makes the test flaky

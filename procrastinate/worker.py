@@ -2,11 +2,10 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
-import functools
 import inspect
 import logging
 import time
-from collections.abc import Awaitable, Callable, Iterable
+from collections.abc import Iterable
 from typing import Any
 
 from procrastinate import (
@@ -14,6 +13,7 @@ from procrastinate import (
     exceptions,
     job_context,
     jobs,
+    middleware,
     periodic,
     retry,
     signals,
@@ -47,6 +47,7 @@ class Worker:
         install_signal_handlers: bool = True,
         update_heartbeat_interval: float = 10.0,
         stalled_worker_timeout: float = 30.0,
+        task_middleware: list[middleware.TaskMiddleware] | None = None,
     ):
         self.app = app
         self.queues = queues
@@ -65,6 +66,10 @@ class Worker:
         self.install_signal_handlers = install_signal_handlers
         self.update_heartbeat_interval = update_heartbeat_interval
         self.stalled_worker_timeout = stalled_worker_timeout
+        self.task_middleware: list[middleware.TaskMiddleware] = task_middleware or []
+        for mw in self.task_middleware:
+            if not callable(mw):
+                raise TypeError(f"Task middleware {mw!r} is not callable.")
 
         if self.worker_name:
             self.logger = logger.getChild(self.worker_name)
@@ -81,6 +86,7 @@ class Worker:
         self.shutdown_graceful_timeout = shutdown_graceful_timeout
         self._job_ids_to_abort: dict[int, job_context.AbortReason] = dict()
         self.run_task: asyncio.Task[Any] | None = None
+        self._loop: asyncio.AbstractEventLoop | None = None
 
     def stop(self):
         if self._stop_event.is_set():
@@ -92,7 +98,17 @@ class Worker:
             ),
         )
 
-        self._stop_event.set()
+        try:
+            running_loop = asyncio.get_running_loop()
+        except RuntimeError:
+            running_loop = None
+
+        if self._loop is not None and running_loop is not self._loop:
+            # Called from another thread (e.g. a sync task middleware): schedule
+            # the event-set on the worker loop so the loop is actually woken.
+            self._loop.call_soon_threadsafe(self._stop_event.set)
+        else:
+            self._stop_event.set()
 
     async def _periodic_deferrer(self):
         deferrer = periodic.PeriodicDeferrer(
@@ -210,6 +226,25 @@ class Worker:
         )
         logger.log(log_level, text, extra=extra, exc_info=exc_info)
 
+    def _resolve_task_middlewares(
+        self, task: tasks.Task, task_is_async: bool
+    ) -> list[middleware.TaskMiddleware]:
+        # Worker-wide task middlewares matching the task's nature (outermost), then
+        # the task's own middlewares (innermost, already validated to match).
+        worker_wide = []
+        for mw in self.task_middleware:
+            if middleware.is_async_middleware(mw) == task_is_async:
+                worker_wide.append(mw)
+            else:
+                task_kind = "async" if task_is_async else "sync"
+                mw_kind = "sync" if task_is_async else "async"
+                self.logger.debug(
+                    f"Skipping worker-wide {mw_kind} middleware "
+                    f"{getattr(mw, '__name__', repr(mw))!r} for {task_kind} task "
+                    f"{task.name!r}"
+                )
+        return worker_wide + task.task_middleware
+
     async def _process_job(self, context: job_context.JobContext):
         """
         Processes a given job and persists its status
@@ -242,23 +277,33 @@ class Worker:
 
             exc_info: bool | BaseException = False
 
-            async def ensure_async() -> Callable[..., Awaitable[Any]]:
-                await_func: Callable[..., Awaitable[Any]]
-                if inspect.iscoroutinefunction(task.func):
-                    await_func = task
-                else:
-                    await_func = functools.partial(utils.sync_to_async, task)
-
+            async def ensure_async() -> Any:
                 job_args = [context] if task.pass_context else []
-                task_result = await await_func(*job_args, **job.task_kwargs)
-                # In some cases, the task function might be a synchronous function
-                # that returns an awaitable without actually being a
-                # coroutinefunction. In that case, in the await above, we haven't
-                # actually called the task, but merely generated the awaitable that
-                # implements the task. In that case, we want to wait this awaitable.
-                # It's easy enough to be in that situation that the best course of
-                # action is probably to await the awaitable.
-                # It's not even sure it's worth emitting a warning
+                task_is_async = inspect.iscoroutinefunction(task.func)
+                middlewares = self._resolve_task_middlewares(task, task_is_async)
+
+                if task_is_async:
+
+                    async def run_async_task():
+                        return await task(*job_args, **job.task_kwargs)
+
+                    task_result = await middleware.compose(
+                        middlewares, run_async_task, context, self
+                    )()
+                else:
+
+                    def run_sync_task():
+                        return task(*job_args, **job.task_kwargs)
+
+                    task_result = await utils.sync_to_async(
+                        middleware.compose(middlewares, run_sync_task, context, self)
+                    )
+
+                # A *sync* task function might return an awaitable without being a
+                # coroutinefunction. In that case, the await above merely created
+                # the awaitable; await it here to actually run the task. Note that
+                # middlewares then only wrapped the *creation* of the awaitable —
+                # their "after" code has already run at this point.
                 if inspect.isawaitable(task_result):
                     task_result = await task_result
 
@@ -376,6 +421,11 @@ class Worker:
         Run the worker
         This will run forever until asked to stop/cancelled, or until no more job is available is configured not to wait
         """
+        # Reset a stale stop request from a previous run. This must happen before
+        # the first await: anything later (e.g. the top of the run loop task) can
+        # run after a fresh stop() and erase it, leaving the worker unstoppable.
+        self._stop_event.clear()
+
         logger.debug("Pruning stalled workers with old heartbeats")
         pruned_workers = await self.app.job_manager.prune_stalled_workers(
             self.stalled_worker_timeout
@@ -387,6 +437,7 @@ class Worker:
         logger.debug(f"Registered worker {self.worker_id} in the database")
 
         self.run_task = asyncio.current_task()
+        self._loop = asyncio.get_running_loop()
         loop_task = asyncio.create_task(self._run_loop(), name="worker loop")
 
         try:
@@ -398,6 +449,10 @@ class Worker:
             self.stop()
             await loop_task
             raise
+        finally:
+            # The loop is about to go away; a late stop() (e.g. from another
+            # thread) must not try to wake it.
+            self._loop = None
 
     async def _handle_notification(
         self, *, channel: str, notification: jobs.Notification
@@ -590,7 +645,6 @@ class Worker:
             ),
         )
         self._new_job_event.clear()
-        self._stop_event.clear()
         self._running_jobs = {}
         self._job_semaphore = asyncio.Semaphore(self.concurrency)
         side_tasks = self._start_side_tasks()

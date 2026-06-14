@@ -24,6 +24,16 @@ async def async_app(request, psycopg_connector, connection_params):
         yield app
 
 
+async def wait_for_job_status(
+    app: app_module.App, job_id: int, status: Status, timeout: float = 5
+):
+    async def poll():
+        while await app.job_manager.get_job_status_async(job_id) != status:
+            await asyncio.sleep(0.02)
+
+    await asyncio.wait_for(poll(), timeout)
+
+
 async def test_defer(async_app: app_module.App):
     sum_results = []
     product_results = []
@@ -139,11 +149,15 @@ async def test_no_job_to_cancel_found(async_app: app_module.App):
 async def test_abort_async_task(async_app: app_module.App, mode):
     @async_app.task(queue="default", name="task1")
     async def task1():
-        await asyncio.sleep(0.5)
+        # Outlasts the wait_for timeouts below, so the abort always wins; on
+        # success the sleep is cancelled and the duration never elapses.
+        await asyncio.sleep(3)
 
     job_id = await task1.defer_async()
 
-    abort_job_polling_interval = 0.1
+    # In listen mode, the polling interval is far beyond the wait_for timeout
+    # below, so the test can only pass through the notification path.
+    abort_job_polling_interval = 0.1 if mode == "poll" else 30
 
     worker_task = asyncio.create_task(
         async_app.run_worker_async(
@@ -154,15 +168,13 @@ async def test_abort_async_task(async_app: app_module.App, mode):
         )
     )
 
-    await asyncio.sleep(0.05)
+    await wait_for_job_status(async_app, job_id, Status.DOING)
     result = await async_app.job_manager.cancel_job_by_id_async(job_id, abort=True)
     assert result is True
 
-    # when listening for notifications, job should cancel within ms
-    # if notifications are disabled, job will only cancel after abort_job_polling_interval
-    await asyncio.wait_for(
-        worker_task, timeout=0.1 if mode == "listen" else abort_job_polling_interval * 2
-    )
+    # Generous multiples of the expected latency (notification: ms, polling: one
+    # 0.1s interval) so a slow CI runner doesn't fail the test.
+    await asyncio.wait_for(worker_task, timeout=1 if mode == "listen" else 2)
 
     status = await async_app.job_manager.get_job_status_async(job_id)
     assert status == Status.ABORTED
@@ -179,7 +191,9 @@ async def test_abort_sync_task(async_app: app_module.App, mode):
 
     job_id = await task1.defer_async()
 
-    abort_job_polling_interval = 0.1
+    # In listen mode, the polling interval is far beyond the wait_for timeout
+    # below, so the test can only pass through the notification path.
+    abort_job_polling_interval = 0.1 if mode == "poll" else 30
 
     worker_task = asyncio.create_task(
         async_app.run_worker_async(
@@ -190,15 +204,13 @@ async def test_abort_sync_task(async_app: app_module.App, mode):
         )
     )
 
-    await asyncio.sleep(0.05)
+    await wait_for_job_status(async_app, job_id, Status.DOING)
     result = await async_app.job_manager.cancel_job_by_id_async(job_id, abort=True)
     assert result is True
 
-    # when listening for notifications, job should cancel within ms
-    # if notifications are disabled, job will only cancel after abort_job_polling_interval
-    await asyncio.wait_for(
-        worker_task, timeout=0.1 if mode == "listen" else abort_job_polling_interval * 2
-    )
+    # Generous multiples of the expected latency (notification: ms, polling: one
+    # 0.1s interval) so a slow CI runner doesn't fail the test.
+    await asyncio.wait_for(worker_task, timeout=1 if mode == "listen" else 2)
 
     status = await async_app.job_manager.get_job_status_async(job_id)
     assert status == Status.ABORTED
@@ -314,7 +326,8 @@ async def test_stop_worker(async_app: app_module.App):
     job_ids.append(await appender.defer_async(a=2))
 
     run_task = asyncio.create_task(async_app.run_worker_async(concurrency=2, wait=True))
-    await asyncio.sleep(0.5)
+    for job_id in job_ids:
+        await wait_for_job_status(async_app, job_id, Status.SUCCEEDED)
 
     with pytest.raises(asyncio.CancelledError):
         run_task.cancel()
@@ -349,7 +362,7 @@ async def test_stop_worker_aborts_async_jobs_past_shutdown_graceful_timeout(
     run_task = asyncio.create_task(
         async_app.run_worker_async(wait=False, shutdown_graceful_timeout=0.3)
     )
-    await asyncio.sleep(0.05)
+    await wait_for_job_status(async_app, slow_job_id, Status.DOING)
 
     with pytest.raises(asyncio.CancelledError):
         run_task.cancel()
@@ -382,7 +395,7 @@ async def test_stop_worker_retries_async_jobs_past_shutdown_graceful_timeout(
     run_task = asyncio.create_task(
         async_app.run_worker_async(wait=False, shutdown_graceful_timeout=0.3)
     )
-    await asyncio.sleep(0.05)
+    await wait_for_job_status(async_app, slow_job_id, Status.DOING)
 
     with pytest.raises(asyncio.CancelledError):
         run_task.cancel()
@@ -417,13 +430,11 @@ async def test_stop_worker_aborts_sync_jobs_past_shutdown_graceful_timeout(
     run_task = asyncio.create_task(
         async_app.run_worker_async(wait=False, shutdown_graceful_timeout=0.3)
     )
-    await asyncio.sleep(0.05)
+    await wait_for_job_status(async_app, slow_job_id, Status.DOING)
 
     with pytest.raises(asyncio.CancelledError):
         run_task.cancel()
         await run_task
-
-    await asyncio.sleep(0.05)
 
     fast_job_status = await async_app.job_manager.get_job_status_async(fast_job_id)
     slow_job_status = await async_app.job_manager.get_job_status_async(slow_job_id)
@@ -452,7 +463,7 @@ async def test_stop_worker_retries_sync_jobs_past_shutdown_graceful_timeout(
     run_task = asyncio.create_task(
         async_app.run_worker_async(wait=False, shutdown_graceful_timeout=0.3)
     )
-    await asyncio.sleep(0.05)
+    await wait_for_job_status(async_app, slow_job_id, Status.DOING)
 
     with pytest.raises(asyncio.CancelledError):
         run_task.cancel()

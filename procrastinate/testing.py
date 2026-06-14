@@ -33,7 +33,7 @@ class InMemoryConnector(connector.BaseAsyncConnector):
     methods and attributes to ease testing.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.reset()
         self.reverse_queries = {value: key for key, value in sql.queries.items()}
         self.reverse_queries[schema.SchemaManager.get_schema()] = "apply_schema"
@@ -88,6 +88,16 @@ class InMemoryConnector(connector.BaseAsyncConnector):
         self, query: str, **arguments: Any
     ) -> list[dict[str, Any]]:
         return await self.generic_execute(query, "all", **arguments)
+
+    def execute_query_all_with_connection(
+        self, connection: Any, query: str, **arguments: Any
+    ) -> list[dict[str, Any]]:
+        return utils.async_to_sync(self.execute_query_all_async, query, **arguments)
+
+    async def execute_query_all_async_with_connection(
+        self, connection: Any, query: str, **arguments: Any
+    ) -> list[dict[str, Any]]:
+        return await self.execute_query_all_async(query, **arguments)
 
     async def listen_notify(
         self, on_notification: connector.Notify, channels: Iterable[str]

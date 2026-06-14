@@ -1,14 +1,16 @@
 from __future__ import annotations
 
 import datetime
+import inspect
 import logging
 from collections.abc import Callable
-from typing import Generic, TypedDict, cast
+from typing import Any, Generic, TypedDict, cast
 
 from typing_extensions import NotRequired, ParamSpec, TypeVar, Unpack
 
 from procrastinate import app as app_module
 from procrastinate import blueprints, exceptions, jobs, manager, types, utils
+from procrastinate import middleware as middleware_module
 from procrastinate import retry as retry_module
 
 logger = logging.getLogger(__name__)
@@ -27,6 +29,7 @@ class ConfigureTaskOptions(TypedDict):
     schedule_in: NotRequired[types.TimeDeltaParams | None]
     queue: NotRequired[str | None]
     priority: NotRequired[int | None]
+    connection: NotRequired[Any | None]
 
 
 def configure_task(
@@ -38,6 +41,7 @@ def configure_task(
     schedule_at = options.get("schedule_at")
     schedule_in = options.get("schedule_in")
     priority = options.get("priority")
+    connection = options.get("connection")
 
     if schedule_at and schedule_in is not None:
         raise ValueError("Cannot set both schedule_at and schedule_in")
@@ -61,6 +65,7 @@ def configure_task(
             priority=priority,
         ),
         job_manager=job_manager,
+        connection=connection,
     )
 
 
@@ -86,6 +91,7 @@ class Task(Generic[P, R, Args]):
         priority: int = jobs.DEFAULT_PRIORITY,
         lock: str | None = None,
         queueing_lock: str | None = None,
+        task_middleware: list[middleware_module.TaskMiddleware] | None = None,
     ):
         #: Default queue to send deferred jobs to. The queue can be overridden
         #: when a job is deferred.
@@ -114,6 +120,27 @@ class Task(Generic[P, R, Args]):
         #: Default queueing lock. The queuing lock can be overridden when a job
         #: is deferred.
         self.queueing_lock: str | None = queueing_lock
+        #: Middlewares wrapping this task's execution (innermost relative to any
+        #: worker-wide task middleware). Each must match the task's sync/async
+        #: nature.
+        self.task_middleware: list[middleware_module.TaskMiddleware] = (
+            task_middleware or []
+        )
+        task_is_async = inspect.iscoroutinefunction(func)
+        for mw in self.task_middleware:
+            if not callable(mw):
+                raise TypeError(
+                    f"Task middleware {mw!r} of task {self.name!r} is not callable."
+                )
+            mw_is_async = middleware_module.is_async_middleware(mw)
+            if mw_is_async != task_is_async:
+                task_kind = "async" if task_is_async else "sync"
+                mw_kind = "async" if mw_is_async else "sync"
+                mw_name = getattr(mw, "__name__", repr(mw))
+                raise exceptions.MiddlewareKindMismatch(
+                    f"{mw_kind} middleware {mw_name!r} cannot wrap {task_kind} task "
+                    f"{self.name!r}; {task_kind} tasks require {task_kind} middleware."
+                )
 
     def add_namespace(self, namespace: str) -> None:
         """
@@ -199,6 +226,12 @@ class Task(Generic[P, R, Args]):
             Set the priority of the job as an integer. Jobs with higher priority
             are run first. Priority can be positive or negative. The default priority
             is 0.
+        connection :
+            An optional external database connection. When provided, the job INSERT
+            will run on this connection instead of the connector's pool, allowing
+            atomic deferral within a user-managed transaction. The user is
+            responsible for committing. Supported by ``SyncPsycopgConnector``,
+            ``PsycopgConnector``, and ``SQLAlchemyPsycopg2Connector``.
 
         Returns
         -------
@@ -219,6 +252,7 @@ class Task(Generic[P, R, Args]):
         schedule_in = options.get("schedule_in")
         queue = options.get("queue")
         priority = options.get("priority")
+        connection = options.get("connection")
 
         app = cast(app_module.App, self.blueprint)
         return configure_task(
@@ -233,6 +267,7 @@ class Task(Generic[P, R, Args]):
             schedule_in=schedule_in,
             queue=queue if queue is not None else self.queue,
             priority=priority if priority is not None else self.priority,
+            connection=connection,
         )
 
     def get_retry_exception(

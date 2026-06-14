@@ -158,3 +158,134 @@ def test_close(sqlalchemy_psycopg2_connector):
     assert engine.pool.checkedin() == 1
     sqlalchemy_psycopg2_connector.close()
     assert engine.pool.checkedin() == 0
+
+
+def test_execute_query_all_with_connection(sqlalchemy_psycopg2_connector):
+    with sqlalchemy_psycopg2_connector.engine.connect() as conn:
+        result = sqlalchemy_psycopg2_connector.execute_query_all_with_connection(
+            conn, "SELECT %(arg)s as col", arg=1
+        )
+    assert result == [{"col": 1}]
+
+
+def test_defer_with_external_connection_commit(sqlalchemy_psycopg2_connector):
+    from procrastinate import App, sql
+
+    app = App(connector=sqlalchemy_psycopg2_connector)
+    app.open()
+
+    @app.task
+    def my_sqla_task(x):
+        pass
+
+    with sqlalchemy_psycopg2_connector.engine.connect() as conn:
+        my_sqla_task.configure(connection=conn).defer(x=1)
+        conn.commit()
+
+    jobs = sqlalchemy_psycopg2_connector.execute_query_all(
+        query=sql.queries["list_jobs"],
+        id=None,
+        queue_name=None,
+        task_name=None,
+        status=None,
+        lock=None,
+        queueing_lock=None,
+        worker_id=None,
+    )
+    assert len(jobs) >= 1
+    assert any(
+        j["task_name"]
+        == "tests.integration.contrib.sqlalchemy.test_psycopg2_connector.my_sqla_task"
+        for j in jobs
+    )
+
+
+def test_defer_with_external_connection_rollback(sqlalchemy_psycopg2_connector):
+    from procrastinate import App, sql
+
+    app = App(connector=sqlalchemy_psycopg2_connector)
+    app.open()
+
+    @app.task
+    def my_sqla_rollback_task(x):
+        pass
+
+    with sqlalchemy_psycopg2_connector.engine.connect() as conn:
+        my_sqla_rollback_task.configure(connection=conn).defer(x=1)
+        conn.rollback()
+
+    jobs = sqlalchemy_psycopg2_connector.execute_query_all(
+        query=sql.queries["list_jobs"],
+        id=None,
+        queue_name=None,
+        task_name="tests.integration.contrib.sqlalchemy.test_psycopg2_connector.my_sqla_rollback_task",
+        status=None,
+        lock=None,
+        queueing_lock=None,
+        worker_id=None,
+    )
+    assert len(jobs) == 0
+
+
+def test_batch_defer_with_external_connection_commit(sqlalchemy_psycopg2_connector):
+    from procrastinate import App, sql
+
+    app = App(connector=sqlalchemy_psycopg2_connector)
+    app.open()
+
+    @app.task
+    def my_sqla_batch_task(x):
+        pass
+
+    with sqlalchemy_psycopg2_connector.engine.connect() as conn:
+        my_sqla_batch_task.configure(connection=conn).batch_defer({"x": 1}, {"x": 2})
+        conn.commit()
+
+    jobs = sqlalchemy_psycopg2_connector.execute_query_all(
+        query=sql.queries["list_jobs"],
+        id=None,
+        queue_name=None,
+        task_name=None,
+        status=None,
+        lock=None,
+        queueing_lock=None,
+        worker_id=None,
+    )
+    assert len(jobs) >= 2
+    assert (
+        sum(
+            j["task_name"]
+            == "tests.integration.contrib.sqlalchemy.test_psycopg2_connector.my_sqla_batch_task"
+            for j in jobs
+        )
+        == 2
+    )
+
+
+def test_batch_defer_with_external_connection_rollback(sqlalchemy_psycopg2_connector):
+    from procrastinate import App, sql
+
+    app = App(connector=sqlalchemy_psycopg2_connector)
+    app.open()
+
+    @app.task
+    def my_sqla_batch_rollback_task(x):
+        pass
+
+    with sqlalchemy_psycopg2_connector.engine.connect() as conn:
+        my_sqla_batch_rollback_task.configure(connection=conn).batch_defer(
+            {"x": 1}, {"x": 2}
+        )
+        conn.rollback()
+
+    jobs = sqlalchemy_psycopg2_connector.execute_query_all(
+        query=sql.queries["list_jobs"],
+        id=None,
+        queue_name=None,
+        task_name="tests.integration.contrib.sqlalchemy.test_psycopg2_connector.my_sqla_batch_rollback_task",
+        status=None,
+        lock=None,
+        queueing_lock=None,
+        worker_id=None,
+    )
+    assert len(jobs) == 0

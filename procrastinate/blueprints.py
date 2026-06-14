@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Concatenate, Literal, cast, overload
 
 from typing_extensions import ParamSpec, TypeVar, Unpack
 
-from procrastinate import exceptions, jobs, periodic, retry, utils
+from procrastinate import exceptions, jobs, middleware, periodic, retry, utils
 from procrastinate.job_context import JobContext
 
 if TYPE_CHECKING:
@@ -212,46 +212,8 @@ class Blueprint:
         priority: int = jobs.DEFAULT_PRIORITY,
         lock: str | None = None,
         queueing_lock: str | None = None,
-    ) -> Callable[[Callable[P, R]], Task[P, R, P]]:
-        """Declare a function as a task. This method is meant to be used as a decorator
-        Parameters
-        ----------
-        queue :
-            The name of the queue in which jobs from this task will be launched, if
-            the queue is not overridden at launch.
-            Default is ``"default"``.
-            When a worker is launched, it can listen to specific queues, or to all
-            queues.
-        lock :
-            Default value for the ``lock`` (see `Task.defer`).
-        queueing_lock:
-            Default value for the ``queueing_lock`` (see `Task.defer`).
-        name :
-            Name of the task, by default the full dotted path to the decorated function.
-            if the function is nested or dynamically defined, it is important to give
-            it a unique name, and to make sure the module that defines this function
-            is listed in the ``import_paths`` of the `procrastinate.App`.
-        priority :
-            Default priority (an integer) of jobs that are deferred from this task.
-            Jobs with higher priority are run first. Priority can be positive or negative.
-            If no default priority is set then the default priority is 0.
-        aliases:
-            Additional names for the task.
-            The main use case is to gracefully rename tasks by moving the old
-            name to aliases (these tasks can have been scheduled in a distant
-            future, so the aliases can remain for a long time).
-        retry :
-            Details how to auto-retry the task if it fails. Can be:
-
-            - A ``boolean``: will either not retry or retry indefinitely
-            - An ``int``: the number of retries before it gives up
-            - A `procrastinate.RetryStrategy` instance for complex cases
-
-            Default is no retry.
-        pass_context :
-            Passes the task execution context in the task as first
-        """
-        ...
+        task_middleware: list[middleware.TaskMiddleware] | None = None,
+    ) -> Callable[[Callable[P, R]], Task[P, R, P]]: ...
 
     @overload
     def task(
@@ -266,27 +228,14 @@ class Blueprint:
         priority: int = jobs.DEFAULT_PRIORITY,
         lock: str | None = None,
         queueing_lock: str | None = None,
+        task_middleware: list[middleware.TaskMiddleware] | None = None,
     ) -> Callable[
         [Callable[Concatenate[JobContext, P], R]],
         Task[Concatenate[JobContext, P], R, P],
-    ]:
-        """Declare a function as a task. This method is meant to be used as a decorator
-        Parameters
-        ----------
-        _func :
-            The decorated function
-        """
-        ...
+    ]: ...
 
     @overload
-    def task(self, _func: Callable[P, R]) -> Task[P, R, P]:
-        """Declare a function as a task. This method is meant to be used as a decorator
-        Parameters
-        ----------
-        _func :
-            The decorated function
-        """
-        ...
+    def task(self, _func: Callable[P, R]) -> Task[P, R, P]: ...
 
     def task(
         self,
@@ -300,11 +249,11 @@ class Blueprint:
         priority: int = jobs.DEFAULT_PRIORITY,
         lock: str | None = None,
         queueing_lock: str | None = None,
+        task_middleware: list[middleware.TaskMiddleware] | None = None,
     ):
-        from procrastinate.tasks import Task
-
         """
-        Declare a function as a task. This method is meant to be used as a decorator::
+        Declare a function as a task. This method is meant to be used as a
+        decorator::
 
             @app.task(...)
             def my_task(args):
@@ -315,8 +264,55 @@ class Blueprint:
             @app.task
             def my_task(args):
                 ...
+
         The second form will use the default value for all parameters.
+
+        Parameters
+        ----------
+        _func :
+            The decorated function, when the decorator is used without parentheses
+            (``@app.task``). Don't pass it explicitly.
+        name :
+            Name of the task, by default the full dotted path to the decorated function.
+            If the function is nested or dynamically defined, it is important to give
+            it a unique name, and to make sure the module that defines this function
+            is listed in the ``import_paths`` of the `procrastinate.App`.
+        aliases :
+            Additional names for the task.
+            The main use case is to gracefully rename tasks by moving the old
+            name to aliases (these tasks can have been scheduled in a distant
+            future, so the aliases can remain for a long time).
+        retry :
+            Details how to auto-retry the task if it fails. Can be:
+
+            - A ``boolean``: will either not retry or retry indefinitely
+            - An ``int``: the number of retries before it gives up
+            - A `procrastinate.RetryStrategy` instance for complex cases
+
+            Default is no retry.
+        pass_context :
+            Passes the task execution context in the task as first argument.
+        queue :
+            The name of the queue in which jobs from this task will be launched, if
+            the queue is not overridden at launch.
+            Default is ``"default"``.
+            When a worker is launched, it can listen to specific queues, or to all
+            queues.
+        priority :
+            Default priority (an integer) of jobs that are deferred from this task.
+            Jobs with higher priority are run first. Priority can be positive or negative.
+            If no default priority is set then the default priority is 0.
+        lock :
+            Default value for the ``lock`` (see `Task.defer`).
+        queueing_lock :
+            Default value for the ``queueing_lock`` (see `Task.defer`).
+        task_middleware :
+            A list of middlewares wrapping this task's execution. Each must match
+            the task's nature: sync middleware (a plain function) for a sync task,
+            async middleware (a coroutine function) for an async task. See
+            `howto/advanced/middleware`.
         """
+        from procrastinate.tasks import Task
 
         def _wrap(func: Callable[P, R]) -> Task[P, R, P]:
             task = Task(
@@ -330,6 +326,7 @@ class Blueprint:
                 aliases=aliases,
                 retry=retry,
                 pass_context=pass_context,
+                task_middleware=task_middleware,
             )
             self._register_task(task)
 
@@ -359,7 +356,10 @@ class Blueprint:
         cron: str,
         periodic_id: str = "",
         **configure_kwargs: Unpack[ConfigureTaskOptions],
-    ):
+    ) -> Callable[
+        [Task[P, R, Concatenate[int, periodic.Args]]],
+        Task[P, R, periodic.Args],
+    ]:
         """
         Task decorator, marks task as being scheduled for periodic deferring (see
         `howto/advanced/cron`).

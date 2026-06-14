@@ -5,7 +5,6 @@ import importlib.metadata
 import logging
 from collections.abc import (
     AsyncGenerator,
-    AsyncIterator,
     Callable,
     Iterable,
 )
@@ -200,9 +199,15 @@ class PsycopgConnector(connector.BaseAsyncConnector):
     @contextlib.asynccontextmanager
     async def _get_cursor(
         self,
-    ) -> AsyncIterator[psycopg.AsyncCursor[psycopg.rows.DictRow]]:
-        async with self.pool.connection() as connection:
-            async with connection.cursor(row_factory=psycopg.rows.dict_row) as cursor:
+        connection: psycopg.AsyncConnection | None = None,
+    ) -> AsyncGenerator[psycopg.AsyncCursor[psycopg.rows.DictRow]]:
+        conn_ctx = (
+            contextlib.nullcontext(connection)
+            if connection is not None
+            else self.pool.connection()
+        )
+        async with conn_ctx as conn:
+            async with conn.cursor(row_factory=psycopg.rows.dict_row) as cursor:
                 if self._json_loads:
                     psycopg.types.json.set_json_loads(
                         loads=self._json_loads, context=cursor
@@ -241,6 +246,18 @@ class PsycopgConnector(connector.BaseAsyncConnector):
 
             return await cursor.fetchall()
 
+    @wrap_exceptions()
+    async def execute_query_all_async_with_connection(
+        self,
+        connection: psycopg.AsyncConnection,
+        query: LiteralString,
+        **arguments: Any,
+    ) -> list[dict[str, Any]]:
+        async with self._get_cursor(connection=connection) as cursor:
+            await cursor.execute(query, self._wrap_json(arguments))
+
+            return await cursor.fetchall()
+
     def _make_dynamic_query(
         self,
         query: LiteralString,
@@ -253,7 +270,7 @@ class PsycopgConnector(connector.BaseAsyncConnector):
     @contextlib.asynccontextmanager
     async def _get_standalone_connection(
         self,
-    ) -> AsyncIterator[psycopg.AsyncConnection]:
+    ) -> AsyncGenerator[psycopg.AsyncConnection]:
         configure = self._pool_args.get("configure")
 
         if (

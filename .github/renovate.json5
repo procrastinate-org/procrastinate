@@ -2,6 +2,7 @@
   extends: [
     'config:recommended',
     ':enablePreCommit',
+    'helpers:pinGitHubActionDigests',
   ],
   schedule: [
     'before 4am on Saturday',
@@ -20,6 +21,17 @@
       matchPackageNames: [
         '*',
       ],
+    },
+    {
+      // setuptools 81 removed pkg_resources, which migra -> schemainspect
+      // still imports. Keep it below 81 (matching the pin in pyproject.toml)
+      matchPackageNames: [
+        'setuptools',
+      ],
+      matchUpdateTypes: [
+        'major',
+      ],
+      enabled: false,
     },
   ],
   automerge: true,
