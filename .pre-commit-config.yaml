@@ -30,7 +30,7 @@ repos:
       - id: mixed-line-ending
 
   - repo: https://github.com/DetachHead/basedpyright-prek-mirror
-    rev: 1.39.7
+    rev: 1.39.8
     hooks:
       - id: basedpyright
         additional_dependencies:
