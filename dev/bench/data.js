@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1781465963306,
+  "lastUpdate": 1781691831522,
   "repoUrl": "https://github.com/procrastinate-org/procrastinate",
   "entries": {
     "Procrastinate Benchmarks": [
@@ -10124,6 +10124,86 @@ window.BENCHMARK_DATA = {
             "unit": "iter/sec",
             "range": "stddev: 2.8219752231207176",
             "extra": "mean: 5.705970602999992 sec\nrounds: 5"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kai.schlamp@gmail.com",
+            "name": "Kai Schlamp",
+            "username": "medihack"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "20881737294215697aef32eb3fa2cf04e0436744",
+          "message": "Merge pull request #1577 from procrastinate-org/django-db-cleanup-middleware\n\ncontrib/django: auto-close Django DB connections around each task",
+          "timestamp": "2026-06-17T12:20:18+02:00",
+          "tree_id": "8931df50d8c3e1d65e0fe07a1df3f627634fe790",
+          "url": "https://github.com/procrastinate-org/procrastinate/commit/20881737294215697aef32eb3fa2cf04e0436744"
+        },
+        "date": 1781691830924,
+        "tool": "pytest",
+        "benches": [
+          {
+            "name": "tests/benchmarks/test_benchmark_async.py::test_benchmark_1000_async_jobs[psycopg_connector]",
+            "value": 0.2883501617531749,
+            "unit": "iter/sec",
+            "range": "stddev: 0.17946634140260784",
+            "extra": "mean: 3.4680056842 sec\nrounds: 5"
+          },
+          {
+            "name": "tests/benchmarks/test_benchmark_async.py::test_benchmark_1000_async_jobs[aiopg_connector]",
+            "value": 0.5479402079044664,
+            "unit": "iter/sec",
+            "range": "stddev: 0.03259738777664158",
+            "extra": "mean: 1.8250166452000003 sec\nrounds: 5"
+          },
+          {
+            "name": "tests/benchmarks/test_benchmark_async.py::test_benchmark_1000_async_batch_jobs[psycopg_connector]",
+            "value": 0.37835477510226917,
+            "unit": "iter/sec",
+            "range": "stddev: 0.25306223277683204",
+            "extra": "mean: 2.6430220147999988 sec\nrounds: 5"
+          },
+          {
+            "name": "tests/benchmarks/test_benchmark_async.py::test_benchmark_1000_async_batch_jobs[aiopg_connector]",
+            "value": 0.6255649552178375,
+            "unit": "iter/sec",
+            "range": "stddev: 0.25987533085306913",
+            "extra": "mean: 1.598555020799998 sec\nrounds: 5"
+          },
+          {
+            "name": "tests/benchmarks/test_benchmark_sync.py::test_benchmark_1000_sync_jobs[sync_psycopg_connector]",
+            "value": 0.24845477682116726,
+            "unit": "iter/sec",
+            "range": "stddev: 0.2309123203193351",
+            "extra": "mean: 4.024877335000002 sec\nrounds: 5"
+          },
+          {
+            "name": "tests/benchmarks/test_benchmark_sync.py::test_benchmark_1000_sync_jobs[psycopg2_connector]",
+            "value": 0.2805083163864106,
+            "unit": "iter/sec",
+            "range": "stddev: 0.11436878115790064",
+            "extra": "mean: 3.5649566932000085 sec\nrounds: 5"
+          },
+          {
+            "name": "tests/benchmarks/test_benchmark_sync.py::test_benchmark_1000_sync_batch_jobs[sync_psycopg_connector]",
+            "value": 0.35134225747993614,
+            "unit": "iter/sec",
+            "range": "stddev: 0.11966179562519741",
+            "extra": "mean: 2.846227513800005 sec\nrounds: 5"
+          },
+          {
+            "name": "tests/benchmarks/test_benchmark_sync.py::test_benchmark_1000_sync_batch_jobs[psycopg2_connector]",
+            "value": 0.3421350893983555,
+            "unit": "iter/sec",
+            "range": "stddev: 0.12720157530069864",
+            "extra": "mean: 2.9228220985999998 sec\nrounds: 5"
           }
         ]
       }
