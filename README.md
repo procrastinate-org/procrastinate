@@ -14,8 +14,9 @@
 | procrastinate/contrib/\_\_init\_\_.py                             |        0 |        0 |        0 |        0 |    100% |           |
 | procrastinate/contrib/aiopg/\_\_init\_\_.py                       |        3 |        0 |        0 |        0 |    100% |           |
 | procrastinate/contrib/aiopg/aiopg\_connector.py                   |      167 |        2 |       40 |        1 |     99% |   215-216 |
-| procrastinate/contrib/django/\_\_init\_\_.py                      |        4 |        0 |        0 |        0 |    100% |           |
+| procrastinate/contrib/django/\_\_init\_\_.py                      |        5 |        0 |        0 |        0 |    100% |           |
 | procrastinate/contrib/django/apps.py                              |       29 |        1 |        6 |        0 |     97% |        24 |
+| procrastinate/contrib/django/db\_cleanup.py                       |       30 |        0 |        0 |        0 |    100% |           |
 | procrastinate/contrib/django/django\_connector.py                 |       92 |        4 |       18 |        1 |     95% | 27-30, 38 |
 | procrastinate/contrib/django/exceptions.py                        |        6 |        0 |        0 |        0 |    100% |           |
 | procrastinate/contrib/django/healthchecks.py                      |       32 |        0 |        2 |        0 |    100% |           |
@@ -77,7 +78,7 @@
 | procrastinate/types.py                                            |       22 |        0 |        0 |        0 |    100% |           |
 | procrastinate/utils.py                                            |      166 |        0 |       34 |        0 |    100% |           |
 | procrastinate/worker.py                                           |      294 |        9 |       88 |        7 |     96% |77, 93, 213-\>216, 462-\>exit, 483-484, 488-489, 505-\>504, 522, 626-635 |
-| **TOTAL**                                                         | **3166** |  **249** |  **546** |   **24** | **92%** |           |
+| **TOTAL**                                                         | **3197** |  **249** |  **546** |   **24** | **92%** |           |
 
 
 ## Setup coverage badge

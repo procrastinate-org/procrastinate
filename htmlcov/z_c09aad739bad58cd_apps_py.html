@@ -64,10 +64,10 @@
         <p class="text">
             <a id="prevFileLink" class="nav" href="z_c09aad739bad58cd___init___py.html">&#xab; prev</a> &nbsp; &nbsp;
             <a id="indexLink" class="nav" href="index.html">&Hat; index</a> &nbsp; &nbsp;
-            <a id="nextFileLink" class="nav" href="z_c09aad739bad58cd_django_connector_py.html">&#xbb; next</a>
+            <a id="nextFileLink" class="nav" href="z_c09aad739bad58cd_db_cleanup_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.14.1">coverage.py v7.14.1</a>,
-            created at 2026-06-14 19:32 +0000
+            created at 2026-06-17 10:22 +0000
         </p>
         <aside class="hidden">
             <button type="button" class="button_next_chunk" data-shortcut="j"></button>
@@ -91,7 +91,7 @@
     <p class="pln"><span class="n"><a id="t7" href="#t7">7</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t8" href="#t8">8</a></span><span class="t"><span class="key">import</span> <span class="nam">procrastinate</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t9" href="#t9">9</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t10" href="#t10">10</a></span><span class="t"><span class="key">from</span> <span class="op">.</span> <span class="key">import</span> <span class="nam">django_connector</span><span class="op">,</span> <span class="nam">procrastinate_app</span><span class="op">,</span> <span class="nam">settings</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t10" href="#t10">10</a></span><span class="t"><span class="key">from</span> <span class="op">.</span> <span class="key">import</span> <span class="nam">db_cleanup</span><span class="op">,</span> <span class="nam">django_connector</span><span class="op">,</span> <span class="nam">procrastinate_app</span><span class="op">,</span> <span class="nam">settings</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t11" href="#t11">11</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t12" href="#t12">12</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t13" href="#t13">13</a></span><span class="t"><span class="key">class</span> <span class="nam">ProcrastinateConfig</span><span class="op">(</span><span class="nam">apps</span><span class="op">.</span><span class="nam">AppConfig</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
@@ -122,7 +122,7 @@
     <p class="run"><span class="n"><a id="t38" href="#t38">38</a></span><span class="t">    <span class="nam">connector</span> <span class="op">=</span> <span class="nam">django_connector</span><span class="op">.</span><span class="nam">DjangoConnector</span><span class="op">(</span>&nbsp;</span><span class="r"></span></p>
     <p class="run run2"><span class="n"><a id="t39" href="#t39">39</a></span><span class="t">        <span class="nam">alias</span><span class="op">=</span><span class="nam">settings</span><span class="op">.</span><span class="nam">settings</span><span class="op">.</span><span class="nam">DATABASE_ALIAS</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
     <p class="run run2"><span class="n"><a id="t40" href="#t40">40</a></span><span class="t">    <span class="op">)</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t41" href="#t41">41</a></span><span class="t">    <span class="nam">app</span> <span class="op">=</span> <span class="nam">procrastinate</span><span class="op">.</span><span class="nam">App</span><span class="op">(</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t41" href="#t41">41</a></span><span class="t">    <span class="nam">app</span> <span class="op">=</span> <span class="nam">db_cleanup</span><span class="op">.</span><span class="nam">DjangoApp</span><span class="op">(</span>&nbsp;</span><span class="r"></span></p>
     <p class="run run2"><span class="n"><a id="t42" href="#t42">42</a></span><span class="t">        <span class="nam">connector</span><span class="op">=</span><span class="nam">connector</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
     <p class="run run2"><span class="n"><a id="t43" href="#t43">43</a></span><span class="t">        <span class="nam">import_paths</span><span class="op">=</span><span class="nam">list</span><span class="op">(</span><span class="nam">get_import_paths</span><span class="op">(</span><span class="op">)</span><span class="op">)</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
     <p class="run run2"><span class="n"><a id="t44" href="#t44">44</a></span><span class="t">        <span class="nam">worker_defaults</span><span class="op">=</span><span class="nam">settings</span><span class="op">.</span><span class="nam">settings</span><span class="op">.</span><span class="nam">WORKER_DEFAULTS</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
@@ -144,10 +144,10 @@
         <p>
             <a class="nav" href="z_c09aad739bad58cd___init___py.html">&#xab; prev</a> &nbsp; &nbsp;
             <a class="nav" href="index.html">&Hat; index</a> &nbsp; &nbsp;
-            <a class="nav" href="z_c09aad739bad58cd_django_connector_py.html">&#xbb; next</a>
+            <a class="nav" href="z_c09aad739bad58cd_db_cleanup_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.14.1">coverage.py v7.14.1</a>,
-            created at 2026-06-14 19:32 +0000
+            created at 2026-06-17 10:22 +0000
         </p>
     </div>
 </footer>
