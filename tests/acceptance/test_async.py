@@ -250,6 +250,8 @@ async def test_concurrency(async_app: app_module.App):
 
 
 async def test_polling(async_app: app_module.App):
+    polling_interval = 0.5
+
     @async_app.task(queue="default", name="sum")
     async def sum(a: int, b: int):
         return a + b
@@ -260,26 +262,24 @@ async def test_polling(async_app: app_module.App):
             concurrency=1,
             wait=True,
             listen_notify=False,
-            fetch_job_polling_interval=0.3,
+            fetch_job_polling_interval=polling_interval,
         )
     )
 
-    # long enough for worker to wait until next polling
-    await asyncio.sleep(0.1)
+    # Process a warm-up job to confirm the worker is up and now idle between polls.
+    warmup_id = await sum.defer_async(a=1, b=1)
+    await wait_for_job_status(async_app, warmup_id, Status.SUCCEEDED)
+    # Let the worker's immediate post-job poll pass before deferring our job.
+    await asyncio.sleep(polling_interval / 5)
 
     job_id = await sum.defer_async(a=5, b=4)
 
-    await asyncio.sleep(0.1)
-
+    # Still within the polling interval: the job must not be fetched yet.
+    await asyncio.sleep(polling_interval / 3)
     job_status = await async_app.job_manager.get_job_status_async(job_id=job_id)
-
     assert job_status == Status.TODO, "Job fetched faster than expected."
 
-    await asyncio.sleep(0.2)
-
-    job_status = await async_app.job_manager.get_job_status_async(job_id=job_id)
-
-    assert job_status == Status.SUCCEEDED, "Job should have been fetched and processed."
+    await wait_for_job_status(async_app, job_id, Status.SUCCEEDED)
 
     try:
         worker_task.cancel()
