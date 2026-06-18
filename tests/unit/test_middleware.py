@@ -599,3 +599,109 @@ async def test_task_middleware_from_worker_defaults_is_applied():
         await app.run_worker_async(wait=False, install_signal_handlers=False)
 
     assert seen == ["wd_task"]
+
+
+async def test_worker_middleware_exception_propagates_to_job_status(app):
+    async def passthrough_mw(call_next, context, worker):
+        return await call_next()
+
+    @app.task(name="boom")
+    async def boom():
+        raise ValueError("boom")
+
+    job_id = await boom.defer_async()
+    await app.run_worker_async(
+        wait=False, install_signal_handlers=False, worker_middleware=[passthrough_mw]
+    )
+
+    assert app.connector.jobs[job_id]["status"] == "failed"
+
+
+async def test_job_aborted_propagates_through_worker_middleware(app):
+    async def passthrough_mw(call_next, context, worker):
+        return await call_next()
+
+    @app.task(name="aborting")
+    async def aborting():
+        raise exceptions.JobAborted
+
+    job_id = await aborting.defer_async()
+    await app.run_worker_async(
+        wait=False, install_signal_handlers=False, worker_middleware=[passthrough_mw]
+    )
+
+    assert app.connector.jobs[job_id]["status"] == "aborted"
+
+
+async def test_retry_works_through_worker_middleware(app):
+    mw_calls = []
+
+    async def counting_mw(call_next, context, worker):
+        mw_calls.append(context.job.id)
+        return await call_next()
+
+    @app.task(name="flaky", retry=1)
+    async def flaky():
+        raise ValueError("nope")
+
+    job_id = await flaky.defer_async()
+    await app.run_worker_async(
+        wait=False, install_signal_handlers=False, worker_middleware=[counting_mw]
+    )
+
+    assert app.connector.jobs[job_id]["status"] == "failed"
+    assert app.connector.jobs[job_id]["attempts"] == 2
+    assert mw_calls == [job_id, job_id]
+
+
+async def test_stop_from_worker_middleware_stops_the_worker(app):
+    processed = []
+
+    async def stopping_mw(call_next, context, worker):
+        processed.append(context.job.id)
+        worker.stop()
+        return await call_next()
+
+    @app.task(name="stoppable")
+    async def stoppable():
+        return None
+
+    await stoppable.defer_async()
+    await stoppable.defer_async()
+
+    # wait=True would run forever unless stop() works; timeout so a failure fails
+    # rather than hangs.
+    await asyncio.wait_for(
+        app.run_worker_async(
+            wait=True, install_signal_handlers=False, worker_middleware=[stopping_mw]
+        ),
+        timeout=5,
+    )
+
+    # Concurrency is 1: stop() during the first job prevents the second from running.
+    assert len(processed) == 1
+
+
+async def test_worker_middleware_from_worker_defaults_is_applied():
+    # Configured on worker_defaults (NOT passed to run_worker), so it must reach the
+    # worker via the {**worker_defaults, **kwargs} merge — the Django-contrib path.
+    seen = []
+
+    async def record_mw(call_next, context, worker):
+        seen.append(context.task.name)
+        return await call_next()
+
+    app = App(
+        connector=testing.InMemoryConnector(),
+        worker_defaults={"worker_middleware": [record_mw]},
+    )
+    async with app.open_async():
+
+        @app.task(name="wd_task")
+        async def wd_task():
+            return None
+
+        await wd_task.defer_async()
+        await app.run_worker_async(wait=False, install_signal_handlers=False)
+
+    assert seen == ["wd_task"]
