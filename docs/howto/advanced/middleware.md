@@ -114,9 +114,11 @@ Both are registered on the worker, so pick by what you need:
   loop, wraps every task uniformly (sync and async). Use it to wrap a job in async
   code: a tracing span, an `async with`, async metrics.
 - **Worker-wide task middleware** (`task_middleware=`) — runs *in the task's own
-  context* (a sync middleware in the task's worker thread) and is kind-matched. Use
-  it to manage thread-local resources around a sync task (e.g. closing Django DB
-  connections).
+  context* (a sync middleware in the task's worker thread) and is kind-matched.
+  Running in the task's thread is what lets it manage thread-local state around a
+  sync task. This is how Procrastinate's {doc}`Django integration
+  <../django/basic_usage>` closes Django's per-thread DB connections after each
+  task.
 
 ## Failures and retries
 
