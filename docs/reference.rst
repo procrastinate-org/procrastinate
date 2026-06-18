@@ -42,7 +42,7 @@ Middleware
     :no-value:
 
 Registering a *task* middleware whose sync/async nature doesn't match the task
-raises `MiddlewareKindMismatch` (worker middleware, being always async, is exempt).
+or a *worker* middleware that isn't async raises `MiddlewareKindMismatch`.
 
 Blueprints
 ----------

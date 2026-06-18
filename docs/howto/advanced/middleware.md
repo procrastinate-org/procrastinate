@@ -99,8 +99,9 @@ async def otel_mw(call_next, context, worker):
 app.run_worker(worker_middleware=[otel_mw])
 ```
 
-It can also be set on `worker_defaults`. A non-async or non-callable entry raises
-`TypeError` when the worker is created.
+It can also be set on `worker_defaults`. When the worker is created, a non-callable
+entry raises `TypeError`, and a sync (non-async) entry raises
+{py:class}`~procrastinate.exceptions.MiddlewareKindMismatch`.
 
 A worker middleware is the **outermost** layer. For a given job the full chain is,
 outermost to innermost: worker middleware → worker-wide task middleware → per-task

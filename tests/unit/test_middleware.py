@@ -182,7 +182,7 @@ def test_worker_rejects_sync_worker_middleware(not_opened_app):
     def sync_mw(call_next, context, worker):
         return call_next()
 
-    with pytest.raises(TypeError, match="must be async"):
+    with pytest.raises(exceptions.MiddlewareKindMismatch, match="must be async"):
         Worker(not_opened_app, worker_middleware=[sync_mw])  # type: ignore[list-item]
 
 

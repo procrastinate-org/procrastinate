@@ -78,8 +78,9 @@ class Worker:
             if not callable(mw):
                 raise TypeError(f"Worker middleware {mw!r} is not callable.")
             if not middleware.is_async_middleware(mw):
-                raise TypeError(
-                    f"Worker middleware {mw!r} must be async (async def); "
+                mw_name = getattr(mw, "__name__", repr(mw))
+                raise exceptions.MiddlewareKindMismatch(
+                    f"Worker middleware {mw_name!r} must be async (async def); "
                     f"worker middleware always runs on the event loop."
                 )
 
