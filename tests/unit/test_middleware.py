@@ -456,6 +456,125 @@ async def test_stop_from_sync_task_middleware_stops_the_worker(app):
     assert len(processed) == 1
 
 
+async def test_worker_middleware_wraps_async_task(app):
+    order = []
+
+    async def mw(call_next, context, worker):
+        order.append("before")
+        result = await call_next()
+        order.append("after")
+        return result
+
+    @app.task(name="async_task")
+    async def async_task():
+        order.append("task")
+        return 42
+
+    await async_task.defer_async()
+    await app.run_worker_async(
+        wait=False, install_signal_handlers=False, worker_middleware=[mw]
+    )
+
+    assert order == ["before", "task", "after"]
+
+
+async def test_worker_middleware_wraps_sync_task(app):
+    # Headline capability: an always-async middleware wraps a SYNC task — an async
+    # task middleware cannot do this.
+    order = []
+
+    async def mw(call_next, context, worker):
+        order.append("before")
+        result = await call_next()
+        order.append("after")
+        return result
+
+    @app.task(name="sync_task")
+    def sync_task():
+        order.append("task")
+        return "ok"
+
+    await sync_task.defer_async()
+    await app.run_worker_async(
+        wait=False, install_signal_handlers=False, worker_middleware=[mw]
+    )
+
+    assert order == ["before", "task", "after"]
+
+
+async def test_worker_middleware_wraps_outside_task_middleware(app):
+    order = []
+
+    async def worker_mw(call_next, context, worker):
+        order.append("before:worker_mw")
+        result = await call_next()
+        order.append("after:worker_mw")
+        return result
+
+    async def per_task_mw(call_next, context, worker):
+        order.append("before:per_task")
+        result = await call_next()
+        order.append("after:per_task")
+        return result
+
+    @app.task(name="ordered", task_middleware=[per_task_mw])
+    async def ordered():
+        order.append("task")
+
+    await ordered.defer_async()
+    await app.run_worker_async(
+        wait=False, install_signal_handlers=False, worker_middleware=[worker_mw]
+    )
+
+    assert order == [
+        "before:worker_mw",
+        "before:per_task",
+        "task",
+        "after:per_task",
+        "after:worker_mw",
+    ]
+
+
+async def test_worker_middleware_can_transform_result(app):
+    seen = []
+
+    async def doubling_mw(call_next, context, worker):
+        return await call_next() * 2
+
+    async def recording_mw(call_next, context, worker):
+        result = await call_next()
+        seen.append(result)
+        return result
+
+    @app.task(name="returns_three")
+    async def returns_three():
+        return 3
+
+    job_id = await returns_three.defer_async()
+    # recording_mw is outermost, so it observes doubling_mw's transformation.
+    await app.run_worker_async(
+        wait=False,
+        install_signal_handlers=False,
+        worker_middleware=[recording_mw, doubling_mw],
+    )
+
+    assert seen == [6]
+    assert app.connector.jobs[job_id]["status"] == "succeeded"
+
+
+async def test_no_worker_middleware_runs_task_normally(app):
+    ran = []
+
+    @app.task(name="plain")
+    async def plain():
+        ran.append(True)
+
+    await plain.defer_async()
+    await app.run_worker_async(wait=False, install_signal_handlers=False)
+
+    assert ran == [True]
+
+
 async def test_task_middleware_from_worker_defaults_is_applied():
     # The middleware is configured on the App's worker_defaults (NOT passed to
     # run_worker), so it must reach the worker via the {**worker_defaults,

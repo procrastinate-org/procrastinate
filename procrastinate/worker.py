@@ -321,7 +321,12 @@ class Worker:
 
                 return task_result
 
-            job_result.result = await ensure_async()
+            async def run_job():
+                return await ensure_async()
+
+            job_result.result = await middleware.compose(
+                self.worker_middleware, run_job, context, self
+            )()
 
         except BaseException as e:
             exc_info = e
