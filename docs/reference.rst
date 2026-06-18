@@ -38,7 +38,7 @@ Middleware
 ----------
 
 .. automodule:: procrastinate.middleware
-    :members: TaskMiddleware
+    :members: TaskMiddleware, WorkerMiddleware
     :no-value:
 
 Registering a task middleware whose sync/async nature doesn't match the task

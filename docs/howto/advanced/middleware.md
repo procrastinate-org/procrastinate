@@ -90,8 +90,37 @@ def stop_after_one(call_next, context, worker):
     return call_next()
 ```
 
-:::{note}
-Task middleware as described here runs in the task's own execution context.
-A *worker middleware* (running on the event loop, allowing `async with` /
-`await` around sync tasks) may be added in the future.
-:::
+## Worker middleware
+
+A *worker middleware* is **always async** and wraps every job a worker runs **on
+the event loop** — both sync and async tasks. (For a sync task, `await call_next()`
+drives the task's worker-thread hop internally.) Unlike task middleware there is no
+sync/async kind to match, and it is registered **worker-wide only**.
+
+```python
+async def otel_mw(call_next, context, worker):
+    with tracer.start_as_current_span(f"run/{context.task.name}"):
+        return await call_next()   # the task's exception propagates → span records it
+
+app.run_worker(worker_middleware=[otel_mw])
+```
+
+It can also be set on `worker_defaults`. A non-async or non-callable entry raises
+`TypeError` when the worker is created.
+
+A worker middleware is the **outermost** layer: for a given job the chain is, outermost
+to innermost, worker middleware → worker-wide task middleware → per-task task
+middleware → the task. The same failure rule applies — run cleanup in `try`/`finally`
+and re-raise, or you break retries and abort.
+
+### Worker middleware vs. worker-wide task middleware
+
+Both are registered on the worker, so pick by what you need:
+
+- **Worker middleware** (`worker_middleware=`) — always async, runs on the event loop,
+  wraps every task uniformly (sync and async). Use it to wrap a job in async code: a
+  tracing span, an `async with`, async metrics.
+- **Worker-wide task middleware** (`task_middleware=`) — runs *in the task's own
+  context* (a sync middleware in the task's worker thread) and is kind-matched. Use it
+  to manage thread-local resources around a sync task (e.g. closing Django DB
+  connections).
