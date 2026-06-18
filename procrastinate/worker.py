@@ -48,6 +48,7 @@ class Worker:
         update_heartbeat_interval: float = 10.0,
         stalled_worker_timeout: float = 30.0,
         task_middleware: list[middleware.TaskMiddleware] | None = None,
+        worker_middleware: list[middleware.WorkerMiddleware] | None = None,
     ):
         self.app = app
         self.queues = queues
@@ -70,6 +71,17 @@ class Worker:
         for mw in self.task_middleware:
             if not callable(mw):
                 raise TypeError(f"Task middleware {mw!r} is not callable.")
+        self.worker_middleware: list[middleware.WorkerMiddleware] = (
+            worker_middleware or []
+        )
+        for mw in self.worker_middleware:
+            if not callable(mw):
+                raise TypeError(f"Worker middleware {mw!r} is not callable.")
+            if not middleware.is_async_middleware(mw):
+                raise TypeError(
+                    f"Worker middleware {mw!r} must be async (async def); "
+                    f"worker middleware always runs on the event loop."
+                )
 
         if self.worker_name:
             self.logger = logger.getChild(self.worker_name)

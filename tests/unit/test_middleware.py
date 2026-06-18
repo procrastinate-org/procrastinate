@@ -160,6 +160,32 @@ def test_worker_defaults_to_no_task_middleware(not_opened_app):
     assert worker.task_middleware == []
 
 
+def test_worker_defaults_to_no_worker_middleware(not_opened_app):
+    worker = Worker(not_opened_app)
+    assert worker.worker_middleware == []
+
+
+def test_worker_stores_worker_middleware(not_opened_app):
+    async def mw(call_next, context, worker):
+        return await call_next()
+
+    worker = Worker(not_opened_app, worker_middleware=[mw])
+    assert worker.worker_middleware == [mw]
+
+
+def test_worker_rejects_non_callable_worker_middleware(not_opened_app):
+    with pytest.raises(TypeError, match="not callable"):
+        Worker(not_opened_app, worker_middleware=["oops"])  # type: ignore[list-item]
+
+
+def test_worker_rejects_sync_worker_middleware(not_opened_app):
+    def sync_mw(call_next, context, worker):
+        return call_next()
+
+    with pytest.raises(TypeError, match="must be async"):
+        Worker(not_opened_app, worker_middleware=[sync_mw])  # type: ignore[list-item]
+
+
 async def test_sync_task_middleware_runs_in_the_task_thread(app):
     main_thread = threading.get_ident()
     seen = {}
