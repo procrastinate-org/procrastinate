@@ -38,11 +38,11 @@ Middleware
 ----------
 
 .. automodule:: procrastinate.middleware
-    :members: TaskMiddleware
+    :members: TaskMiddleware, WorkerMiddleware
     :no-value:
 
-Registering a task middleware whose sync/async nature doesn't match the task
-raises `MiddlewareKindMismatch`.
+Registering a *task* middleware whose sync/async nature doesn't match the task
+or a *worker* middleware that isn't async raises `MiddlewareKindMismatch`.
 
 Blueprints
 ----------

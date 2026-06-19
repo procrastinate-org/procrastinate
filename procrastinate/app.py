@@ -45,6 +45,7 @@ class WorkerOptions(TypedDict):
     update_heartbeat_interval: NotRequired[float]
     stalled_worker_timeout: NotRequired[float]
     task_middleware: NotRequired[list[middleware.TaskMiddleware]]
+    worker_middleware: NotRequired[list[middleware.WorkerMiddleware]]
 
 
 class App(blueprints.Blueprint):
@@ -337,6 +338,10 @@ class App(blueprints.Blueprint):
             A list of middlewares wrapping every task this worker runs. Sync
             middlewares apply to sync tasks, async middlewares to async tasks.
             See `howto/advanced/middleware`. (defaults to no middleware)
+        worker_middleware: ``Optional[list[WorkerMiddleware]]``
+            A list of always-async middlewares wrapping every job this worker runs,
+            on the event loop (both sync and async tasks). See
+            `howto/advanced/middleware`. (defaults to no middleware)
         """
         self.perform_import_paths()
         worker = self._worker(**kwargs)

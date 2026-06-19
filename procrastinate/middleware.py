@@ -9,11 +9,10 @@ if TYPE_CHECKING:
     from procrastinate import job_context, worker
 
 # A sync task middleware wraps a sync task (and runs in the task's worker thread);
-# an async task middleware wraps an async task (and runs on the event loop).
-#
-# (A future "worker middleware" — always-async, wrapping the whole job on the loop
-# — will be added to this module with its own ``WorkerMiddleware`` type. The
-# ``compose`` and ``is_async_middleware`` helpers below are generic and shared.)
+# an async task middleware wraps an async task (and runs on the event loop). A
+# worker middleware (below) is always async and wraps the whole job on the loop —
+# both sync and async tasks. The ``compose`` and ``is_async_middleware`` helpers
+# are generic and shared by both.
 SyncCallNext = Callable[[], Any]
 AsyncCallNext = Callable[[], Awaitable[Any]]
 SyncTaskMiddleware = Callable[
@@ -30,6 +29,13 @@ AsyncTaskMiddleware = Callable[
 #: (plain ``def``) wrap sync tasks; async middlewares (``async def``) wrap async
 #: tasks. See :doc:`/howto/advanced/middleware`.
 TaskMiddleware = SyncTaskMiddleware | AsyncTaskMiddleware
+#: A worker middleware wraps the execution of every job a worker runs, on the
+#: event loop. It is a callable taking ``(call_next, context, worker)`` and must
+#: be ``async def``. Unlike a task middleware it is always async and wraps both
+#: sync and async tasks. See :doc:`/howto/advanced/middleware`.
+WorkerMiddleware = Callable[
+    [AsyncCallNext, "job_context.JobContext", "worker.Worker"], Awaitable[Any]
+]
 
 
 def is_async_middleware(middleware: TaskMiddleware) -> bool:

@@ -48,6 +48,7 @@ class Worker:
         update_heartbeat_interval: float = 10.0,
         stalled_worker_timeout: float = 30.0,
         task_middleware: list[middleware.TaskMiddleware] | None = None,
+        worker_middleware: list[middleware.WorkerMiddleware] | None = None,
     ):
         self.app = app
         self.queues = queues
@@ -70,6 +71,18 @@ class Worker:
         for mw in self.task_middleware:
             if not callable(mw):
                 raise TypeError(f"Task middleware {mw!r} is not callable.")
+        self.worker_middleware: list[middleware.WorkerMiddleware] = (
+            worker_middleware or []
+        )
+        for mw in self.worker_middleware:
+            if not callable(mw):
+                raise TypeError(f"Worker middleware {mw!r} is not callable.")
+            if not middleware.is_async_middleware(mw):
+                mw_name = getattr(mw, "__name__", repr(mw))
+                raise exceptions.MiddlewareKindMismatch(
+                    f"Worker middleware {mw_name!r} must be async (async def); "
+                    f"worker middleware always runs on the event loop."
+                )
 
         if self.worker_name:
             self.logger = logger.getChild(self.worker_name)
@@ -309,7 +322,12 @@ class Worker:
 
                 return task_result
 
-            job_result.result = await ensure_async()
+            async def run_job():
+                return await ensure_async()
+
+            job_result.result = await middleware.compose(
+                self.worker_middleware, run_job, context, self
+            )()
 
         except BaseException as e:
             exc_info = e
