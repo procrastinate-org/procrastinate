@@ -378,18 +378,17 @@ class JobManager:
             nothing was done: either there is no job with this id or it's not in a state
             where it may be cancelled (i.e. `todo` or `doing`)
         """
+        sync_connector = self.connector.get_sync_connector()
         if connection is not None:
-            result = (
-                self.connector.get_sync_connector().execute_query_one_with_connection(
-                    connection,
-                    query=sql.queries["cancel_job"],
-                    job_id=job_id,
-                    abort=abort,
-                    delete_job=delete_job,
-                )
+            result = sync_connector.execute_query_one_with_connection(
+                connection,
+                query=sql.queries["cancel_job"],
+                job_id=job_id,
+                abort=abort,
+                delete_job=delete_job,
             )
         else:
-            result = self.connector.get_sync_connector().execute_query_one(
+            result = sync_connector.execute_query_one(
                 query=sql.queries["cancel_job"],
                 job_id=job_id,
                 abort=abort,
@@ -472,14 +471,13 @@ class JobManager:
         -------
         :
         """
+        sync_connector = self.connector.get_sync_connector()
         if connection is not None:
-            result = (
-                self.connector.get_sync_connector().execute_query_one_with_connection(
-                    connection, query=sql.queries["get_job_status"], job_id=job_id
-                )
+            result = sync_connector.execute_query_one_with_connection(
+                connection, query=sql.queries["get_job_status"], job_id=job_id
             )
         else:
-            result = self.connector.get_sync_connector().execute_query_one(
+            result = sync_connector.execute_query_one(
                 query=sql.queries["get_job_status"], job_id=job_id
             )
         return jobs_module.Status(result["status"])
