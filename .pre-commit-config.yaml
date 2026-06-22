@@ -40,7 +40,7 @@ repos:
           - async-timeout==4.0.3
           - attrs==26.1.0
           - babel==2.18.0
-          - certifi==2026.5.20
+          - certifi==2026.6.17
           - charset-normalizer==3.4.7
           - colorama==0.4.6 ; sys_platform == 'win32'
           - croniter==6.2.2
@@ -49,7 +49,7 @@ repos:
           - django-stubs==6.0.5
           - django-stubs-ext==6.0.5
           - docutils==0.21.2
-          - greenlet==3.5.1 ; platform_machine == 'AMD64' or platform_machine == 'WIN32' or platform_machine == 'aarch64' or platform_machine == 'amd64' or platform_machine == 'ppc64le' or platform_machine == 'win32' or platform_machine == 'x86_64'
+          - greenlet==3.5.2 ; platform_machine == 'AMD64' or platform_machine == 'WIN32' or platform_machine == 'aarch64' or platform_machine == 'amd64' or platform_machine == 'ppc64le' or platform_machine == 'win32' or platform_machine == 'x86_64'
           - idna==3.18
           - imagesize==2.0.0
           - jinja2==3.1.6
@@ -73,7 +73,7 @@ repos:
           - sphinxcontrib-jsmath==1.0.1
           - sphinxcontrib-qthelp==2.0.0
           - sphinxcontrib-serializinghtml==2.0.0
-          - sqlalchemy==2.0.50
+          - sqlalchemy==2.0.51
           - sqlparse==0.5.5
           - tomli==2.4.1 ; python_full_version < '3.11'
           - types-pyyaml==6.0.12.20260518
@@ -81,7 +81,7 @@ repos:
           - tzdata==2026.2 ; sys_platform == 'win32'
           - urllib3==2.7.0
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.17
+    rev: v0.15.18
     hooks:
       - id: ruff
         args: [--fix, --unsafe-fixes, --show-fixes]
