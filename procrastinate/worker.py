@@ -549,11 +549,18 @@ class Worker:
             extra=self._log_extra(action="abort_job", context=context, job_result=None),
         )
 
-    async def _shutdown(self, side_tasks: list[asyncio.Task[Any]]):
+    async def _shutdown(
+        self,
+        heartbeat_task: asyncio.Task[Any],
+        side_tasks: list[asyncio.Task[Any]],
+    ):
         """
         Gracefully shutdown the worker by cancelling side tasks
         and waiting for all pending jobs.
         """
+        # The heartbeat is deliberately kept running while we drain in-flight
+        # jobs below: the worker is still alive and processing them, and a
+        # frozen heartbeat would let stalled-worker recovery reclaim those jobs.
         await utils.cancel_and_capture_errors(side_tasks)
 
         now = time.time()
@@ -586,6 +593,9 @@ class Worker:
             )
             await self._abort_running_jobs()
 
+        # Jobs have drained: stop the heartbeat before unregistering the worker.
+        await utils.cancel_and_capture_errors([heartbeat_task])
+
         assert self.worker_id is not None
         await self.app.job_manager.unregister_worker(self.worker_id)
         logger.debug(f"Unregistered finished worker {self.worker_id} from the database")
@@ -604,10 +614,18 @@ class Worker:
 
         await asyncio.gather(*self._running_jobs, return_exceptions=True)
 
-    def _start_side_tasks(self) -> list[asyncio.Task[Any]]:
-        """Start side tasks such as periodic deferrer and notification listener"""
+    def _start_side_tasks(
+        self,
+    ) -> tuple[asyncio.Task[Any], list[asyncio.Task[Any]]]:
+        """Start side tasks such as periodic deferrer and notification listener.
+
+        The heartbeat is returned separately because it must outlive the other
+        side tasks during shutdown (see _shutdown).
+        """
+        heartbeat_task = asyncio.create_task(
+            self._update_heartbeat(), name="update_heartbeats"
+        )
         side_tasks = [
-            asyncio.create_task(self._update_heartbeat(), name="update_heartbeats"),
             asyncio.create_task(self._periodic_deferrer(), name="deferrer"),
             asyncio.create_task(self._poll_jobs_to_abort(), name="poll_jobs_to_abort"),
         ]
@@ -617,7 +635,7 @@ class Worker:
                 queues=self.queues,
             )
             side_tasks.append(asyncio.create_task(listener_coro, name="listener"))
-        return side_tasks
+        return heartbeat_task, side_tasks
 
     async def _monitor_side_tasks(self, side_tasks: list[asyncio.Task[Any]]):
         """Monitor side tasks and stop the worker if any task fails"""
@@ -665,9 +683,10 @@ class Worker:
         self._new_job_event.clear()
         self._running_jobs = {}
         self._job_semaphore = asyncio.Semaphore(self.concurrency)
-        side_tasks = self._start_side_tasks()
+        heartbeat_task, side_tasks = self._start_side_tasks()
         side_tasks_monitor = asyncio.create_task(
-            self._monitor_side_tasks(side_tasks), name="side_tasks_monitor"
+            self._monitor_side_tasks([heartbeat_task, *side_tasks]),
+            name="side_tasks_monitor",
         )
 
         context = (
@@ -702,4 +721,4 @@ class Worker:
         finally:
             if not side_tasks_monitor.done():
                 side_tasks_monitor.cancel()
-            await self._shutdown(side_tasks=side_tasks)
+            await self._shutdown(heartbeat_task=heartbeat_task, side_tasks=side_tasks)

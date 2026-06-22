@@ -831,6 +831,50 @@ async def test_worker_id_and_heartbeat_lifecycle(app: App):
     assert connector.workers == {}
 
 
+async def test_heartbeat_continues_during_graceful_shutdown(app: App):
+    """
+    A draining worker must keep updating its heartbeat while it waits for its
+    in-flight jobs to finish. Otherwise it looks dead to stalled-worker
+    recovery, which would reclaim jobs that are still being processed.
+    """
+    connector = cast(InMemoryConnector, app.connector)
+
+    @app.task(queue="some_queue")
+    async def long_job():
+        await asyncio.sleep(0.3)
+
+    await long_job.defer_async()
+
+    worker = Worker(
+        app,
+        update_heartbeat_interval=0.05,
+        shutdown_graceful_timeout=1.0,
+    )
+    run_task = await start_worker(worker)
+
+    worker_id = worker.worker_id
+    assert worker_id is not None
+
+    # Let the job start being processed.
+    await asyncio.sleep(0.05)
+
+    # Begin a graceful shutdown while the job is still running.
+    worker.stop()
+    heartbeat_at_shutdown = connector.workers[worker_id]
+
+    # While the worker drains its in-flight job, the heartbeat must keep
+    # advancing instead of freezing the moment shutdown begins.
+    await asyncio.sleep(0.15)
+    assert worker_id in connector.workers
+    assert connector.workers[worker_id] > heartbeat_at_shutdown
+
+    await run_task
+
+    # Once the job has drained and shutdown completes, the worker is gone.
+    assert worker.worker_id is None
+    assert connector.workers == {}
+
+
 async def test_job_receives_worker_id(app: App):
     @app.task(queue="some_queue")
     async def t():
