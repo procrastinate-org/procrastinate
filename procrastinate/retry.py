@@ -208,10 +208,10 @@ class RetryStrategy(BaseRetryStrategy):
         return RetryDecision(retry_in={"seconds": wait})
 
 
-RetryValue: TypeAlias = bool | int | RetryStrategy
+RetryValue: TypeAlias = bool | int | BaseRetryStrategy
 
 
-def get_retry_strategy(retry: RetryValue) -> RetryStrategy | None:
+def get_retry_strategy(retry: RetryValue) -> BaseRetryStrategy | None:
     if not retry:
         return None
 
