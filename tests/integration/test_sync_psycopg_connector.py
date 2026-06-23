@@ -247,3 +247,89 @@ def test_batch_defer_with_external_connection_rollback(
         worker_id=None,
     )
     assert len(jobs) == 0
+
+
+def test_execute_query_one_with_connection(sync_psycopg_connector):
+    with sync_psycopg_connector.pool.connection() as conn:
+        result = sync_psycopg_connector.execute_query_one_with_connection(
+            conn, "SELECT %(arg)s as col", arg=1
+        )
+    assert result == {"col": 1}
+
+
+def test_cancel_job_with_external_connection_commit(
+    sync_psycopg_connector, connection_params
+):
+    import psycopg
+
+    from procrastinate import App, jobs
+
+    app = App(connector=sync_psycopg_connector)
+    app.open()
+
+    @app.task
+    def my_cancel_task(x):
+        pass
+
+    job_id = my_cancel_task.defer(x=1)
+
+    conninfo = psycopg.conninfo.make_conninfo(**connection_params)
+    with psycopg.connect(conninfo) as conn:
+        conn.autocommit = False
+        cancelled = app.job_manager.cancel_job_by_id(job_id, connection=conn)
+        assert cancelled is True
+        conn.commit()
+
+    status = app.job_manager.get_job_status(job_id)
+    assert status == jobs.Status.CANCELLED
+
+
+def test_cancel_job_with_external_connection_rollback(
+    sync_psycopg_connector, connection_params
+):
+    import psycopg
+
+    from procrastinate import App, jobs
+
+    app = App(connector=sync_psycopg_connector)
+    app.open()
+
+    @app.task
+    def my_cancel_rollback_task(x):
+        pass
+
+    job_id = my_cancel_rollback_task.defer(x=1)
+
+    conninfo = psycopg.conninfo.make_conninfo(**connection_params)
+    with psycopg.connect(conninfo) as conn:
+        conn.autocommit = False
+        cancelled = app.job_manager.cancel_job_by_id(job_id, connection=conn)
+        assert cancelled is True
+        conn.rollback()
+
+    # The cancellation was rolled back, the job is still up for grabs
+    status = app.job_manager.get_job_status(job_id)
+    assert status == jobs.Status.TODO
+
+
+def test_get_job_status_with_external_connection(
+    sync_psycopg_connector, connection_params
+):
+    import psycopg
+
+    from procrastinate import App, jobs
+
+    app = App(connector=sync_psycopg_connector)
+    app.open()
+
+    @app.task
+    def my_status_task(x):
+        pass
+
+    job_id = my_status_task.defer(x=1)
+
+    conninfo = psycopg.conninfo.make_conninfo(**connection_params)
+    with psycopg.connect(conninfo) as conn:
+        conn.autocommit = False
+        status = app.job_manager.get_job_status(job_id, connection=conn)
+    assert status == jobs.Status.TODO

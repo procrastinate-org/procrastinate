@@ -204,6 +204,19 @@ class SyncPsycopgConnector(connector.BaseConnector):
             return cursor.fetchall()
 
     @wrap_exceptions()
+    def execute_query_one_with_connection(
+        self, connection: psycopg.Connection, query: LiteralString, **arguments: Any
+    ) -> dict[str, Any]:
+        with self._get_cursor(connection=connection) as cursor:
+            cursor.execute(query, self._wrap_json(arguments))
+
+            result = cursor.fetchone()
+
+            if result is None:
+                raise exceptions.NoResult
+            return result
+
+    @wrap_exceptions()
     def execute_query_all_with_connection(
         self, connection: psycopg.Connection, query: LiteralString, **arguments: Any
     ) -> list[dict[str, Any]]:

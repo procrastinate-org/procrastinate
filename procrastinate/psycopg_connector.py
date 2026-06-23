@@ -247,6 +247,22 @@ class PsycopgConnector(connector.BaseAsyncConnector):
             return await cursor.fetchall()
 
     @wrap_exceptions()
+    async def execute_query_one_async_with_connection(
+        self,
+        connection: psycopg.AsyncConnection,
+        query: LiteralString,
+        **arguments: Any,
+    ) -> dict[str, Any]:
+        async with self._get_cursor(connection=connection) as cursor:
+            await cursor.execute(query, self._wrap_json(arguments))
+
+            result = await cursor.fetchone()
+
+            if result is None:
+                raise exceptions.NoResult
+            return result
+
+    @wrap_exceptions()
     async def execute_query_all_async_with_connection(
         self,
         connection: psycopg.AsyncConnection,

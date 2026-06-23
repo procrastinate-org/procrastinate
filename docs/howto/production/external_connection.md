@@ -2,7 +2,8 @@
 
 Procrastinate supports deferring jobs on an externally-managed database connection.
 This lets you insert the job within the same transaction as your own database
-operations, enabling patterns like the **transactional outbox**.
+operations, enabling patterns like the **transactional outbox**. Cancelling a job
+and reading its status can run on an external connection too.
 
 ## When to use this
 
@@ -71,6 +72,22 @@ with connector.engine.connect() as conn:
     conn.commit()
 ```
 
+## Cancelling jobs and reading status
+
+`cancel_job_by_id` / `cancel_job_by_id_async` and `get_job_status` /
+`get_job_status_async` accept the same `connection` argument. Useful if you update
+your own tables when cancelling a job and want both changes to commit (or roll back)
+together:
+
+```python
+job_id = 33
+
+async with await psycopg.AsyncConnection.connect("...") as conn:
+    await conn.execute("UPDATE orders SET state = 'cancelled' WHERE id = %s", [42])
+    await app.job_manager.cancel_job_by_id_async(job_id, connection=conn)
+    await conn.commit()  # the order update and the cancellation commit together
+```
+
 ## Supported connectors
 
 - `SyncPsycopgConnector` — pass a `psycopg.Connection`
@@ -82,7 +99,9 @@ Other connectors will raise a `ConnectorException` if `connection` is provided.
 ## Important notes
 
 - **NOTIFY is delayed**: The database NOTIFY that wakes workers fires when you
-  commit. This is expected and acceptable.
+  commit. This is expected and acceptable. The same applies when cancelling a
+  running job with `abort=True`: the worker only sees the abort request once you
+  commit.
 - **Error handling**: Errors from the job INSERT (e.g. queueing lock violations)
   are wrapped as usual via procrastinate's exception hierarchy, but they may abort
   your transaction. Use savepoints if you need to isolate the defer from the rest
