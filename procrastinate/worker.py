@@ -37,6 +37,7 @@ class Worker:
         queues: Iterable[str] | None = None,
         name: str | None = WORKER_NAME,
         concurrency: int = WORKER_CONCURRENCY,
+        buffer_concurrency: int = 0,
         wait: bool = True,
         fetch_job_polling_interval: float = FETCH_JOB_POLLING_INTERVAL,
         abort_job_polling_interval: float = ABORT_JOB_POLLING_INTERVAL,
@@ -53,7 +54,14 @@ class Worker:
         self.app = app
         self.queues = queues
         self.worker_name = name
+        if concurrency < 0 or buffer_concurrency < 0:
+            raise ValueError("concurrency and buffer_concurrency must be non-negative")
+        if concurrency + buffer_concurrency <= 0:
+            raise ValueError("concurrency + buffer_concurrency must be greater than 0")
         self.concurrency = concurrency
+        self.buffer_concurrency = buffer_concurrency
+        self.total_capacity = concurrency + buffer_concurrency
+        self._held_buffer_slots = 0
         self.wait = wait
         self.fetch_job_polling_interval = fetch_job_polling_interval
         self.abort_job_polling_interval = abort_job_polling_interval
@@ -122,6 +130,70 @@ class Worker:
             self._loop.call_soon_threadsafe(self._stop_event.set)
         else:
             self._stop_event.set()
+
+    def set_concurrency(self, new_concurrency: int) -> None:
+        """
+        Adjust the active concurrency at runtime.
+
+        Parameters
+        ----------
+        new_concurrency :
+            New concurrency level. Must be between 0 and total_capacity.
+
+        Notes
+        -----
+        This method is not thread-safe. Call from a single control coroutine
+        to avoid race conditions with the worker's internal state.
+        """
+        if new_concurrency == self.concurrency:
+            return
+
+        if new_concurrency < 0 or new_concurrency > self.total_capacity:
+            raise ValueError(f"Concurrency must be between 0 and {self.total_capacity}")
+
+        old_concurrency = self.concurrency
+        old_buffer = self.buffer_concurrency
+        self.concurrency = new_concurrency
+        new_buffer = self.total_capacity - new_concurrency
+
+        if new_concurrency > old_concurrency:
+            # Scale up: release buffer slots one at a time, decrementing counter.
+            # Guard against releasing more slots than actually held.
+            # If set_concurrency is called before _run_loop, _held_buffer_slots is 0,
+            # so slots_to_release becomes 0 and the loop below never runs.
+            # This also avoids releasing on the parent-init semaphore (capacity=concurrency)
+            # before _run_loop replaces it with the correct one (capacity=total_capacity).
+            slots_to_release = min(old_buffer - new_buffer, self._held_buffer_slots)
+            for _ in range(slots_to_release):
+                self._job_semaphore.release()
+                self._held_buffer_slots -= 1
+        elif new_concurrency < old_concurrency:
+            # Scale down: no immediate action needed.
+            # The fetch loop will naturally hold more slots as buffer
+            # on the next acquisitions (since _held_buffer_slots < new_buffer).
+            pass
+
+        self.logger.info(
+            f"Concurrency adjusted: {old_concurrency} -> {new_concurrency} "
+            f"(buffer: {old_buffer} -> {new_buffer})"
+        )
+
+        self.buffer_concurrency = new_buffer
+
+    @property
+    def running_jobs_count(self) -> int:
+        """Number of jobs currently being processed."""
+        return len(self._running_jobs)
+
+    @property
+    def spare_concurrency(self) -> int:
+        """Number of active concurrency slots currently free.
+
+        Returns 0 when the worker is saturated (all slots occupied).
+        A positive value means the worker could process more jobs right now
+        if they were available — i.e. concurrency is NOT the bottleneck.
+        """
+        return max(0, self.concurrency - len(self._running_jobs))
 
     async def _periodic_deferrer(self):
         deferrer = periodic.PeriodicDeferrer(
@@ -390,19 +462,29 @@ class Worker:
         while not self._stop_event.is_set():
             acquire_sem_task = asyncio.create_task(self._job_semaphore.acquire())
             job = None
+            should_release = True
             try:
                 await utils.wait_any(acquire_sem_task, self._stop_event.wait())
                 if self._stop_event.is_set():
                     break
+
+                # Check if this slot should be held as buffer
+                if self._held_buffer_slots < self.buffer_concurrency:
+                    self._held_buffer_slots += 1
+                    should_release = False
+                    continue
 
                 assert self.worker_id is not None
                 job = await self.app.job_manager.fetch_job(
                     queues=self.queues, worker_id=self.worker_id
                 )
             finally:
-                if (not job or self._stop_event.is_set()) and acquire_sem_task.done():
-                    self._job_semaphore.release()
-                self._new_job_event.clear()
+                if should_release:
+                    if (
+                        not job or self._stop_event.is_set()
+                    ) and acquire_sem_task.done():
+                        self._job_semaphore.release()
+                    self._new_job_event.clear()
 
             if not job:
                 break
@@ -664,7 +746,7 @@ class Worker:
         )
         self._new_job_event.clear()
         self._running_jobs = {}
-        self._job_semaphore = asyncio.Semaphore(self.concurrency)
+        self._job_semaphore = asyncio.Semaphore(self.total_capacity)
         side_tasks = self._start_side_tasks()
         side_tasks_monitor = asyncio.create_task(
             self._monitor_side_tasks(side_tasks), name="side_tasks_monitor"
@@ -678,6 +760,12 @@ class Worker:
 
         try:
             with context:
+                # Hold initial buffer slots before first fetch
+                self._held_buffer_slots = 0
+                for _ in range(self.buffer_concurrency):
+                    await self._job_semaphore.acquire()
+                    self._held_buffer_slots += 1
+
                 await self._fetch_and_process_jobs()
                 if not self.wait:
                     self.logger.info(
@@ -700,6 +788,11 @@ class Worker:
                     )
                     await self._fetch_and_process_jobs()
         finally:
+            # Release buffer slots on shutdown
+            for _ in range(self._held_buffer_slots):
+                self._job_semaphore.release()
+                self._held_buffer_slots -= 1
+
             if not side_tasks_monitor.done():
                 side_tasks_monitor.cancel()
             await self._shutdown(side_tasks=side_tasks)

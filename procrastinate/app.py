@@ -34,6 +34,7 @@ class WorkerOptions(TypedDict):
     queues: NotRequired[Iterable[str]]
     name: NotRequired[str]
     concurrency: NotRequired[int]
+    buffer_concurrency: NotRequired[int]
     wait: NotRequired[bool]
     fetch_job_polling_interval: NotRequired[float]
     abort_job_polling_interval: NotRequired[float]
@@ -359,6 +360,43 @@ class App(blueprints.Blueprint):
                 await self.run_worker_async(**kwargs)
 
         asyncio.run(f())
+
+    async def run_worker_async_background(
+        self, **kwargs: Unpack[WorkerOptions]
+    ) -> worker.Worker:
+        """
+        Run a worker as a background asyncio task.
+
+        Returns the worker instance immediately, allowing concurrency to be
+        adjusted at runtime via ``worker.set_concurrency()``.
+
+        Parameters
+        ----------
+        buffer_concurrency :
+            Number of buffered semaphore slots for future scaling.
+            Total semaphore capacity will be concurrency + buffer_concurrency.
+        install_signal_handlers :
+            Defaults to ``False`` for this method since the worker
+            runs as a task inside a larger application.
+
+        Returns
+        -------
+        Worker
+            The worker instance. Call ``worker.stop()`` for graceful shutdown.
+            The worker runs as ``worker.run_task`` which you can await or cancel.
+        """
+        self.perform_import_paths()
+
+        # Default to no signal handlers for embedded worker
+        if "install_signal_handlers" not in kwargs:
+            kwargs["install_signal_handlers"] = False
+
+        worker = self._worker(**kwargs)
+        worker.run_task = asyncio.create_task(
+            worker.run(),
+            name=worker.worker_name,
+        )
+        return worker
 
     async def check_connection_async(self) -> bool:
         return await self.job_manager.check_connection_async()
