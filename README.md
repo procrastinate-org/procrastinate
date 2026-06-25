@@ -10,7 +10,12 @@
 [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-v1.4%20adopted-ff69b4.svg)](https://github.com/procrastinate-org/procrastinate/blob/main/CODE_OF_CONDUCT.md)
 [![Discord](https://img.shields.io/discord/1197292025725329549?logo=discord&logoColor=white&label=Discord&color=%237289da)](https://discord.gg/JWZeNq6P6Z)
 
-**Procrastinate is looking for** [additional maintainers!](https://github.com/procrastinate-org/procrastinate/discussions/748)
+### Fork changes
+
+1. Added `result` column to `jobs` table so failed job can store it's failure reason
+
+**Procrastinate is looking for
+** [additional maintainers!](https://github.com/procrastinate-org/procrastinate/discussions/748)
 
 Procrastinate is an open-source Python 3.10+ distributed task processing
 library, leveraging PostgreSQL 13+ to store task definitions, manage locks and
@@ -31,11 +36,13 @@ import procrastinate
 # Make an app in your code
 app = procrastinate.App(connector=procrastinate.SyncPsycopgConnector())
 
+
 # Then define tasks
 @app.task(queue="sums")
 def sum(a, b):
     with open("myfile", "w") as f:
         f.write(str(a + b))
+
 
 with app.open():
     # Launch a job
@@ -72,10 +79,12 @@ import procrastinate
 # Make an app in your code
 app = procrastinate.App(connector=procrastinate.PsycopgConnector())
 
+
 # Define tasks using coroutine functions
 @app.task(queue="sums")
 async def sum(a, b):
     await asyncio.sleep(a + b)
+
 
 async with app.open_async():
     # Launch a job
@@ -106,7 +115,11 @@ If you encounter a bug, or want to get in touch, you're always welcome to open a
 [ticket].
 
 [docs]: https://procrastinate.readthedocs.io/
+
 [procrastinate]: https://en.wikipedia.org/wiki/Procrastination
+
 [django]: https://procrastinate.readthedocs.io/en/stable/howto/django/configuration.html
+
 [quickstart]: https://procrastinate.readthedocs.io/en/stable/quickstart.html
+
 [ticket]: https://github.com/procrastinate-org/procrastinate/issues/new
