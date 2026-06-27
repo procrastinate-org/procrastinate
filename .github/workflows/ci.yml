@@ -146,7 +146,7 @@ jobs:
           merge-multiple: true
 
       - name: Display coverage
-        uses: ewjoachim/python-coverage-comment-action@bf0faadec8ee8b9a2185ecf7c4be5dcb9a01854f # v3
+        uses: ewjoachim/python-coverage-comment-action@5d8df5979747514c914e1c5a12335a7cf9a2745f # v4.1
         with:
           MERGE_COVERAGE_FILES: true
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
