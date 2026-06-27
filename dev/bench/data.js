@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1782237081418,
+  "lastUpdate": 1782523290666,
   "repoUrl": "https://github.com/procrastinate-org/procrastinate",
   "entries": {
     "Procrastinate Benchmarks": [
@@ -10844,6 +10844,86 @@ window.BENCHMARK_DATA = {
             "unit": "iter/sec",
             "range": "stddev: 0.12420756683408841",
             "extra": "mean: 2.9253765430000045 sec\nrounds: 5"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "29139614+renovate[bot]@users.noreply.github.com",
+            "name": "renovate[bot]",
+            "username": "renovate[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "f099a753730d5492bdebdc1c1f2796ffa5cf5671",
+          "message": "Update ewjoachim/python-coverage-comment-action action to v4 (#1590)\n\nUpdate ewjoachim/python-coverage-comment-action action to v4",
+          "timestamp": "2026-06-27T01:17:23Z",
+          "tree_id": "19443eaa875fdfd68374e2388d981bec94f390d4",
+          "url": "https://github.com/procrastinate-org/procrastinate/commit/f099a753730d5492bdebdc1c1f2796ffa5cf5671"
+        },
+        "date": 1782523290257,
+        "tool": "pytest",
+        "benches": [
+          {
+            "name": "tests/benchmarks/test_benchmark_async.py::test_benchmark_1000_async_jobs[psycopg_connector]",
+            "value": 0.2177828931113471,
+            "unit": "iter/sec",
+            "range": "stddev: 0.2322921375285826",
+            "extra": "mean: 4.591728880600021 sec\nrounds: 5"
+          },
+          {
+            "name": "tests/benchmarks/test_benchmark_async.py::test_benchmark_1000_async_jobs[aiopg_connector]",
+            "value": 0.3984964543873622,
+            "unit": "iter/sec",
+            "range": "stddev: 0.13846372515791464",
+            "extra": "mean: 2.5094326159999922 sec\nrounds: 5"
+          },
+          {
+            "name": "tests/benchmarks/test_benchmark_async.py::test_benchmark_1000_async_batch_jobs[psycopg_connector]",
+            "value": 0.3011386672208951,
+            "unit": "iter/sec",
+            "range": "stddev: 0.2817720944774026",
+            "extra": "mean: 3.3207293145999985 sec\nrounds: 5"
+          },
+          {
+            "name": "tests/benchmarks/test_benchmark_async.py::test_benchmark_1000_async_batch_jobs[aiopg_connector]",
+            "value": 0.4942271889079705,
+            "unit": "iter/sec",
+            "range": "stddev: 0.3024385466390796",
+            "extra": "mean: 2.0233609611999896 sec\nrounds: 5"
+          },
+          {
+            "name": "tests/benchmarks/test_benchmark_sync.py::test_benchmark_1000_sync_jobs[sync_psycopg_connector]",
+            "value": 0.1949325699411993,
+            "unit": "iter/sec",
+            "range": "stddev: 0.24568700393910164",
+            "extra": "mean: 5.129979050200006 sec\nrounds: 5"
+          },
+          {
+            "name": "tests/benchmarks/test_benchmark_sync.py::test_benchmark_1000_sync_jobs[psycopg2_connector]",
+            "value": 0.22426223046909138,
+            "unit": "iter/sec",
+            "range": "stddev: 0.10859955941128062",
+            "extra": "mean: 4.459065612200016 sec\nrounds: 5"
+          },
+          {
+            "name": "tests/benchmarks/test_benchmark_sync.py::test_benchmark_1000_sync_batch_jobs[sync_psycopg_connector]",
+            "value": 0.2791476035626025,
+            "unit": "iter/sec",
+            "range": "stddev: 0.10454249792076709",
+            "extra": "mean: 3.582334174599987 sec\nrounds: 5"
+          },
+          {
+            "name": "tests/benchmarks/test_benchmark_sync.py::test_benchmark_1000_sync_batch_jobs[psycopg2_connector]",
+            "value": 0.26360054343826805,
+            "unit": "iter/sec",
+            "range": "stddev: 0.07860479628515245",
+            "extra": "mean: 3.7936188862000106 sec\nrounds: 5"
           }
         ]
       }
