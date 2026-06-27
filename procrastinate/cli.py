@@ -8,6 +8,7 @@ import logging
 import os
 import shlex
 import sys
+import warnings
 from collections.abc import Awaitable, Callable
 from typing import Any, Literal
 
@@ -20,19 +21,54 @@ PROGRAM_NAME = "procrastinate"
 ENV_PREFIX = PROGRAM_NAME.upper()
 
 
-def get_log_level(verbosity: int) -> int:
+def get_log_level(
+    verbosity: int | None = None,
+    log_level: str | None = None,
+) -> int:
     """
-    Given the number of repetitions of the flag -v,
-    returns the desired log level
+    Determine the appropriate logging level.
+
+    Args:
+        verbosity: Number of -v flags (0=INFO, 1+=DEBUG)
+        log_level: Explicit log level string (debug, info, warning, error, critical)
+
+    Returns:
+        Logging level constant (e.g., logging.INFO, logging.DEBUG)
+
+    Precedence: log_level > verbosity > default INFO
     """
-    return {0: logging.INFO, 1: logging.DEBUG}.get(min((1, verbosity)), 0)
+    if log_level is not None:
+        return getattr(logging, log_level.upper())
+
+    if verbosity is not None:
+        return {0: logging.INFO, 1: logging.DEBUG}.get(
+            min((1, verbosity)), logging.DEBUG
+        )
+
+    return logging.INFO
 
 
 Style = Literal["%", "{", "$"]
 
 
-def configure_logging(verbosity: int, format: str, style: Style) -> None:
-    level = get_log_level(verbosity=verbosity)
+def configure_logging(
+    verbosity: int | None = None,
+    log_level: str | None = None,
+    format: str = logging.BASIC_FORMAT,
+    style: Style = "%",
+) -> None:
+    """Configure the Python logging system."""
+    # Issue deprecation warning when -v/--verbose is actively used
+    if verbosity is not None and verbosity > 0:
+        warnings.warn(
+            "The -v/--verbose flag and PROCRASTINATE_VERBOSE environment variable "
+            "are deprecated and will be removed in a future version. "
+            "Use --log-level or PROCRASTINATE_LOG_LEVEL instead.",
+            PendingDeprecationWarning,
+            stacklevel=2,
+        )
+
+    level = get_log_level(verbosity=verbosity, log_level=log_level)
     logging.basicConfig(level=level, format=format, style=style)
     level_name = logging.getLevelName(level)
     logger.debug(
@@ -176,8 +212,14 @@ def add_cli_features(parser: argparse.ArgumentParser):
     Add features to the parser to make it more CLI-friendly.
     This is not necessary when the parser is used as a subparser.
     """
+    log_group = parser.add_argument_group("Logging")
+
+    # Create mutually exclusive group for verbosity control
+    verbosity_group = log_group.add_mutually_exclusive_group()
+
+    # Use add_argument helper for consistent env var handling
     add_argument(
-        parser,
+        verbosity_group,
         "-v",
         "--verbose",
         default=0,
@@ -187,7 +229,17 @@ def add_cli_features(parser: argparse.ArgumentParser):
         envvar_help="set to desired verbosity level",
         envvar_type=int,
     )
-    log_group = parser.add_argument_group("Logging")
+
+    # Use add_argument helper for --log-level too
+    add_argument(
+        verbosity_group,
+        "--log-level",
+        choices=["debug", "info", "warning", "error", "critical"],
+        help="Set log level explicitly",
+        envvar="LOG_LEVEL",
+        envvar_help="set to desired log level",
+    )
+
     add_argument(
         log_group,
         "--log-format",
@@ -511,14 +563,31 @@ def configure_shell_parser(subparsers: argparse._SubParsersAction[Any]):  # pyri
     shell_parser.set_defaults(func=shell_)
 
 
-async def cli(args: list[str]):
+def parse_args(args: list[str]) -> dict[str, Any]:
+    """
+    Create parser, configure it, and parse arguments.
+
+    Pure function that transforms CLI arguments into a parsed dictionary,
+    making it testable without mocking execute_command or configure_logging.
+
+    Args:
+        args: Command-line arguments (e.g., sys.argv[1:])
+
+    Returns:
+        Dictionary of parsed arguments
+    """
     parser = create_parser()
     add_arguments(parser)
     add_cli_features(parser)
-    parsed = vars(parser.parse_args(args))
+    return vars(parser.parse_args(args))
+
+
+async def cli(args: list[str]):
+    parsed = parse_args(args)
 
     configure_logging(
-        verbosity=parsed.pop("verbose"),
+        verbosity=parsed.pop("verbose", None),
+        log_level=parsed.pop("log_level", None),
         format=parsed.pop("log_format"),
         style=parsed.pop("log_format_style"),
     )
