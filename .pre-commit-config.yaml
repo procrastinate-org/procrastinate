@@ -30,7 +30,7 @@ repos:
       - id: mixed-line-ending
 
   - repo: https://github.com/DetachHead/basedpyright-prek-mirror
-    rev: 1.39.8
+    rev: 1.39.9
     hooks:
       - id: basedpyright
         additional_dependencies:
@@ -43,13 +43,13 @@ repos:
           - certifi==2026.6.17
           - charset-normalizer==3.4.7
           - colorama==0.4.6 ; sys_platform == 'win32'
-          - croniter==6.2.2
+          - croniter==6.2.3
           - django==5.2.15 ; python_full_version < '3.12'
           - django==6.0.6 ; python_full_version >= '3.12'
-          - django-stubs==6.0.5
-          - django-stubs-ext==6.0.5
+          - django-stubs==6.0.6
+          - django-stubs-ext==6.0.6
           - docutils==0.21.2
-          - greenlet==3.5.2 ; platform_machine == 'AMD64' or platform_machine == 'WIN32' or platform_machine == 'aarch64' or platform_machine == 'amd64' or platform_machine == 'ppc64le' or platform_machine == 'win32' or platform_machine == 'x86_64'
+          - greenlet==3.5.3 ; platform_machine == 'AMD64' or platform_machine == 'WIN32' or platform_machine == 'aarch64' or platform_machine == 'amd64' or platform_machine == 'ppc64le' or platform_machine == 'win32' or platform_machine == 'x86_64'
           - idna==3.18
           - imagesize==2.0.0
           - jinja2==3.1.6
@@ -77,11 +77,11 @@ repos:
           - sqlparse==0.5.5
           - tomli==2.4.1 ; python_full_version < '3.11'
           - types-pyyaml==6.0.12.20260518
-          - typing-extensions==4.15.0
+          - typing-extensions==4.16.0
           - tzdata==2026.2 ; sys_platform == 'win32'
           - urllib3==2.7.0
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.18
+    rev: v0.15.20
     hooks:
       - id: ruff
         args: [--fix, --unsafe-fixes, --show-fixes]
@@ -93,7 +93,7 @@ repos:
       - id: doc8
 
   - repo: https://github.com/adamchainz/django-upgrade
-    rev: 1.30.0
+    rev: 1.31.1
     hooks:
       - id: django-upgrade
         args: [--target-version, '4.2'] # Replace with Django version
