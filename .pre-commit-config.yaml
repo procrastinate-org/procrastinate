@@ -41,11 +41,11 @@ repos:
           - attrs==26.1.0
           - babel==2.18.0
           - certifi==2026.6.17
-          - charset-normalizer==3.4.7
+          - charset-normalizer==3.4.9
           - colorama==0.4.6 ; sys_platform == 'win32'
-          - croniter==6.2.3
-          - django==5.2.15 ; python_full_version < '3.12'
-          - django==6.0.6 ; python_full_version >= '3.12'
+          - croniter==6.2.4
+          - django==5.2.16 ; python_full_version < '3.12'
+          - django==6.0.7 ; python_full_version >= '3.12'
           - django-stubs==6.0.6
           - django-stubs-ext==6.0.6
           - docutils==0.21.2
@@ -78,10 +78,10 @@ repos:
           - tomli==2.4.1 ; python_full_version < '3.11'
           - types-pyyaml==6.0.12.20260518
           - typing-extensions==4.16.0
-          - tzdata==2026.2 ; sys_platform == 'win32'
+          - tzdata==2026.3 ; sys_platform == 'win32'
           - urllib3==2.7.0
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.20
+    rev: v0.15.21
     hooks:
       - id: ruff
         args: [--fix, --unsafe-fixes, --show-fixes]
