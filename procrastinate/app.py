@@ -38,6 +38,7 @@ class WorkerOptions(TypedDict):
     fetch_job_polling_interval: NotRequired[float]
     abort_job_polling_interval: NotRequired[float]
     shutdown_graceful_timeout: NotRequired[float]
+    shutdown_timeout: NotRequired[float]
     listen_notify: NotRequired[bool]
     delete_jobs: NotRequired[str | jobs.DeleteJobCondition]
     additional_context: NotRequired[dict[str, Any]]
@@ -304,6 +305,25 @@ class App(blueprints.Blueprint):
             Indicates the maximum duration (in seconds) the worker waits for jobs to
             complete when requested to stop. Jobs that have not been completed by that time
             are aborted. A value of None corresponds to no timeout.
+
+            (defaults to None)
+        shutdown_timeout: ``float``
+            Indicates the maximum duration (in seconds) the worker waits for its
+            run loop to stop after ``run_worker_async()`` is cancelled, before
+            cancelling the run loop; then again before abandoning it. Cancelling
+            the worker therefore takes at most twice this value.
+
+            The run loop stops as soon as it is asked to, unless it is blocked on
+            a database call that never returns (e.g. on a connection left
+            half-open by a database failover), in which case it never observes
+            the request. This timeout ensures that cancelling the worker always
+            terminates.
+
+            As the run loop waits for running jobs to complete before it exits,
+            this should be greater than ``shutdown_graceful_timeout``.
+
+            A value of None corresponds to no timeout, meaning that a worker
+            whose connection is unresponsive may never shut down.
 
             (defaults to None)
         listen_notify : ``bool``

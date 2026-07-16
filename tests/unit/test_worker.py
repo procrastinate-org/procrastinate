@@ -84,6 +84,65 @@ async def test_worker_run_wait_stop(app: App, caplog):
     }
 
 
+async def test_cancelling_run_does_not_hang_on_stuck_loop_task(app: App, caplog):
+    # https://github.com/procrastinate-org/procrastinate/issues/1513
+    # The loop task is shielded, so it only stops by observing the stop event.
+    # A database call that never returns never observes it, and waiting for the
+    # loop task would then hang the shutdown forever.
+    caplog.set_level("WARNING")
+    worker = Worker(app, wait=True, install_signal_handlers=False, shutdown_timeout=0.1)
+    fetching = asyncio.Event()
+
+    async def stuck_fetch_job(**kwargs):
+        fetching.set()
+        try:
+            await asyncio.Event().wait()
+        except asyncio.CancelledError:
+            # Model an unresponsive connection: psycopg does not honour the
+            # first cancellation, because it waits for the server to
+            # acknowledge the query cancellation before re-raising. A directly
+            # cancellable sleep would pass even without the fix.
+            await asyncio.sleep(1)
+            raise
+
+    app.job_manager.fetch_job = stuck_fetch_job
+    run_task = asyncio.create_task(worker.run())
+    await asyncio.wait_for(fetching.wait(), timeout=1)
+
+    run_task.cancel()
+
+    # asyncio.wait, not wait_for: wait_for cancels only once and would itself
+    # hang on the swallowed cancellation instead of failing the test.
+    done, _ = await asyncio.wait({run_task}, timeout=2)
+
+    assert done, "run() never returned after being cancelled"
+    with pytest.raises(asyncio.CancelledError):
+        run_task.result()
+    assert "Worker loop did not react to cancellation" in caplog.text
+
+
+async def test_stopping_worker_does_not_hang_on_stuck_unregister(app: App, caplog):
+    # Shutdown makes its own database calls (unregister_worker); if the
+    # connection is unresponsive by then, they must not hang the shutdown.
+    caplog.set_level("WARNING")
+    worker = Worker(app, wait=True, install_signal_handlers=False, shutdown_timeout=0.1)
+
+    async def stuck_unregister(worker_id):
+        await asyncio.Event().wait()
+
+    app.job_manager.unregister_worker = stuck_unregister
+    run_task = asyncio.create_task(worker.run())
+    await asyncio.sleep(0.01)
+
+    worker.stop()
+
+    done, _ = await asyncio.wait({run_task}, timeout=2)
+
+    assert done, "run() never returned after stop() with a stuck unregister"
+    await run_task  # a plain stop is not an error
+    assert "Could not unregister the worker" in caplog.text
+
+
 async def test_stop_requested_before_run_loop_starts_is_not_lost(app: App):
     worker = Worker(app, wait=True, install_signal_handlers=False)
 

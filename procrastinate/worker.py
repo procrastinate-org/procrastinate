@@ -41,6 +41,7 @@ class Worker:
         fetch_job_polling_interval: float = FETCH_JOB_POLLING_INTERVAL,
         abort_job_polling_interval: float = ABORT_JOB_POLLING_INTERVAL,
         shutdown_graceful_timeout: float | None = None,
+        shutdown_timeout: float | None = None,
         listen_notify: bool = True,
         delete_jobs: str | jobs.DeleteJobCondition | None = None,
         additional_context: dict[str, Any] | None = None,
@@ -97,6 +98,7 @@ class Worker:
         self._job_semaphore = asyncio.Semaphore(self.concurrency)
         self._stop_event = asyncio.Event()
         self.shutdown_graceful_timeout = shutdown_graceful_timeout
+        self.shutdown_timeout = shutdown_timeout
         self._job_ids_to_abort: dict[int, job_context.AbortReason] = dict()
         self.run_task: asyncio.Task[Any] | None = None
         self._loop: asyncio.AbstractEventLoop | None = None
@@ -465,7 +467,44 @@ class Worker:
         except asyncio.CancelledError:
             # worker.run is cancelled, usually by cancelling app.run_worker_async
             self.stop()
-            await loop_task
+            # The loop task may be blocked on a database call that cannot observe
+            # the stop event (e.g. a connection left half-open by a database
+            # failover). Waiting for it unconditionally would hang the shutdown
+            # forever. Without shutdown_timeout, this waits forever, as before;
+            # hence a pending loop task implies a shutdown_timeout was set.
+            _, pending = await asyncio.wait({loop_task}, timeout=self.shutdown_timeout)
+            if not pending:
+                # Surface an error from the loop rather than the cancellation,
+                # as awaiting the loop task directly used to do.
+                await loop_task
+            else:
+                self.logger.warning(
+                    "Worker loop did not stop within shutdown_timeout. Cancelling it",
+                    extra=self._log_extra(
+                        context=None,
+                        action="shutdown_loop_timeout",
+                        queues=self.queues,
+                        job_result=None,
+                    ),
+                )
+                loop_task.cancel()
+                # The cancellation itself may be swallowed by a driver blocked on
+                # an unresponsive connection, so this wait is bounded too. If the
+                # loop task is still pending afterwards, it is abandoned: the
+                # caller has asked us to stop and must not be blocked further.
+                _, pending = await asyncio.wait(
+                    {loop_task}, timeout=self.shutdown_timeout
+                )
+                if pending:
+                    self.logger.warning(
+                        "Worker loop did not react to cancellation. Abandoning it",
+                        extra=self._log_extra(
+                            context=None,
+                            action="shutdown_loop_abandoned",
+                            queues=self.queues,
+                            job_result=None,
+                        ),
+                    )
             raise
         finally:
             # The loop is about to go away; a late stop() (e.g. from another
@@ -587,8 +626,44 @@ class Worker:
             await self._abort_running_jobs()
 
         assert self.worker_id is not None
-        await self.app.job_manager.unregister_worker(self.worker_id)
-        logger.debug(f"Unregistered finished worker {self.worker_id} from the database")
+        # Unregistering is best effort: a worker that could not unregister (for
+        # instance because its database connection is unresponsive) is
+        # eventually pruned through its stale heartbeat by another worker.
+        # Bound it like the run loop itself, so that a shutdown with a stuck
+        # connection can complete (without shutdown_timeout, wait forever, as
+        # before).
+        unregister_task = asyncio.create_task(
+            self.app.job_manager.unregister_worker(self.worker_id)
+        )
+        _, pending = await asyncio.wait(
+            {unregister_task}, timeout=self.shutdown_timeout
+        )
+        if not pending:
+            # Surface an error from the task, as awaiting it directly used to do.
+            await unregister_task
+            logger.debug(
+                f"Unregistered finished worker {self.worker_id} from the database"
+            )
+        else:
+            self.logger.warning(
+                "Could not unregister the worker within shutdown_timeout. "
+                "Its heartbeat will go stale and it will eventually be pruned",
+                extra=self._log_extra(
+                    context=None,
+                    action="shutdown_unregister_timeout",
+                    queues=self.queues,
+                    job_result=None,
+                ),
+            )
+            unregister_task.cancel()
+
+            def _consume_result(task: asyncio.Task[Any]) -> None:
+                # Consume a late failure so it isn't logged as a never-retrieved
+                # task exception.
+                if not task.cancelled() and task.exception():
+                    logger.debug(f"Late unregister failure: {task.exception()!r}")
+
+            unregister_task.add_done_callback(_consume_result)
         self.worker_id = None
 
         self.logger.info(
