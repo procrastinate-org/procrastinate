@@ -143,6 +143,17 @@ async def test_stopping_worker_does_not_hang_on_stuck_unregister(app: App, caplo
     assert "Could not unregister the worker" in caplog.text
 
 
+def test_shutdown_timeout_not_greater_than_graceful_timeout_warns(app: App, caplog):
+    caplog.set_level("WARNING")
+
+    Worker(app, shutdown_graceful_timeout=10, shutdown_timeout=5)
+
+    assert (
+        "shutdown_timeout should be greater than shutdown_graceful_timeout"
+        in caplog.text
+    )
+
+
 async def test_stop_requested_before_run_loop_starts_is_not_lost(app: App):
     worker = Worker(app, wait=True, install_signal_handlers=False)
 

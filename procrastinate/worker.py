@@ -30,6 +30,15 @@ FETCH_JOB_POLLING_INTERVAL = 5.0  # seconds
 ABORT_JOB_POLLING_INTERVAL = 5.0  # seconds
 
 
+def _consume_task_exception(task: asyncio.Task[Any]) -> None:
+    # Consume the outcome of a task completing after it was given up on, so
+    # that a late failure isn't logged as a never-retrieved task exception.
+    if not task.cancelled() and task.exception():
+        logger.debug(
+            f"{task.get_name()} failed after being given up on: {task.exception()!r}"
+        )
+
+
 class Worker:
     def __init__(
         self,
@@ -99,6 +108,18 @@ class Worker:
         self._stop_event = asyncio.Event()
         self.shutdown_graceful_timeout = shutdown_graceful_timeout
         self.shutdown_timeout = shutdown_timeout
+        if (
+            shutdown_timeout is not None
+            and shutdown_graceful_timeout is not None
+            and shutdown_timeout <= shutdown_graceful_timeout
+        ):
+            self.logger.warning(
+                "shutdown_timeout should be greater than shutdown_graceful_timeout: "
+                "the run loop waits up to shutdown_graceful_timeout for running "
+                "jobs when stopping, so a smaller shutdown_timeout cancels it "
+                "while it may still be draining them",
+                extra={"action": "shutdown_timeout_misconfigured"},
+            )
         self._job_ids_to_abort: dict[int, job_context.AbortReason] = dict()
         self.run_task: asyncio.Task[Any] | None = None
         self._loop: asyncio.AbstractEventLoop | None = None
@@ -505,6 +526,7 @@ class Worker:
                             job_result=None,
                         ),
                     )
+                loop_task.add_done_callback(_consume_task_exception)
             raise
         finally:
             # The loop is about to go away; a late stop() (e.g. from another
@@ -633,7 +655,8 @@ class Worker:
         # connection can complete (without shutdown_timeout, wait forever, as
         # before).
         unregister_task = asyncio.create_task(
-            self.app.job_manager.unregister_worker(self.worker_id)
+            self.app.job_manager.unregister_worker(self.worker_id),
+            name="unregister_worker",
         )
         _, pending = await asyncio.wait(
             {unregister_task}, timeout=self.shutdown_timeout
@@ -656,14 +679,7 @@ class Worker:
                 ),
             )
             unregister_task.cancel()
-
-            def _consume_result(task: asyncio.Task[Any]) -> None:
-                # Consume a late failure so it isn't logged as a never-retrieved
-                # task exception.
-                if not task.cancelled() and task.exception():
-                    logger.debug(f"Late unregister failure: {task.exception()!r}")
-
-            unregister_task.add_done_callback(_consume_result)
+            unregister_task.add_done_callback(_consume_task_exception)
         self.worker_id = None
 
         self.logger.info(
