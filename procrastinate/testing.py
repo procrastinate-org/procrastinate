@@ -57,6 +57,7 @@ class InMemoryConnector(connector.BaseAsyncConnector):
         self.periodic_defers: dict[tuple[str, str], int] = {}
         self.table_exists = True
         self.states: list[str] = []
+        self.queue_pauses: dict[tuple[str, str], datetime.datetime] = {}
 
     def get_sync_connector(self) -> connector.BaseConnector:
         return self
@@ -288,12 +289,14 @@ class InMemoryConnector(connector.BaseAsyncConnector):
     ) -> dict[str, Any]:
         assert worker_id in self.workers, f"Worker {worker_id} not found"
 
+        paused = self.paused_queues()
         filtered_jobs = [
             job
             for job in self.jobs.values()
             if (
                 job["status"] == "todo"
                 and (queues is None or job["queue_name"] in queues)
+                and job["queue_name"] not in paused
                 and (not job["scheduled_at"] or job["scheduled_at"] <= utils.utcnow())
                 and job["lock"] not in self.current_locks
             )
@@ -350,6 +353,35 @@ class InMemoryConnector(connector.BaseAsyncConnector):
 
     async def get_job_status_one(self, job_id: int) -> dict[str, Any]:
         return {"status": self.jobs[job_id]["status"]}
+
+    def paused_queues(self) -> set[str]:
+        return {queue_name for queue_name, _ in self.queue_pauses}
+
+    async def pause_queue_run(self, queue_name: str, pause_key: str) -> None:
+        self.queue_pauses.setdefault((queue_name, pause_key), utils.utcnow())
+
+    async def resume_queue_run(
+        self, queue_name: str, pause_key: str, all_keys: bool
+    ) -> None:
+        deleted = False
+        for key in list(self.queue_pauses):
+            if key[0] == queue_name and (all_keys or key[1] == pause_key):
+                del self.queue_pauses[key]
+                deleted = True
+        if deleted:
+            await self._notify(
+                queue_name, {"type": "queue_resumed", "queue_name": queue_name}
+            )
+
+    async def list_paused_queues_all(
+        self, queue_name: str | None, pause_key: str | None
+    ) -> list[dict[str, Any]]:
+        return [
+            {"queue_name": name, "pause_key": key, "paused_at": paused_at}
+            for (name, key), paused_at in sorted(self.queue_pauses.items())
+            if (queue_name is None or name == queue_name)
+            and (pause_key is None or key == pause_key)
+        ]
 
     async def retry_job_run(
         self,
