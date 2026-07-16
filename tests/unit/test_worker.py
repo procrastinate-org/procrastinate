@@ -98,7 +98,7 @@ async def test_cancelling_run_does_not_hang_on_stuck_loop_task(app: App, caplog)
         try:
             await asyncio.Event().wait()
         except asyncio.CancelledError:
-            # Model an unresponsive connection: psycopg does not honour the
+            # Model an unresponsive connection: psycopg does not honor the
             # first cancellation, because it waits for the server to
             # acknowledge the query cancellation before re-raising. A directly
             # cancellable sleep would pass even without the fix.
