@@ -36,7 +36,7 @@ repos:
         additional_dependencies:
           - aiopg==1.4.0
           - alabaster==1.0.0
-          - asgiref==3.11.1
+          - asgiref==3.12.1
           - async-timeout==4.0.3
           - attrs==26.1.0
           - babel==2.18.0
@@ -46,8 +46,8 @@ repos:
           - croniter==6.2.4
           - django==5.2.16 ; python_full_version < '3.12'
           - django==6.0.7 ; python_full_version >= '3.12'
-          - django-stubs==6.0.6
-          - django-stubs-ext==6.0.6
+          - django-stubs==6.0.7
+          - django-stubs-ext==6.0.7
           - docutils==0.21.2
           - greenlet==3.5.3 ; platform_machine == 'AMD64' or platform_machine == 'WIN32' or platform_machine == 'aarch64' or platform_machine == 'amd64' or platform_machine == 'ppc64le' or platform_machine == 'win32' or platform_machine == 'x86_64'
           - idna==3.18
@@ -81,7 +81,7 @@ repos:
           - tzdata==2026.3 ; sys_platform == 'win32'
           - urllib3==2.7.0
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.21
+    rev: v0.15.22
     hooks:
       - id: ruff
         args: [--fix, --unsafe-fixes, --show-fixes]
