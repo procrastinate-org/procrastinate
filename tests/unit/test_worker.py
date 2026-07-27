@@ -583,6 +583,59 @@ async def test_abort_async_job(app: App, worker):
     assert status == Status.ABORTED
 
 
+async def test_abort_async_job_during_graceful_shutdown(app: App, caplog):
+    """
+    Tests that a running job can be successfully aborted after the worker that is running
+    it has received a graceful shutdown request.
+    """
+    caplog.set_level("INFO")
+
+    async def wait_for_msg(msg):
+        """Poll until specified status is seen in log."""
+        while True:
+            for record in caplog.records:
+                if msg in record.msg:
+                    return
+            await asyncio.sleep(0.01)
+
+    async def wait_for_status(job_manager, job_id, status):
+        """Poll until specified job status is seen."""
+        while True:
+            if status == await job_manager.get_job_status_async(job_id):
+                return
+            await asyncio.sleep(0.01)
+
+    @app.task()
+    async def task_func():
+        await asyncio.Event().wait()
+
+    # Defer the task, start a worker to process it, and wait for the job have
+    # DOING status.
+    job_id = await task_func.defer_async()
+    worker = Worker(
+        app,
+        abort_job_polling_interval=0.01,
+        fetch_job_polling_interval=0.01,
+        # Disable listen_notify to test abort polling.
+        listen_notify=False,
+        shutdown_graceful_timeout=None,
+    )
+    run_task = await start_worker(worker)
+    await asyncio.wait_for(wait_for_status(app.job_manager, job_id, Status.DOING), 1)
+
+    # Ask the worker to shutdown, verify it has begun to shut down, and verify
+    # the job still has DOING status.
+    worker.stop()
+    await asyncio.wait_for(wait_for_msg("Waiting for job to finish"), 1)
+    assert await app.job_manager.get_job_status_async(job_id) == Status.DOING
+
+    # Abort the job and verify the abortion was successful.
+    await app.job_manager.cancel_job_by_id_async(job_id, abort=True)
+    await asyncio.wait_for(wait_for_status(app.job_manager, job_id, Status.ABORTED), 1)
+
+    await run_task
+
+
 async def test_abort_async_job_while_finishing(app: App, worker, mocker: MockerFixture):
     """
     Tests that aborting a job after that job completes but before the job status is updated
