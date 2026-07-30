@@ -37,6 +37,13 @@ class TaskAlreadyRegistered(ProcrastinateException):
     """
 
 
+class MiddlewareKindMismatch(ProcrastinateException):
+    """
+    A sync task was given an async middleware (or vice versa). Sync tasks require
+    sync middleware; async tasks require async middleware.
+    """
+
+
 class LoadFromPathError(ProcrastinateException, ImportError):  # pyright: ignore[reportUnsafeMultipleInheritance]
     """
     App was not found at the provided path, or the loaded object is not an App.

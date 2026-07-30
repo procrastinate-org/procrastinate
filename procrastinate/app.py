@@ -4,7 +4,7 @@ import asyncio
 import contextlib
 import functools
 import logging
-from collections.abc import Iterable, Iterator
+from collections.abc import Generator, Iterable
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -13,7 +13,15 @@ from typing import (
 
 from typing_extensions import NotRequired, Unpack
 
-from procrastinate import blueprints, exceptions, jobs, manager, schema, utils
+from procrastinate import (
+    blueprints,
+    exceptions,
+    jobs,
+    manager,
+    middleware,
+    schema,
+    utils,
+)
 from procrastinate import connector as connector_module
 
 if TYPE_CHECKING:
@@ -36,6 +44,8 @@ class WorkerOptions(TypedDict):
     install_signal_handlers: NotRequired[bool]
     update_heartbeat_interval: NotRequired[float]
     stalled_worker_timeout: NotRequired[float]
+    task_middleware: NotRequired[list[middleware.TaskMiddleware]]
+    worker_middleware: NotRequired[list[middleware.WorkerMiddleware]]
 
 
 class App(blueprints.Blueprint):
@@ -152,7 +162,7 @@ class App(blueprints.Blueprint):
     @contextlib.contextmanager
     def replace_connector(
         self, connector: connector_module.BaseConnector
-    ) -> Iterator[App]:
+    ) -> Generator[App]:
         """
         Replace the connector of the app while in the context block, then restore it.
         The context variable is the same app as this method is called on.
@@ -324,6 +334,14 @@ class App(blueprints.Blueprint):
             Time in seconds after which a worker is considered stalled if no heartbeat has
             been received. A worker prunes stalled workers from the database at startup.
             (defaults to 30)
+        task_middleware: ``Optional[list[TaskMiddleware]]``
+            A list of middlewares wrapping every task this worker runs. Sync
+            middlewares apply to sync tasks, async middlewares to async tasks.
+            See `howto/advanced/middleware`. (defaults to no middleware)
+        worker_middleware: ``Optional[list[WorkerMiddleware]]``
+            A list of always-async middlewares wrapping every job this worker runs,
+            on the event loop (both sync and async tasks). See
+            `howto/advanced/middleware`. (defaults to no middleware)
         """
         self.perform_import_paths()
         worker = self._worker(**kwargs)

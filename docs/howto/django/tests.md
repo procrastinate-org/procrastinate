@@ -81,10 +81,10 @@ make this task available even after the test has run. You probably want to
 avoid this, for example by creating a new app within each of those tests:
 
 ```python
-from procrastinate.contrib.django import app
+from procrastinate.contrib.django import DjangoApp, app
 
 def test_my_task():
-    new_app = procrastinate_app.ProcrastinateApp(app.connector)
+    new_app = DjangoApp(connector=app.connector)
 
     @new_app.task
     def my_task(a, b):
@@ -93,6 +93,11 @@ def test_my_task():
     my_task.defer(a=1, b=2)
     ...
 ```
+
+Use {py:class}`~procrastinate.contrib.django.DjangoApp` (the same app class the
+contrib uses) rather than a bare {py:class}`procrastinate.App`, so that tasks run by
+a worker get the automatic connection cleanup described in {doc}`basic_usage` and
+don't leak connections at test database teardown.
 
 :::
 

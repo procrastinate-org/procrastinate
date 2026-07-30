@@ -1,7 +1,8 @@
 {
   "dockerComposeFile": "docker-compose.yml",
   "features": {
-    "ghcr.io/devcontainers/features/node:1": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/devcontainers/features/node:2": {},
     "ghcr.io/va-h/devcontainers-features/uv:1": {
       "shellautocompletion": true
     }

@@ -5,7 +5,6 @@ import importlib.metadata
 import logging
 from collections.abc import (
     AsyncGenerator,
-    AsyncIterator,
     Callable,
     Iterable,
 )
@@ -201,7 +200,7 @@ class PsycopgConnector(connector.BaseAsyncConnector):
     async def _get_cursor(
         self,
         connection: psycopg.AsyncConnection | None = None,
-    ) -> AsyncIterator[psycopg.AsyncCursor[psycopg.rows.DictRow]]:
+    ) -> AsyncGenerator[psycopg.AsyncCursor[psycopg.rows.DictRow]]:
         conn_ctx = (
             contextlib.nullcontext(connection)
             if connection is not None
@@ -271,7 +270,7 @@ class PsycopgConnector(connector.BaseAsyncConnector):
     @contextlib.asynccontextmanager
     async def _get_standalone_connection(
         self,
-    ) -> AsyncIterator[psycopg.AsyncConnection]:
+    ) -> AsyncGenerator[psycopg.AsyncConnection]:
         configure = self._pool_args.get("configure")
 
         if (

@@ -2,19 +2,6 @@
 requires = ["hatchling", "uv-dynamic-versioning"]
 build-backend = "hatchling.build"
 
-[tool.hatch.version]
-source = "uv-dynamic-versioning"
-
-[tool.uv-dynamic-versioning]
-pattern = "default-unprefixed"
-
-[tool.hatch.build.targets.sdist]
-include = ["procrastinate"]
-exclude = ["procrastinate/demos"]
-
-[tool.hatch.build.targets.wheel]
-exclude = ["procrastinate/demos"]
-
 [project]
 name = "procrastinate"
 dynamic = ["version"]
@@ -63,11 +50,6 @@ procrastinate = 'procrastinate.cli:main'
 [project.entry-points.pytest11]
 procrastinate = "procrastinate.pytest_plugin"
 
-[tool.uv]
-cache-keys = [{ git = { commit = true, tags = true } }]
-required-version = ">=0.5.21"
-default-groups = ["release", "lint_format", "pg_implem", "test", "docs"]
-
 [dependency-groups]
 types = ["django-stubs"]
 release = ["dunamai"]
@@ -80,10 +62,7 @@ test = [
     "pytest-django",
     "pytest-mock",
     "freezegun",
-    "migra",
-    # migra depends on schemainspect, which has an implicit dependency on setuptools
-    # (pkg_resources).
-    "setuptools",
+    "results",
 ]
 migration_test = ["nox", "httpx", "nox-uv"]
 docs = [
@@ -97,6 +76,24 @@ docs = [
     "myst-parser",
 ]
 dev = ["ruff", "basedpyright", "doc8"]
+
+[tool.hatch.version]
+source = "uv-dynamic-versioning"
+
+[tool.uv-dynamic-versioning]
+pattern = "default-unprefixed"
+
+[tool.hatch.build.targets.sdist]
+include = ["procrastinate"]
+exclude = ["procrastinate/demos"]
+
+[tool.hatch.build.targets.wheel]
+exclude = ["procrastinate/demos"]
+
+[tool.uv]
+cache-keys = [{ git = { commit = true, tags = true } }]
+required-version = ">=0.5.21"
+default-groups = ["release", "lint_format", "pg_implem", "test", "docs"]
 
 [tool.pytest.ini_options]
 addopts = ["-vv", "--strict-markers", "-rfE", "--reuse-db", "-m not benchmark"]
@@ -152,7 +149,7 @@ extend-select = [
     "RUF", # ruff
 ]
 fixable = ["ALL"]
-extend-ignore = [
+ignore = [
     "E501", # line too long
     # It's not exactly false but it's not supported enough by our dependencies,
     # so ruff is fighting with Pyright on this.

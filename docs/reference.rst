@@ -34,6 +34,16 @@ When tasks are created with argument ``pass_context``, they are provided a
 .. autoclass:: procrastinate.JobContext
     :members: app, worker_name, worker_queues, job, task, should_abort
 
+Middleware
+----------
+
+.. automodule:: procrastinate.middleware
+    :members: TaskMiddleware, WorkerMiddleware
+    :no-value:
+
+Registering a *task* middleware whose sync/async nature doesn't match the task
+or a *worker* middleware that isn't async raises `MiddlewareKindMismatch`.
+
 Blueprints
 ----------
 
@@ -80,7 +90,7 @@ Exceptions
 .. automodule:: procrastinate.exceptions
     :members: ProcrastinateException, LoadFromPathError,
               ConnectorException, AlreadyEnqueued, AppNotOpen, TaskNotFound,
-              UnboundTaskError, JobAborted
+              UnboundTaskError, JobAborted, MiddlewareKindMismatch
 
 Job statuses
 ------------
@@ -99,6 +109,8 @@ Django
 ------
 
 .. automodule:: procrastinate.contrib.django
+
+.. autoclass:: procrastinate.contrib.django.DjangoApp
 
 
 SQLAlchemy
