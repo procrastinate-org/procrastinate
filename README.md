@@ -9,7 +9,7 @@
 | procrastinate/app.py                                              |      106 |        0 |        2 |        0 |    100% |           |
 | procrastinate/blueprints.py                                       |       63 |        0 |       14 |        0 |    100% |           |
 | procrastinate/builtin\_tasks.py                                   |        6 |        0 |        0 |        0 |    100% |           |
-| procrastinate/cli.py                                              |      226 |       10 |       36 |        1 |     94% |50, 135-141, 680-683 |
+| procrastinate/cli.py                                              |      237 |       10 |       42 |        1 |     94% |86, 171-177, 749-752 |
 | procrastinate/connector.py                                        |       55 |        2 |        0 |        0 |     96% |  137, 147 |
 | procrastinate/contrib/\_\_init\_\_.py                             |        0 |        0 |        0 |        0 |    100% |           |
 | procrastinate/contrib/aiopg/\_\_init\_\_.py                       |        3 |        0 |        0 |        0 |    100% |           |
@@ -78,7 +78,7 @@
 | procrastinate/types.py                                            |       22 |        0 |        0 |        0 |    100% |           |
 | procrastinate/utils.py                                            |      166 |        0 |       34 |        0 |    100% |           |
 | procrastinate/worker.py                                           |      303 |        9 |       94 |        7 |     96% |90, 106, 226-\>229, 480-\>exit, 501-502, 506-507, 523-\>522, 540, 644-653 |
-| **TOTAL**                                                         | **3249** |  **253** |  **564** |   **26** | **92%** |           |
+| **TOTAL**                                                         | **3260** |  **253** |  **570** |   **26** | **92%** |           |
 
 
 ## Setup coverage badge
