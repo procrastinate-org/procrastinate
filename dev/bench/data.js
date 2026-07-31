@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1784520151807,
+  "lastUpdate": 1785485813380,
   "repoUrl": "https://github.com/procrastinate-org/procrastinate",
   "entries": {
     "Procrastinate Benchmarks": [
@@ -11244,6 +11244,86 @@ window.BENCHMARK_DATA = {
             "unit": "iter/sec",
             "range": "stddev: 0.1746562872745338",
             "extra": "mean: 3.2685663650000096 sec\nrounds: 5"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "kai.schlamp@gmail.com",
+            "name": "Kai Schlamp",
+            "username": "medihack"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "575d0167bb3a30469f6b90856797bfb7d09dc2e3",
+          "message": "Merge pull request #1501 from mhumzaarain/Verbosity_Fix\n\nFixes PROCRASTINATE_VERBOSITY to PROCRASTINATE_VERBOSE and adds a new --log-level option for granular log level control.",
+          "timestamp": "2026-07-31T10:13:31+02:00",
+          "tree_id": "7515bd4b9c2541a23048b08e975cb8c6105de38f",
+          "url": "https://github.com/procrastinate-org/procrastinate/commit/575d0167bb3a30469f6b90856797bfb7d09dc2e3"
+        },
+        "date": 1785485812705,
+        "tool": "pytest",
+        "benches": [
+          {
+            "name": "tests/benchmarks/test_benchmark_async.py::test_benchmark_1000_async_jobs[psycopg_connector]",
+            "value": 0.29780840295863353,
+            "unit": "iter/sec",
+            "range": "stddev: 0.13578275727524958",
+            "extra": "mean: 3.357863613200004 sec\nrounds: 5"
+          },
+          {
+            "name": "tests/benchmarks/test_benchmark_async.py::test_benchmark_1000_async_jobs[aiopg_connector]",
+            "value": 0.5531445658727985,
+            "unit": "iter/sec",
+            "range": "stddev: 0.021283292358385338",
+            "extra": "mean: 1.807845655 sec\nrounds: 5"
+          },
+          {
+            "name": "tests/benchmarks/test_benchmark_async.py::test_benchmark_1000_async_batch_jobs[psycopg_connector]",
+            "value": 0.387411582606085,
+            "unit": "iter/sec",
+            "range": "stddev: 0.2782738723801544",
+            "extra": "mean: 2.5812341316000014 sec\nrounds: 5"
+          },
+          {
+            "name": "tests/benchmarks/test_benchmark_async.py::test_benchmark_1000_async_batch_jobs[aiopg_connector]",
+            "value": 0.6405695245632914,
+            "unit": "iter/sec",
+            "range": "stddev: 0.26175606627599673",
+            "extra": "mean: 1.5611107954000005 sec\nrounds: 5"
+          },
+          {
+            "name": "tests/benchmarks/test_benchmark_sync.py::test_benchmark_1000_sync_jobs[sync_psycopg_connector]",
+            "value": 0.26837711762783517,
+            "unit": "iter/sec",
+            "range": "stddev: 0.08817784079260779",
+            "extra": "mean: 3.7261000819999994 sec\nrounds: 5"
+          },
+          {
+            "name": "tests/benchmarks/test_benchmark_sync.py::test_benchmark_1000_sync_jobs[psycopg2_connector]",
+            "value": 0.2938808098452759,
+            "unit": "iter/sec",
+            "range": "stddev: 0.059971726881031306",
+            "extra": "mean: 3.402740044600006 sec\nrounds: 5"
+          },
+          {
+            "name": "tests/benchmarks/test_benchmark_sync.py::test_benchmark_1000_sync_batch_jobs[sync_psycopg_connector]",
+            "value": 0.35919481133049,
+            "unit": "iter/sec",
+            "range": "stddev: 0.10200039335169878",
+            "extra": "mean: 2.7840045804000058 sec\nrounds: 5"
+          },
+          {
+            "name": "tests/benchmarks/test_benchmark_sync.py::test_benchmark_1000_sync_batch_jobs[psycopg2_connector]",
+            "value": 0.3435868248489167,
+            "unit": "iter/sec",
+            "range": "stddev: 0.08024636917438352",
+            "extra": "mean: 2.910472485199989 sec\nrounds: 5"
           }
         ]
       }
