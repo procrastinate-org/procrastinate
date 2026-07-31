@@ -905,3 +905,26 @@ async def test_worker_stops_when_side_task_fails(
     assert "Simulated heartbeat failure" in error_record.message
     assert "stopping worker" in error_record.message
     assert error_record.task_name == "update_heartbeats"
+
+
+async def test_worker_stops_when_side_task_fails_after_another_returned(app: App):
+    async def fail_later():
+        await asyncio.sleep(0.01)
+        raise ValueError("Simulated side task failure")
+
+    worker = Worker(app, install_signal_handlers=False)
+
+    # The periodic deferrer returns immediately when no periodic task is
+    # registered, which must not end supervision of the other side tasks.
+    returns_immediately = asyncio.create_task(asyncio.sleep(0), name="deferrer_like")
+    fails_later = asyncio.create_task(fail_later(), name="fails_later")
+
+    monitor = asyncio.create_task(
+        worker._monitor_side_tasks([returns_immediately, fails_later])
+    )
+    await asyncio.sleep(0.05)
+
+    assert fails_later.done()
+    assert worker._stop_event.is_set()
+
+    monitor.cancel()
