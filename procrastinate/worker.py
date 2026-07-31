@@ -621,24 +621,28 @@ class Worker:
     async def _monitor_side_tasks(self, side_tasks: list[asyncio.Task[Any]]):
         """Monitor side tasks and stop the worker if any task fails"""
         try:
-            done, _pending = await asyncio.wait(
-                side_tasks, return_when=asyncio.FIRST_COMPLETED
-            )
-            for task in done:
-                if exc := task.exception():
-                    self.logger.error(
-                        f"Side task {task.get_name()} failed with exception: {exc}, stopping worker",
-                        extra=self._log_extra(
-                            action="side_task_failed",
-                            context=None,
-                            job_result=None,
-                            task_name=task.get_name(),
-                            exception=str(exc),
-                        ),
-                        exc_info=exc,
-                    )
-                    self.stop()
-                    return
+            pending = set(side_tasks)
+            while pending:
+                done, pending = await asyncio.wait(
+                    pending, return_when=asyncio.FIRST_COMPLETED
+                )
+                for task in done:
+                    if task.cancelled():
+                        continue
+                    if exc := task.exception():
+                        self.logger.error(
+                            f"Side task {task.get_name()} failed with exception: {exc}, stopping worker",
+                            extra=self._log_extra(
+                                action="side_task_failed",
+                                context=None,
+                                job_result=None,
+                                task_name=task.get_name(),
+                                exception=str(exc),
+                            ),
+                            exc_info=exc,
+                        )
+                        self.stop()
+                        return
         except Exception as exc:
             self.logger.exception(
                 "Side task monitor failed",
