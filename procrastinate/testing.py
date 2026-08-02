@@ -237,6 +237,26 @@ class InMemoryConnector(connector.BaseAsyncConnector):
             job["lock"] for job in self.jobs.values() if job["status"] == "doing"
         } - {None}
 
+    def _is_blocked_by_waiting_job(self, candidate: JobRow) -> bool:
+        # Mirrors the lock-blocking subquery of procrastinate_fetch_job_v2: a job is
+        # rejected when another job with the same lock comes first (higher priority, or
+        # same priority and queued earlier), even when that job is not runnable yet.
+        # This is what guarantees jobs sharing a lock are started in order.
+        if candidate["lock"] is None:
+            return False
+        return any(
+            other["lock"] == candidate["lock"]
+            and other["status"] == "todo"
+            and (
+                other["priority"] > candidate["priority"]
+                or (
+                    other["priority"] == candidate["priority"]
+                    and other["id"] < candidate["id"]
+                )
+            )
+            for other in self.jobs.values()
+        )
+
     @property
     def finished_jobs(self) -> list[JobRow]:
         return [
@@ -296,6 +316,7 @@ class InMemoryConnector(connector.BaseAsyncConnector):
                 and (queues is None or job["queue_name"] in queues)
                 and (not job["scheduled_at"] or job["scheduled_at"] <= utils.utcnow())
                 and job["lock"] not in self.current_locks
+                and not self._is_blocked_by_waiting_job(job)
             )
         ]
 
