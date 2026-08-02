@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_QUEUE = "default"
 DEFAULT_PRIORITY = 0
+DEFAULT_LOCK_MODE = "ordered"
 
 cached_property = getattr(functools, "cached_property", property)
 
@@ -40,6 +41,23 @@ def check_aware(
 ) -> None:
     if value and value.utcoffset() is None:
         raise ValueError("Timezone aware datetime is required")
+
+
+class LockMode(Enum):
+    """
+    An enumeration with all the possible lock modes.
+
+    Both modes guarantee that no two jobs sharing a lock run simultaneously. They
+    differ in whether a job that is merely waiting also reserves the lock.
+    """
+
+    #: Jobs sharing the lock start in priority then creation order. A job that is not
+    #: runnable yet (scheduled in the future, or on a queue the worker doesn't listen
+    #: to) holds the lock for the ones behind it.
+    ORDERED = "ordered"
+    #: The lock is only held while a job actually runs, so jobs sharing it may start in
+    #: any order. Use this when the lock protects a resource and ordering is irrelevant.
+    MUTEX = "mutex"
 
 
 class Status(Enum):
@@ -83,6 +101,8 @@ class Job:
     priority: int = DEFAULT_PRIORITY
     #: No two jobs with the same lock string can run simultaneously
     lock: str | None
+    #: Whether the lock also guarantees ordering (see `LockMode`).
+    lock_mode: str = DEFAULT_LOCK_MODE
     #: No two jobs with the same queueing lock can be waiting in the queue.
     queueing_lock: str | None
     #: Name of the associated task.
@@ -107,6 +127,7 @@ class Job:
             status=row["status"],
             priority=row["priority"],
             lock=row["lock"],
+            lock_mode=row.get("lock_mode", DEFAULT_LOCK_MODE),
             queueing_lock=row["queueing_lock"],
             task_name=row["task_name"],
             task_kwargs=row["args"],

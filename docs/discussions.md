@@ -106,6 +106,11 @@ We can solve this problem by using locks. Procrastinate gives us two guarantees:
   considered.
 - If a group of jobs share the same lock, then only one can be executed at a time.
 
+The first guarantee (ordering) is what a `"mutex"` lock trades away: it only holds the
+lock while a job actually runs, so a job that isn't runnable yet doesn't hold up the
+others. The second guarantee (mutual exclusion) holds in both modes. See
+{doc}`howto/advanced/locks` for how to choose.
+
 These two facts allow us to draw the following conclusion for our 4 letter jobs from
 above. If our 4 jobs share the same lock (for example, the name of the file we're
 writing to):

@@ -23,6 +23,7 @@ R = TypeVar("R")
 
 class ConfigureTaskOptions(TypedDict):
     lock: NotRequired[str | None]
+    lock_mode: NotRequired[str | None]
     queueing_lock: NotRequired[str | None]
     task_kwargs: NotRequired[types.JSONDict | None]
     schedule_at: NotRequired[datetime.datetime | None]
@@ -57,6 +58,7 @@ def configure_task(
         job=jobs.Job(
             id=None,
             lock=options.get("lock"),
+            lock_mode=options.get("lock_mode") or jobs.DEFAULT_LOCK_MODE,
             queueing_lock=options.get("queueing_lock"),
             task_name=name,
             queue=options.get("queue") or jobs.DEFAULT_QUEUE,
@@ -90,6 +92,7 @@ class Task(Generic[P, R, Args]):
         queue: str,
         priority: int = jobs.DEFAULT_PRIORITY,
         lock: str | None = None,
+        lock_mode: str | None = None,
         queueing_lock: str | None = None,
         task_middleware: list[middleware_module.TaskMiddleware] | None = None,
     ):
@@ -117,6 +120,8 @@ class Task(Generic[P, R, Args]):
         self.pass_context: bool = pass_context
         #: Default lock. The lock can be overridden when a job is deferred.
         self.lock: str | None = lock
+        #: Default lock mode. It can be overridden when a job is deferred.
+        self.lock_mode: str | None = lock_mode
         #: Default queueing lock. The queuing lock can be overridden when a job
         #: is deferred.
         self.queueing_lock: str | None = queueing_lock
@@ -205,6 +210,12 @@ class Task(Generic[P, R, Args]):
         ----------
         lock :
             No two jobs with the same lock string can run simultaneously
+        lock_mode :
+            ``"ordered"`` (the default) also guarantees that jobs sharing the lock
+            start in priority then creation order, which means a job that is not
+            runnable yet holds the lock for the ones behind it. ``"mutex"`` only holds
+            the lock while a job actually runs, so jobs may start in any order. See
+            `LockMode`.
         queueing_lock :
             No two jobs with the same queueing lock can be waiting in the queue.
             `Task.defer` will raise an `AlreadyEnqueued` exception if there already
@@ -246,6 +257,7 @@ class Task(Generic[P, R, Args]):
         self.blueprint.will_configure_task()
 
         lock = options.get("lock")
+        lock_mode = options.get("lock_mode")
         queueing_lock = options.get("queueing_lock")
         task_kwargs = options.get("task_kwargs")
         schedule_at = options.get("schedule_at")
@@ -259,6 +271,7 @@ class Task(Generic[P, R, Args]):
             name=self.name,
             job_manager=app.job_manager,
             lock=lock if lock is not None else self.lock,
+            lock_mode=lock_mode if lock_mode is not None else self.lock_mode,
             queueing_lock=(
                 queueing_lock if queueing_lock is not None else self.queueing_lock
             ),
