@@ -136,6 +136,7 @@ class JobManager:
                     task_name=job.task_name,
                     priority=job.priority,
                     lock=job.lock,
+                    lock_mode=job.lock_mode,
                     queueing_lock=job.queueing_lock,
                     args=job.task_kwargs,
                     scheduled_at=job.scheduled_at,

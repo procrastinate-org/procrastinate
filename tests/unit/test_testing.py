@@ -82,6 +82,7 @@ async def test_defer_one_job(connector: testing.InMemoryConnector):
             "priority": 5,
             "task_name": "mytask",
             "lock": "sher",
+            "lock_mode": "ordered",
             "queueing_lock": "houba",
             "args": {"a": "b"},
             "status": "todo",
@@ -742,3 +743,39 @@ async def test_fetch_job_one_lock_keeps_creation_order(
 
     await connector.finish_job_run(job_id=1, status="succeeded", delete_job=False)
     assert (await connector.fetch_job_one(queues=None, worker_id=1))["id"] == 2
+
+
+async def test_fetch_job_one_mutex_lock_ignores_waiting_job(
+    connector: testing.InMemoryConnector,
+):
+    # A 'mutex' lock is only held while a job runs, so a job that is not runnable yet
+    # does not hold up the ready jobs sharing its lock.
+    await connector.defer_jobs_all(
+        [
+            t.JobToDefer(
+                queue_name="marsupilami",
+                task_name="mytask",
+                priority=5,
+                lock="a",
+                queueing_lock=None,
+                args={},
+                scheduled_at=utils.utcnow() + datetime.timedelta(hours=24),
+                lock_mode="mutex",
+            ),
+            t.JobToDefer(
+                queue_name="marsupilami",
+                task_name="mytask",
+                priority=0,
+                lock="a",
+                queueing_lock=None,
+                args={},
+                scheduled_at=None,
+                lock_mode="mutex",
+            ),
+        ]
+    )
+    connector.workers = {1: utils.utcnow()}
+
+    assert (await connector.fetch_job_one(queues=None, worker_id=1))["id"] == 2
+    # ... but mutual exclusion still applies while that job is running.
+    assert (await connector.fetch_job_one(queues=None, worker_id=1))["id"] is None

@@ -176,6 +176,7 @@ class InMemoryConnector(connector.BaseAsyncConnector):
                 "task_name": job.task_name,
                 "priority": job.priority,
                 "lock": job.lock,
+                "lock_mode": job.lock_mode,
                 "queueing_lock": job.queueing_lock,
                 "args": job.args,
                 "status": "todo",
@@ -242,11 +243,14 @@ class InMemoryConnector(connector.BaseAsyncConnector):
         # rejected when another job with the same lock comes first (higher priority, or
         # same priority and queued earlier), even when that job is not runnable yet.
         # This is what guarantees jobs sharing a lock are started in order.
+        # Only 'ordered' locks reserve the lock while merely waiting: a 'mutex' lock
+        # guarantees mutual exclusion but no ordering.
         if candidate["lock"] is None:
             return False
         return any(
             other["lock"] == candidate["lock"]
             and other["status"] == "todo"
+            and other.get("lock_mode", "ordered") == "ordered"
             and (
                 other["priority"] > candidate["priority"]
                 or (

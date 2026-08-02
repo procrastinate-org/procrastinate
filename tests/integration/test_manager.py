@@ -107,6 +107,71 @@ async def test_fetch_job_spacial_case_none_lock(
     ).id == job.id
 
 
+async def test_fetch_job_ordered_lock_blocks_on_future_scheduled_job(
+    pg_job_manager, deferred_job_factory, worker_id
+):
+    # Backward compatibility: an 'ordered' lock (the default) keeps guaranteeing that
+    # jobs sharing it start in order, so a job that is not runnable yet holds the lock
+    # for the ones behind it.
+    await deferred_job_factory(
+        lock="lock_1",
+        priority=5,
+        scheduled_at=conftest.aware_datetime(2050, 1, 1),
+    )
+    await deferred_job_factory(lock="lock_1", priority=0)
+
+    assert await pg_job_manager.fetch_job(queues=None, worker_id=worker_id) is None
+
+
+async def test_fetch_job_ordered_lock_keeps_creation_order(
+    pg_job_manager, deferred_job_factory, worker_id
+):
+    # Backward compatibility: with equal priorities, 'ordered' locks hand out jobs in
+    # creation order, one at a time.
+    first = await deferred_job_factory(lock="lock_1")
+    second = await deferred_job_factory(lock="lock_1")
+
+    fetched = await pg_job_manager.fetch_job(queues=None, worker_id=worker_id)
+    assert fetched.id == first.id
+    # The second job is not handed out while the first one is running.
+    assert await pg_job_manager.fetch_job(queues=None, worker_id=worker_id) is None
+
+    await pg_job_manager.finish_job(
+        job=fetched, status=jobs.Status.SUCCEEDED, delete_job=False
+    )
+    fetched = await pg_job_manager.fetch_job(queues=None, worker_id=worker_id)
+    assert fetched.id == second.id
+
+
+async def test_fetch_job_mutex_lock_ignores_future_scheduled_job(
+    pg_job_manager, deferred_job_factory, worker_id
+):
+    # A 'mutex' lock only reserves the lock while a job runs, so a job scheduled far in
+    # the future no longer starves the ready jobs sharing its lock.
+    # See https://github.com/procrastinate-org/procrastinate/issues/1599
+    await deferred_job_factory(
+        lock="lock_1",
+        lock_mode="mutex",
+        priority=5,
+        scheduled_at=conftest.aware_datetime(2050, 1, 1),
+    )
+    job = await deferred_job_factory(lock="lock_1", lock_mode="mutex", priority=0)
+
+    fetched_job = await pg_job_manager.fetch_job(queues=None, worker_id=worker_id)
+    assert fetched_job is not None
+    assert fetched_job.id == job.id
+
+
+async def test_fetch_job_mutex_lock_still_excludes_running_job(
+    pg_job_manager, deferred_job_factory, fetched_job_factory, worker_id
+):
+    # A 'mutex' lock drops the ordering guarantee, but not mutual exclusion.
+    await fetched_job_factory(lock="lock_1", lock_mode="mutex")
+    await deferred_job_factory(lock="lock_1", lock_mode="mutex")
+
+    assert await pg_job_manager.fetch_job(queues=None, worker_id=worker_id) is None
+
+
 @pytest.mark.parametrize(
     "job_kwargs, fetch_queues",
     [
