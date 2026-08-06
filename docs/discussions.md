@@ -106,9 +106,10 @@ We can solve this problem by using locks. Procrastinate gives us two guarantees:
   considered.
 - If a group of jobs share the same lock, then only one can be executed at a time.
 
-The first guarantee (ordering) is what a `"mutex"` lock trades away: it only holds the
-lock while a job actually runs, so a job that isn't runnable yet doesn't hold up the
-others. The second guarantee (mutual exclusion) holds in both modes. See
+The sentence above about a job "not available for this worker" describes the default
+`lock_mode="ordered"`. With `lock_mode="mutex"`, a job scheduled in the future steps
+aside instead of holding the lock, so the jobs behind it keep running; the runnable ones
+are still handed out in the same order, and mutual exclusion holds in both modes. See
 {doc}`howto/advanced/locks` for how to choose.
 
 These two facts allow us to draw the following conclusion for our 4 letter jobs from

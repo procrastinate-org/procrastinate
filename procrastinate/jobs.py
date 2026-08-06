@@ -47,16 +47,18 @@ class LockMode(Enum):
     """
     An enumeration with all the possible lock modes.
 
-    Both modes guarantee that no two jobs sharing a lock run simultaneously. They
-    differ in whether a job that is merely waiting also reserves the lock.
+    Both modes guarantee that no two jobs sharing a lock run simultaneously, and both
+    hand out runnable jobs in priority then creation order. They differ in whether a job
+    that cannot run yet still holds the lock for the ones behind it.
     """
 
-    #: Jobs sharing the lock start in priority then creation order. A job that is not
-    #: runnable yet (scheduled in the future, or on a queue the worker doesn't listen
-    #: to) holds the lock for the ones behind it.
+    #: A waiting job holds the lock even when it cannot run yet (scheduled in the
+    #: future, or on a queue the worker doesn't listen to). This is what guarantees
+    #: jobs sharing the lock are started in order.
     ORDERED = "ordered"
-    #: The lock is only held while a job actually runs, so jobs sharing it may start in
-    #: any order. Use this when the lock protects a resource and ordering is irrelevant.
+    #: Same as `ORDERED`, except a job that is not runnable yet steps aside instead of
+    #: holding the lock. Use this when the lock protects a resource and a job scheduled
+    #: for later should not reserve it.
     MUTEX = "mutex"
 
 
