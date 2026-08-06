@@ -3,6 +3,8 @@ from __future__ import annotations
 import datetime
 import functools
 
+import psycopg
+import psycopg.conninfo
 import pytest
 
 from procrastinate import exceptions, jobs, manager, utils
@@ -160,6 +162,35 @@ async def test_fetch_job_mutex_lock_ignores_future_scheduled_job(
     fetched_job = await pg_job_manager.fetch_job(queues=None, worker_id=worker_id)
     assert fetched_job is not None
     assert fetched_job.id == job.id
+
+
+async def test_fetch_job_mutex_lock_leaves_a_single_candidate_per_lock(
+    pg_job_manager, deferred_job_factory, connection_params
+):
+    # Two ready jobs sharing a 'mutex' lock. While one worker holds the first in an
+    # open transaction, a second worker must find no candidate at all. If it picked
+    # the other job, both would end up 'doing' on the same lock and collide on the
+    # procrastinate_jobs_lock_idx_v1 unique index.
+    #
+    # This uses its own connections rather than the psycopg_connector fixture because
+    # reproducing the race needs two *overlapping* transactions, which the connector
+    # pool gives no way to hold open.
+    await deferred_job_factory(lock="lock_1", lock_mode="mutex")
+    await deferred_job_factory(lock="lock_1", lock_mode="mutex")
+    first_worker = await pg_job_manager.register_worker()
+    second_worker = await pg_job_manager.register_worker()
+
+    query = "SELECT id FROM procrastinate_fetch_job_v2(NULL, %s)"
+    conninfo = psycopg.conninfo.make_conninfo(**connection_params)
+    with psycopg.connect(conninfo) as first:
+        first.autocommit = False
+        assert first.execute(query, (first_worker,)).fetchone()[0] is not None
+
+        # Still inside the first worker's open transaction.
+        with psycopg.connect(conninfo) as second:
+            # Fail fast rather than block on the unique index if the invariant breaks.
+            second.execute("SET lock_timeout = '5s'")
+            assert second.execute(query, (second_worker,)).fetchone()[0] is None
 
 
 async def test_fetch_job_mutex_lock_still_excludes_running_job(

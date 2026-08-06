@@ -243,14 +243,19 @@ class InMemoryConnector(connector.BaseAsyncConnector):
         # rejected when another job with the same lock comes first (higher priority, or
         # same priority and queued earlier), even when that job is not runnable yet.
         # This is what guarantees jobs sharing a lock are started in order.
-        # Only 'ordered' locks reserve the lock while merely waiting: a 'mutex' lock
-        # guarantees mutual exclusion but no ordering.
+        # An 'ordered' lock is reserved even by a job that cannot run yet; a 'mutex'
+        # lock is only reserved while its job is actually runnable, so a job scheduled
+        # for later steps aside.
         if candidate["lock"] is None:
             return False
         return any(
             other["lock"] == candidate["lock"]
             and other["status"] == "todo"
-            and other.get("lock_mode", "ordered") == "ordered"
+            and (
+                other.get("lock_mode", "ordered") == "ordered"
+                or not other["scheduled_at"]
+                or other["scheduled_at"] <= utils.utcnow()
+            )
             and (
                 other["priority"] > candidate["priority"]
                 or (

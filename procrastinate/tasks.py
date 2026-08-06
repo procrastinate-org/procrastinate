@@ -211,11 +211,10 @@ class Task(Generic[P, R, Args]):
         lock :
             No two jobs with the same lock string can run simultaneously
         lock_mode :
-            ``"ordered"`` (the default) also guarantees that jobs sharing the lock
-            start in priority then creation order, which means a job that is not
-            runnable yet holds the lock for the ones behind it. ``"mutex"`` only holds
-            the lock while a job actually runs, so jobs may start in any order. See
-            `LockMode`.
+            ``"ordered"`` (the default) has a waiting job hold the lock even when it
+            cannot run yet, which is what guarantees jobs sharing a lock start in
+            order. ``"mutex"`` behaves the same, except a job that is not runnable yet
+            steps aside instead of holding the lock. See `LockMode`.
         queueing_lock :
             No two jobs with the same queueing lock can be waiting in the queue.
             `Task.defer` will raise an `AlreadyEnqueued` exception if there already

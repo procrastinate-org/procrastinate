@@ -779,3 +779,38 @@ async def test_fetch_job_one_mutex_lock_ignores_waiting_job(
     assert (await connector.fetch_job_one(queues=None, worker_id=1))["id"] == 2
     # ... but mutual exclusion still applies while that job is running.
     assert (await connector.fetch_job_one(queues=None, worker_id=1))["id"] is None
+
+
+async def test_fetch_job_one_mutex_lock_blocks_on_runnable_job(
+    connector: testing.InMemoryConnector,
+):
+    # A 'mutex' lock is still reserved by a job that is runnable now, which is what
+    # keeps a single candidate per lock. Only jobs that cannot run yet step aside.
+    await connector.defer_jobs_all(
+        [
+            t.JobToDefer(
+                queue_name="marsupilami",
+                task_name="mytask",
+                priority=0,
+                lock="a",
+                queueing_lock=None,
+                args={},
+                scheduled_at=None,
+                lock_mode="mutex",
+            ),
+            t.JobToDefer(
+                queue_name="marsupilami",
+                task_name="mytask",
+                priority=0,
+                lock="a",
+                queueing_lock=None,
+                args={},
+                scheduled_at=None,
+                lock_mode="mutex",
+            ),
+        ]
+    )
+    connector.workers = {1: utils.utcnow()}
+
+    assert (await connector.fetch_job_one(queues=None, worker_id=1))["id"] == 1
+    assert (await connector.fetch_job_one(queues=None, worker_id=1))["id"] is None
