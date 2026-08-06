@@ -112,11 +112,6 @@ reset time.
 For 5 minutes nothing on `resource:acme-api` runs. Once 104 is done, 101 and 102 run one
 at a time, while 103 keeps out of the way until it is due.
 
-:::{note}
-Periodic jobs are always deferred with `lock_mode="ordered"`; they cannot currently opt
-into `"mutex"`.
-:::
-
 ## Locks and Priority
 
 When several jobs sharing a lock are runnable, they are processed one at a time, picked

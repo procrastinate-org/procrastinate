@@ -150,9 +150,10 @@ BEGIN
 END;
 $$;
 
-CREATE FUNCTION procrastinate_defer_periodic_job_v2(
+CREATE FUNCTION procrastinate_defer_periodic_job_v3(
     _queue_name character varying,
     _lock character varying,
+    _lock_mode procrastinate_lock_mode,
     _queueing_lock character varying,
     _task_name character varying,
     _priority integer,
@@ -190,7 +191,7 @@ BEGIN
                             _queueing_lock,
                             _args,
                             NULL::timestamptz,
-                            'ordered'::procrastinate_lock_mode
+                            COALESCE(_lock_mode, 'ordered')
                         )
                     ]::procrastinate_job_to_defer_v2[]
                 ))
