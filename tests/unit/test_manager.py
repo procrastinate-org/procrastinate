@@ -463,6 +463,21 @@ async def test_defer_periodic_job(configure):
     assert result == 1
 
 
+async def test_defer_periodic_job_lock_mode(configure, connector):
+    # A periodic job must keep the lock_mode it was configured with, rather than
+    # silently falling back to "ordered".
+    deferrer = configure(
+        task_kwargs={"timestamp": 1234567890}, lock="lock_1", lock_mode="mutex"
+    )
+
+    await deferrer.job_manager.defer_periodic_job(
+        job=deferrer.job,
+        periodic_id="",
+        defer_timestamp=1234567890,
+    )
+    assert connector.jobs[1]["lock_mode"] == "mutex"
+
+
 async def test_defer_periodic_job_with_suffixes(configure):
     deferrer = configure(task_kwargs={"timestamp": 1234567890})
 

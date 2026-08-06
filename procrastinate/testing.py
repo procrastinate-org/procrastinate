@@ -209,6 +209,7 @@ class InMemoryConnector(connector.BaseAsyncConnector):
         args: types.JSONDict,
         defer_timestamp: int,
         lock: str | None,
+        lock_mode: str,
         queueing_lock: str | None,
         periodic_id: str,
     ) -> JobRow:
@@ -224,6 +225,7 @@ class InMemoryConnector(connector.BaseAsyncConnector):
                     task_name=task_name,
                     priority=priority,
                     lock=lock,
+                    lock_mode=lock_mode,
                     queueing_lock=queueing_lock,
                     args=args,
                     scheduled_at=None,

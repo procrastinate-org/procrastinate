@@ -183,6 +183,7 @@ class JobManager:
                 queue=job.queue,
                 priority=job.priority,
                 lock=job.lock,
+                lock_mode=job.lock_mode,
                 queueing_lock=job.queueing_lock,
                 args=job.task_kwargs,
             )
