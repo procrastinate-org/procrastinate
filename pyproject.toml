@@ -71,7 +71,7 @@ docs = [
     "sphinxcontrib-mermaid",
     "myst-parser",
 ]
-dev = ["ruff", "basedpyright", "doc8"]
+dev = ["ruff", "basedpyright", "doc8", "zizmor"]
 
 [tool.hatch.version]
 source = "uv-dynamic-versioning"
@@ -143,6 +143,7 @@ extend-select = [
     "E",   # pycodestyle errors
     "W",   # pycodestyle warnings
     "RUF", # ruff
+    "T10", # flake8-debugger
 ]
 fixable = ["ALL"]
 ignore = [
