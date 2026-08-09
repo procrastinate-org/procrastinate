@@ -1,6 +1,9 @@
 name: autofix.ci
 on: [pull_request]
 
+env:
+  UV_FROZEN: "true"
+
 permissions:
   contents: read
 
