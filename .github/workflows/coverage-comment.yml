@@ -6,14 +6,17 @@ on: # zizmor: ignore[dangerous-triggers]
     types:
       - completed
 
-permissions:
-  contents: read
+permissions: {}
 
 jobs:
   test:
     name: Run tests & display coverage
     runs-on: ubuntu-latest
     if: github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion == 'success'
+    permissions:
+      pull-requests: write # Post the comment, and edit it on later runs
+      actions: read # Download the comment artifact from the triggering CI run
+      contents: read
     steps:
       # DO NOT run actions/checkout@v2 here, for securitity reasons
       # For details, refer to https://securitylab.github.com/research/github-actions-preventing-pwn-requests/
