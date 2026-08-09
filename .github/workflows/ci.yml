@@ -115,8 +115,8 @@ jobs:
           PGPASSWORD: postgres
           LATEST_TAG: ${{ steps.get-latest-tag.outputs.latest_tag }}
 
-  static-typing:
-    name: Run type checking
+  lint:
+    name: Lint
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -130,8 +130,8 @@ jobs:
       - name: Install deps
         run: uv sync --all-groups
 
-      - name: Run type checker
-        run: uv run basedpyright
+      - name: Run prek
+        run: uvx prek run --all-files
 
   coverage:
     name: Coverage
@@ -211,7 +211,7 @@ jobs:
       id-token: write
     needs:
       - tests
-      - static-typing
+      - lint
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
         with:
