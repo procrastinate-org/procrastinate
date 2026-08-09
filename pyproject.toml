@@ -71,7 +71,7 @@ docs = [
     "sphinxcontrib-mermaid",
     "myst-parser",
 ]
-dev = ["ruff", "basedpyright", "doc8", "zizmor"]
+dev = ["ruff", "basedpyright", "doc8", "zizmor", "prek"]
 
 [tool.hatch.version]
 source = "uv-dynamic-versioning"

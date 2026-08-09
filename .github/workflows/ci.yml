@@ -142,7 +142,7 @@ jobs:
         run: uv sync --all-groups
 
       - name: Run prek
-        run: uvx prek run --all-files
+        run: uv run --group dev prek run --all-files
 
   coverage:
     name: Coverage

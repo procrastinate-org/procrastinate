@@ -38,7 +38,7 @@ repos:
 
       - id: uv-lock
         name: uv-lock
-        entry: uv lock
+        entry: env UV_FROZEN=false uv lock
         language: system
         files: ^(uv\.lock|pyproject\.toml|uv\.toml)$
         pass_filenames: false
