@@ -1,109 +1,73 @@
-ci:
-  skip: [basedpyright]
-  autoupdate_schedule: quarterly
-# See https://pre-commit.com for more information
-# See https://pre-commit.com/hooks.html for more hooks
 repos:
-  - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v6.0.0
+  - repo: builtin
     hooks:
       # File names
       - id: check-case-conflict
-          # File formats
+      # File formats
       - id: pretty-format-json
       - id: check-json
       - id: check-toml
       - id: check-yaml
-          # Executables
+      # Executables
       - id: check-executables-have-shebangs
         exclude: dev-env
       - id: check-shebang-scripts-are-executable
-          # Git shenanigans
+      # Git shenanigans
       - id: check-merge-conflict
       - id: check-added-large-files
-          # Python issues
-      - id: check-ast
-      - id: debug-statements
-          # Whitespace
+      # Whitespace
       - id: end-of-file-fixer
       - id: trailing-whitespace
       - id: mixed-line-ending
 
-  - repo: https://github.com/DetachHead/basedpyright-prek-mirror
-    rev: 1.39.9
+  - repo: local
     hooks:
-      - id: basedpyright
-        additional_dependencies:
-          - aiopg==1.4.0
-          - alabaster==1.0.0
-          - asgiref==3.12.1
-          - async-timeout==4.0.3
-          - attrs==26.1.0
-          - babel==2.18.0
-          - certifi==2026.6.17
-          - charset-normalizer==3.4.9
-          - colorama==0.4.6 ; sys_platform == 'win32'
-          - croniter==6.2.4
-          - django==5.2.16 ; python_full_version < '3.12'
-          - django==6.0.7 ; python_full_version >= '3.12'
-          - django-stubs==6.0.7
-          - django-stubs-ext==6.0.7
-          - docutils==0.21.2
-          - greenlet==3.5.3 ; platform_machine == 'AMD64' or platform_machine == 'WIN32' or platform_machine == 'aarch64' or platform_machine == 'amd64' or platform_machine == 'ppc64le' or platform_machine == 'win32' or platform_machine == 'x86_64'
-          - idna==3.18
-          - imagesize==2.0.0
-          - jinja2==3.1.6
-          - markupsafe==3.0.3
-          - packaging==26.2
-          - psycopg==3.3.4
-          - psycopg-pool==3.3.1
-          - psycopg2-binary==2.9.12
-          - pygments==2.20.0
-          - python-dateutil==2.9.0.post0
-          - requests==2.34.2
-          - roman-numerals==4.1.0 ; python_full_version >= '3.11'
-          - six==1.17.0
-          - snowballstemmer==3.1.1
-          - sphinx==8.1.3 ; python_full_version < '3.11'
-          - sphinx==9.0.4 ; python_full_version == '3.11.*'
-          - sphinx==9.1.0 ; python_full_version >= '3.12'
-          - sphinxcontrib-applehelp==2.0.0
-          - sphinxcontrib-devhelp==2.0.0
-          - sphinxcontrib-htmlhelp==2.1.0
-          - sphinxcontrib-jsmath==1.0.1
-          - sphinxcontrib-qthelp==2.0.0
-          - sphinxcontrib-serializinghtml==2.0.0
-          - sqlalchemy==2.0.51
-          - sqlparse==0.5.5
-          - tomli==2.4.1 ; python_full_version < '3.11'
-          - types-pyyaml==6.0.12.20260518
-          - typing-extensions==4.16.0
-          - tzdata==2026.3 ; sys_platform == 'win32'
-          - urllib3==2.7.0
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.22
-    hooks:
-      - id: ruff
-        args: [--fix, --unsafe-fixes, --show-fixes]
+      - id: ruff-check
+        name: ruff check
+        entry: uv run --group dev ruff check --force-exclude --fix --unsafe-fixes --show-fixes
+        language: system
+        types_or: [python, pyi]
+        require_serial: true
+
       - id: ruff-format
+        name: ruff format
+        entry: uv run --group dev ruff format --force-exclude
+        language: system
+        types_or: [python, pyi]
+        require_serial: true
 
-  - repo: https://github.com/PyCQA/doc8
-    rev: v2.0.0
-    hooks:
-      - id: doc8
-
-  - repo: https://github.com/adamchainz/django-upgrade
-    rev: 1.31.1
-    hooks:
-      - id: django-upgrade
-        args: [--target-version, '4.2'] # Replace with Django version
-
-  - repo: https://github.com/ewjoachim/sync-pre-commit-with-uv
-    rev: 1.1.0
-    hooks:
-      - id: sync
-
-  - repo: https://github.com/astral-sh/uv-pre-commit
-    rev: 0.11.23
-    hooks:
       - id: uv-lock
+        name: uv-lock
+        entry: env UV_FROZEN=false uv lock
+        language: system
+        files: ^(uv\.lock|pyproject\.toml|uv\.toml)$
+        pass_filenames: false
+
+      - id: basedpyright
+        name: basedpyright
+        entry: uv run --all-groups basedpyright
+        language: system
+        types_or: [python, pyi]
+        require_serial: true
+
+      - id: doc8
+        name: doc8
+        entry: uv run --group dev doc8
+        language: system
+        types: [rst]
+        require_serial: true
+
+      - id: django-upgrade
+        name: django-upgrade
+        entry: uv run --group lint_format django-upgrade --target-version 4.2
+        language: system
+        types: [python]
+        require_serial: true
+
+      - id: zizmor
+        name: zizmor
+        entry: uv run --group dev zizmor --no-progress --fix=all
+        language: system
+        types: [yaml]
+        files: (\.github/(workflows/.*|dependabot\.ya?ml))|(action\.ya?ml)$
+        require_serial: true
