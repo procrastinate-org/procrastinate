@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1786563939844,
+  "lastUpdate": 1786564539671,
   "repoUrl": "https://github.com/procrastinate-org/procrastinate",
   "entries": {
     "Procrastinate Benchmarks": [
@@ -11724,6 +11724,86 @@ window.BENCHMARK_DATA = {
             "unit": "iter/sec",
             "range": "stddev: 0.09847702496189112",
             "extra": "mean: 3.2948514827999986 sec\nrounds: 5"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "29139614+renovate[bot]@users.noreply.github.com",
+            "name": "renovate[bot]",
+            "username": "renovate[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "458c3af886ee29cf36a8b0d0e7afcf49be7ca7e8",
+          "message": "Update all dependencies (#1589)\n\nUpdate pypa/gh-action-pypi-publish action to v1.14.2",
+          "timestamp": "2026-08-12T19:52:00Z",
+          "tree_id": "1810440f26f04ec95b631711e3b9474b5b01a162",
+          "url": "https://github.com/procrastinate-org/procrastinate/commit/458c3af886ee29cf36a8b0d0e7afcf49be7ca7e8"
+        },
+        "date": 1786564539022,
+        "tool": "pytest",
+        "benches": [
+          {
+            "name": "tests/benchmarks/test_benchmark_async.py::test_benchmark_1000_async_jobs[psycopg_connector]",
+            "value": 0.2554248253513561,
+            "unit": "iter/sec",
+            "range": "stddev: 0.15050267062869718",
+            "extra": "mean: 3.9150462318000008 sec\nrounds: 5"
+          },
+          {
+            "name": "tests/benchmarks/test_benchmark_async.py::test_benchmark_1000_async_jobs[aiopg_connector]",
+            "value": 0.5027446551114744,
+            "unit": "iter/sec",
+            "range": "stddev: 0.007772817828474642",
+            "extra": "mean: 1.9890813156000007 sec\nrounds: 5"
+          },
+          {
+            "name": "tests/benchmarks/test_benchmark_async.py::test_benchmark_1000_async_batch_jobs[psycopg_connector]",
+            "value": 0.3535203198552132,
+            "unit": "iter/sec",
+            "range": "stddev: 0.2150968614693008",
+            "extra": "mean: 2.8286917154000006 sec\nrounds: 5"
+          },
+          {
+            "name": "tests/benchmarks/test_benchmark_async.py::test_benchmark_1000_async_batch_jobs[aiopg_connector]",
+            "value": 0.6176751125225912,
+            "unit": "iter/sec",
+            "range": "stddev: 0.22286323359964344",
+            "extra": "mean: 1.6189740848000014 sec\nrounds: 5"
+          },
+          {
+            "name": "tests/benchmarks/test_benchmark_sync.py::test_benchmark_1000_sync_jobs[sync_psycopg_connector]",
+            "value": 0.22675501724459485,
+            "unit": "iter/sec",
+            "range": "stddev: 0.12869732798207598",
+            "extra": "mean: 4.410045749599999 sec\nrounds: 5"
+          },
+          {
+            "name": "tests/benchmarks/test_benchmark_sync.py::test_benchmark_1000_sync_jobs[psycopg2_connector]",
+            "value": 0.2577113580076995,
+            "unit": "iter/sec",
+            "range": "stddev: 0.07854895398878124",
+            "extra": "mean: 3.88031015680001 sec\nrounds: 5"
+          },
+          {
+            "name": "tests/benchmarks/test_benchmark_sync.py::test_benchmark_1000_sync_batch_jobs[sync_psycopg_connector]",
+            "value": 0.32079063293281657,
+            "unit": "iter/sec",
+            "range": "stddev: 0.09813142147649793",
+            "extra": "mean: 3.1172980048000056 sec\nrounds: 5"
+          },
+          {
+            "name": "tests/benchmarks/test_benchmark_sync.py::test_benchmark_1000_sync_batch_jobs[psycopg2_connector]",
+            "value": 0.31937591273092725,
+            "unit": "iter/sec",
+            "range": "stddev: 0.06588043180366111",
+            "extra": "mean: 3.131106511600001 sec\nrounds: 5"
           }
         ]
       }
