@@ -148,6 +148,9 @@ jobs:
     name: Coverage
     runs-on: ubuntu-latest
     needs: [tests]
+    permissions:
+      pull-requests: write # Publish the coverage comment, and edit it on later runs
+      contents: write # Push the coverage data to the data branch
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
