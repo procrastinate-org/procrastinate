@@ -229,16 +229,20 @@ async def test_concurrency(async_app: app_module.App):
         await task
 
     # with 20 concurrent workers, 100 tasks should take about 100/20 x 0.1  = 0.5s
-    # if there is no concurrency, it will take well over 2 seconds and fail
+    # if there is no concurrency, it will take at least 100 x 0.1 = 10s. The
+    # timeout sits between the two, far enough above 0.5s to absorb a slow CI
+    # runner and still well under the 10s a serial run would need.
+    timeout = 5
 
     start_time = time.time()
     try:
         await asyncio.wait_for(
-            async_app.run_worker_async(concurrency=20, wait=False), timeout=2
+            async_app.run_worker_async(concurrency=20, wait=False), timeout=timeout
         )
     except asyncio.TimeoutError:
         pytest.fail(
-            "Failed to process all jobs within 2 seconds. Is the concurrency respected?"
+            f"Failed to process all jobs within {timeout} seconds. "
+            "Is the concurrency respected?"
         )
     duration = time.time() - start_time
 

@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import datetime
 import signal
+from collections.abc import Callable
 from typing import cast
 from unittest import mock
 
@@ -22,6 +23,14 @@ async def start_worker(worker: Worker):
     task = asyncio.create_task(worker.run())
     await asyncio.sleep(0.01)
     return task
+
+
+async def wait_for(condition: Callable[[], bool], timeout: float = 2):
+    async def poll():
+        while not condition():
+            await asyncio.sleep(0.001)
+
+    await asyncio.wait_for(poll(), timeout)
 
 
 @pytest.fixture
@@ -177,36 +186,53 @@ async def test_worker_run_respects_concurrency_variant(worker: Worker, app: App)
 
     max_parallelism = 0
     parallel_jobs = 0
+    started_jobs = 0
+    # Each job holds its slot until the test opens its gate. Sleeping instead
+    # would make the assertions depend on jobs finishing in the window between
+    # two sleeps, which doesn't hold on a loaded CI runner.
+    gates = [asyncio.Event() for _ in range(5)]
 
     @app.task
-    async def perform_job(sleep: float):
+    async def perform_job(index: int):
         nonlocal max_parallelism
         nonlocal parallel_jobs
+        nonlocal started_jobs
         parallel_jobs += 1
+        started_jobs += 1
 
         max_parallelism = max(max_parallelism, parallel_jobs)
-        await asyncio.sleep(sleep)
+        await gates[index].wait()
         parallel_jobs -= 1
 
-    await perform_job.defer_async(sleep=0.05)
-    await perform_job.defer_async(sleep=0.1)
+    await perform_job.defer_async(index=0)
+    await perform_job.defer_async(index=1)
 
     await start_worker(worker)
 
-    # wait enough to run out of job and to have one pending job
-    await asyncio.sleep(0.05)
-
+    # Both jobs fit within the concurrency budget, so both are running.
+    await wait_for(lambda: started_jobs >= 2)
     assert max_parallelism == 2
+    assert parallel_jobs == 2
+
+    # Let the first job finish; the second one keeps holding its slot.
+    gates[0].set()
+    await wait_for(lambda: parallel_jobs <= 1)
     assert parallel_jobs == 1
 
-    # defer more jobs than the worker can process in parallel
-    await perform_job.defer_async(sleep=0.05)
-    await perform_job.defer_async(sleep=0.05)
-    await perform_job.defer_async(sleep=0.05)
+    # defer more jobs than the worker can process in parallel: only one of them
+    # can start, in the slot job 0 just freed.
+    for index in (2, 3, 4):
+        await perform_job.defer_async(index=index)
 
-    await asyncio.sleep(0.2)
+    await wait_for(lambda: started_jobs >= 3)
+    assert parallel_jobs == 2
     assert max_parallelism == 2
-    assert parallel_jobs == 0
+
+    for gate in gates:
+        gate.set()
+
+    await wait_for(lambda: started_jobs >= 5 and parallel_jobs == 0)
+    assert max_parallelism == 2
 
 
 async def test_worker_run_fetches_job_on_notification(worker, app: App):
