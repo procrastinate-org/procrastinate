@@ -26,7 +26,7 @@ Tasks
 -----
 .. autoclass:: procrastinate.tasks.Task
     :members: defer, defer_async, configure, name, aliases, retry_strategy,
-              pass_context, queue, lock, queueing_lock
+              pass_context, queue, lock, lock_mode, queueing_lock
 
 When tasks are created with argument ``pass_context``, they are provided a
 `JobContext` argument:

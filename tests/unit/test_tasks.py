@@ -160,6 +160,21 @@ def test_task_invalid_default_lock_mode(app: App):
         tasks.Task(task_func, blueprint=app, queue="queue", lock_mode="mutx")
 
 
+@pytest.mark.parametrize(
+    "lock_mode, expected", [(None, "ordered"), (jobs.LockMode.MUTEX, "mutex")]
+)
+def test_task_lock_mode_is_always_concrete(app: App, lock_mode, expected):
+    # A task registered before lock_mode existed defers 'ordered' jobs, so reading
+    # the attribute must say 'ordered' rather than None. Otherwise the mode a task
+    # runs with and the mode it reports disagree.
+    task = tasks.Task(
+        task_func, blueprint=app, queue="queue", lock="l", lock_mode=lock_mode
+    )
+
+    assert task.lock_mode == expected
+    assert task.configure().job.lock_mode == task.lock_mode
+
+
 def test_configure_task_schedule_at(job_manager):
     job = tasks.configure_task(
         name="my_name",

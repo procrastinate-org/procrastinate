@@ -120,14 +120,13 @@ class Task(Generic[P, R, Args]):
         self.pass_context: bool = pass_context
         #: Default lock. The lock can be overridden when a job is deferred.
         self.lock: str | None = lock
-        #: Default lock mode. It can be overridden when a job is deferred.
-        #: ``None`` means no default, which `configure_task` reads as
-        #: `jobs.DEFAULT_LOCK_MODE`.
-        # Normalized here so that a wrong value is rejected when the task is
-        # registered rather than when it is first deferred.
-        self.lock_mode: str | None = (
-            jobs.normalize_lock_mode(lock_mode) if lock_mode is not None else None
-        )
+        # Resolved to a concrete mode here, rather than kept as None meaning
+        # "unset", so that reading it always answers which mode this task
+        # defers with. Normalizing at registration also rejects a wrong value
+        # then, rather than when the task is first deferred.
+        #: Default lock mode, `jobs.DEFAULT_LOCK_MODE` unless set. It can be
+        #: overridden when a job is deferred.
+        self.lock_mode: str = jobs.normalize_lock_mode(lock_mode)
         #: Default queueing lock. The queuing lock can be overridden when a job
         #: is deferred.
         self.queueing_lock: str | None = queueing_lock
