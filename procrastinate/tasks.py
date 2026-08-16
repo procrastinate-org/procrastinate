@@ -23,7 +23,7 @@ R = TypeVar("R")
 
 class ConfigureTaskOptions(TypedDict):
     lock: NotRequired[str | None]
-    lock_mode: NotRequired[str | None]
+    lock_mode: NotRequired[str | jobs.LockMode | None]
     queueing_lock: NotRequired[str | None]
     task_kwargs: NotRequired[types.JSONDict | None]
     schedule_at: NotRequired[datetime.datetime | None]
@@ -58,7 +58,7 @@ def configure_task(
         job=jobs.Job(
             id=None,
             lock=options.get("lock"),
-            lock_mode=options.get("lock_mode") or jobs.DEFAULT_LOCK_MODE,
+            lock_mode=options.get("lock_mode"),
             queueing_lock=options.get("queueing_lock"),
             task_name=name,
             queue=options.get("queue") or jobs.DEFAULT_QUEUE,
@@ -92,7 +92,7 @@ class Task(Generic[P, R, Args]):
         queue: str,
         priority: int = jobs.DEFAULT_PRIORITY,
         lock: str | None = None,
-        lock_mode: str | None = None,
+        lock_mode: str | jobs.LockMode | None = None,
         queueing_lock: str | None = None,
         task_middleware: list[middleware_module.TaskMiddleware] | None = None,
     ):
@@ -121,7 +121,13 @@ class Task(Generic[P, R, Args]):
         #: Default lock. The lock can be overridden when a job is deferred.
         self.lock: str | None = lock
         #: Default lock mode. It can be overridden when a job is deferred.
-        self.lock_mode: str | None = lock_mode
+        #: ``None`` means no default, which `configure_task` reads as
+        #: `jobs.DEFAULT_LOCK_MODE`.
+        # Normalized here so that a wrong value is rejected when the task is
+        # registered rather than when it is first deferred.
+        self.lock_mode: str | None = (
+            jobs.normalize_lock_mode(lock_mode) if lock_mode is not None else None
+        )
         #: Default queueing lock. The queuing lock can be overridden when a job
         #: is deferred.
         self.queueing_lock: str | None = queueing_lock
@@ -211,10 +217,10 @@ class Task(Generic[P, R, Args]):
         lock :
             No two jobs with the same lock string can run simultaneously
         lock_mode :
-            ``"ordered"`` (the default) has a waiting job hold the lock even when it
-            cannot run yet, which is what guarantees jobs sharing a lock start in
-            order. ``"mutex"`` behaves the same, except a job that is not runnable yet
-            steps aside instead of holding the lock. See `LockMode`.
+            ``"ordered"`` (the default) has a waiting job hold the lock even when it is
+            scheduled for the future, which is what guarantees jobs sharing a lock start
+            in order. ``"mutex"`` behaves the same, except a job scheduled for the future
+            steps aside instead of holding the lock until it is due. See `LockMode`.
         queueing_lock :
             No two jobs with the same queueing lock can be waiting in the queue.
             `Task.defer` will raise an `AlreadyEnqueued` exception if there already

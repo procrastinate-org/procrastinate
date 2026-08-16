@@ -211,7 +211,7 @@ class Blueprint:
         queue: str = jobs.DEFAULT_QUEUE,
         priority: int = jobs.DEFAULT_PRIORITY,
         lock: str | None = None,
-        lock_mode: str | None = None,
+        lock_mode: str | jobs.LockMode | None = None,
         queueing_lock: str | None = None,
         task_middleware: list[middleware.TaskMiddleware] | None = None,
     ) -> Callable[[Callable[P, R]], Task[P, R, P]]: ...
@@ -228,7 +228,7 @@ class Blueprint:
         queue: str = jobs.DEFAULT_QUEUE,
         priority: int = jobs.DEFAULT_PRIORITY,
         lock: str | None = None,
-        lock_mode: str | None = None,
+        lock_mode: str | jobs.LockMode | None = None,
         queueing_lock: str | None = None,
         task_middleware: list[middleware.TaskMiddleware] | None = None,
     ) -> Callable[
@@ -250,7 +250,7 @@ class Blueprint:
         queue: str = jobs.DEFAULT_QUEUE,
         priority: int = jobs.DEFAULT_PRIORITY,
         lock: str | None = None,
-        lock_mode: str | None = None,
+        lock_mode: str | jobs.LockMode | None = None,
         queueing_lock: str | None = None,
         task_middleware: list[middleware.TaskMiddleware] | None = None,
     ):

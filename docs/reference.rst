@@ -99,6 +99,13 @@ Job statuses
     :members:
 
 
+Lock modes
+----------
+
+.. autoclass:: procrastinate.jobs.LockMode
+    :members:
+
+
 Accessing the jobs in the Database
 ----------------------------------
 
