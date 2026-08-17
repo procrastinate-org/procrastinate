@@ -10,6 +10,15 @@ If a `shutdown_graceful_timeout` option is specified, the worker will attempt to
 
 The worker will then wait for all jobs to complete.
 
+There is one situation in which the worker cannot observe the stop request at all: a database
+call that never returns, for example on a connection left half-open by a database failover or a
+proxy. By default, cancelling the worker then waits forever. If a `shutdown_timeout` option is
+specified, the worker waits up to that long for its run loop to stop after `run_worker_async` is
+cancelled, then cancels the run loop, and — if even the cancellation has no effect on the stuck
+database call — abandons it, so that cancelling the worker always terminates. As the run loop
+waits for running jobs before exiting, `shutdown_timeout` should be greater than
+`shutdown_graceful_timeout`.
+
 
 :::{note}
 The worker aborts its remaining jobs by:
@@ -69,6 +78,24 @@ async with app.open_async():
     except asyncio.CancelledError:
         # at this point, the worker is shutdown.
         # Any job that took longer than 10 seconds to complete have aborted
+        pass
+```
+
+### Ensure a cancelled worker terminates even if its database connection is dead
+
+```python
+async with app.open_async():
+    worker = asyncio.create_task(
+        app.run_worker_async(shutdown_graceful_timeout=10, shutdown_timeout=30)
+    )
+    # eventually
+    worker.cancel()
+    try:
+        await worker
+    except asyncio.CancelledError:
+        # This await is bounded: if the run loop cannot observe the stop
+        # request (e.g. the database connection is unresponsive), it is
+        # cancelled and, at worst, abandoned, instead of hanging forever.
         pass
 ```
 
