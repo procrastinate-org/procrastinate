@@ -276,7 +276,7 @@ def test_moved_elsewhere():
         exceptions.MovedElsewhere,
         match=r"procrastinate\.foo has been moved to bar",
     ):
-        me.foo
+        assert me.foo
 
 
 def test_moved_elsewhere__call():

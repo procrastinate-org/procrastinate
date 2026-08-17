@@ -19,6 +19,7 @@ from collections.abc import (
 from typing import (
     Any,
     Generic,
+    NoReturn,
     TypeVar,
 )
 
@@ -288,13 +289,18 @@ class MovedElsewhere:
         self.name = name
         self.new_location = new_location
 
-    def __call__(self, *args: Any, **kwargs: Any) -> Any:
-        self.x
-
-    def __getattr__(self, item: str):
+    def _moved(self) -> NoReturn:
         raise exceptions.MovedElsewhere(
             f"procrastinate.{self.name} has been moved to {self.new_location}"
         )
+
+    def __call__(self, *args: Any, **kwargs: Any) -> Any:
+        self._moved()
+
+    def __getattr__(self, item: str):
+        # _moved, name and new_location all resolve normally, so this doesn't
+        # recurse back into __getattr__.
+        self._moved()
 
 
 V = TypeVar("V")
