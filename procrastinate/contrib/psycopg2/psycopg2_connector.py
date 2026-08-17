@@ -208,26 +208,23 @@ class Psycopg2Connector(connector.BaseConnector):
     @wrap_exceptions()
     @wrap_query_exceptions
     def execute_query(self, query: str, **arguments: Any) -> None:
-        with self._connection() as connection:
-            with connection.cursor() as cursor:
-                cursor.execute(query, self._wrap_json(arguments))
+        with self._connection() as connection, connection.cursor() as cursor:
+            cursor.execute(query, self._wrap_json(arguments))
 
     @wrap_exceptions()
     @wrap_query_exceptions
     def execute_query_one(self, query: str, **arguments: Any) -> dict[str, Any]:
-        with self._connection() as connection:
-            with connection.cursor() as cursor:
-                cursor.execute(query, self._wrap_json(arguments))
-                # psycopg2's type say it returns a tuple, but it actually returns a
-                # dict when configured with RealDictCursor
-                return cursor.fetchone()  # pyright: ignore[reportReturnType]
+        with self._connection() as connection, connection.cursor() as cursor:
+            cursor.execute(query, self._wrap_json(arguments))
+            # psycopg2's type say it returns a tuple, but it actually returns a
+            # dict when configured with RealDictCursor
+            return cursor.fetchone()  # pyright: ignore[reportReturnType]
 
     @wrap_exceptions()
     @wrap_query_exceptions
     def execute_query_all(self, query: str, **arguments: Any) -> dict[str, Any]:
-        with self._connection() as connection:
-            with connection.cursor() as cursor:
-                cursor.execute(query, self._wrap_json(arguments))
-                # psycopg2's type say it returns a tuple, but it actually returns a
-                # dict when configured with RealDictCursor
-                return cursor.fetchall()  # pyright: ignore[reportReturnType]
+        with self._connection() as connection, connection.cursor() as cursor:
+            cursor.execute(query, self._wrap_json(arguments))
+            # psycopg2's type say it returns a tuple, but it actually returns a
+            # dict when configured with RealDictCursor
+            return cursor.fetchall()  # pyright: ignore[reportReturnType]

@@ -164,7 +164,7 @@ async def test_abort_async_task(async_app: app_module.App, mode):
             queues=["default"],
             wait=False,
             abort_job_polling_interval=abort_job_polling_interval,
-            listen_notify=True if mode == "listen" else False,
+            listen_notify=mode == "listen",
         )
     )
 
@@ -200,7 +200,7 @@ async def test_abort_sync_task(async_app: app_module.App, mode):
             queues=["default"],
             wait=False,
             abort_job_polling_interval=abort_job_polling_interval,
-            listen_notify=True if mode == "listen" else False,
+            listen_notify=mode == "listen",
         )
     )
 

@@ -242,7 +242,7 @@ async def cancel_and_capture_errors(tasks: list[asyncio.Task[Any]]):
 async def wait_any(*coros_or_futures: Coroutine[Any, Any, Any] | asyncio.Future[Any]):
     """Starts and wait on the first coroutine to complete and return it
     Other pending coroutines are either cancelled or left running"""
-    futures = set(asyncio.ensure_future(fut) for fut in coros_or_futures)
+    futures = {asyncio.ensure_future(fut) for fut in coros_or_futures}
 
     _, pending = await asyncio.wait(
         futures,

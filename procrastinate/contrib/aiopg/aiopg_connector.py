@@ -78,7 +78,7 @@ def wrap_query_exceptions(coro: T) -> T:
                 if "server closed the connection unexpectedly" in str(exc):
                     final_exc = exc
                     continue
-                raise exc
+                raise
         raise exceptions.ConnectorException(
             f"Could not get a valid connection after {max_tries} tries"
         ) from final_exc

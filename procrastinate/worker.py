@@ -97,7 +97,7 @@ class Worker:
         self._job_semaphore = asyncio.Semaphore(self.concurrency)
         self._stop_event = asyncio.Event()
         self.shutdown_graceful_timeout = shutdown_graceful_timeout
-        self._job_ids_to_abort: dict[int, job_context.AbortReason] = dict()
+        self._job_ids_to_abort: dict[int, job_context.AbortReason] = {}
         self.run_task: asyncio.Task[Any] | None = None
         self._loop: asyncio.AbstractEventLoop | None = None
 
@@ -353,9 +353,7 @@ class Worker:
         finally:
             job_result.end_timestamp = time.time()
 
-            if isinstance(exc_info, exceptions.JobAborted) or isinstance(
-                exc_info, asyncio.CancelledError
-            ):
+            if isinstance(exc_info, (exceptions.JobAborted, asyncio.CancelledError)):
                 status = jobs.Status.ABORTED
             elif exc_info:
                 status = jobs.Status.FAILED

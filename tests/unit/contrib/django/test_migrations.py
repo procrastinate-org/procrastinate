@@ -14,7 +14,7 @@ def test_no_missing_migration():
             f"procrastinate.contrib.django.migrations.{migration_module_info.name}"
         )
 
-        migration = getattr(module, "Migration")
+        migration = module.Migration
         for operation in migration.operations:
             if isinstance(operation, migrations_utils.RunProcrastinateSQL):
                 file_names.append(operation.name)

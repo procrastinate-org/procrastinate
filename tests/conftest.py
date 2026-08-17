@@ -163,9 +163,8 @@ def setup_db(request: pytest.FixtureRequest):
         migrations_path = Path(schema_manager.get_migrations_path())
         migrations = sorted(migrations_path.glob("*.sql"))
         for migration in migrations:
-            with migration.open() as f:
-                with db_executor(dbname) as execute:
-                    execute(f.read())
+            with migration.open() as f, db_executor(dbname) as execute:
+                execute(f.read())
 
             if migration.name == migrate_until:
                 break

@@ -11,7 +11,7 @@ from typing import (
     TypedDict,
 )
 
-from typing_extensions import NotRequired, Unpack
+from typing_extensions import NotRequired, Self, Unpack
 
 from procrastinate import (
     blueprints,
@@ -412,7 +412,7 @@ class App(blueprints.Blueprint):
     async def close_async(self) -> None:
         await self.connector.close_async()
 
-    def __enter__(self) -> App:
+    def __enter__(self) -> Self:
         return self
 
     def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:

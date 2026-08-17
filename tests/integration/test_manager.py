@@ -423,7 +423,6 @@ async def test_delete_old_jobs_job_doing(
         (jobs.Status.SUCCEEDED, 1, "queue_a", False, 0),
         (jobs.Status.SUCCEEDED, 3, "queue_a", False, 1),
         (jobs.Status.SUCCEEDED, 1, "queue_b", False, 1),
-        (jobs.Status.SUCCEEDED, 1, "queue_b", False, 1),
         # include_failed
         (jobs.Status.FAILED, 1, None, False, 1),
         (jobs.Status.FAILED, 1, None, True, 0),

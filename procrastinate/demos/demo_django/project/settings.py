@@ -133,9 +133,30 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # a specific logging library.
 class ProcrastinateFilter(logging.Filter):
     _reserved_log_keys = frozenset(
-        """args asctime created exc_info exc_text filename
-        funcName levelname levelno lineno module msecs message msg name pathname
-        process processName relativeCreated stack_info thread threadName""".split()
+        [
+            "args",
+            "asctime",
+            "created",
+            "exc_info",
+            "exc_text",
+            "filename",
+            "funcName",
+            "levelname",
+            "levelno",
+            "lineno",
+            "module",
+            "msecs",
+            "message",
+            "msg",
+            "name",
+            "pathname",
+            "process",
+            "processName",
+            "relativeCreated",
+            "stack_info",
+            "thread",
+            "threadName",
+        ]
     )
 
     def filter(self, record: logging.LogRecord):
