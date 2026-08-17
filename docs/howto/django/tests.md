@@ -17,6 +17,7 @@ from procrastinate.contrib.django import procrastinate_app
 
 from mypackage.procrastinate import my_task
 
+
 @pytest.fixture
 def app():
     in_memory = testing.InMemoryConnector()
@@ -26,6 +27,7 @@ def app():
     # the same instance as you'd get with `procrastinate.contrib.django.app`.
     with procrastinate_app.current_app.replace_connector(in_memory) as app:
         yield app
+
 
 def test_my_task(app):
     # Run the task
@@ -83,6 +85,7 @@ avoid this, for example by creating a new app within each of those tests:
 ```python
 from procrastinate.contrib.django import DjangoApp, app
 
+
 def test_my_task():
     new_app = DjangoApp(connector=app.connector)
 
@@ -125,6 +128,7 @@ from django.test import TransactionTestCase
 
 from mypackage.procrastinate import my_task
 
+
 class TestingTaskClass(TransactionTestCase):
     def test_task(self):
         # Run tasks
@@ -132,16 +136,21 @@ class TestingTaskClass(TransactionTestCase):
 
         # Start worker
         with app.replace_connector(app.connector.get_worker_connector()):
-            app.run_worker(wait=False, install_signal_handlers=False, listen_notify=False)
+            app.run_worker(
+                wait=False, install_signal_handlers=False, listen_notify=False
+            )
 
         # Check task has been executed
-        assert ProcrastinateJob.objects.filter(task_name="my_task").status == "succeeded"
+        assert (
+            ProcrastinateJob.objects.filter(task_name="my_task").status == "succeeded"
+        )
 ```
 
 ```python
 from procrastinate.contrib.django import app
 
 from mypackage.procrastinate import my_task
+
 
 @pytest.mark.django_db(transaction=True)
 def test_task():
@@ -155,14 +164,20 @@ def test_task():
     # Check task has been executed
     assert ProcrastinateJob.objects.filter(task_name="my_task").status == "succeeded"
 
+
 # Or with a fixture
 @pytest.fixture
 def worker(transactional_db):
     with app.replace_connector(app.connector.get_worker_connector()):
+
         def f():
-            app.run_worker(wait=False, install_signal_handlers=False, listen_notify=False)
+            app.run_worker(
+                wait=False, install_signal_handlers=False, listen_notify=False
+            )
             return app
+
     yield f
+
 
 def test_task(worker):
     # Run tasks

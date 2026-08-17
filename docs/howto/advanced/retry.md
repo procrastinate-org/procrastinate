@@ -45,11 +45,12 @@ Define your precise strategy using a {py:class}`RetryStrategy` instance:
 ```python
 from procrastinate import RetryStrategy
 
-@app.task(retry=procrastinate.RetryStrategy(
-    max_attempts=10,
-    wait=5,
-    retry_exceptions={ConnectionError, IOError}
-))
+
+@app.task(
+    retry=procrastinate.RetryStrategy(
+        max_attempts=10, wait=5, retry_exceptions={ConnectionError, IOError}
+    )
+)
 def my_other_task():
     print("Hello world")
 ```
@@ -77,22 +78,23 @@ when {doc}`scheduling a job in the future <schedule>`.
 import random
 from procrastinate import Job, RetryDecision
 
+
 class RandomRetryStrategy(procrastinate.BaseRetryStrategy):
     max_attempts = 3
     min = 1
     max = 10
 
-    def get_retry_decision(self, *, exception:Exception, job:Job) -> RetryDecision:
+    def get_retry_decision(self, *, exception: Exception, job: Job) -> RetryDecision:
         if job.attempts >= max_attempts:
             return RetryDecision(should_retry=False)
 
         wait = random.uniform(self.min, self.max)
 
         return RetryDecision(
-            retry_in={"seconds": wait}, # or retry_at (a datetime object)
-            priority=job.priority + 1, # optional
-            queue="another_queue", # optional
-            lock="another_lock", # optional
+            retry_in={"seconds": wait},  # or retry_at (a datetime object)
+            priority=job.priority + 1,  # optional
+            queue="another_queue",  # optional
+            lock="another_lock",  # optional
         )
 ```
 

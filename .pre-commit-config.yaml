@@ -33,7 +33,7 @@ repos:
         name: ruff format
         entry: uv run --group dev ruff format --force-exclude
         language: system
-        types_or: [python, pyi]
+        types_or: [python, pyi, markdown]
         require_serial: true
 
       - id: uv-lock
