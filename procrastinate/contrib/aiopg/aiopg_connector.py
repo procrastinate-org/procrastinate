@@ -69,7 +69,7 @@ def wrap_query_exceptions(coro: T) -> T:
         final_exc = None
         try:
             max_tries = args[0]._pool.maxsize + 1
-        except Exception:
+        except Exception:  # noqa: BLE001
             max_tries = 1
         for _ in range(max_tries):
             try:
