@@ -109,9 +109,11 @@ def cursor_execute(cursor, query, *identifiers):
 
 @contextlib.contextmanager
 def db_executor(dbname):
-    with psycopg.connect("", dbname=dbname, autocommit=True) as connection:
-        with connection.cursor() as cursor:
-            yield functools.partial(cursor_execute, cursor)
+    with (
+        psycopg.connect("", dbname=dbname, autocommit=True) as connection,
+        connection.cursor() as cursor,
+    ):
+        yield functools.partial(cursor_execute, cursor)
 
 
 @pytest.fixture
