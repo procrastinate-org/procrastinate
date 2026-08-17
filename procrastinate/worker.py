@@ -342,7 +342,7 @@ class Worker:
                 retry_decision = job_retry.retry_decision if job_retry else None
                 if isinstance(e, exceptions.TaskNotFound):
                     self.logger.exception(
-                        f"Task was not found: {e}",
+                        "Task was not found",
                         extra=self._log_extra(
                             context=context,
                             action="task_not_found",
@@ -503,10 +503,11 @@ class Worker:
                 self._handle_abort_jobs_requested(job_ids)
             except Exception as error:
                 logger.exception(
-                    f"poll_jobs_to_abort error: {error!r}",
+                    "poll_jobs_to_abort error",
                     exc_info=error,
                     extra={
                         "action": "poll_jobs_to_abort_error",
+                        "exception": repr(error),
                     },
                 )
                 # recover from errors and continue polling
@@ -640,7 +641,7 @@ class Worker:
                     return
         except Exception as exc:
             self.logger.exception(
-                f"Side task monitor failed: {exc}",
+                "Side task monitor failed",
                 extra=self._log_extra(
                     action="side_task_monitor_failed",
                     context=None,
