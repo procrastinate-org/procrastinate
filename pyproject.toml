@@ -47,6 +47,9 @@ changelog = "https://github.com/procrastinate-org/procrastinate/releases"
 [project.scripts]
 procrastinate = 'procrastinate.cli:main'
 
+[project.entry-points.pytest11]
+procrastinate = "procrastinate.pytest_plugin"
+
 [dependency-groups]
 types = ["django-stubs"]
 release = ["dunamai"]
@@ -58,6 +61,7 @@ test = [
     "pytest-cov",
     "pytest-django",
     "pytest-mock",
+    "freezegun",
     "results",
 ]
 migration_test = ["nox", "httpx", "nox-uv"]
