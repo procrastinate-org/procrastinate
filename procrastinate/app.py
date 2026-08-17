@@ -119,6 +119,7 @@ class App(blueprints.Blueprint):
         self.import_paths = import_paths or []
         self.worker_defaults = worker_defaults or {}
         self.periodic_defaults = periodic_defaults or {}
+        self._import_paths_performed = False
 
         #: The :py:class:`~manager.JobManager` linked to the application
         self.job_manager: manager.JobManager = manager.JobManager(
@@ -245,12 +246,15 @@ class App(blueprints.Blueprint):
 
         return worker.Worker(app=self, **final_kwargs)
 
-    @functools.lru_cache(maxsize=1)
     def perform_import_paths(self):
         """
         Whenever using app.tasks, make sure the apps have been imported by calling
         this method.
         """
+        if self._import_paths_performed:
+            return
+        self._import_paths_performed = True
+
         utils.import_all(import_paths=self.import_paths)
         logger.debug(
             "All tasks imported",
