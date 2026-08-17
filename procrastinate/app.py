@@ -25,6 +25,8 @@ from procrastinate import (
 from procrastinate import connector as connector_module
 
 if TYPE_CHECKING:
+    import types
+
     from procrastinate import worker
 
 logger = logging.getLogger(__name__)
@@ -419,5 +421,10 @@ class App(blueprints.Blueprint):
     def __enter__(self) -> Self:
         return self
 
-    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: types.TracebackType | None,
+    ) -> None:
         self.close()

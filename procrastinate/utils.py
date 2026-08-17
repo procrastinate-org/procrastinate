@@ -201,7 +201,12 @@ class AwaitableContext(Generic[U]):
         await self._open_coro()
         return self._return_value
 
-    async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any):
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: types.TracebackType | None,
+    ):
         await self._close_coro()
 
     def __await__(self):
