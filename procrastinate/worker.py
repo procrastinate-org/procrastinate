@@ -415,7 +415,7 @@ class Worker:
                 if self.additional_context
                 else {},
                 job=job,
-                abort_reason=lambda: (
+                abort_reason=lambda job_id=job_id: (
                     self._job_ids_to_abort.get(job_id) if job_id else None
                 ),
                 start_timestamp=time.time(),
