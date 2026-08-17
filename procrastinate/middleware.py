@@ -48,8 +48,11 @@ def is_async_middleware(middleware: TaskMiddleware) -> bool:
         func = func.func
     if inspect.iscoroutinefunction(func):
         return True
-    call = getattr(func, "__call__", None)
-    return bool(call is not None and inspect.iscoroutinefunction(call))
+    try:
+        call = func.__call__
+    except AttributeError:
+        return False
+    return inspect.iscoroutinefunction(call)
 
 
 def compose(
