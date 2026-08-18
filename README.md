@@ -6,7 +6,7 @@
 |------------------------------------------------------------------ | -------: | -------: | -------: | -------: | ------: | --------: |
 | procrastinate/\_\_init\_\_.py                                     |       19 |        0 |        0 |        0 |    100% |           |
 | procrastinate/\_\_main\_\_.py                                     |        6 |        0 |        2 |        0 |    100% |           |
-| procrastinate/app.py                                              |      106 |        0 |        2 |        0 |    100% |           |
+| procrastinate/app.py                                              |      109 |        0 |        4 |        0 |    100% |           |
 | procrastinate/blueprints.py                                       |       63 |        0 |       14 |        0 |    100% |           |
 | procrastinate/builtin\_tasks.py                                   |        6 |        0 |        0 |        0 |    100% |           |
 | procrastinate/cli.py                                              |      237 |       10 |       42 |        1 |     94% |86, 171-177, 749-752 |
@@ -17,7 +17,7 @@
 | procrastinate/contrib/django/\_\_init\_\_.py                      |        5 |        0 |        0 |        0 |    100% |           |
 | procrastinate/contrib/django/apps.py                              |       29 |        1 |        6 |        0 |     97% |        24 |
 | procrastinate/contrib/django/db\_cleanup.py                       |       30 |        0 |        0 |        0 |    100% |           |
-| procrastinate/contrib/django/django\_connector.py                 |       92 |        4 |       18 |        1 |     95% | 27-30, 38 |
+| procrastinate/contrib/django/django\_connector.py                 |       90 |        4 |       18 |        1 |     95% | 27-30, 38 |
 | procrastinate/contrib/django/exceptions.py                        |        6 |        0 |        0 |        0 |    100% |           |
 | procrastinate/contrib/django/healthchecks.py                      |       32 |        0 |        2 |        0 |    100% |           |
 | procrastinate/contrib/django/management/\_\_init\_\_.py           |        0 |        0 |        0 |        0 |    100% |           |
@@ -29,13 +29,13 @@
 | procrastinate/contrib/django/settings.py                          |       18 |        0 |        0 |        0 |    100% |           |
 | procrastinate/contrib/django/utils.py                             |       16 |        0 |        0 |        0 |    100% |           |
 | procrastinate/contrib/psycopg2/\_\_init\_\_.py                    |        3 |        0 |        0 |        0 |    100% |           |
-| procrastinate/contrib/psycopg2/psycopg2\_connector.py             |      120 |        0 |       16 |        1 |     99% |   30-\>37 |
+| procrastinate/contrib/psycopg2/psycopg2\_connector.py             |      117 |        0 |       16 |        1 |     99% |   30-\>37 |
 | procrastinate/contrib/sphinx/\_\_init\_\_.py                      |       17 |        0 |        0 |        0 |    100% |           |
 | procrastinate/contrib/sqlalchemy/\_\_init\_\_.py                  |        3 |        0 |        0 |        0 |    100% |           |
 | procrastinate/contrib/sqlalchemy/psycopg2\_connector.py           |      109 |        2 |       18 |        0 |     98% |     40-41 |
 | procrastinate/demos/\_\_init\_\_.py                               |        0 |        0 |        0 |        0 |    100% |           |
 | procrastinate/demos/demo\_async/\_\_init\_\_.py                   |        0 |        0 |        0 |        0 |    100% |           |
-| procrastinate/demos/demo\_async/\_\_main\_\_.py                   |       30 |       30 |        6 |        0 |      0% |      1-40 |
+| procrastinate/demos/demo\_async/\_\_main\_\_.py                   |       31 |       31 |        6 |        0 |      0% |      1-42 |
 | procrastinate/demos/demo\_async/app.py                            |        3 |        0 |        0 |        0 |    100% |           |
 | procrastinate/demos/demo\_async/tasks.py                          |        8 |        2 |        0 |        0 |     75% |     9, 15 |
 | procrastinate/demos/demo\_django/\_\_init\_\_.py                  |        0 |        0 |        0 |        0 |    100% |           |
@@ -51,11 +51,11 @@
 | procrastinate/demos/demo\_django/manage.py                        |       12 |       12 |        2 |        0 |      0% |      4-27 |
 | procrastinate/demos/demo\_django/project/\_\_init\_\_.py          |        0 |        0 |        0 |        0 |    100% |           |
 | procrastinate/demos/demo\_django/project/asgi.py                  |        5 |        5 |        0 |        0 |      0% |     10-20 |
-| procrastinate/demos/demo\_django/project/settings.py              |       30 |       30 |        4 |        0 |      0% |    13-181 |
+| procrastinate/demos/demo\_django/project/settings.py              |       30 |       30 |        4 |        0 |      0% |    13-202 |
 | procrastinate/demos/demo\_django/project/urls.py                  |        6 |        6 |        0 |        0 |      0% |     18-26 |
 | procrastinate/demos/demo\_django/project/wsgi.py                  |        5 |        5 |        0 |        0 |      0% |     10-20 |
 | procrastinate/demos/demo\_sync/\_\_init\_\_.py                    |        0 |        0 |        0 |        0 |    100% |           |
-| procrastinate/demos/demo\_sync/\_\_main\_\_.py                    |       27 |       27 |        6 |        0 |      0% |      1-35 |
+| procrastinate/demos/demo\_sync/\_\_main\_\_.py                    |       28 |       28 |        6 |        0 |      0% |      1-37 |
 | procrastinate/demos/demo\_sync/app.py                             |        3 |        3 |        0 |        0 |      0% |       1-5 |
 | procrastinate/demos/demo\_sync/tasks.py                           |        8 |        8 |        0 |        0 |      0% |      1-13 |
 | procrastinate/exceptions.py                                       |       33 |        0 |        2 |        0 |    100% |           |
@@ -63,22 +63,22 @@
 | procrastinate/jobs.py                                             |      114 |        0 |        8 |        0 |    100% |           |
 | procrastinate/manager.py                                          |      162 |        0 |       36 |        0 |    100% |           |
 | procrastinate/metadata.py                                         |        6 |        0 |        0 |        0 |    100% |           |
-| procrastinate/middleware.py                                       |       24 |        0 |        6 |        0 |    100% |           |
+| procrastinate/middleware.py                                       |       27 |        2 |        6 |        0 |     94% |     53-54 |
 | procrastinate/periodic.py                                         |      105 |        0 |       20 |        0 |    100% |           |
-| procrastinate/psycopg\_connector.py                               |      143 |        9 |       36 |        4 |     93% |42-43, 147-149, 237, 262, 300-301 |
+| procrastinate/psycopg\_connector.py                               |      142 |        9 |       36 |        4 |     93% |42-43, 147-149, 239, 264, 302-303 |
 | procrastinate/retry.py                                            |       66 |        0 |       18 |        1 |     99% |   77-\>80 |
 | procrastinate/schema.py                                           |       25 |        0 |        0 |        0 |    100% |           |
 | procrastinate/shell.py                                            |       61 |        3 |       12 |        0 |     96% |     45-47 |
 | procrastinate/signals.py                                          |       50 |        3 |       10 |        1 |     93% |     31-36 |
 | procrastinate/sql/\_\_init\_\_.py                                 |       21 |        0 |        0 |        0 |    100% |           |
 | procrastinate/sql/migrations/\_\_init\_\_.py                      |        0 |        0 |        0 |        0 |    100% |           |
-| procrastinate/sync\_psycopg\_connector.py                         |      112 |        3 |       24 |        4 |     95% |33-\>40, 169, 194, 216 |
+| procrastinate/sync\_psycopg\_connector.py                         |      111 |        3 |       24 |        4 |     95% |33-\>40, 171, 196, 218 |
 | procrastinate/tasks.py                                            |       92 |        0 |       14 |        0 |    100% |           |
-| procrastinate/testing.py                                          |      235 |       10 |       60 |        2 |     95% |95, 105, 274-284, 506-\>505 |
+| procrastinate/testing.py                                          |      235 |       10 |       60 |        2 |     95% |95, 105, 274-286, 508-\>507 |
 | procrastinate/types.py                                            |       22 |        0 |        0 |        0 |    100% |           |
-| procrastinate/utils.py                                            |      166 |        0 |       34 |        0 |    100% |           |
-| procrastinate/worker.py                                           |      303 |        9 |       94 |        7 |     96% |90, 106, 226-\>229, 480-\>exit, 501-502, 506-507, 523-\>522, 540, 644-653 |
-| **TOTAL**                                                         | **3260** |  **253** |  **570** |   **26** | **92%** |           |
+| procrastinate/utils.py                                            |      168 |        0 |       34 |        0 |    100% |           |
+| procrastinate/worker.py                                           |      303 |        9 |       94 |        7 |     96% |90, 106, 226-\>229, 478-\>exit, 499-500, 504-505, 522-\>521, 539, 643-652 |
+| **TOTAL**                                                         | **3263** |  **257** |  **572** |   **26** | **92%** |           |
 
 
 ## Setup coverage badge
