@@ -255,13 +255,15 @@ class App(blueprints.Blueprint):
         """
         if self._import_paths_performed:
             return
-        self._import_paths_performed = True
 
         utils.import_all(import_paths=self.import_paths)
         logger.debug(
             "All tasks imported",
             extra={"action": "imported_tasks", "tasks": list(self.tasks)},
         )
+        # Set last, so that a failed import is retried on the next call, which is
+        # what the lru_cache this replaced used to do.
+        self._import_paths_performed = True
 
     async def run_worker_async(self, **kwargs: Unpack[WorkerOptions]) -> None:
         """
