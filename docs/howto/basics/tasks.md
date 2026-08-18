@@ -4,8 +4,7 @@ Specify a sync task with:
 
 ```python
 @app.task(...)
-def mytask(argument, other_argument):
-    ...
+def mytask(argument, other_argument): ...
 ```
 
 :::{note}
@@ -16,8 +15,7 @@ Or an async task with:
 
 ```python
 @app.task(...)
-async def mytask(argument, other_argument):
-    ...
+async def mytask(argument, other_argument): ...
 ```
 
 :::{note}
@@ -33,11 +31,10 @@ If you're OK with all the default parameters, you can omit parentheses after
 
 ```python
 @app.task
-def mytask(argument, other_argument):
-    ...
+def mytask(argument, other_argument): ...
+
 
 # or
 @app.task
-async def mytask(argument, other_argument):
-    ...
+async def mytask(argument, other_argument): ...
 ```

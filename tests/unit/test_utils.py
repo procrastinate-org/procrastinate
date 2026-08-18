@@ -58,10 +58,10 @@ def test_causes():
         try:
             # e3 will be e2's __cause__
             raise e2 from e3
-        except Exception:
+        except Exception:  # noqa: BLE001
             # e2 will be e1's __context__
             raise e1
-    except Exception as exc2:
+    except Exception as exc2:  # noqa: BLE001
         result = list(utils.causes(exc2))
 
     assert result == [e1, e2, e3]
@@ -276,7 +276,7 @@ def test_moved_elsewhere():
         exceptions.MovedElsewhere,
         match=r"procrastinate\.foo has been moved to bar",
     ):
-        me.foo
+        assert me.foo
 
 
 def test_moved_elsewhere__call():

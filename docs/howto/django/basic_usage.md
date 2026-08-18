@@ -10,10 +10,12 @@ Inside tasks, you can use the classical ORM API or the [async ORM API] to access
 ```python
 from procrastinate.contrib.django import app
 
+
 @app.task
 def mytask1(obj_pk):
     obj = MyModel.objects.get(pj=obj_pk)
     ...
+
 
 @app.task
 async def mytask2(obj_pk):
@@ -73,6 +75,7 @@ done with the database for a while:
 ```python
 from django.db import close_old_connections
 
+
 @app.task
 def long_task():
     do_early_db_work()
@@ -88,9 +91,11 @@ Defer jobs from your views works as you would expect:
 ```python
 from myapp.tasks import mytask
 
+
 def myview(request):
     ...
     mytask.defer(obj_pk=obj.pk)
+
 
 async def myasyncview(request):
     ...

@@ -82,6 +82,7 @@ import time
 
 ...
 
+
 # at the bottom of the file
 @app.task(name="sum")
 def sum(a, b):
@@ -110,6 +111,7 @@ import sys
 
 ...
 
+
 def main():
     with app.open():
         a = int(sys.argv[1])
@@ -117,6 +119,7 @@ def main():
         print(f"Scheduling computation of {a} + {b}")
         # Only keyword arguments can be used with defer
         sum.defer(a=a, b=b)  # This is the line that launches a job
+
 
 if __name__ == "__main__":
     main()

@@ -58,9 +58,9 @@ def sum_task_with_default_priority(a, b):
 @app.task(queue="default")
 def sum_task_param(p1: Param, p2: Param):
     if not isinstance(p1, Param):
-        raise Exception("wrong type for p1")
+        raise TypeError("wrong type for p1")
     if not isinstance(p2, Param):
-        raise Exception("wrong type for p2")
+        raise TypeError("wrong type for p2")
     print(p1 + p2)
 
 
@@ -87,7 +87,7 @@ def two_fails():
     global nb_tries
     if nb_tries < 2:
         nb_tries += 1
-        raise Exception("This should fail")
+        raise ValueError("This should fail")
     # The subprocess will print, the main process will analyze stdout
     print("Print something to stdout")
 

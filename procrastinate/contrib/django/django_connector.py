@@ -47,7 +47,7 @@ def wrap_exceptions() -> Generator[None, None, None]:
             # (using `raise x from y) to the original db driver exception
             if exc.__cause__:
                 raise exc.__cause__
-            raise exc
+            raise
 
 
 class DjangoConnector(connector.BaseAsyncConnector):
@@ -72,14 +72,12 @@ class DjangoConnector(connector.BaseAsyncConnector):
             raise django_exceptions.ImproperlyConfigured(
                 "Pool is not supported in Django connectors"
             )
-        pass
 
     async def open_async(self, pool: None = None) -> None:
         if pool:
             raise django_exceptions.ImproperlyConfigured(
                 "Pool is not supported in Django connectors"
             )
-        pass
 
     def close(self) -> None:
         pass

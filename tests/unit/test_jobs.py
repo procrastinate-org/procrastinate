@@ -89,7 +89,7 @@ async def test_job_deferrer_defer_async(job_factory, job_manager, connector):
 
 def test_job_scheduled_at_naive(job_factory):
     with pytest.raises(ValueError):
-        job_factory(scheduled_at=datetime.datetime(2000, 1, 1))
+        job_factory(scheduled_at=datetime.datetime(2000, 1, 1))  # noqa: DTZ001
 
 
 def test_call_string(job_factory):

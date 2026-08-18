@@ -154,10 +154,14 @@ async def test_list_jobs_details(
     await utils.sync_to_async(shell.do_list_jobs, "details")
     captured = capsys.readouterr()
     assert captured.out.splitlines() == [
-        "#1 task1 on queue1 - [todo] (attempts=0, priority=5, scheduled_at=1000-01-01 "
-        "00:00:00+00:00, args={'x': 11}, lock=lock1)",
-        "#2 task2 on queue2 - [todo] (attempts=0, priority=7, scheduled_at=2000-01-01 "
-        "00:00:00+00:00, args={'y': 22}, lock=lock2)",
+        (
+            "#1 task1 on queue1 - [todo] (attempts=0, priority=5, scheduled_at=1000-01-01 "
+            "00:00:00+00:00, args={'x': 11}, lock=lock1)"
+        ),
+        (
+            "#2 task2 on queue2 - [todo] (attempts=0, priority=7, scheduled_at=2000-01-01 "
+            "00:00:00+00:00, args={'y': 22}, lock=lock2)"
+        ),
     ]
 
 
