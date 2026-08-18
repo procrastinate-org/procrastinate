@@ -86,12 +86,12 @@ class RandomRetryStrategy(BaseRetryStrategy):
     max = 10
 
     def get_retry_decision(
-        self, *, exception: Exception, job: Job
+        self, *, exception: BaseException, job: Job
     ) -> RetryDecision | None:
         if job.attempts >= self.max_attempts:
             return None
 
-        wait = random.uniform(self.min, self.max)
+        wait = random.randint(self.min, self.max)
 
         return RetryDecision(
             retry_in={"seconds": wait},  # or retry_at (a datetime object)
