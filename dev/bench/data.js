@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1786759651968,
+  "lastUpdate": 1787089722987,
   "repoUrl": "https://github.com/procrastinate-org/procrastinate",
   "entries": {
     "Procrastinate Benchmarks": [
@@ -12044,6 +12044,86 @@ window.BENCHMARK_DATA = {
             "unit": "iter/sec",
             "range": "stddev: 0.23395298655797753",
             "extra": "mean: 3.0484102417999965 sec\nrounds: 5"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "ewjoachim@gmail.com",
+            "name": "Joachim Jablon",
+            "username": "ewjoachim"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "f39f20e4ebf1e375a54c2508d70be9e06848d053",
+          "message": "Merge pull request #1615 from procrastinate-org/renovate/lock-file-maintenance\n\nLock file maintenance -- manual edition",
+          "timestamp": "2026-08-18T23:44:46+02:00",
+          "tree_id": "2e3361533753537b8a68e5f4e59e700e337bf40f",
+          "url": "https://github.com/procrastinate-org/procrastinate/commit/f39f20e4ebf1e375a54c2508d70be9e06848d053"
+        },
+        "date": 1787089721918,
+        "tool": "pytest",
+        "benches": [
+          {
+            "name": "tests/benchmarks/test_benchmark_async.py::test_benchmark_1000_async_jobs[psycopg_connector]",
+            "value": 0.23193732161186564,
+            "unit": "iter/sec",
+            "range": "stddev: 0.1939647500891843",
+            "extra": "mean: 4.3115096485999995 sec\nrounds: 5"
+          },
+          {
+            "name": "tests/benchmarks/test_benchmark_async.py::test_benchmark_1000_async_jobs[aiopg_connector]",
+            "value": 0.47887304367062206,
+            "unit": "iter/sec",
+            "range": "stddev: 0.019164326180372233",
+            "extra": "mean: 2.0882361477999978 sec\nrounds: 5"
+          },
+          {
+            "name": "tests/benchmarks/test_benchmark_async.py::test_benchmark_1000_async_batch_jobs[psycopg_connector]",
+            "value": 0.3192777492060977,
+            "unit": "iter/sec",
+            "range": "stddev: 0.3097730818856613",
+            "extra": "mean: 3.1320691858000034 sec\nrounds: 5"
+          },
+          {
+            "name": "tests/benchmarks/test_benchmark_async.py::test_benchmark_1000_async_batch_jobs[aiopg_connector]",
+            "value": 0.5553002396113889,
+            "unit": "iter/sec",
+            "range": "stddev: 0.28658170979059905",
+            "extra": "mean: 1.8008276039999942 sec\nrounds: 5"
+          },
+          {
+            "name": "tests/benchmarks/test_benchmark_sync.py::test_benchmark_1000_sync_jobs[sync_psycopg_connector]",
+            "value": 0.22475078626721828,
+            "unit": "iter/sec",
+            "range": "stddev: 0.059544624284991236",
+            "extra": "mean: 4.449372643399994 sec\nrounds: 5"
+          },
+          {
+            "name": "tests/benchmarks/test_benchmark_sync.py::test_benchmark_1000_sync_jobs[psycopg2_connector]",
+            "value": 0.24513758661364152,
+            "unit": "iter/sec",
+            "range": "stddev: 0.06143293576921448",
+            "extra": "mean: 4.0793417843999915 sec\nrounds: 5"
+          },
+          {
+            "name": "tests/benchmarks/test_benchmark_sync.py::test_benchmark_1000_sync_batch_jobs[sync_psycopg_connector]",
+            "value": 0.29830428194118935,
+            "unit": "iter/sec",
+            "range": "stddev: 0.1654905691529756",
+            "extra": "mean: 3.352281749000002 sec\nrounds: 5"
+          },
+          {
+            "name": "tests/benchmarks/test_benchmark_sync.py::test_benchmark_1000_sync_batch_jobs[psycopg2_connector]",
+            "value": 0.2811981991071434,
+            "unit": "iter/sec",
+            "range": "stddev: 0.21272414745528193",
+            "extra": "mean: 3.5562105418000045 sec\nrounds: 5"
           }
         ]
       }
