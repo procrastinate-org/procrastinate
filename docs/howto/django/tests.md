@@ -124,6 +124,7 @@ additonal configuration.
 
 ```python
 from procrastinate.contrib.django import app
+from procrastinate.contrib.django.models import ProcrastinateJob
 from django.test import TransactionTestCase
 
 from mypackage.procrastinate import my_task
@@ -141,13 +142,16 @@ class TestingTaskClass(TransactionTestCase):
             )
 
         # Check task has been executed
-        assert (
-            ProcrastinateJob.objects.filter(task_name="my_task").status == "succeeded"
-        )
+        assert ProcrastinateJob.objects.filter(
+            task_name="my_task", status="succeeded"
+        ).exists()
 ```
 
 ```python
+import pytest
+
 from procrastinate.contrib.django import app
+from procrastinate.contrib.django.models import ProcrastinateJob
 
 from mypackage.procrastinate import my_task
 
@@ -162,7 +166,9 @@ def test_task():
         app.run_worker(wait=False, install_signal_handlers=False, listen_notify=False)
 
     # Check task has been executed
-    assert ProcrastinateJob.objects.filter(task_name="my_task").status == "succeeded"
+    assert ProcrastinateJob.objects.filter(
+        task_name="my_task", status="succeeded"
+    ).exists()
 
 
 # Or with a fixture
@@ -176,7 +182,7 @@ def worker(transactional_db):
             )
             return app
 
-    yield f
+        yield f
 
 
 def test_task(worker):
@@ -187,7 +193,9 @@ def test_task(worker):
     worker()
 
     # Check task has been executed
-    assert ProcrastinateJob.objects.filter(task_name="my_task").status == "succeeded"
+    assert ProcrastinateJob.objects.filter(
+        task_name="my_task", status="succeeded"
+    ).exists()
 ```
 
 ## Making the models writable in tests
