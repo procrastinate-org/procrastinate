@@ -47,7 +47,7 @@ from procrastinate import RetryStrategy
 
 
 @app.task(
-    retry=procrastinate.RetryStrategy(
+    retry=RetryStrategy(
         max_attempts=10, wait=5, retry_exceptions={ConnectionError, IOError}
     )
 )
@@ -76,17 +76,20 @@ when {doc}`scheduling a job in the future <schedule>`.
 
 ```python
 import random
-from procrastinate import Job, RetryDecision
+from procrastinate import BaseRetryStrategy, RetryDecision
+from procrastinate.jobs import Job
 
 
-class RandomRetryStrategy(procrastinate.BaseRetryStrategy):
+class RandomRetryStrategy(BaseRetryStrategy):
     max_attempts = 3
     min = 1
     max = 10
 
-    def get_retry_decision(self, *, exception: Exception, job: Job) -> RetryDecision:
-        if job.attempts >= max_attempts:
-            return RetryDecision(should_retry=False)
+    def get_retry_decision(
+        self, *, exception: Exception, job: Job
+    ) -> RetryDecision | None:
+        if job.attempts >= self.max_attempts:
+            return None
 
         wait = random.uniform(self.min, self.max)
 
@@ -109,8 +112,8 @@ you can know whether a currently executing job is on its last attempt:
 ```python
 @app.task(retry=10, pass_context=True)
 def my_task(job_context: procrastinate.JobContext) -> None:
-	job = job_context.job
-	task = job_context.task
+    job = job_context.job
+    task = job_context.task
     if task.retry.get_retry_decision(exception=Exception(), job=job) is None:
         print("Warning: last attempt!")
 
