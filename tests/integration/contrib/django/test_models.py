@@ -115,19 +115,35 @@ async def test_procrastinate_periodic_defers(db):
     def my_task(timestamp):
         pass
 
+    async def list_periodic_defers():
+        return [
+            element
+            async for element in models.ProcrastinatePeriodicDefer.objects.values().all()
+        ]
+
+    async def wait_for_periodic_defer():
+        while not await list_periodic_defers():
+            await asyncio.sleep(0.01)
+
     django_app = procrastinate.contrib.django.app
     with django_app.replace_connector(
         django_app.connector.get_worker_connector()
     ) as app:
         async with app.open_async():
+            worker = asyncio.create_task(app.run_worker_async())
             try:
-                await asyncio.wait_for(app.run_worker_async(), timeout=0.1)
-            except asyncio.TimeoutError:
-                pass
+                # Run the worker until the deferrer has actually written its row.
+                # Giving it a fixed budget instead makes the test depend on worker
+                # startup fitting in that window, which it doesn't on a loaded runner.
+                await asyncio.wait_for(wait_for_periodic_defer(), timeout=5)
+            finally:
+                worker.cancel()
+                try:
+                    await worker
+                except asyncio.CancelledError:
+                    pass
 
-    periodic_defers = []
-    async for element in models.ProcrastinatePeriodicDefer.objects.values().all():
-        periodic_defers.append(element)
+    periodic_defers = await list_periodic_defers()
 
     assert periodic_defers[-1]["periodic_id"] == "bar"
     assert periodic_defers[-1]["task_name"] == "foo"
