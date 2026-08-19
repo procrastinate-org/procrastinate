@@ -212,6 +212,10 @@ class AwaitableContext(Generic[U]):
         return _inner_coro().__await__()
 
 
+CANCEL_ATTEMPTS = 5
+CANCEL_TIMEOUT = 1
+
+
 async def cancel_and_capture_errors(tasks: list[asyncio.Task[Any]]):
     """
     Cancel all tasks and capture any error returned by any of those tasks (except the CancellationError itself)
@@ -226,8 +230,40 @@ async def cancel_and_capture_errors(tasks: list[asyncio.Task[Any]]):
             },
         )
 
+    if not tasks:
+        return
+
     for task in tasks:
         task.cancel()
+
+    # A cancellation is lost if it lands just as the task takes its first step: the
+    # task then keeps looping and gather() below would wait for it for ever, since a
+    # side task only wakes on its own schedule (up to a whole cron period away).
+    # Re-cancel until the tasks really stop.
+    for _attempt in range(CANCEL_ATTEMPTS):
+        _done, pending = await asyncio.wait(tasks, timeout=CANCEL_TIMEOUT)
+        if not pending:
+            break
+        for task in pending:
+            logger.debug(
+                f"Task {task.get_name()} ignored its cancellation, cancelling again",
+                extra={"action": "cancel_task_again", "task_name": task.get_name()},
+            )
+            task.cancel()
+    else:
+        stuck = [task for task in tasks if not task.done()]
+        # Not raising: this runs in the run loop's finally, so an exception here
+        # would mask whatever caused the shutdown, and would turn a cancelled
+        # worker into an error rather than a CancelledError.
+        logger.error(
+            f"Abandoning tasks that did not stop when cancelled: "
+            f"{', '.join(task.get_name() for task in stuck)}",
+            extra={
+                "action": "cancel_tasks_failed",
+                "task_names": [task.get_name() for task in stuck],
+            },
+        )
+        return
 
     await asyncio.gather(*tasks, return_exceptions=True)
 
