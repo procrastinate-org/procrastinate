@@ -138,8 +138,10 @@ async def test_procrastinate_periodic_defers(db):
                 await asyncio.wait_for(wait_for_periodic_defer(), timeout=5)
             finally:
                 worker.cancel()
+                # Bounded, so that a worker refusing to shut down fails the test
+                # instead of hanging the job until CI's own timeout.
                 try:
-                    await worker
+                    await asyncio.wait_for(worker, timeout=10)
                 except asyncio.CancelledError:
                     pass
 
