@@ -73,6 +73,16 @@ async def test_wait_for_activity_stop_from_signal(psycopg_connector, kill_own_pi
 
     await asyncio.sleep(0.2)  # should be enough so that we're waiting
 
+    # The worker uninstalls its handler on the way out, so a worker that died
+    # during the sleep above would leave SIGTERM fatal again. Check right before
+    # signalling, without awaiting in between, so that we report what the worker
+    # did instead of being killed by the signal.
+    if task.done():
+        task.result()  # re-raises whatever killed the worker, if anything did
+        pytest.fail("Worker stopped before it could be signalled")
+    if signal.getsignal(signal.SIGTERM) is previous_handler:
+        pytest.fail("Worker uninstalled its signal handler before being signalled")
+
     kill_own_pid()
 
     try:
