@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import contextlib
 import signal
 import subprocess
 import time
+from collections.abc import Iterator
 from typing import Protocol
 
 import pytest
@@ -32,24 +34,32 @@ def worker(running_worker) -> Worker:
 
 
 @pytest.fixture
-def running_worker(process_env) -> RunningWorker:
-    def func(*queues, name="worker", app="app"):
-        return subprocess.Popen(
-            [
-                "procrastinate",
-                "-vvv",
-                "worker",
-                f"--name={name}",
-                "--queues",
-                ",".join(queues),
-            ],
-            env=process_env(app=app),
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            encoding="utf-8",
-        )
+def running_worker(process_env) -> Iterator[RunningWorker]:
+    # Workers only exit on a signal, so a test failing before it stops the ones it
+    # started would leave them running. Popen's own context manager closes the pipes
+    # and waits, which would hang here, so a kill is registered to unwind first.
+    with contextlib.ExitStack() as stack:
 
-    return func
+        def func(*queues, name="worker", app="app"):
+            process = subprocess.Popen(
+                [
+                    "procrastinate",
+                    "-vvv",
+                    "worker",
+                    f"--name={name}",
+                    "--queues",
+                    ",".join(queues),
+                ],
+                env=process_env(app=app),
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                encoding="utf-8",
+            )
+            stack.enter_context(process)
+            stack.callback(process.kill)
+            return process
+
+        yield func
 
 
 @pytest.mark.parametrize("app", ["app", "app_aiopg"])
@@ -127,7 +137,24 @@ def test_task_with_default_priority(defer, worker, app):
     assert stderr.startswith("DEBUG:procrastinate.")
 
 
-def test_lock(defer, running_worker):
+def wait_for_jobs(connector, status: str, count: int, timeout: float = 10):
+    """
+    Wait until `count` jobs have reached `status`.
+    """
+    rows = []
+    start = time.monotonic()
+    while time.monotonic() - start < timeout:
+        rows = connector.execute_query_all(
+            "SELECT id FROM procrastinate_jobs WHERE status=%(status)s", status=status
+        )
+        if len(rows) >= count:
+            return
+        time.sleep(0.01)
+
+    pytest.fail(f"Only {len(rows)} job(s) reached status {status}, expected {count}")
+
+
+def test_lock(defer, running_worker, sync_psycopg_connector):
     """
     In this test, we launch 2 workers in two parallel threads, and ask them
     both to process tasks with the same lock. We check that the second task is
@@ -145,7 +172,13 @@ def test_lock(defer, running_worker):
     # Run the 2 workers concurrently
     process1 = running_worker(name="worker1")
     process2 = running_worker(name="worker2")
-    time.sleep(0.1)
+
+    # The second task has the higher priority, so it wins the fetch if it is
+    # deferred while the first one is still waiting in the queue, and the test then
+    # sees the two tasks in the other order. What we mean to test is that a task
+    # *holding* the lock delays the other one, so wait for the first task to be
+    # running rather than assuming the workers boot within a fixed delay.
+    wait_for_jobs(sync_psycopg_connector, status="doing", count=1)
 
     defer(
         "sleep_and_write",
@@ -155,7 +188,7 @@ def test_lock(defer, running_worker):
         write_after="after-2",
     )
 
-    time.sleep(1)
+    wait_for_jobs(sync_psycopg_connector, status="succeeded", count=2)
     # And stop them
     process1.send_signal(signal.SIGINT)
     process2.send_signal(signal.SIGINT)
