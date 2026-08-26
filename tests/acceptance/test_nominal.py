@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import contextlib
 import signal
 import subprocess
 import time
+from collections.abc import Iterator
 from typing import Protocol
 
 import pytest
@@ -32,24 +34,32 @@ def worker(running_worker) -> Worker:
 
 
 @pytest.fixture
-def running_worker(process_env) -> RunningWorker:
-    def func(*queues, name="worker", app="app"):
-        return subprocess.Popen(
-            [
-                "procrastinate",
-                "-vvv",
-                "worker",
-                f"--name={name}",
-                "--queues",
-                ",".join(queues),
-            ],
-            env=process_env(app=app),
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            encoding="utf-8",
-        )
+def running_worker(process_env) -> Iterator[RunningWorker]:
+    # Workers only exit on a signal, so a test failing before it stops the ones it
+    # started would leave them running. Popen's own context manager closes the pipes
+    # and waits, which would hang here, so a kill is registered to unwind first.
+    with contextlib.ExitStack() as stack:
 
-    return func
+        def func(*queues, name="worker", app="app"):
+            process = subprocess.Popen(
+                [
+                    "procrastinate",
+                    "-vvv",
+                    "worker",
+                    f"--name={name}",
+                    "--queues",
+                    ",".join(queues),
+                ],
+                env=process_env(app=app),
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                encoding="utf-8",
+            )
+            stack.enter_context(process)
+            stack.callback(process.kill)
+            return process
+
+        yield func
 
 
 @pytest.mark.parametrize("app", ["app", "app_aiopg"])
