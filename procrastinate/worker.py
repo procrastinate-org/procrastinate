@@ -97,7 +97,7 @@ class Worker:
         self._job_semaphore = asyncio.Semaphore(self.concurrency)
         self._stop_event = asyncio.Event()
         self.shutdown_graceful_timeout = shutdown_graceful_timeout
-        self._job_ids_to_abort: dict[int, job_context.AbortReason] = dict()
+        self._job_ids_to_abort: dict[int, job_context.AbortReason] = {}
         self.run_task: asyncio.Task[Any] | None = None
         self._loop: asyncio.AbstractEventLoop | None = None
 
@@ -342,7 +342,7 @@ class Worker:
                 retry_decision = job_retry.retry_decision if job_retry else None
                 if isinstance(e, exceptions.TaskNotFound):
                     self.logger.exception(
-                        f"Task was not found: {e}",
+                        "Task was not found",
                         extra=self._log_extra(
                             context=context,
                             action="task_not_found",
@@ -353,9 +353,7 @@ class Worker:
         finally:
             job_result.end_timestamp = time.time()
 
-            if isinstance(exc_info, exceptions.JobAborted) or isinstance(
-                exc_info, asyncio.CancelledError
-            ):
+            if isinstance(exc_info, (exceptions.JobAborted, asyncio.CancelledError)):
                 status = jobs.Status.ABORTED
             elif exc_info:
                 status = jobs.Status.FAILED
@@ -417,7 +415,7 @@ class Worker:
                 if self.additional_context
                 else {},
                 job=job,
-                abort_reason=lambda: (
+                abort_reason=lambda job_id=job_id: (
                     self._job_ids_to_abort.get(job_id) if job_id else None
                 ),
                 start_timestamp=time.time(),
@@ -505,10 +503,11 @@ class Worker:
                 self._handle_abort_jobs_requested(job_ids)
             except Exception as error:
                 logger.exception(
-                    f"poll_jobs_to_abort error: {error!r}",
+                    "poll_jobs_to_abort error",
                     exc_info=error,
                     extra={
                         "action": "poll_jobs_to_abort_error",
+                        "exception": repr(error),
                     },
                 )
                 # recover from errors and continue polling
@@ -642,7 +641,7 @@ class Worker:
                     return
         except Exception as exc:
             self.logger.exception(
-                f"Side task monitor failed: {exc}",
+                "Side task monitor failed",
                 extra=self._log_extra(
                     action="side_task_monitor_failed",
                     context=None,

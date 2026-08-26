@@ -42,7 +42,7 @@ class ProcrastinateShell(cmd.Cmd):
     def onecmd(self, line: str):
         try:
             return super().onecmd(line)
-        except Exception:
+        except Exception:  # noqa: BLE001
             traceback.print_exc()
             return False
 

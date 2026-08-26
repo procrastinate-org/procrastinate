@@ -6,7 +6,7 @@ Let's assume the following task:
 
 ```python
 @app.task(queue="some_queue")
-def my_task(a: int, b:int):
+def my_task(a: int, b: int):
     pass
 ```
 
@@ -40,9 +40,7 @@ Using the sync defer method:
 
 ```python
 my_task.configure(
-    lock="the name of my lock",
-    schedule_in={"hours": 1},
-    queue="not_the_default_queue"
+    lock="the name of my lock", schedule_in={"hours": 1}, queue="not_the_default_queue"
 ).batch_defer(
     {"a": 1, "b": 2},
     {"a": 3, "b": 4},
@@ -51,9 +49,7 @@ my_task.configure(
 
 # or
 await my_task.configure(
-    lock="the name of my lock",
-    schedule_in={"hours": 1},
-    queue="not_the_default_queue"
+    lock="the name of my lock", schedule_in={"hours": 1}, queue="not_the_default_queue"
 ).batch_defer_async(
     {"a": 1, "b": 2},
     {"a": 3, "b": 4},

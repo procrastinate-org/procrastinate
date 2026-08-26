@@ -40,6 +40,7 @@ PROCRASTINATE_ON_APP_READY = "myapp.procrastinate.on_app_ready"
 # myapp/procrastinate.py
 import procrastinate
 
+
 def on_app_ready(app: procrastinate.App):
     app.add_tasks_from(some_blueprint)
 ```

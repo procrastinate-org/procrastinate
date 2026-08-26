@@ -80,7 +80,7 @@ def test_nominal(defer, worker, app):
     stdout, stderr = worker(app=app, sleep=1.5)
     print(stdout, stderr)
     assert "Print something to stdout" in stdout
-    assert stderr.count("Exception: This should fail") == 2
+    assert stderr.count("ValueError: This should fail") == 2
 
     defer("multiple_exception_failures")
     stdout, stderr = worker(app=app)

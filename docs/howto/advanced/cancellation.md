@@ -57,10 +57,10 @@ aborted. If we want to respect that abortion request (we don't have to), we rais
 ```python
 @app.task(pass_context=True)
 def my_task(context):
-  for i in range(100):
-    if context.should_abort():
-      raise exceptions.JobAborted
-    do_something_expensive()
+    for i in range(100):
+        if context.should_abort():
+            raise exceptions.JobAborted
+        do_something_expensive()
 ```
 
 ### Async tasks
@@ -70,9 +70,9 @@ For async tasks (coroutines), they are cancelled via the [asyncio cancellation](
 ```python
 @app.task()
 async def my_task():
-  do_something_synchronous()
-  # if the job is aborted while it waits for do_something to complete, asyncio.CancelledError will be raised here
-  await do_something()
+    do_something_synchronous()
+    # if the job is aborted while it waits for do_something to complete, asyncio.CancelledError will be raised here
+    await do_something()
 ```
 
 If you want to have some custom behavior at cancellation time, use a combination of [shielding](https://docs.python.org/3/library/asyncio-task.html#shielding-from-cancellation) and capturing `except asyncio.CancelledError`.
@@ -81,13 +81,13 @@ If you want to have some custom behavior at cancellation time, use a combination
 @app.task()
 async def my_task():
     try:
-      important_task = asyncio.create_task(something_important())
-      # shield something_important from being cancelled
-      await asyncio.shield(important_task)
+        important_task = asyncio.create_task(something_important())
+        # shield something_important from being cancelled
+        await asyncio.shield(important_task)
     except asyncio.CancelledError:
-      # capture the error and waits for something important to complete
-      await important_task
-      # raise if the job should be marked as aborted, or swallow CancelledError if the job should be
-      # marked as suceeeded
-      raise
+        # capture the error and waits for something important to complete
+        await important_task
+        # raise if the job should be marked as aborted, or swallow CancelledError if the job should be
+        # marked as suceeeded
+        raise
 ```

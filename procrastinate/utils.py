@@ -19,6 +19,7 @@ from collections.abc import (
 from typing import (
     Any,
     Generic,
+    NoReturn,
     TypeVar,
 )
 
@@ -201,7 +202,12 @@ class AwaitableContext(Generic[U]):
         await self._open_coro()
         return self._return_value
 
-    async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any):
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: types.TracebackType | None,
+    ):
         await self._close_coro()
 
     def __await__(self):
@@ -210,6 +216,10 @@ class AwaitableContext(Generic[U]):
             return self._return_value
 
         return _inner_coro().__await__()
+
+
+CANCEL_ATTEMPTS = 5
+CANCEL_TIMEOUT = 1
 
 
 async def cancel_and_capture_errors(tasks: list[asyncio.Task[Any]]):
@@ -226,23 +236,61 @@ async def cancel_and_capture_errors(tasks: list[asyncio.Task[Any]]):
             },
         )
 
-    for task in tasks:
-        task.cancel()
+    def capture_errors(tasks: Iterable[asyncio.Task[Any]]):
+        for task in (task for task in tasks if task.done() and not task.cancelled()):
+            error = task.exception()
+            if error:
+                log_task_exception(task, error=error)
+            else:
+                logger.debug(f"Cancelled task {task.get_name()}")
+
+    if not tasks:
+        return
+
+    # A cancellation is lost if it lands just as the task takes its first step: the
+    # task then keeps looping and waiting for it below would never return, since a
+    # side task only wakes on its own schedule (up to a whole cron period away).
+    # Cancel again on every round, so each cancellation gets its own chance to be
+    # acted upon.
+    pending: set[asyncio.Task[Any]] = set(tasks)
+    for attempt in range(CANCEL_ATTEMPTS):
+        for task in pending:
+            if attempt:
+                logger.debug(
+                    f"Task {task.get_name()} ignored its cancellation, cancelling again",
+                    extra={"action": "cancel_task_again", "task_name": task.get_name()},
+                )
+            task.cancel()
+
+        _done, pending = await asyncio.wait(pending, timeout=CANCEL_TIMEOUT)
+        if not pending:
+            break
+    else:
+        # The tasks that did stop may have something to report, and their exceptions
+        # would otherwise never be retrieved.
+        capture_errors(task for task in tasks if task not in pending)
+        # Not raising: this runs in the run loop's finally, so an exception here
+        # would mask whatever caused the shutdown, and would turn a cancelled
+        # worker into an error rather than a CancelledError.
+        logger.error(
+            f"Abandoning tasks that did not stop when cancelled: "
+            f"{', '.join(sorted(task.get_name() for task in pending))}",
+            extra={
+                "action": "cancel_tasks_failed",
+                "task_names": sorted(task.get_name() for task in pending),
+            },
+        )
+        return
 
     await asyncio.gather(*tasks, return_exceptions=True)
 
-    for task in (task for task in tasks if task.done() and not task.cancelled()):
-        error = task.exception()
-        if error:
-            log_task_exception(task, error=error)
-        else:
-            logger.debug(f"Cancelled task {task.get_name()}")
+    capture_errors(tasks)
 
 
 async def wait_any(*coros_or_futures: Coroutine[Any, Any, Any] | asyncio.Future[Any]):
     """Starts and wait on the first coroutine to complete and return it
     Other pending coroutines are either cancelled or left running"""
-    futures = set(asyncio.ensure_future(fut) for fut in coros_or_futures)
+    futures = {asyncio.ensure_future(fut) for fut in coros_or_futures}
 
     _, pending = await asyncio.wait(
         futures,
@@ -283,13 +331,18 @@ class MovedElsewhere:
         self.name = name
         self.new_location = new_location
 
-    def __call__(self, *args: Any, **kwargs: Any) -> Any:
-        self.x
-
-    def __getattr__(self, item: str):
+    def _moved(self) -> NoReturn:
         raise exceptions.MovedElsewhere(
             f"procrastinate.{self.name} has been moved to {self.new_location}"
         )
+
+    def __call__(self, *args: Any, **kwargs: Any) -> Any:
+        self._moved()
+
+    def __getattr__(self, item: str):
+        # _moved, name and new_location all resolve normally, so this doesn't
+        # recurse back into __getattr__.
+        self._moved()
 
 
 V = TypeVar("V")

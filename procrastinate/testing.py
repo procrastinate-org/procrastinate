@@ -5,7 +5,7 @@ import datetime
 import json
 import threading
 from collections import Counter
-from collections.abc import Coroutine, Iterable, Iterator
+from collections.abc import Awaitable, Coroutine, Iterable, Iterator
 from itertools import count
 from typing import Any, Literal
 
@@ -274,7 +274,9 @@ class InMemoryConnector(connector.BaseAsyncConnector):
                 if not isinstance(coro, Coroutine):
                     original_coro = coro
 
-                    async def _coro() -> None:
+                    async def _coro(
+                        original_coro: Awaitable[None] = original_coro,
+                    ) -> None:
                         return await original_coro
 
                     coro: Any = _coro()

@@ -109,9 +109,11 @@ def cursor_execute(cursor, query, *identifiers):
 
 @contextlib.contextmanager
 def db_executor(dbname):
-    with psycopg.connect("", dbname=dbname, autocommit=True) as connection:
-        with connection.cursor() as cursor:
-            yield functools.partial(cursor_execute, cursor)
+    with (
+        psycopg.connect("", dbname=dbname, autocommit=True) as connection,
+        connection.cursor() as cursor,
+    ):
+        yield functools.partial(cursor_execute, cursor)
 
 
 @pytest.fixture
@@ -163,9 +165,8 @@ def setup_db(request: pytest.FixtureRequest):
         migrations_path = Path(schema_manager.get_migrations_path())
         migrations = sorted(migrations_path.glob("*.sql"))
         for migration in migrations:
-            with migration.open() as f:
-                with db_executor(dbname) as execute:
-                    execute(f.read())
+            with migration.open() as f, db_executor(dbname) as execute:
+                execute(f.read())
 
             if migration.name == migrate_until:
                 break
