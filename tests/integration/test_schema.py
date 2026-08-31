@@ -19,3 +19,23 @@ async def test_apply_schema_async(db_factory, monkeypatch):
 
     async with app.open_async():
         await app.schema_manager.apply_schema_async()
+
+
+def test_apply_schema_idempotent(db_factory, monkeypatch):
+    monkeypatch.setenv("PGDATABASE", "procrastinate_test")
+    db_factory(dbname="procrastinate_test")
+    app = App(connector=PsycopgConnector())
+
+    with app.open():
+        app.schema_manager.apply_schema()
+        app.schema_manager.apply_schema()
+
+
+async def test_apply_schema_async_idempotent(db_factory, monkeypatch):
+    monkeypatch.setenv("PGDATABASE", "procrastinate_test")
+    db_factory(dbname="procrastinate_test")
+    app = App(connector=PsycopgConnector())
+
+    async with app.open_async():
+        await app.schema_manager.apply_schema_async()
+        await app.schema_manager.apply_schema_async()
