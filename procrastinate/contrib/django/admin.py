@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import json
+from contextlib import suppress
 from typing import Any
 
 from django.apps import apps
 from django.contrib import admin
+from django.db import transaction
 from django.db.models import Prefetch, QuerySet
 from django.http.request import HttpRequest
 from django.template.loader import render_to_string
@@ -14,6 +16,7 @@ from django.utils.safestring import mark_safe
 
 from procrastinate import App, utils
 from procrastinate.contrib.django.apps import ProcrastinateConfig
+from procrastinate.exceptions import AlreadyEnqueued
 from procrastinate.jobs import Status
 
 from . import models
@@ -143,9 +146,10 @@ class ProcrastinateJobAdmin(admin.ModelAdmin):
         for job in queryset.filter(
             status__in=(Status.FAILED.value, Status.DOING.value)
         ):
-            p_app.job_manager.retry_job_by_id(
-                job.id, utils.utcnow(), job.priority, job.queue_name, job.lock
-            )
+            with suppress(AlreadyEnqueued), transaction.atomic():
+                p_app.job_manager.retry_job_by_id(
+                    job.id, utils.utcnow(), job.priority, job.queue_name, job.lock
+                )
 
     @admin.action(description="Cancel Job (only 'todo' jobs)")
     def cancel(self, request: HttpRequest, queryset: QuerySet[models.ProcrastinateJob]):
