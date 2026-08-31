@@ -32,7 +32,12 @@ class AbortJobRequested(TypedDict):
     job_id: int
 
 
-Notification: TypeAlias = JobInserted | AbortJobRequested
+class QueueResumed(TypedDict):
+    type: Literal["queue_resumed"]
+    queue_name: str
+
+
+Notification: TypeAlias = JobInserted | AbortJobRequested | QueueResumed
 
 
 def check_aware(
