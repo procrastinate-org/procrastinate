@@ -589,6 +589,38 @@ def test_list_jobs(job_manager, job_factory):
     assert job_manager.list_jobs() == [job]
 
 
+async def test_list_jobs_by_ids_async(job_manager, job_factory):
+    job1 = await job_manager.defer_job_async(job=job_factory(id=None))
+    job2 = await job_manager.defer_job_async(job=job_factory(id=None))
+    job3 = await job_manager.defer_job_async(job=job_factory(id=None))
+
+    result = await job_manager.list_jobs_by_ids_async(
+        [job3.id, 999, job1.id, job1.id, job2.id]
+    )
+
+    assert result == [job1, job2, job3]
+
+
+def test_list_jobs_by_ids(job_manager, job_factory):
+    job1 = job_manager.defer_job(job=job_factory(id=None))
+    job2 = job_manager.defer_job(job=job_factory(id=None))
+    job3 = job_manager.defer_job(job=job_factory(id=None))
+
+    result = job_manager.list_jobs_by_ids([job3.id, 999, job1.id, job1.id, job2.id])
+
+    assert result == [job1, job2, job3]
+
+
+async def test_list_jobs_by_ids_async_empty(job_manager, connector):
+    assert await job_manager.list_jobs_by_ids_async([]) == []
+    assert connector.queries == []
+
+
+def test_list_jobs_by_ids_empty(job_manager, connector):
+    assert job_manager.list_jobs_by_ids([]) == []
+    assert connector.queries == []
+
+
 async def test_list_queues_async(job_manager, job_factory):
     await job_manager.defer_job_async(job=job_factory(queue="foo"))
 
