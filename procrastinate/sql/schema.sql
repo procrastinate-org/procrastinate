@@ -43,16 +43,22 @@ CREATE TYPE procrastinate_job_event_type AS ENUM (
     'retried' -- Manually retried failed job
 );
 
+CREATE TYPE procrastinate_lock_mode AS ENUM (
+    'ordered',  -- A waiting job holds the lock even when it cannot run yet
+    'mutex'  -- A job only holds the lock while it is runnable
+);
+
 -- Composite Types
 
-CREATE TYPE procrastinate_job_to_defer_v1 AS (
+CREATE TYPE procrastinate_job_to_defer_v2 AS (
     queue_name character varying,
     task_name character varying,
     priority integer,
     lock text,
     queueing_lock text,
     args jsonb,
-    scheduled_at timestamp with time zone
+    scheduled_at timestamp with time zone,
+    lock_mode procrastinate_lock_mode
 );
 
 -- Tables
@@ -68,6 +74,7 @@ CREATE TABLE procrastinate_jobs (
     task_name character varying(128) NOT NULL,
     priority integer DEFAULT 0 NOT NULL,
     lock text,
+    lock_mode procrastinate_lock_mode DEFAULT 'ordered' NOT NULL,
     queueing_lock text,
     args jsonb DEFAULT '{}' NOT NULL,
     status procrastinate_job_status DEFAULT 'todo'::procrastinate_job_status NOT NULL,
@@ -115,8 +122,8 @@ CREATE INDEX procrastinate_periodic_defers_job_id_fkey_v1 ON procrastinate_perio
 CREATE INDEX idx_procrastinate_workers_last_heartbeat ON procrastinate_workers(last_heartbeat);
 
 -- Functions
-CREATE FUNCTION procrastinate_defer_jobs_v1(
-    jobs procrastinate_job_to_defer_v1[]
+CREATE FUNCTION procrastinate_defer_jobs_v2(
+    jobs procrastinate_job_to_defer_v2[]
 )
     RETURNS bigint[]
     LANGUAGE plpgsql
@@ -125,11 +132,12 @@ DECLARE
     job_ids bigint[];
 BEGIN
     WITH inserted_jobs AS (
-        INSERT INTO procrastinate_jobs (queue_name, task_name, priority, lock, queueing_lock, args, scheduled_at)
+        INSERT INTO procrastinate_jobs (queue_name, task_name, priority, lock, lock_mode, queueing_lock, args, scheduled_at)
         SELECT (job).queue_name,
                (job).task_name,
                (job).priority,
                (job).lock,
+               COALESCE((job).lock_mode, 'ordered'),
                (job).queueing_lock,
                (job).args,
                (job).scheduled_at
@@ -142,9 +150,10 @@ BEGIN
 END;
 $$;
 
-CREATE FUNCTION procrastinate_defer_periodic_job_v2(
+CREATE FUNCTION procrastinate_defer_periodic_job_v3(
     _queue_name character varying,
     _lock character varying,
+    _lock_mode procrastinate_lock_mode,
     _queueing_lock character varying,
     _task_name character varying,
     _priority integer,
@@ -172,7 +181,7 @@ BEGIN
     UPDATE procrastinate_periodic_defers
         SET job_id = (
             SELECT COALESCE((
-                SELECT unnest(procrastinate_defer_jobs_v1(
+                SELECT unnest(procrastinate_defer_jobs_v2(
                     ARRAY[
                         ROW(
                             _queue_name,
@@ -181,9 +190,10 @@ BEGIN
                             _lock,
                             _queueing_lock,
                             _args,
-                            NULL::timestamptz
+                            NULL::timestamptz,
+                            COALESCE(_lock_mode, 'ordered')
                         )
-                    ]::procrastinate_job_to_defer_v1[]
+                    ]::procrastinate_job_to_defer_v2[]
                 ))
             ), NULL)
         )
@@ -232,9 +242,26 @@ BEGIN
                                 -- job with same lock is already running
                                 other_jobs.status = 'doing'
                                 OR
-                                -- job with same lock is waiting and has higher priority (or same priority but was queued first)
+                                -- job with same lock is waiting and has higher priority (or same priority but was queued first).
+                                -- An 'ordered' lock is reserved even by a job that cannot run yet, which is what
+                                -- guarantees jobs sharing it are started in order. A 'mutex' lock is only reserved
+                                -- while its job is actually runnable, so a job scheduled for later steps aside.
+                                --
+                                -- This condition must stay evaluable identically by every worker, so that it leaves
+                                -- exactly one candidate per lock. Mutual exclusion is ultimately enforced by the
+                                -- index procrastinate_jobs_lock_idx_v1, UNIQUE (lock) WHERE status = 'doing', which
+                                -- enforces it by raising rather than by withholding a job. If several jobs sharing a
+                                -- lock were candidates at once, SKIP LOCKED would hand two workers two different
+                                -- rows; neither can see the other's uncommitted 'doing' row, so nothing here can
+                                -- reject it, and both would UPDATE to 'doing' on the same lock -- leaving the second
+                                -- worker with a unique violation instead of simply finding no job to run.
                                 (
                                     other_jobs.status = 'todo'
+                                    AND (
+                                        other_jobs.lock_mode = 'ordered'
+                                        OR other_jobs.scheduled_at IS NULL
+                                        OR other_jobs.scheduled_at <= now()
+                                    )
                                     AND (
                                         other_jobs.priority > jobs.priority
                                         OR (
