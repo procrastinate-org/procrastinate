@@ -183,6 +183,7 @@ class InMemoryConnector(connector.BaseAsyncConnector):
                 "attempts": 0,
                 "abort_requested": False,
                 "worker_id": None,
+                "deferred_at": utils.utcnow(),
             }
             self.events[id] = []
             if job.scheduled_at:

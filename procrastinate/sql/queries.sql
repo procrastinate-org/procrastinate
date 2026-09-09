@@ -18,13 +18,13 @@ SELECT procrastinate_defer_periodic_job_v2(%(queue)s, %(lock)s, %(queueing_lock)
 
 -- fetch_job --
 -- Get the first awaiting job
-SELECT id, status, task_name, priority, lock, queueing_lock, args, scheduled_at, queue_name, attempts, worker_id
+SELECT id, status, task_name, priority, lock, queueing_lock, args, scheduled_at, queue_name, attempts, worker_id, deferred_at
     FROM procrastinate_fetch_job_v2(%(queues)s::varchar[], %(worker_id)s);
 
 -- select_stalled_jobs_by_started --
 -- Get running jobs that started more than a given time ago
 SELECT job.id, status, task_name, priority, lock, queueing_lock,
-       args, scheduled_at, queue_name, attempts, worker_id,
+       args, scheduled_at, queue_name, attempts, worker_id, deferred_at,
        MAX(event.at) AS started_at
     FROM procrastinate_jobs job
     JOIN procrastinate_events event
@@ -44,7 +44,7 @@ WITH stalled_workers AS (
     WHERE last_heartbeat < NOW() - (%(seconds_since_heartbeat)s || ' SECOND')::INTERVAL
 )
 SELECT job.id, status, task_name, priority, lock, queueing_lock,
-       args, scheduled_at, queue_name, attempts, job.worker_id
+       args, scheduled_at, queue_name, attempts, job.worker_id, deferred_at
   FROM procrastinate_jobs job
  LEFT JOIN stalled_workers sw ON sw.id = job.worker_id
  WHERE job.status = 'doing'
@@ -109,7 +109,8 @@ SELECT id,
        scheduled_at,
        attempts,
        abort_requested,
-       worker_id
+       worker_id,
+       deferred_at
   FROM procrastinate_jobs
  WHERE (%(id)s::bigint IS NULL OR id = %(id)s)
    AND (%(queue_name)s::varchar IS NULL OR queue_name = %(queue_name)s)

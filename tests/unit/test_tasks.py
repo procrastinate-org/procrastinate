@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from unittest import mock
+
 import pytest
 
 from procrastinate import tasks, utils
@@ -40,6 +42,7 @@ async def test_task_defer_async(app: App, connector):
             "attempts": 0,
             "abort_requested": False,
             "worker_id": None,
+            "deferred_at": mock.ANY,
         }
     }
 
@@ -65,6 +68,7 @@ async def test_task_batch_defer_async(app: App, connector):
             "attempts": 0,
             "abort_requested": False,
             "worker_id": None,
+            "deferred_at": mock.ANY,
         },
         2: {
             "id": 2,
@@ -79,6 +83,7 @@ async def test_task_batch_defer_async(app: App, connector):
             "attempts": 0,
             "abort_requested": False,
             "worker_id": None,
+            "deferred_at": mock.ANY,
         },
     }
 
