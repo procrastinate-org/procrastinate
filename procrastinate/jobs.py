@@ -100,9 +100,7 @@ class Job:
     #: ID of the worker that is processing the job
     worker_id: int | None = None
     #: Date and time when the job was deferred.
-    deferred_at: datetime.datetime | None = attr.ib(
-        default=None, validator=check_aware
-    )
+    deferred_at: datetime.datetime | None = attr.ib(default=None, validator=check_aware)
 
     @classmethod
     def from_row(cls, row: dict[str, Any]) -> Job:
