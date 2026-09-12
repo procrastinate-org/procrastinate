@@ -23,6 +23,7 @@ def test_procrastinate_job(db):
         "task_name": "test_task",
         "priority": 0,
         "lock": None,
+        "lock_mode": "ordered",
         "args": {"a": 1, "b": 2},
         "status": "todo",
         "scheduled_at": None,

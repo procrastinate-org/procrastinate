@@ -23,6 +23,7 @@ R = TypeVar("R")
 
 class ConfigureTaskOptions(TypedDict):
     lock: NotRequired[str | None]
+    lock_mode: NotRequired[str | jobs.LockMode | None]
     queueing_lock: NotRequired[str | None]
     task_kwargs: NotRequired[types.JSONDict | None]
     schedule_at: NotRequired[datetime.datetime | None]
@@ -57,6 +58,7 @@ def configure_task(
         job=jobs.Job(
             id=None,
             lock=options.get("lock"),
+            lock_mode=options.get("lock_mode"),
             queueing_lock=options.get("queueing_lock"),
             task_name=name,
             queue=options.get("queue") or jobs.DEFAULT_QUEUE,
@@ -90,6 +92,7 @@ class Task(Generic[P, R, Args]):
         queue: str,
         priority: int = jobs.DEFAULT_PRIORITY,
         lock: str | None = None,
+        lock_mode: str | jobs.LockMode | None = None,
         queueing_lock: str | None = None,
         task_middleware: list[middleware_module.TaskMiddleware] | None = None,
     ):
@@ -117,6 +120,13 @@ class Task(Generic[P, R, Args]):
         self.pass_context: bool = pass_context
         #: Default lock. The lock can be overridden when a job is deferred.
         self.lock: str | None = lock
+        # Resolved to a concrete mode here, rather than kept as None meaning
+        # "unset", so that reading it always answers which mode this task
+        # defers with. Normalizing at registration also rejects a wrong value
+        # then, rather than when the task is first deferred.
+        #: Default lock mode, `jobs.DEFAULT_LOCK_MODE` unless set. It can be
+        #: overridden when a job is deferred.
+        self.lock_mode: str = jobs.normalize_lock_mode(lock_mode)
         #: Default queueing lock. The queuing lock can be overridden when a job
         #: is deferred.
         self.queueing_lock: str | None = queueing_lock
@@ -205,6 +215,11 @@ class Task(Generic[P, R, Args]):
         ----------
         lock :
             No two jobs with the same lock string can run simultaneously
+        lock_mode :
+            ``"ordered"`` (the default) has a waiting job hold the lock even when it is
+            scheduled for the future, which is what guarantees jobs sharing a lock start
+            in order. ``"mutex"`` behaves the same, except a job scheduled for the future
+            steps aside instead of holding the lock until it is due. See `LockMode`.
         queueing_lock :
             No two jobs with the same queueing lock can be waiting in the queue.
             `Task.defer` will raise an `AlreadyEnqueued` exception if there already
@@ -246,6 +261,7 @@ class Task(Generic[P, R, Args]):
         self.blueprint.will_configure_task()
 
         lock = options.get("lock")
+        lock_mode = options.get("lock_mode")
         queueing_lock = options.get("queueing_lock")
         task_kwargs = options.get("task_kwargs")
         schedule_at = options.get("schedule_at")
@@ -259,6 +275,7 @@ class Task(Generic[P, R, Args]):
             name=self.name,
             job_manager=app.job_manager,
             lock=lock if lock is not None else self.lock,
+            lock_mode=lock_mode if lock_mode is not None else self.lock_mode,
             queueing_lock=(
                 queueing_lock if queueing_lock is not None else self.queueing_lock
             ),

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from procrastinate import tasks, utils
+from procrastinate import jobs, tasks, utils
 from procrastinate.app import App
 
 from .. import conftest
@@ -33,6 +33,7 @@ async def test_task_defer_async(app: App, connector):
             "priority": 0,
             "task_name": "tests.unit.test_tasks.task_func",
             "lock": lock,
+            "lock_mode": "ordered",
             "queueing_lock": None,
             "args": {"c": 3},
             "status": "todo",
@@ -58,6 +59,7 @@ async def test_task_batch_defer_async(app: App, connector):
             "priority": 0,
             "task_name": "tests.unit.test_tasks.task_func",
             "lock": lock,
+            "lock_mode": "ordered",
             "queueing_lock": None,
             "args": {"a": 1},
             "status": "todo",
@@ -72,6 +74,7 @@ async def test_task_batch_defer_async(app: App, connector):
             "priority": 0,
             "task_name": "tests.unit.test_tasks.task_func",
             "lock": lock,
+            "lock_mode": "ordered",
             "queueing_lock": None,
             "args": {"b": 2},
             "status": "todo",
@@ -108,6 +111,68 @@ def test_configure_task_priority(job_manager):
     job = tasks.configure_task(name="my_name", job_manager=job_manager, priority=7).job
 
     assert job.priority == 7
+
+
+@pytest.mark.parametrize(
+    "lock_mode, expected",
+    [
+        (None, "ordered"),
+        ("mutex", "mutex"),
+        (jobs.LockMode.MUTEX, "mutex"),
+        (jobs.LockMode.ORDERED, "ordered"),
+    ],
+)
+def test_configure_task_lock_mode(job_manager, lock_mode, expected):
+    job = tasks.configure_task(
+        name="my_name", job_manager=job_manager, lock_mode=lock_mode
+    ).job
+
+    assert job.lock_mode == expected
+
+
+@pytest.mark.parametrize("lock_mode", ["", "mutx", "Mutex"])
+def test_configure_task_invalid_lock_mode(job_manager, lock_mode):
+    # An invalid mode must be rejected here rather than reaching the database, where
+    # only the InMemoryConnector would accept it.
+    with pytest.raises(ValueError):
+        tasks.configure_task(
+            name="my_name", job_manager=job_manager, lock_mode=lock_mode
+        )
+
+
+async def test_task_default_lock_mode(app: App, connector):
+    task = tasks.Task(
+        task_func, blueprint=app, queue="queue", lock="l", lock_mode=jobs.LockMode.MUTEX
+    )
+
+    await task.defer_async()
+    await task.configure(lock_mode="ordered").defer_async()
+    await task.defer_async()
+
+    assert connector.jobs[1]["lock_mode"] == "mutex"
+    assert connector.jobs[2]["lock_mode"] == "ordered"
+    assert connector.jobs[3]["lock_mode"] == "mutex"
+
+
+def test_task_invalid_default_lock_mode(app: App):
+    # Registering the task is the earliest point where we can catch this.
+    with pytest.raises(ValueError):
+        tasks.Task(task_func, blueprint=app, queue="queue", lock_mode="mutx")
+
+
+@pytest.mark.parametrize(
+    "lock_mode, expected", [(None, "ordered"), (jobs.LockMode.MUTEX, "mutex")]
+)
+def test_task_lock_mode_is_always_concrete(app: App, lock_mode, expected):
+    # A task registered before lock_mode existed defers 'ordered' jobs, so reading
+    # the attribute must say 'ordered' rather than None. Otherwise the mode a task
+    # runs with and the mode it reports disagree.
+    task = tasks.Task(
+        task_func, blueprint=app, queue="queue", lock="l", lock_mode=lock_mode
+    )
+
+    assert task.lock_mode == expected
+    assert task.configure().job.lock_mode == task.lock_mode
 
 
 def test_configure_task_schedule_at(job_manager):

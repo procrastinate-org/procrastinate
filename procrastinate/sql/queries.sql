@@ -6,24 +6,24 @@
 -- defer_jobs --
 -- Create and enqueue one or more jobs
 SELECT  unnest(
-  procrastinate_defer_jobs_v1(
-    %(jobs)s::procrastinate_job_to_defer_v1[]
+  procrastinate_defer_jobs_v2(
+    %(jobs)s::procrastinate_job_to_defer_v2[]
   )
 ) AS id;
 
 -- defer_periodic_job --
 -- Create a periodic job if it doesn't already exist, and delete periodic metadata
 -- for previous jobs in the same task.
-SELECT procrastinate_defer_periodic_job_v2(%(queue)s, %(lock)s, %(queueing_lock)s, %(task_name)s, %(priority)s, %(periodic_id)s, %(defer_timestamp)s, %(args)s) AS id;
+SELECT procrastinate_defer_periodic_job_v3(%(queue)s, %(lock)s, %(lock_mode)s, %(queueing_lock)s, %(task_name)s, %(priority)s, %(periodic_id)s, %(defer_timestamp)s, %(args)s) AS id;
 
 -- fetch_job --
 -- Get the first awaiting job
-SELECT id, status, task_name, priority, lock, queueing_lock, args, scheduled_at, queue_name, attempts, worker_id
+SELECT id, status, task_name, priority, lock, lock_mode, queueing_lock, args, scheduled_at, queue_name, attempts, worker_id
     FROM procrastinate_fetch_job_v2(%(queues)s::varchar[], %(worker_id)s);
 
 -- select_stalled_jobs_by_started --
 -- Get running jobs that started more than a given time ago
-SELECT job.id, status, task_name, priority, lock, queueing_lock,
+SELECT job.id, status, task_name, priority, lock, lock_mode, queueing_lock,
        args, scheduled_at, queue_name, attempts, worker_id,
        MAX(event.at) AS started_at
     FROM procrastinate_jobs job
@@ -43,7 +43,7 @@ WITH stalled_workers AS (
      FROM procrastinate_workers
     WHERE last_heartbeat < NOW() - (%(seconds_since_heartbeat)s || ' SECOND')::INTERVAL
 )
-SELECT job.id, status, task_name, priority, lock, queueing_lock,
+SELECT job.id, status, task_name, priority, lock, lock_mode, queueing_lock,
        args, scheduled_at, queue_name, attempts, job.worker_id
   FROM procrastinate_jobs job
  LEFT JOIN stalled_workers sw ON sw.id = job.worker_id
@@ -103,6 +103,7 @@ SELECT id,
        task_name,
        priority,
        lock,
+       lock_mode,
        queueing_lock,
        args,
        status,

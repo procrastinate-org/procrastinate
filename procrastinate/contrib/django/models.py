@@ -83,11 +83,18 @@ class ProcrastinateJob(ProcrastinateReadOnlyModelMixin, models.Model):
         "cancelled",
         "aborted",
     )
+    LOCK_MODES = (
+        "ordered",
+        "mutex",
+    )
     id = models.BigAutoField(primary_key=True)
     queue_name = models.CharField(max_length=128)
     task_name = models.CharField(max_length=128)
     priority = models.IntegerField()
     lock = models.TextField(unique=True, blank=True, null=True)
+    lock_mode = models.CharField(
+        max_length=32, choices=[(e, e) for e in LOCK_MODES], default="ordered"
+    )
     args = models.JSONField()
     status = models.CharField(max_length=32, choices=[(e, e) for e in STATUSES])
     scheduled_at = models.DateTimeField(blank=True, null=True)
@@ -113,6 +120,7 @@ class ProcrastinateJob(ProcrastinateReadOnlyModelMixin, models.Model):
             task_kwargs=self.args,
             priority=self.priority,
             lock=self.lock,
+            lock_mode=self.lock_mode,
             status=self.status,
             scheduled_at=self.scheduled_at,
             attempts=self.attempts,
