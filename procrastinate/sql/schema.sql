@@ -94,6 +94,18 @@ CREATE TABLE procrastinate_events (
     at timestamp with time zone DEFAULT NOW() NULL
 );
 
+-- A queue is paused as long as it has at least one row here: workers stop
+-- fetching its jobs (already-running jobs keep going). Independent holders each
+-- pause under their own pause_key and must all resume before the queue starts
+-- working again.
+CREATE TABLE procrastinate_paused_queues (
+    id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    queue_name character varying(128) NOT NULL,
+    pause_key character varying(128) DEFAULT 'default' NOT NULL,
+    paused_at timestamp with time zone DEFAULT NOW() NOT NULL,
+    UNIQUE (queue_name, pause_key)
+);
+
 -- Constraints & Indices
 
 -- this prevents from having several jobs with the same queueing lock in the "todo" state
@@ -207,7 +219,7 @@ BEGIN
 END;
 $$;
 
-CREATE FUNCTION procrastinate_fetch_job_v2(
+CREATE FUNCTION procrastinate_fetch_job_v3(
     target_queue_names character varying[],
     p_worker_id bigint
 )
@@ -248,6 +260,12 @@ BEGIN
                 AND jobs.status = 'todo'
                 AND (target_queue_names IS NULL OR jobs.queue_name = ANY( target_queue_names ))
                 AND (jobs.scheduled_at IS NULL OR jobs.scheduled_at <= now())
+                -- reject the job if its queue is paused
+                AND NOT EXISTS (
+                    SELECT 1
+                        FROM procrastinate_paused_queues AS paused
+                        WHERE paused.queue_name = jobs.queue_name
+                )
             ORDER BY jobs.priority DESC, jobs.id ASC LIMIT 1
             FOR UPDATE OF jobs SKIP LOCKED
     )
@@ -429,6 +447,20 @@ BEGIN
 END;
 $$;
 
+CREATE FUNCTION procrastinate_notify_queue_resumed_v1()
+    RETURNS trigger
+    LANGUAGE plpgsql
+AS $$
+DECLARE
+    payload TEXT;
+BEGIN
+    SELECT json_build_object('type', 'queue_resumed', 'queue_name', OLD.queue_name)::text INTO payload;
+    PERFORM pg_notify('procrastinate_queue_v1#' || OLD.queue_name, payload);
+    PERFORM pg_notify('procrastinate_any_queue_v1', payload);
+    RETURN OLD;
+END;
+$$;
+
 CREATE FUNCTION procrastinate_trigger_function_status_events_insert_v1()
     RETURNS trigger
     LANGUAGE plpgsql
@@ -573,6 +605,11 @@ CREATE TRIGGER procrastinate_jobs_notify_queue_job_aborted_v1
     AFTER UPDATE OF abort_requested ON procrastinate_jobs
     FOR EACH ROW WHEN ((old.abort_requested = false AND new.abort_requested = true AND new.status = 'doing'::procrastinate_job_status))
     EXECUTE PROCEDURE procrastinate_notify_queue_abort_job_v1();
+
+CREATE TRIGGER procrastinate_paused_queues_notify_queue_resumed_v1
+    AFTER DELETE ON procrastinate_paused_queues
+    FOR EACH ROW
+    EXECUTE PROCEDURE procrastinate_notify_queue_resumed_v1();
 
 CREATE TRIGGER procrastinate_trigger_status_events_update_v1
     AFTER UPDATE OF status ON procrastinate_jobs

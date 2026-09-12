@@ -260,6 +260,38 @@ async def test_worker_run_fetches_job_on_notification(worker, app: App):
     complete_tasks.set()
 
 
+async def test_worker_run_fetches_job_on_queue_resumed_notification(worker, app: App):
+    complete_tasks = asyncio.Event()
+
+    @app.task(queue="paused")
+    async def perform_job():
+        await complete_tasks.wait()
+
+    await app.job_manager.pause_queue_async("paused")
+    await perform_job.defer_async()
+
+    await start_worker(worker)
+
+    connector = cast(InMemoryConnector, app.connector)
+    fetch_count = len([query for query in connector.queries if query[0] == "fetch_job"])
+
+    await asyncio.sleep(0.01)
+    assert (
+        len([query for query in connector.queries if query[0] == "fetch_job"])
+        == fetch_count
+    )
+
+    await app.job_manager.resume_queue_async("paused")
+    await asyncio.sleep(0.01)
+
+    assert (
+        len([query for query in connector.queries if query[0] == "fetch_job"])
+        == fetch_count + 1
+    )
+
+    complete_tasks.set()
+
+
 @pytest.mark.parametrize(
     "worker",
     [({"fetch_job_polling_interval": 0.05})],

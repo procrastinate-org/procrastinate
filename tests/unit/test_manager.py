@@ -804,3 +804,131 @@ async def test_unsupported_connector_raises_query_one_async():
     c = BaseConnector()
     with pytest.raises(exceptions.ConnectorException, match="does not support"):
         await c.execute_query_one_async_with_connection(object(), "SELECT 1")
+
+
+def test_pause_queue(job_manager, connector):
+    job_manager.pause_queue(queue_name="foo")
+    assert connector.queries[-1] == (
+        "pause_queue",
+        {"queue_name": "foo", "pause_key": "default"},
+    )
+    assert connector.paused_queues() == {"foo"}
+
+
+async def test_pause_queue_async(job_manager, connector):
+    await job_manager.pause_queue_async(queue_name="foo", pause_key="deploy")
+    assert connector.queries[-1] == (
+        "pause_queue",
+        {"queue_name": "foo", "pause_key": "deploy"},
+    )
+    assert connector.paused_queues() == {"foo"}
+
+
+def test_resume_queue(job_manager, connector):
+    job_manager.pause_queue(queue_name="foo")
+    job_manager.resume_queue(queue_name="foo")
+    assert connector.queries[-1] == (
+        "resume_queue",
+        {"queue_name": "foo", "pause_key": "default", "all_keys": False},
+    )
+    assert connector.paused_queues() == set()
+
+
+async def test_resume_queue_async(job_manager, connector):
+    await job_manager.pause_queue_async(queue_name="foo")
+    await job_manager.resume_queue_async(queue_name="foo")
+    assert connector.queries[-1] == (
+        "resume_queue",
+        {"queue_name": "foo", "pause_key": "default", "all_keys": False},
+    )
+    assert connector.paused_queues() == set()
+
+
+def test_resume_queue_only_releases_own_key(job_manager, connector):
+    job_manager.pause_queue(queue_name="foo", pause_key="deploy")
+    job_manager.pause_queue(queue_name="foo", pause_key="maintenance")
+
+    job_manager.resume_queue(queue_name="foo", pause_key="deploy")
+    assert connector.paused_queues() == {"foo"}
+
+    job_manager.resume_queue(queue_name="foo", pause_key="maintenance")
+    assert connector.paused_queues() == set()
+
+
+def test_resume_queue_all_keys(job_manager, connector):
+    job_manager.pause_queue(queue_name="foo", pause_key="deploy")
+    job_manager.pause_queue(queue_name="foo", pause_key="maintenance")
+    job_manager.pause_queue(queue_name="bar")
+
+    job_manager.resume_queue(queue_name="foo", all_keys=True)
+    assert connector.paused_queues() == {"bar"}
+
+
+def test_list_paused_queues(job_manager, connector):
+    job_manager.pause_queue(queue_name="foo")
+    job_manager.pause_queue(queue_name="bar", pause_key="deploy")
+    rows = job_manager.list_paused_queues()
+    assert [(row["queue_name"], row["pause_key"]) for row in rows] == [
+        ("bar", "deploy"),
+        ("foo", "default"),
+    ]
+
+
+async def test_list_paused_queues_async(job_manager, connector):
+    await job_manager.pause_queue_async(queue_name="foo")
+    rows = await job_manager.list_paused_queues_async()
+    assert [(row["queue_name"], row["pause_key"]) for row in rows] == [
+        ("foo", "default")
+    ]
+
+
+def test_list_paused_queues_filters(job_manager, connector):
+    job_manager.pause_queue(queue_name="foo", pause_key="deploy")
+    job_manager.pause_queue(queue_name="foo", pause_key="maintenance")
+    job_manager.pause_queue(queue_name="bar", pause_key="deploy")
+
+    assert [
+        (row["queue_name"], row["pause_key"])
+        for row in job_manager.list_paused_queues(queue="foo")
+    ] == [("foo", "deploy"), ("foo", "maintenance")]
+
+    assert [
+        (row["queue_name"], row["pause_key"])
+        for row in job_manager.list_paused_queues(pause_key="deploy")
+    ] == [("bar", "deploy"), ("foo", "deploy")]
+
+    assert [
+        (row["queue_name"], row["pause_key"])
+        for row in job_manager.list_paused_queues(queue="bar", pause_key="maintenance")
+    ] == []
+
+
+async def test_fetch_job_skips_paused_queue(job_manager, job_factory, worker_id):
+    job = job_factory(id=None, queue="paused")
+    await job_manager.defer_job_async(job=job)
+
+    await job_manager.pause_queue_async(queue_name="paused")
+    assert await job_manager.fetch_job(queues=None, worker_id=worker_id) is None
+
+    await job_manager.resume_queue_async(queue_name="paused")
+    fetched = await job_manager.fetch_job(queues=None, worker_id=worker_id)
+    assert fetched is not None
+    assert fetched.queue == "paused"
+
+
+async def test_fetch_job_skips_queue_until_all_keys_resumed(
+    job_manager, job_factory, worker_id
+):
+    job = job_factory(id=None, queue="paused")
+    await job_manager.defer_job_async(job=job)
+
+    await job_manager.pause_queue_async(queue_name="paused", pause_key="deploy")
+    await job_manager.pause_queue_async(queue_name="paused", pause_key="maintenance")
+
+    await job_manager.resume_queue_async(queue_name="paused", pause_key="deploy")
+    assert await job_manager.fetch_job(queues=None, worker_id=worker_id) is None
+
+    await job_manager.resume_queue_async(queue_name="paused", pause_key="maintenance")
+    fetched = await job_manager.fetch_job(queues=None, worker_id=worker_id)
+    assert fetched is not None
+    assert fetched.queue == "paused"

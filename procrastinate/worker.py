@@ -473,7 +473,7 @@ class Worker:
     async def _handle_notification(
         self, *, channel: str, notification: jobs.Notification
     ):
-        if notification["type"] == "job_inserted":
+        if notification["type"] in ("job_inserted", "queue_resumed"):
             self._new_job_event.set()
         elif notification["type"] == "abort_job_requested":
             self._handle_abort_jobs_requested([notification["job_id"]])

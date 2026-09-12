@@ -5,7 +5,7 @@ import json
 import logging
 import warnings
 from collections.abc import Awaitable, Iterable
-from typing import Any, NoReturn, Protocol
+from typing import Any, NoReturn, Protocol, TypedDict
 
 from procrastinate import connector, exceptions, sql, types, utils
 from procrastinate import jobs as jobs_module
@@ -13,6 +13,12 @@ from procrastinate import jobs as jobs_module
 logger = logging.getLogger(__name__)
 
 QUEUEING_LOCK_CONSTRAINT = "procrastinate_jobs_queueing_lock_idx_v1"
+
+
+class PausedQueue(TypedDict):
+    queue_name: str
+    pause_key: str
+    paused_at: datetime.datetime
 
 
 class NotificationCallback(Protocol):
@@ -453,6 +459,158 @@ class JobManager:
 
         assert result["id"] == job_id
         return True
+
+    def pause_queue(self, queue_name: str, *, pause_key: str = "default") -> None:
+        """
+        Pause a queue under the given pause key, so that workers stop fetching
+        jobs from it. Jobs already being processed are not affected and run to
+        completion. Pending jobs stay in the ``todo`` state until the queue is
+        resumed. A queue is paused as long as it holds at least one pause key:
+        independent holders (e.g. a deploy script and a maintenance task) each
+        pause under their own key, and the queue only resumes once every key has
+        been resumed. Pausing a queue under a key it already holds does nothing.
+
+        Parameters
+        ----------
+        queue_name:
+            The name of the queue to pause
+        pause_key:
+            The key identifying the holder of the pause
+        """
+        self.connector.get_sync_connector().execute_query(
+            query=sql.queries["pause_queue"],
+            queue_name=queue_name,
+            pause_key=pause_key,
+        )
+
+    async def pause_queue_async(
+        self, queue_name: str, *, pause_key: str = "default"
+    ) -> None:
+        """
+        Pause a queue under the given pause key, so that workers stop fetching
+        jobs from it. Jobs already being processed are not affected and run to
+        completion. Pending jobs stay in the ``todo`` state until the queue is
+        resumed. A queue is paused as long as it holds at least one pause key:
+        independent holders (e.g. a deploy script and a maintenance task) each
+        pause under their own key, and the queue only resumes once every key has
+        been resumed. Pausing a queue under a key it already holds does nothing.
+
+        Parameters
+        ----------
+        queue_name:
+            The name of the queue to pause
+        pause_key:
+            The key identifying the holder of the pause
+        """
+        await self.connector.execute_query_async(
+            query=sql.queries["pause_queue"],
+            queue_name=queue_name,
+            pause_key=pause_key,
+        )
+
+    def resume_queue(
+        self, queue_name: str, *, pause_key: str = "default", all_keys: bool = False
+    ) -> None:
+        """
+        Remove the given pause key from a queue. Workers fetch its jobs again
+        once the queue holds no pause key at all. Resuming a key the queue does
+        not hold does nothing. With ``all_keys=True``, remove every pause key
+        from the queue at once, regardless of who holds them.
+
+        Parameters
+        ----------
+        queue_name:
+            The name of the queue to resume
+        pause_key:
+            The key identifying the holder of the pause
+        all_keys:
+            If ``True``, ignore ``pause_key`` and remove all pause keys from the
+            queue
+        """
+        self.connector.get_sync_connector().execute_query(
+            query=sql.queries["resume_queue"],
+            queue_name=queue_name,
+            pause_key=pause_key,
+            all_keys=all_keys,
+        )
+
+    async def resume_queue_async(
+        self, queue_name: str, *, pause_key: str = "default", all_keys: bool = False
+    ) -> None:
+        """
+        Remove the given pause key from a queue. Workers fetch its jobs again
+        once the queue holds no pause key at all. Resuming a key the queue does
+        not hold does nothing. With ``all_keys=True``, remove every pause key
+        from the queue at once, regardless of who holds them.
+
+        Parameters
+        ----------
+        queue_name:
+            The name of the queue to resume
+        pause_key:
+            The key identifying the holder of the pause
+        all_keys:
+            If ``True``, ignore ``pause_key`` and remove all pause keys from the
+            queue
+        """
+        await self.connector.execute_query_async(
+            query=sql.queries["resume_queue"],
+            queue_name=queue_name,
+            pause_key=pause_key,
+            all_keys=all_keys,
+        )
+
+    def list_paused_queues(
+        self, queue: str | None = None, pause_key: str | None = None
+    ) -> Iterable[PausedQueue]:
+        """
+        Sync version of `list_paused_queues_async`
+        """
+        return [
+            PausedQueue(
+                queue_name=row["queue_name"],
+                pause_key=row["pause_key"],
+                paused_at=row["paused_at"],
+            )
+            for row in self.connector.get_sync_connector().execute_query_all(
+                query=sql.queries["list_paused_queues"],
+                queue_name=queue,
+                pause_key=pause_key,
+            )
+        ]
+
+    async def list_paused_queues_async(
+        self, queue: str | None = None, pause_key: str | None = None
+    ) -> Iterable[PausedQueue]:
+        """
+        List the pauses currently held on queues.
+
+        Parameters
+        ----------
+        queue:
+            Filter by queue name
+        pause_key:
+            Filter by pause key
+
+        Returns
+        -------
+        :
+            One `PausedQueue` per held pause key, with ``queue_name``,
+            ``pause_key`` and ``paused_at`` keys, sorted by queue name then
+            pause key. A queue appears once per pause key it holds.
+        """
+        return [
+            PausedQueue(
+                queue_name=row["queue_name"],
+                pause_key=row["pause_key"],
+                paused_at=row["paused_at"],
+            )
+            for row in await self.connector.execute_query_all_async(
+                query=sql.queries["list_paused_queues"],
+                queue_name=queue,
+                pause_key=pause_key,
+            )
+        ]
 
     def get_job_status(
         self, job_id: int, connection: Any | None = None

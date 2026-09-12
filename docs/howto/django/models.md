@@ -1,6 +1,6 @@
 # Interact with Procrastinate tables as Django models
 
-Procrastinate exposes 3 of its internal tables as Django models. You can use
+Procrastinate exposes some of its internal tables as Django models. You can use
 them to query the state of your jobs. They're also exposed in the Django admin.
 
 :::{note}
@@ -15,6 +15,7 @@ from procrastinate.contrib.django.models import (
     ProcrastinateEvent,
     ProcrastinatePeriodicDefer,
     ProcrastinateWorker,
+    ProcrastinatePausedQueue,
 )
 
 ProcrastinateJob.objects.filter(task_name="mytask").count()
@@ -30,7 +31,7 @@ or events through the ORM.
 
 ```{eval-rst}
 .. automodule:: procrastinate.contrib.django.models
-    :members: ProcrastinateJob, ProcrastinateEvent, ProcrastinatePeriodicDefer, ProcrastinateWorker
+    :members: ProcrastinateJob, ProcrastinateEvent, ProcrastinatePeriodicDefer, ProcrastinateWorker, ProcrastinatePausedQueue
 ```
 
 
