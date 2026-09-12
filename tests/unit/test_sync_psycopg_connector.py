@@ -3,7 +3,7 @@ from __future__ import annotations
 import psycopg
 import pytest
 
-from procrastinate import exceptions, sync_psycopg_connector
+from procrastinate import exceptions, manager, sync_psycopg_connector
 
 
 def test_wrap_exceptions_wraps():
@@ -13,6 +13,67 @@ def test_wrap_exceptions_wraps():
 
     with pytest.raises(exceptions.ConnectorException):
         func()
+
+
+class _FakeUniqueViolation(psycopg.errors.UniqueViolation):
+    # ``diag`` is a read-only property on the real exception, backed by a libpq
+    # result that we can't easily fabricate offline, so we override it here.
+    def __init__(self, constraint_name, message_detail):
+        super().__init__("duplicate key value violates ...")
+        self._fake_diag = type(
+            "FakeDiag",
+            (),
+            {"constraint_name": constraint_name, "message_detail": message_detail},
+        )()
+
+    @property
+    def diag(self):
+        return self._fake_diag
+
+
+def _make_unique_violation(constraint_name, message_detail):
+    return _FakeUniqueViolation(constraint_name, message_detail)
+
+
+@pytest.mark.parametrize(
+    "message_detail",
+    [
+        # English (default lc_messages)
+        pytest.param("Key (queueing_lock)=(some_lock) already exists.", id="english"),
+        # Russian (lc_messages=ru_RU.UTF-8): the "Key" prefix is translated but
+        # the "(columns)=(values)" structure is not. See issue #1531.
+        pytest.param(
+            'Ключ "(queueing_lock)=(some_lock)" уже существует.', id="russian"
+        ),
+    ],
+)
+def test_wrap_exceptions_queueing_lock_locale_agnostic(message_detail):
+    @sync_psycopg_connector.wrap_exceptions()
+    def func():
+        raise _make_unique_violation(manager.QUEUEING_LOCK_CONSTRAINT, message_detail)
+
+    with pytest.raises(exceptions.UniqueViolation) as excinfo:
+        func()
+
+    assert excinfo.value.constraint_name == manager.QUEUEING_LOCK_CONSTRAINT
+    assert excinfo.value.queueing_lock == "some_lock"
+
+
+def test_wrap_exceptions_queueing_lock_unparseable_detail():
+    # Even if the queueing lock cannot be extracted from the (possibly
+    # translated) error detail, a UniqueViolation must still be raised instead
+    # of a bare AssertionError (issue #1531).
+    @sync_psycopg_connector.wrap_exceptions()
+    def func():
+        raise _make_unique_violation(
+            manager.QUEUEING_LOCK_CONSTRAINT, "unexpected detail format"
+        )
+
+    with pytest.raises(exceptions.UniqueViolation) as excinfo:
+        func()
+
+    assert excinfo.value.constraint_name == manager.QUEUEING_LOCK_CONSTRAINT
+    assert excinfo.value.queueing_lock is None
 
 
 def test_wrap_exceptions_success():

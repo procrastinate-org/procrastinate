@@ -16,6 +16,32 @@ from procrastinate import connector, exceptions, manager
 
 logger = logging.getLogger(__name__)
 
+# The structure ``(columns)=(values)`` in the error detail is not translated by
+# PostgreSQL, but the surrounding text (e.g. the "Key " prefix) is, depending on
+# the server's ``lc_messages`` setting. We therefore only rely on the
+# locale-agnostic ``(columns)=(values)`` part to extract the queueing lock.
+QUEUEING_LOCK_DETAIL_RE = re.compile(r"\((.*?)\)=\((.*?)\)")
+
+
+def _extract_queueing_lock(message_detail: str | None) -> str | None:
+    """
+    Extract the queueing lock value from a UniqueViolation error detail.
+
+    Returns ``None`` if the value cannot be extracted, e.g. because the error
+    detail is missing or has an unexpected format. This is best-effort: the value
+    is only used to build a human-readable error message, so failing to extract
+    it must not prevent the ``AlreadyEnqueued`` error from being raised.
+    """
+    if not message_detail:
+        return None
+    match = QUEUEING_LOCK_DETAIL_RE.search(message_detail)
+    if match is None:
+        return None
+    column, value = match.groups()
+    if column != "queueing_lock":
+        return None
+    return value
+
 
 @contextlib.contextmanager
 def wrap_exceptions() -> Generator[None, None, None]:
@@ -31,11 +57,7 @@ def wrap_exceptions() -> Generator[None, None, None]:
         constraint_name = exc.diag.constraint_name
         queueing_lock = None
         if constraint_name == manager.QUEUEING_LOCK_CONSTRAINT:
-            assert exc.diag.message_detail
-            match = re.search(r"Key \((.*?)\)=\((.*?)\)", exc.diag.message_detail)
-            assert match
-            column, queueing_lock = match.groups()
-            assert column == "queueing_lock"
+            queueing_lock = _extract_queueing_lock(exc.diag.message_detail)
 
         raise exceptions.UniqueViolation(
             constraint_name=constraint_name, queueing_lock=queueing_lock
