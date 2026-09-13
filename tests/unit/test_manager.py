@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import datetime
 import uuid
+from unittest import mock
 
 import pytest
 
@@ -42,6 +43,7 @@ async def test_manager_defer_job(job_manager, job_factory, connector):
             "task_name": "bla",
             "abort_requested": False,
             "worker_id": None,
+            "deferred_at": mock.ANY,
         }
     }
 
@@ -84,6 +86,7 @@ async def test_manager_batch_defer_jobs(job_manager, job_factory, connector):
             "task_name": "bla",
             "abort_requested": False,
             "worker_id": None,
+            "deferred_at": mock.ANY,
         },
         2: {
             "args": {"a": "c"},
@@ -98,6 +101,7 @@ async def test_manager_batch_defer_jobs(job_manager, job_factory, connector):
             "task_name": "bla",
             "abort_requested": False,
             "worker_id": None,
+            "deferred_at": mock.ANY,
         },
     }
 
@@ -177,10 +181,15 @@ async def test_fetch_job_no_suitable_job(job_manager, worker_id):
     assert await job_manager.fetch_job(queues=None, worker_id=worker_id) is None
 
 
-async def test_fetch_job(job_manager, job_factory, worker_id):
+async def test_fetch_job(job_manager, job_factory, connector, worker_id):
     job = job_factory(id=None)
     await job_manager.defer_job_async(job=job)
-    expected_job = job.evolve(id=1, status="doing", worker_id=worker_id)
+    expected_job = job.evolve(
+        id=1,
+        status="doing",
+        worker_id=worker_id,
+        deferred_at=connector.jobs[1]["deferred_at"],
+    )
     assert await job_manager.fetch_job(queues=None, worker_id=worker_id) == expected_job
 
 
@@ -198,7 +207,12 @@ async def test_get_stalled_jobs_by_started_stalled(
     await job_manager.defer_job_async(job=job)
     await job_manager.fetch_job(queues=None, worker_id=worker_id)
     connector.events[1][-1]["at"] = conftest.aware_datetime(2000, 1, 1)
-    expected_job = job.evolve(id=1, status="doing", worker_id=worker_id)
+    expected_job = job.evolve(
+        id=1,
+        status="doing",
+        worker_id=worker_id,
+        deferred_at=connector.jobs[1]["deferred_at"],
+    )
     with pytest.warns(DeprecationWarning, match=".*nb_seconds.*"):
         assert await job_manager.get_stalled_jobs(nb_seconds=1000) == [expected_job]
 
@@ -216,7 +230,12 @@ async def test_get_stalled_jobs_by_heartbeat_stalled(
     await job_manager.defer_job_async(job=job)
     await job_manager.fetch_job(queues=None, worker_id=worker_id)
     connector.workers = {1: conftest.aware_datetime(2000, 1, 1)}
-    expected_job = job.evolve(id=1, status="doing", worker_id=worker_id)
+    expected_job = job.evolve(
+        id=1,
+        status="doing",
+        worker_id=worker_id,
+        deferred_at=connector.jobs[1]["deferred_at"],
+    )
     assert await job_manager.get_stalled_jobs() == [expected_job]
 
 
@@ -577,14 +596,16 @@ def test_retry_job_by_id(job_manager, connector, job_factory, dt):
     )
 
 
-async def test_list_jobs_async(job_manager, job_factory):
+async def test_list_jobs_async(job_manager, job_factory, connector):
     job = await job_manager.defer_job_async(job=job_factory())
+    job = job.evolve(deferred_at=connector.jobs[1]["deferred_at"])
 
     assert await job_manager.list_jobs_async() == [job]
 
 
-def test_list_jobs(job_manager, job_factory):
+def test_list_jobs(job_manager, job_factory, connector):
     job = job_manager.defer_job(job=job_factory())
+    job = job.evolve(deferred_at=connector.jobs[1]["deferred_at"])
 
     assert job_manager.list_jobs() == [job]
 

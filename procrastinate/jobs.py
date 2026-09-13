@@ -99,6 +99,8 @@ class Job:
     abort_requested: bool = False
     #: ID of the worker that is processing the job
     worker_id: int | None = None
+    #: Date and time when the job was deferred.
+    deferred_at: datetime.datetime | None = attr.ib(default=None, validator=check_aware)
 
     @classmethod
     def from_row(cls, row: dict[str, Any]) -> Job:
@@ -115,6 +117,7 @@ class Job:
             attempts=row["attempts"],
             abort_requested=row.get("abort_requested", False),
             worker_id=row.get("worker_id"),
+            deferred_at=row.get("deferred_at"),
         )
 
     def asdict(self) -> dict[str, Any]:
@@ -125,6 +128,9 @@ class Job:
 
         if context["scheduled_at"]:
             context["scheduled_at"] = context["scheduled_at"].isoformat()
+
+        if context["deferred_at"]:
+            context["deferred_at"] = context["deferred_at"].isoformat()
 
         context["call_string"] = self.call_string
         return context

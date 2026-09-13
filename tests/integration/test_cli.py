@@ -5,6 +5,7 @@ import dataclasses
 import datetime
 import logging
 import os
+from unittest import mock
 
 import pytest
 
@@ -171,6 +172,7 @@ async def test_defer(entrypoint, cli_app, connector):
             "priority": 0,
             "abort_requested": False,
             "worker_id": None,
+            "deferred_at": mock.ANY,
         }
     }
 
@@ -198,6 +200,7 @@ async def test_defer_priority(entrypoint, cli_app, connector):
             "priority": 5,
             "abort_requested": False,
             "worker_id": None,
+            "deferred_at": mock.ANY,
         }
     }
 
@@ -230,6 +233,7 @@ async def test_defer_at(entrypoint, cli_app, connector):
             "priority": 0,
             "abort_requested": False,
             "worker_id": None,
+            "deferred_at": mock.ANY,
         }
     }
 
@@ -261,6 +265,7 @@ async def test_defer_in(entrypoint, cli_app, connector):
         "priority": 0,
         "abort_requested": False,
         "worker_id": None,
+        "deferred_at": mock.ANY,
     }
     assert (
         now + datetime.timedelta(seconds=9)
@@ -327,6 +332,7 @@ async def test_defer_unknown(entrypoint, cli_app, connector):
             "priority": 0,
             "abort_requested": False,
             "worker_id": None,
+            "deferred_at": mock.ANY,
         }
     }
 
