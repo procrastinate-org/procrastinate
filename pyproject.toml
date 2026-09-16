@@ -71,7 +71,7 @@ docs = [
     "sphinxcontrib-mermaid",
     "myst-parser",
 ]
-dev = ["ruff", "basedpyright", "doc8"]
+dev = ["ruff", "basedpyright", "doc8", "zizmor", "prek"]
 
 [tool.hatch.version]
 source = "uv-dynamic-versioning"
@@ -158,18 +158,6 @@ required-imports = ["from __future__ import annotations"]
 [tool.doc8]
 max-line-length = 88
 ignore-path = "docs/_build,.venv"
-
-[tool.sync-pre-commit-with-uv.basedpyright-prek-mirror]
-pypi_package_name = "basedpyright"
-additional_dependencies_uv_params = [
-    "--group=types",
-    "--no-group=release",
-    "--no-group=lint_format",
-    "--no-group=pg_implem",
-    "--no-group=test",
-    "--no-group=docs",
-    "--all-extras",
-]
 
 [tool.basedpyright]
 exclude = [".venv", ".nox", "tests", "dist", "noxfile.py"]

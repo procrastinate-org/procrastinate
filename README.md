@@ -31,11 +31,13 @@ import procrastinate
 # Make an app in your code
 app = procrastinate.App(connector=procrastinate.SyncPsycopgConnector())
 
+
 # Then define tasks
 @app.task(queue="sums")
 def sum(a, b):
     with open("myfile", "w") as f:
         f.write(str(a + b))
+
 
 with app.open():
     # Launch a job
@@ -72,10 +74,12 @@ import procrastinate
 # Make an app in your code
 app = procrastinate.App(connector=procrastinate.PsycopgConnector())
 
+
 # Define tasks using coroutine functions
 @app.task(queue="sums")
 async def sum(a, b):
     await asyncio.sleep(a + b)
+
 
 async with app.open_async():
     # Launch a job

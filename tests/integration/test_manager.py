@@ -5,7 +5,7 @@ import functools
 
 import pytest
 
-from procrastinate import exceptions, jobs, manager, utils
+from procrastinate import exceptions, jobs, manager
 
 from .. import conftest
 
@@ -320,9 +320,13 @@ async def test_register_and_unregister_worker(pg_job_manager, psycopg_connector)
     rows = await psycopg_connector.execute_query_all_async(
         f"SELECT * FROM procrastinate_workers WHERE id={worker_id}"
     )
+    now = await psycopg_connector.execute_query_one_async(
+        "SELECT clock_timestamp() AS now"
+    )
+
     assert len(rows) == 1
     assert rows[0]["id"] == worker_id
-    assert abs((rows[0]["last_heartbeat"] - utils.utcnow()).total_seconds()) < 0.1
+    assert abs((rows[0]["last_heartbeat"] - now["now"]).total_seconds()) < 0.1
 
     await pg_job_manager.unregister_worker(worker_id=worker_id)
 
@@ -343,9 +347,17 @@ async def test_update_heartbeat(pg_job_manager, psycopg_connector, worker_id):
     rows = await psycopg_connector.execute_query_all_async(
         f"SELECT * FROM procrastinate_workers WHERE id={worker_id}"
     )
+    # The heartbeat is stamped by the database, so the upper bound has to come from
+    # the database too: when Postgres runs in a container, its clock can sit a few
+    # milliseconds ahead of the host's, which is enough to make a comparison against
+    # the local clock fail.
+    now = await psycopg_connector.execute_query_one_async(
+        "SELECT clock_timestamp() AS now"
+    )
+
     assert len(rows) == 1
     assert rows[0]["id"] == worker_id
-    assert first_heartbeat < rows[0]["last_heartbeat"] < utils.utcnow()
+    assert first_heartbeat < rows[0]["last_heartbeat"] < now["now"]
 
 
 async def test_prune_stalled_workers(pg_job_manager, psycopg_connector, worker_id):
@@ -422,7 +434,6 @@ async def test_delete_old_jobs_job_doing(
         # queue
         (jobs.Status.SUCCEEDED, 1, "queue_a", False, 0),
         (jobs.Status.SUCCEEDED, 3, "queue_a", False, 1),
-        (jobs.Status.SUCCEEDED, 1, "queue_b", False, 1),
         (jobs.Status.SUCCEEDED, 1, "queue_b", False, 1),
         # include_failed
         (jobs.Status.FAILED, 1, None, False, 1),

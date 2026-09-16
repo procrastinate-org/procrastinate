@@ -44,9 +44,8 @@ def test_connection(psycopg2_connector_factory, connection_params):
 @pytest.mark.parametrize("exception", [Exception, psycopg2.errors.AdminShutdown])
 def test_connection_exception(psycopg2_connector_factory, connection_params, exception):
     connector = psycopg2_connector_factory()
-    with pytest.raises(exception):
-        with connector._connection():
-            raise exception
+    with pytest.raises(exception), connector._connection():
+        raise exception
 
 
 @pytest.mark.parametrize(

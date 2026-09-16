@@ -6,9 +6,11 @@ import logging
 from . import app as app_module
 from . import tasks
 
+logger = logging.getLogger(__name__)
+
 
 def main():
-    logging.info("Running app in sync context")
+    logger.info("Running app in sync context")
 
     with app_module.app.open():
         print("Enter the following to defer a task:")

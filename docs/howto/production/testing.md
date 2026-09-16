@@ -10,6 +10,7 @@ To use it, you can do:
 from procrastinate import testing
 from mypackage.procrastinate import my_app, my_task
 
+
 @pytest.fixture
 def app():
     in_memory = testing.InMemoryConnector()

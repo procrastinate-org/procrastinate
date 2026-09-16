@@ -52,6 +52,7 @@ async def test_cli(entrypoint):
     assert result.stderr.startswith("usage:")
 
 
+@pytest.mark.filterwarnings("ignore::PendingDeprecationWarning")
 async def test_cli_logging_configuration(entrypoint, cli_app):
     result = await entrypoint(
         "--verbose --log-format {message},yay! --log-format-style { healthchecks"

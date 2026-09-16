@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import datetime
 import functools
 import logging
@@ -58,10 +59,10 @@ def test_causes():
         try:
             # e3 will be e2's __cause__
             raise e2 from e3
-        except Exception:
+        except Exception:  # noqa: BLE001
             # e2 will be e1's __context__
             raise e1
-    except Exception as exc2:
+    except Exception as exc2:  # noqa: BLE001
         result = list(utils.causes(exc2))
 
     assert result == [e1, e2, e3]
@@ -276,7 +277,7 @@ def test_moved_elsewhere():
         exceptions.MovedElsewhere,
         match=r"procrastinate\.foo has been moved to bar",
     ):
-        me.foo
+        assert me.foo
 
 
 def test_moved_elsewhere__call():
@@ -383,6 +384,127 @@ async def test_cancel_and_capture_errors(task_1_error, task_2_error, caplog):
     expected_error_count = sum(1 for error in (task_1_error, task_2_error) if error)
 
     assert len(caplog.records) == expected_error_count
+
+
+async def test_cancel_and_capture_errors__task_swallows_first_cancellation(mocker):
+    # A side task can miss its cancellation when it lands as the task takes its
+    # first step. It then goes back to sleep until its next tick, which can be a
+    # whole cron period away, and an unbounded wait would hang the shutdown.
+    mocker.patch.object(utils, "CANCEL_TIMEOUT", 0.01)
+    swallowed = asyncio.Event()
+
+    async def stubborn_task():
+        while True:
+            try:
+                await asyncio.sleep(30)
+            except asyncio.CancelledError:
+                if swallowed.is_set():
+                    raise
+                swallowed.set()
+
+    tasks = [asyncio.create_task(stubborn_task(), name="stubborn")]
+    await asyncio.sleep(0.01)
+
+    await asyncio.wait_for(utils.cancel_and_capture_errors(tasks), timeout=5)
+
+    assert swallowed.is_set()
+    assert tasks[0].cancelled()
+
+
+async def test_cancel_and_capture_errors__task_stops_on_last_attempt(mocker):
+    mocker.patch.object(utils, "CANCEL_TIMEOUT", 0.01)
+    mocker.patch.object(utils, "CANCEL_ATTEMPTS", 3)
+    cancellations = 0
+
+    async def late_task():
+        nonlocal cancellations
+        while True:
+            try:
+                await asyncio.sleep(30)
+            except asyncio.CancelledError:
+                cancellations += 1
+                # Stops only on the last cancellation we're willing to send
+                if cancellations == 3:
+                    raise
+
+    tasks = [asyncio.create_task(late_task(), name="late")]
+    await asyncio.sleep(0.01)
+
+    await asyncio.wait_for(utils.cancel_and_capture_errors(tasks), timeout=5)
+
+    assert cancellations == 3
+    assert tasks[0].cancelled()
+
+
+async def test_cancel_and_capture_errors__captures_errors_despite_stuck_task(
+    caplog, mocker
+):
+    caplog.set_level(logging.ERROR)
+    mocker.patch.object(utils, "CANCEL_TIMEOUT", 0.01)
+    mocker.patch.object(utils, "CANCEL_ATTEMPTS", 2)
+    release = asyncio.Event()
+
+    async def failing_task():
+        raise ValueError("Nope from failing_task")
+
+    async def unkillable_task():
+        while True:
+            try:
+                await asyncio.sleep(30)
+            except asyncio.CancelledError:
+                if release.is_set():
+                    raise
+
+    tasks = [
+        asyncio.create_task(failing_task(), name="failing"),
+        asyncio.create_task(unkillable_task(), name="unkillable"),
+    ]
+    await asyncio.sleep(0.01)
+
+    await asyncio.wait_for(utils.cancel_and_capture_errors(tasks), timeout=5)
+
+    # A task refusing to stop must not hide another task's error
+    assert "Nope from failing_task" in caplog.text
+    assert "unkillable" in caplog.text
+
+    release.set()
+    tasks[1].cancel()
+    with contextlib.suppress(asyncio.CancelledError):
+        await tasks[1]
+
+
+async def test_cancel_and_capture_errors__task_never_stops(caplog, mocker):
+    caplog.set_level(logging.ERROR)
+    mocker.patch.object(utils, "CANCEL_TIMEOUT", 0.01)
+    mocker.patch.object(utils, "CANCEL_ATTEMPTS", 2)
+
+    # Lets the test reap the task once it has made its point
+    release = asyncio.Event()
+
+    async def unkillable_task():
+        while True:
+            try:
+                await asyncio.sleep(30)
+            except asyncio.CancelledError:
+                if release.is_set():
+                    raise
+
+    tasks = [asyncio.create_task(unkillable_task(), name="unkillable")]
+    await asyncio.sleep(0.01)
+
+    # Gives up rather than hanging for ever
+    await asyncio.wait_for(utils.cancel_and_capture_errors(tasks), timeout=5)
+
+    assert "unkillable" in caplog.text
+
+    release.set()
+    tasks[0].cancel()
+    with contextlib.suppress(asyncio.CancelledError):
+        await tasks[0]
+
+
+async def test_cancel_and_capture_errors__no_task():
+    await utils.cancel_and_capture_errors([])
 
 
 @pytest.mark.parametrize(

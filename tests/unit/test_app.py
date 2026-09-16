@@ -132,6 +132,21 @@ def test_from_path(mocker):
     load.assert_called_once_with("dotted.path", app_module.App)
 
 
+def test_perform_import_paths__retried_after_failure(app: app_module.App, mocker):
+    import_all = mocker.patch(
+        "procrastinate.utils.import_all", side_effect=[ImportError, None]
+    )
+
+    with pytest.raises(ImportError):
+        app.perform_import_paths()
+
+    # The failure must not count as done, but the retry must.
+    app.perform_import_paths()
+    app.perform_import_paths()
+
+    assert import_all.call_count == 2
+
+
 def test_app_configure_task(app: app_module.App):
     scheduled_at = conftest.aware_datetime(2000, 1, 1)
     job = app.configure_task(

@@ -9,11 +9,13 @@ import asgiref.sync
 from . import app as app_module
 from . import tasks
 
+logger = logging.getLogger(__name__)
+
 ainput = asgiref.sync.sync_to_async(input)
 
 
 async def main():
-    logging.info("Running app in async context")
+    logger.info("Running app in async context")
 
     async with app_module.app.open_async():
         print("Enter the following to defer a task:")

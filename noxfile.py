@@ -68,14 +68,28 @@ def current_version_without_post_migration(session: nox.Session):
     )
 
 
+# Downloading a whole repository zipball routinely takes longer than httpx's
+# 5 second default, and the read timing out fails the whole session.
+ZIPBALL_TIMEOUT = 60
+ZIPBALL_ATTEMPTS = 3
+
+
 def get_zip_repo(client: httpx.Client, ref: str) -> zipfile.ZipFile:
-    response = client.get(
-        f"https://api.github.com/repos/procrastinate-org/procrastinate/zipball/{ref}",
-        headers={"Accept": "application/vnd.github+json"},
-        follow_redirects=True,
-    )
-    response.raise_for_status()
-    return zipfile.ZipFile(io.BytesIO(response.content))
+    for attempt in range(ZIPBALL_ATTEMPTS):
+        try:
+            response = client.get(
+                f"https://api.github.com/repos/procrastinate-org/procrastinate/zipball/{ref}",
+                headers={"Accept": "application/vnd.github+json"},
+                follow_redirects=True,
+            )
+            response.raise_for_status()
+        except (httpx.TransportError, httpx.HTTPStatusError) as exc:
+            if attempt == ZIPBALL_ATTEMPTS - 1:
+                raise
+            print(f"Fetching the {ref} zipball failed ({exc!r}), retrying")
+            continue
+        return zipfile.ZipFile(io.BytesIO(response.content))
+    raise AssertionError("unreachable")
 
 
 PIN_PYTHON: str | None = None
@@ -99,7 +113,7 @@ def stable_version_without_post_migration(session: nox.Session):
         except KeyError:
             headers = {}
 
-        client = httpx.Client(headers=headers)
+        client = httpx.Client(headers=headers, timeout=ZIPBALL_TIMEOUT)
 
         zip_repo = get_zip_repo(client=client, ref=str(latest_tag))
 

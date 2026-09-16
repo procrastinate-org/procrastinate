@@ -1,21 +1,27 @@
 name: Post coverage comment
 
-on:
+on: # zizmor: ignore[dangerous-triggers]
   workflow_run:
     workflows: ["CI"]
     types:
       - completed
+
+permissions: {}
 
 jobs:
   test:
     name: Run tests & display coverage
     runs-on: ubuntu-latest
     if: github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion == 'success'
+    permissions:
+      pull-requests: write # Post the comment, and edit it on later runs
+      actions: read # Download the comment artifact from the triggering CI run
+      contents: read
     steps:
       # DO NOT run actions/checkout@v2 here, for securitity reasons
       # For details, refer to https://securitylab.github.com/research/github-actions-preventing-pwn-requests/
       - name: Post comment
-        uses: ewjoachim/python-coverage-comment-action@5d8df5979747514c914e1c5a12335a7cf9a2745f # v4.1
+        uses: ewjoachim/python-coverage-comment-action@a05be3d2e8a6272d3ef5fb2840ab20368bb2eb71 # v4.3
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_PR_RUN_ID: ${{ github.event.workflow_run.id }}

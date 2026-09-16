@@ -40,6 +40,7 @@ def log_mw(call_next, context, worker):
     finally:
         print(f"finished {context.task.name}")
 
+
 # async task -> async middleware (async def, awaits call_next())
 async def async_log_mw(call_next, context, worker):
     print(f"starting {context.task.name}")
@@ -57,8 +58,7 @@ callable an `async def` for it to count as async middleware.
 
 ```python
 @app.task(task_middleware=[log_mw])
-def my_task():
-    ...
+def my_task(): ...
 ```
 
 A mismatch (an async middleware on a sync task, or vice versa) raises
@@ -94,7 +94,8 @@ sync/async kind to match, and it is registered **worker-wide only**.
 ```python
 async def otel_mw(call_next, context, worker):
     with tracer.start_as_current_span(f"run/{context.task.name}"):
-        return await call_next()   # the task's exception propagates → span records it
+        return await call_next()  # the task's exception propagates → span records it
+
 
 app.run_worker(worker_middleware=[otel_mw])
 ```
