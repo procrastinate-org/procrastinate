@@ -473,8 +473,11 @@ class Worker:
         self.run_task = asyncio.current_task()
         self._loop = asyncio.get_running_loop()
         loop_task = asyncio.create_task(self._run_loop(), name="worker loop")
-        # Only set once a stop request started a bounded stop of the loop task.
+        # Only set once a stop of the loop task has started, bounded by
+        # shutdown_timeout. It runs in its own task, so that cancelling run()
+        # meanwhile does not interrupt it.
         stop_loop_task: asyncio.Task[bool] | None = None
+        loop_outcome_retrieved = False
 
         try:
             if self.shutdown_timeout is None:
@@ -496,8 +499,6 @@ class Worker:
                 finally:
                     stop_requested.cancel()
                 if not loop_task.done():
-                    # Run in its own task, so that cancelling run() meanwhile
-                    # does not interrupt it (see below).
                     stop_loop_task = asyncio.create_task(
                         self._stop_loop_task(loop_task), name="stop worker loop"
                     )
@@ -505,6 +506,7 @@ class Worker:
                         # The loop task had to be cancelled, but the worker
                         # did stop as asked: this is not an error.
                         return
+                loop_outcome_retrieved = True
                 await loop_task
         except asyncio.CancelledError:
             # worker.run is cancelled, usually by cancelling app.run_worker_async
@@ -512,22 +514,28 @@ class Worker:
             if self.shutdown_timeout is None:
                 await loop_task
             else:
+                # If a stop was already in progress, wait for it to complete
+                # rather than starting over, which would double the time allowed
+                # to stop.
                 if stop_loop_task is None:
-                    loop_stopped = await self._stop_loop_task(loop_task)
-                else:
-                    # Already stopping on a stop request: wait for that stop to
-                    # complete rather than starting over, which would double
-                    # the time allowed to stop.
-                    loop_stopped = await asyncio.shield(stop_loop_task)
-                if loop_stopped:
+                    stop_loop_task = asyncio.create_task(
+                        self._stop_loop_task(loop_task), name="stop worker loop"
+                    )
+                if await asyncio.shield(stop_loop_task):
                     # Surface an error from the loop rather than the
                     # cancellation, as awaiting the loop task directly does.
+                    loop_outcome_retrieved = True
                     await loop_task
             raise
         finally:
             # The loop is about to go away; a late stop() (e.g. from another
             # thread) must not try to wake it.
             self._loop = None
+            if stop_loop_task and not loop_outcome_retrieved:
+                # The loop task was cancelled or abandoned, or run() was
+                # cancelled again while stopping it (the stop then carries on in
+                # the background): nobody is left to retrieve its outcome.
+                loop_task.add_done_callback(_consume_task_exception)
 
     async def _stop_loop_task(self, loop_task: asyncio.Task[Any]) -> bool:
         """
@@ -536,8 +544,8 @@ class Worker:
         after another shutdown_timeout, abandon it. Once it has started shutting
         down, wait for it to stop, however long that takes.
 
-        Returns whether the loop task stopped by itself, in which case retrieving
-        its outcome is left to the caller.
+        Returns whether the loop task stopped by itself (rather than being
+        cancelled or abandoned).
         """
         # The loop task may be blocked on a database call that cannot observe
         # the stop event (e.g. a connection left half-open by a database
@@ -587,7 +595,6 @@ class Worker:
                     job_result=None,
                 ),
             )
-        loop_task.add_done_callback(_consume_task_exception)
         return False
 
     async def _handle_notification(

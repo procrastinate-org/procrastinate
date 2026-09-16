@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import datetime
+import gc
 import signal
 from collections.abc import Callable
 from typing import cast
@@ -263,6 +264,57 @@ async def test_cancelling_run_while_stopping_does_not_hang(
     # The stop in progress carried on, rather than starting over.
     assert caplog.text.count("Cancelling it") == 1
     assert caplog.text.count("Abandoning it") == 1
+
+
+@pytest.mark.parametrize("loop_outcome", [asyncio.CancelledError, ConnectionError])
+async def test_cancelling_run_again_while_stopping_still_stops_loop(
+    app: App, caplog, loop_outcome
+):
+    # A second cancellation makes run() return right away, but must not leave
+    # the stuck run loop running, nor its outcome unretrieved.
+    caplog.set_level("WARNING")
+    worker = Worker(app, wait=True, install_signal_handlers=False, shutdown_timeout=0.2)
+    fetching = asyncio.Event()
+    # Referenced here, so that the stuck run loop can't be garbage collected.
+    never = asyncio.Event()
+
+    async def stuck_fetch_job(**kwargs):
+        fetching.set()
+        try:
+            await never.wait()
+        except asyncio.CancelledError:
+            await asyncio.sleep(0.05)
+            raise loop_outcome
+
+    app.job_manager.fetch_job = stuck_fetch_job
+    run_task = asyncio.create_task(worker.run())
+    await asyncio.wait_for(fetching.wait(), timeout=1)
+    (loop_task,) = [t for t in asyncio.all_tasks() if t.get_name() == "worker loop"]
+
+    run_task.cancel()
+    await asyncio.sleep(0.02)
+    assert not run_task.done()
+    run_task.cancel()
+
+    done, _ = await asyncio.wait({run_task}, timeout=2)
+
+    assert done, "run() never returned after being cancelled twice"
+    with pytest.raises(asyncio.CancelledError):
+        run_task.result()
+    # run() returned before the run loop was even cancelled.
+    assert "Cancelling it" not in caplog.text
+
+    # Stopping the run loop carried on in the background.
+    await wait_for(loop_task.done)
+    assert "Worker loop did not stop within shutdown_timeout" in caplog.text
+    assert "Abandoning it" not in caplog.text
+    if loop_outcome is asyncio.CancelledError:
+        assert loop_task.cancelled()
+    del loop_task
+    await asyncio.sleep(0.01)
+    gc.collect()
+    assert "never retrieved" not in caplog.text
+    assert "was destroyed but it is pending" not in caplog.text
 
 
 async def test_stopping_worker_does_not_hang_on_stuck_unregister(app: App, caplog):
