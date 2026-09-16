@@ -12,12 +12,24 @@ The worker will then wait for all jobs to complete.
 
 There is one situation in which the worker cannot observe the stop request at all: a database
 call that never returns, for example on a connection left half-open by a database failover or a
-proxy. By default, cancelling the worker then waits forever. If a `shutdown_timeout` option is
-specified, the worker waits up to that long for its run loop to stop after `run_worker_async` is
-cancelled, then cancels the run loop, and — if even the cancellation has no effect on the stuck
-database call — abandons it, so that cancelling the worker always terminates. As the run loop
-waits for running jobs before exiting, `shutdown_timeout` should be greater than
-`shutdown_graceful_timeout`.
+proxy. By default, stopping the worker then waits forever. If a `shutdown_timeout` option is
+specified, the worker waits up to that long for its run loop to start shutting down after any stop
+request (a signal, `worker.stop()`, `wait=False` or cancelling `run_worker_async`), then cancels
+the run loop, and — if even the cancellation has no effect on the stuck database call — abandons
+it, so that the stuck run loop does not block the stop. When the run loop has to be cancelled, the
+worker does not try to unregister itself from the unresponsive database; it is pruned later, once
+its heartbeat has gone stale.
+
+`shutdown_timeout` does not limit how long the worker waits for running jobs once its run loop has
+started shutting down: that is what `shutdown_graceful_timeout` is for. A stuck run loop takes at
+most twice `shutdown_timeout` to stop; otherwise, the worker takes up to `shutdown_timeout` to
+start shutting down, plus the time it waits for running jobs. This does not cover a database that
+becomes unresponsive while the worker is waiting for running jobs: a job that cannot record its
+result still prevents the worker from stopping.
+
+`shutdown_timeout` should comfortably exceed the time your database driver takes to give up on a
+cancelled query (with psycopg >= 3.3.6 and libpq >= 17, about 5 seconds after cancelling it), so
+that a cancelled run loop can finish instead of being abandoned.
 
 
 :::{note}

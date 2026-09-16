@@ -317,18 +317,33 @@ class App(blueprints.Blueprint):
             (defaults to None)
         shutdown_timeout: ``float``
             Indicates the maximum duration (in seconds) the worker waits for its
-            run loop to stop after ``run_worker_async()`` is cancelled, before
-            cancelling the run loop; then again before abandoning it. Cancelling
-            the worker therefore takes at most twice this value.
+            run loop to start shutting down after being asked to stop (by a
+            signal, by ``Worker.stop()``, because of ``wait=False``, or by
+            cancelling ``run_worker_async()``), before cancelling the run loop;
+            then again before abandoning it.
 
-            The run loop stops as soon as it is asked to, unless it is blocked on
-            a database call that never returns (e.g. on a connection left
-            half-open by a database failover), in which case it never observes
-            the request. This timeout ensures that cancelling the worker always
-            terminates.
+            The run loop starts shutting down as soon as it is asked to, unless it
+            is blocked on a database call that never returns (e.g. on a connection
+            left half-open by a database failover), in which case it never
+            observes the request. This timeout ensures that such a stuck run
+            loop does not block the stop. When the run loop has to be cancelled, the worker
+            does not unregister itself from the database; it is pruned later
+            through its stale heartbeat.
 
-            As the run loop waits for running jobs to complete before it exits,
-            this should be greater than ``shutdown_graceful_timeout``.
+            Once the run loop has started shutting down, it is not stuck: waiting
+            for running jobs is governed by ``shutdown_graceful_timeout``, not by
+            this timeout (unregistering the worker is still bounded by it). A stuck
+            run loop therefore takes at most twice this value to stop; otherwise
+            the worker takes up to this value to start shutting down, plus the
+            time it waits for running jobs. This does not cover a database that
+            becomes unresponsive while the worker is waiting for running jobs: a
+            job that cannot record its result still prevents the worker from
+            stopping.
+
+            This should comfortably exceed the time the database driver takes to
+            give up on a cancelled query (with psycopg >= 3.3.6 and libpq >= 17,
+            about 5 seconds), so that a cancelled run loop can finish rather than
+            be abandoned.
 
             A value of None corresponds to no timeout, meaning that a worker
             whose connection is unresponsive may never shut down.
