@@ -291,7 +291,7 @@ async def test_finish_job(job_manager, job_factory, connector):
     )
     assert connector.queries[-1] == (
         "finish_job",
-        {"job_id": 1, "status": "succeeded", "delete_job": False},
+        {"job_id": 1, "status": "succeeded", "delete_job": False, "exc_info": None},
     )
 
 
@@ -302,7 +302,7 @@ async def test_finish_job_with_deletion(job_manager, job_factory, connector):
     await job_manager.finish_job(job=job, status=jobs.Status.SUCCEEDED, delete_job=True)
     assert connector.queries[-1] == (
         "finish_job",
-        {"job_id": 1, "status": "succeeded", "delete_job": True},
+        {"job_id": 1, "status": "succeeded", "delete_job": True, "exc_info": None},
     )
     assert 1 not in connector.jobs
 
