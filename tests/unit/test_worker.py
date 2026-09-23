@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import datetime
 import signal
 from collections.abc import Callable
@@ -21,7 +22,9 @@ from procrastinate.worker import Worker
 
 async def start_worker(worker: Worker):
     task = asyncio.create_task(worker.run())
-    await asyncio.sleep(0.01)
+    # Yield once so the task gets scheduled, but grant it no wall-clock budget:
+    # callers must synchronise on an observable state, never on elapsed time.
+    await asyncio.sleep(0)
     return task
 
 
@@ -33,6 +36,31 @@ async def wait_for(condition: Callable[[], bool], timeout: float = 2):
     await asyncio.wait_for(poll(), timeout)
 
 
+async def wait_for_job_status(
+    app: App, job_id: int, status: Status, timeout: float = 2
+):
+    """
+    Wait until the job reaches `status`, then assert it did. On timeout, the
+    assertion reports the status the job is actually stuck in.
+    """
+    actual = None
+
+    async def poll():
+        nonlocal actual
+        while (actual := await app.job_manager.get_job_status_async(job_id)) != status:
+            await asyncio.sleep(0.001)
+
+    with contextlib.suppress(TimeoutError):
+        await asyncio.wait_for(poll(), timeout)
+
+    assert actual == status
+
+
+def count_queries(app: App, query_name: str) -> int:
+    connector = cast(InMemoryConnector, app.connector)
+    return len([query for query in connector.queries if query[0] == query_name])
+
+
 @pytest.fixture
 async def worker(app: App, request: pytest.FixtureRequest):
     kwargs = request.param if hasattr(request, "param") else {}
@@ -41,7 +69,7 @@ async def worker(app: App, request: pytest.FixtureRequest):
     if worker.run_task and not worker.run_task.done():
         worker.stop()
         try:
-            await asyncio.wait_for(worker.run_task, timeout=0.2)
+            await asyncio.wait_for(worker.run_task, timeout=5)
         except asyncio.CancelledError:
             pass
 
@@ -67,7 +95,7 @@ async def test_worker_run_no_wait(app: App, available_jobs, concurrency):
     for i in range(available_jobs):
         await perform_job.defer_async()
 
-    await asyncio.wait_for(worker.run(), 0.1)
+    await asyncio.wait_for(worker.run(), 2)
 
 
 async def test_worker_run_wait_until_cancelled(app: App):
@@ -80,10 +108,9 @@ async def test_worker_run_wait_stop(app: App, caplog):
     caplog.set_level("INFO")
     worker = Worker(app, wait=True)
     run_task = asyncio.create_task(worker.run())
-    # wait just enough to make sure the task is running
-    await asyncio.sleep(0.01)
+    await wait_for(lambda: "Starting worker on all queues" in caplog.messages)
     worker.stop()
-    await asyncio.wait_for(run_task, 0.1)
+    await asyncio.wait_for(run_task, 2)
 
     assert set(caplog.messages) == {
         "Starting worker on all queues",
@@ -131,7 +158,7 @@ def test_stop_after_run_exited_with_error_does_not_raise(not_opened_app: App):
 async def test_worker_run_once_log_messages(app: App, caplog):
     caplog.set_level("INFO")
     worker = Worker(app, wait=False)
-    await asyncio.wait_for(worker.run(), 0.1)
+    await asyncio.wait_for(worker.run(), 2)
 
     assert set(caplog.messages) == {
         "Starting worker on all queues",
@@ -142,8 +169,10 @@ async def test_worker_run_once_log_messages(app: App, caplog):
 
 
 async def test_worker_run_wait_listen(worker):
-    await start_worker(worker)
     connector = cast(InMemoryConnector, worker.app.connector)
+
+    await start_worker(worker)
+    await wait_for(lambda: bool(connector.notify_channels))
 
     assert connector.notify_channels == ["procrastinate_any_queue_v1"]
 
@@ -160,15 +189,19 @@ async def test_worker_run_respects_concurrency(
     worker: Worker, app: App, available_jobs
 ):
     complete_tasks = asyncio.Event()
+    started_jobs = 0
 
     @app.task
     async def perform_job():
+        nonlocal started_jobs
+        started_jobs += 1
         await complete_tasks.wait()
 
     for _ in range(available_jobs):
         await perform_job.defer_async()
 
     await start_worker(worker)
+    await wait_for(lambda: started_jobs >= worker.concurrency)
 
     connector = cast(InMemoryConnector, app.connector)
 
@@ -244,38 +277,34 @@ async def test_worker_run_fetches_job_on_notification(worker, app: App):
 
     await start_worker(worker)
 
-    connector = cast(InMemoryConnector, app.connector)
+    await wait_for(lambda: count_queries(app, "fetch_job") >= 1)
+    assert count_queries(app, "fetch_job") == 1
 
-    assert len([query for query in connector.queries if query[0] == "fetch_job"]) == 1
-
+    # Nothing was deferred, so the worker stays idle instead of fetching again.
     await asyncio.sleep(0.01)
-
-    assert len([query for query in connector.queries if query[0] == "fetch_job"]) == 1
+    assert count_queries(app, "fetch_job") == 1
 
     await perform_job.defer_async()
-    await asyncio.sleep(0.01)
 
-    assert len([query for query in connector.queries if query[0] == "fetch_job"]) == 2
+    await wait_for(lambda: count_queries(app, "fetch_job") >= 2)
+    assert count_queries(app, "fetch_job") == 2
 
     complete_tasks.set()
 
 
 @pytest.mark.parametrize(
     "worker",
-    [({"fetch_job_polling_interval": 0.05})],
+    [({"fetch_job_polling_interval": 0.2})],
     indirect=["worker"],
 )
 async def test_worker_run_respects_polling(worker, app):
     await start_worker(worker)
 
-    connector = cast(InMemoryConnector, app.connector)
-    await asyncio.sleep(0.01)
+    await wait_for(lambda: count_queries(app, "fetch_job") >= 1)
+    assert count_queries(app, "fetch_job") == 1
 
-    assert len([query for query in connector.queries if query[0] == "fetch_job"]) == 1
-
-    await asyncio.sleep(0.07)
-
-    assert len([query for query in connector.queries if query[0] == "fetch_job"]) == 2
+    await wait_for(lambda: count_queries(app, "fetch_job") >= 2)
+    assert count_queries(app, "fetch_job") == 2
 
 
 @pytest.mark.parametrize(
@@ -296,6 +325,7 @@ async def test_process_job_without_deletion(app: App, worker, fail_task):
     job_id = await task_func.defer_async()
 
     await start_worker(worker)
+    await wait_for(lambda: count_queries(app, "finish_job") >= 1)
 
     connector = cast(InMemoryConnector, app.connector)
     assert job_id in connector.jobs
@@ -319,23 +349,26 @@ async def test_process_job_with_deletion(app: App, worker, fail_task):
     job_id = await task_func.defer_async()
 
     await start_worker(worker)
+    await wait_for(lambda: count_queries(app, "finish_job") >= 1)
 
     connector = cast(InMemoryConnector, app.connector)
     assert job_id not in connector.jobs
 
 
 async def test_stopping_worker_waits_for_task(app: App, worker):
+    job_started_event = asyncio.Event()
     complete_task_event = asyncio.Event()
 
     @app.task()
     async def task_func():
+        job_started_event.set()
         await complete_task_event.wait()
 
     run_task = await start_worker(worker)
 
     job_id = await task_func.defer_async()
 
-    await asyncio.sleep(0.05)
+    await wait_for(job_started_event.is_set)
 
     # this should still be running waiting for the task to complete
     assert run_task.done() is False
@@ -344,9 +377,9 @@ async def test_stopping_worker_waits_for_task(app: App, worker):
     complete_task_event.set()
 
     # this should successfully complete the job and re-raise the CancelledError
+    run_task.cancel()
     with pytest.raises(asyncio.CancelledError):
-        run_task.cancel()
-        await asyncio.wait_for(run_task, 0.1)
+        await asyncio.wait_for(run_task, 2)
 
     status = await app.job_manager.get_job_status_async(job_id)
     assert status == Status.SUCCEEDED
@@ -354,6 +387,7 @@ async def test_stopping_worker_waits_for_task(app: App, worker):
 
 @pytest.mark.parametrize("mode", [("stop"), ("cancel")])
 async def test_stopping_worker_aborts_job_after_timeout(app: App, worker, mode):
+    job_started_event = asyncio.Event()
     complete_task_event = asyncio.Event()
     worker.shutdown_graceful_timeout = 0.02
 
@@ -362,6 +396,7 @@ async def test_stopping_worker_aborts_job_after_timeout(app: App, worker, mode):
     @app.task()
     async def task_func():
         nonlocal task_cancelled
+        job_started_event.set()
         try:
             await complete_task_event.wait()
         except asyncio.CancelledError:
@@ -372,7 +407,7 @@ async def test_stopping_worker_aborts_job_after_timeout(app: App, worker, mode):
 
     job_id = await task_func.defer_async()
 
-    await asyncio.sleep(0.05)
+    await wait_for(job_started_event.is_set)
 
     # this should still be running waiting for the task to complete
     assert run_task.done() is False
@@ -382,16 +417,12 @@ async def test_stopping_worker_aborts_job_after_timeout(app: App, worker, mode):
     if mode == "stop":
         worker.stop()
 
-        await asyncio.sleep(0.1)
-        assert run_task.done()
-        await run_task
+        await asyncio.wait_for(run_task, 2)
     else:
-        with pytest.raises(asyncio.CancelledError):
-            run_task.cancel()
+        run_task.cancel()
 
-            await asyncio.sleep(0.1)
-            assert run_task.done()
-            await run_task
+        with pytest.raises(asyncio.CancelledError):
+            await asyncio.wait_for(run_task, 2)
 
     status = await app.job_manager.get_job_status_async(job_id)
     assert status == Status.ABORTED
@@ -399,11 +430,13 @@ async def test_stopping_worker_aborts_job_after_timeout(app: App, worker, mode):
 
 
 async def test_stopping_worker_job_suppresses_cancellation(app: App, worker):
+    job_started_event = asyncio.Event()
     complete_task_event = asyncio.Event()
     worker.shutdown_graceful_timeout = 0.02
 
     @app.task()
     async def task_func():
+        job_started_event.set()
         try:
             await complete_task_event.wait()
         except asyncio.CancelledError:
@@ -414,16 +447,14 @@ async def test_stopping_worker_job_suppresses_cancellation(app: App, worker):
 
     job_id = await task_func.defer_async()
 
-    await asyncio.sleep(0.05)
+    await wait_for(job_started_event.is_set)
 
     # this should still be running waiting for the task to complete
     assert run_task.done() is False
 
     worker.stop()
 
-    await asyncio.sleep(0.1)
-    assert run_task.done()
-    await run_task
+    await asyncio.wait_for(run_task, 2)
 
     status = await app.job_manager.get_job_status_async(job_id)
     assert status == Status.SUCCEEDED
@@ -443,8 +474,7 @@ async def test_worker_passes_additional_context(app: App, worker):
 
     await start_worker(worker)
 
-    status = await app.job_manager.get_job_status_async(job_id)
-    assert status == Status.SUCCEEDED
+    await wait_for_job_status(app, job_id, Status.SUCCEEDED)
 
 
 async def test_run_job_async(app: App, worker):
@@ -457,10 +487,9 @@ async def test_run_job_async(app: App, worker):
     job_id = await task_func.defer_async(a=9, b=3)
 
     await start_worker(worker)
-    assert result == [12]
 
-    status = await app.job_manager.get_job_status_async(job_id)
-    assert status == Status.SUCCEEDED
+    await wait_for_job_status(app, job_id, Status.SUCCEEDED)
+    assert result == [12]
 
 
 async def test_run_job_sync(app: App, worker):
@@ -473,10 +502,9 @@ async def test_run_job_sync(app: App, worker):
     job_id = await task_func.defer_async(a=9, b=3)
 
     await start_worker(worker)
-    assert result == [12]
 
-    status = await app.job_manager.get_job_status_async(job_id)
-    assert status == Status.SUCCEEDED
+    await wait_for_job_status(app, job_id, Status.SUCCEEDED)
+    assert result == [12]
 
 
 async def test_run_job_semi_async(app: App, worker):
@@ -493,10 +521,8 @@ async def test_run_job_semi_async(app: App, worker):
 
     await start_worker(worker)
 
+    await wait_for_job_status(app, job_id, Status.SUCCEEDED)
     assert result == [12]
-
-    status = await app.job_manager.get_job_status_async(job_id)
-    assert status == Status.SUCCEEDED
 
 
 async def test_run_job_log_result(caplog, app: App, worker):
@@ -506,9 +532,11 @@ async def test_run_job_log_result(caplog, app: App, worker):
     async def task_func(a, b):
         return a + b
 
-    await task_func.defer_async(a=9, b=3)
+    job_id = await task_func.defer_async(a=9, b=3)
 
     await start_worker(worker)
+
+    await wait_for_job_status(app, job_id, Status.SUCCEEDED)
 
     records = [record for record in caplog.records if record.action == "job_success"]
     assert len(records) == 1
@@ -529,9 +557,8 @@ async def test_run_task_not_found_status(app: App, worker, caplog):
     assert job.id
 
     await start_worker(worker)
-    await asyncio.sleep(0.01)
-    status = await app.job_manager.get_job_status_async(job.id)
-    assert status == Status.FAILED
+
+    await wait_for_job_status(app, job.id, Status.FAILED)
 
     records = [record for record in caplog.records if record.action == "task_not_found"]
     assert len(records) == 1
@@ -559,9 +586,7 @@ async def test_run_job_error(app: App, worker, critical_error, caplog):
 
     await start_worker(worker)
 
-    await asyncio.sleep(0.05)
-    status = await app.job_manager.get_job_status_async(job_id)
-    assert status == Status.FAILED
+    await wait_for_job_status(app, job_id, Status.FAILED)
 
     records = [
         record
@@ -585,8 +610,7 @@ async def test_run_job_raising_job_aborted(app: App, worker, caplog):
 
     await start_worker(worker)
 
-    status = await app.job_manager.get_job_status_async(job_id)
-    assert status == Status.ABORTED
+    await wait_for_job_status(app, job_id, Status.ABORTED)
 
     records = [record for record in caplog.records if record.action == "job_aborted"]
     assert len(records) == 1
@@ -596,17 +620,24 @@ async def test_run_job_raising_job_aborted(app: App, worker, caplog):
 
 
 async def test_abort_async_job(app: App, worker):
+    job_started_event = asyncio.Event()
+    # Never set: the job only ever ends by being cancelled.
+    never = asyncio.Event()
+
     @app.task(queue="yay", name="task_func")
     async def task_func():
-        await asyncio.sleep(0.2)
+        job_started_event.set()
+        await never.wait()
 
     job_id = await task_func.defer_async()
 
     await start_worker(worker)
+    # Aborting a job that is not running yet cancels it instead.
+    await wait_for(job_started_event.is_set)
+
     await app.job_manager.cancel_job_by_id_async(job_id, abort=True)
-    await asyncio.sleep(0.01)
-    status = await app.job_manager.get_job_status_async(job_id)
-    assert status == Status.ABORTED
+
+    await wait_for_job_status(app, job_id, Status.ABORTED)
 
 
 async def test_abort_async_job_while_finishing(app: App, worker, mocker: MockerFixture):
@@ -617,9 +648,11 @@ async def test_abort_async_job_while_finishing(app: App, worker, mocker: MockerF
     connector = cast(InMemoryConnector, app.connector)
     original_finish_job_run = connector.finish_job_run
 
+    finish_job_started_event = asyncio.Event()
     complete_finish_job_event = asyncio.Event()
 
     async def delayed_finish_job_run(**arguments):
+        finish_job_started_event.set()
         await complete_finish_job_event.wait()
         return await original_finish_job_run(**arguments)
 
@@ -633,12 +666,15 @@ async def test_abort_async_job_while_finishing(app: App, worker, mocker: MockerF
     job_id = await task_func.defer_async()
 
     await start_worker(worker)
+    # The job is done but its status update is held back.
+    await wait_for(finish_job_started_event.is_set)
+
     await app.job_manager.cancel_job_by_id_async(job_id, abort=True)
-    await asyncio.sleep(0.01)
+    await wait_for(lambda: job_id in worker._job_ids_to_abort)
+
     complete_finish_job_event.set()
-    await asyncio.sleep(0.01)
-    status = await app.job_manager.get_job_status_async(job_id)
-    assert status == Status.SUCCEEDED
+
+    await wait_for_job_status(app, job_id, Status.SUCCEEDED)
 
 
 async def test_abort_async_job_preventing_cancellation(app: App, worker):
@@ -646,20 +682,25 @@ async def test_abort_async_job_preventing_cancellation(app: App, worker):
     Tests that an async job can prevent itself from being aborted
     """
 
+    job_started_event = asyncio.Event()
+    never = asyncio.Event()
+
     @app.task(queue="yay", name="task_func")
     async def task_func():
+        job_started_event.set()
         try:
-            await asyncio.sleep(0.2)
+            await never.wait()
         except asyncio.CancelledError:
             pass
 
     job_id = await task_func.defer_async()
 
     await start_worker(worker)
+    await wait_for(job_started_event.is_set)
+
     await app.job_manager.cancel_job_by_id_async(job_id, abort=True)
-    await asyncio.sleep(0.01)
-    status = await app.job_manager.get_job_status_async(job_id)
-    assert status == Status.SUCCEEDED
+
+    await wait_for_job_status(app, job_id, Status.SUCCEEDED)
 
 
 @pytest.mark.parametrize(
@@ -671,8 +712,11 @@ async def test_abort_async_job_preventing_cancellation(app: App, worker):
     indirect=["worker"],
 )
 async def test_run_job_abort(app: App, worker: Worker):
+    job_started_event = asyncio.Event()
+
     @app.task(queue="yay", name="task_func", pass_context=True)
     async def task_func(job_context: JobContext):
+        job_started_event.set()
         while True:
             await asyncio.sleep(0.01)
             if job_context.should_abort():
@@ -681,13 +725,13 @@ async def test_run_job_abort(app: App, worker: Worker):
     job_id = await task_func.defer_async()
 
     await start_worker(worker)
+    await wait_for(job_started_event.is_set)
 
     await app.job_manager.cancel_job_by_id_async(job_id, abort=True)
 
-    await asyncio.sleep(0.01 if worker.listen_notify else 0.05)
+    await wait_for_job_status(app, job_id, Status.ABORTED)
 
-    status = await app.job_manager.get_job_status_async(job_id)
-    assert status == Status.ABORTED
+    await wait_for(lambda: worker._job_ids_to_abort == {})
     assert worker._job_ids_to_abort == {}, (
         "Expected cancelled job id to be removed from set"
     )
@@ -729,9 +773,10 @@ async def test_run_job_retry_failed_job(
 
     job_id = await task_func.defer_async()
 
-    await start_worker(worker)
+    run_task = await start_worker(worker)
 
-    await asyncio.sleep(0.01)
+    # wait=False: the worker exits once it runs out of jobs to process.
+    await asyncio.wait_for(run_task, 2)
 
     connector = cast(InMemoryConnector, app.connector)
     job_row = connector.jobs[job_id]
@@ -761,7 +806,7 @@ async def test_run_log_actions(app: App, caplog, worker):
 
     await start_worker(worker)
 
-    await asyncio.wait_for(done.wait(), timeout=0.05)
+    await asyncio.wait_for(done.wait(), timeout=2)
 
     connector = cast(InMemoryConnector, app.connector)
     expected_actions = [
@@ -773,11 +818,7 @@ async def test_run_log_actions(app: App, caplog, worker):
         "fetch_job",
     ]
 
-    async def wait_for_actions():
-        while len(connector.queries) < len(expected_actions):
-            await asyncio.sleep(0.001)
-
-    await asyncio.wait_for(wait_for_actions(), timeout=1)
+    await wait_for(lambda: len(connector.queries) >= len(expected_actions))
 
     assert [q[0] for q in connector.queries] == expected_actions
 
@@ -796,33 +837,40 @@ async def test_run_log_actions(app: App, caplog, worker):
 
 async def test_run_log_current_job_when_stopping(app: App, worker, caplog):
     caplog.set_level("DEBUG")
+    job_started_event = asyncio.Event()
     complete_job_event = asyncio.Event()
 
     @app.task(queue="some_queue")
     async def t():
+        job_started_event.set()
         await complete_job_event.wait()
 
     job_id = await t.defer_async()
     run_task = await start_worker(worker)
-    worker.stop()
-    await asyncio.sleep(0.01)
-    complete_job_event.set()
+    await wait_for(job_started_event.is_set)
 
-    await asyncio.wait_for(run_task, timeout=0.05)
+    worker.stop()
+
     # We want to make sure that the log that names the current running task fired.
+    expected_log = (
+        f"Waiting for job to finish: worker: tests.unit.test_worker.t[{job_id}]()"
+    )
+    await wait_for(lambda: any(expected_log in r.message for r in caplog.records))
+
+    complete_job_event.set()
+    await asyncio.wait_for(run_task, timeout=2)
+
     logs = " ".join(r.message for r in caplog.records)
     assert "Stop requested" in logs
-    assert (
-        f"Waiting for job to finish: worker: tests.unit.test_worker.t[{job_id}]()"
-        in logs
-    )
+    assert expected_log in logs
 
 
 async def test_run_no_signal_handlers(worker, kill_own_pid):
     worker.install_signal_handlers = False
     await start_worker(worker)
+    await wait_for(lambda: worker.worker_id is not None)
+
     with pytest.raises(KeyboardInterrupt):
-        await asyncio.sleep(0.01)
         # Test that handlers are NOT installed
         kill_own_pid(signal=signal.SIGINT)
 
@@ -837,30 +885,31 @@ async def test_worker_id_and_heartbeat_lifecycle(app: App):
 
     run_task = await start_worker(worker)
 
+    await wait_for(lambda: worker.worker_id is not None)
     worker_id = worker.worker_id
     assert worker_id is not None and worker_id > 0
 
-    await asyncio.sleep(0.01)
-
+    await wait_for(lambda: worker_id in connector.workers)
     heartbeat1 = connector.workers[worker_id]
     assert heartbeat1 is not None
 
-    await asyncio.sleep(0.05)
-
-    heartbeat2 = connector.workers[worker_id]
-    assert heartbeat2 > heartbeat1
+    await wait_for(lambda: connector.workers[worker_id] > heartbeat1)
 
     worker.stop()
-    await run_task
+    await asyncio.wait_for(run_task, 2)
 
     assert worker.worker_id is None
     assert connector.workers == {}
 
 
 async def test_job_receives_worker_id(app: App):
+    job_started_event = asyncio.Event()
+    complete_job_event = asyncio.Event()
+
     @app.task(queue="some_queue")
     async def t():
-        await asyncio.sleep(0.08)
+        job_started_event.set()
+        await complete_job_event.wait()
 
     job_id = await t.defer_async()
 
@@ -872,17 +921,16 @@ async def test_job_receives_worker_id(app: App):
     worker = Worker(app, wait=False)
     run_task = await start_worker(worker)
 
-    await asyncio.sleep(0.05)
+    await wait_for(job_started_event.is_set)
 
     assert job_row["status"] == "doing"
     assert job_row["worker_id"] == worker.worker_id
 
-    await asyncio.sleep(0.05)
+    complete_job_event.set()
+    await asyncio.wait_for(run_task, 2)
 
     assert job_row["status"] == "succeeded"
     assert job_row["worker_id"] is None
-
-    await run_task
 
 
 async def test_worker_prunes_stalled_workers(app: App):
@@ -900,7 +948,7 @@ async def test_worker_prunes_stalled_workers(app: App):
     }
 
     run_task = await start_worker(worker)
-    await run_task
+    await asyncio.wait_for(run_task, 2)
 
     assert worker1_id in connector.workers
     assert worker2_id not in connector.workers
