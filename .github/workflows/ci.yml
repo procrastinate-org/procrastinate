@@ -148,6 +148,9 @@ jobs:
     name: Coverage
     runs-on: ubuntu-latest
     needs: [tests]
+    concurrency:
+      group: coverage-${{ github.ref }}
+      cancel-in-progress: false
     permissions:
       pull-requests: write # Publish the coverage comment, and edit it on later runs
       contents: write # Push the coverage data to the data branch
