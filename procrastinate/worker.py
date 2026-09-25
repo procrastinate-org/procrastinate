@@ -30,6 +30,15 @@ FETCH_JOB_POLLING_INTERVAL = 5.0  # seconds
 ABORT_JOB_POLLING_INTERVAL = 5.0  # seconds
 
 
+def _consume_task_exception(task: asyncio.Task[Any]) -> None:
+    # Consume the outcome of a task completing after it was given up on, so
+    # that a late failure isn't logged as a never-retrieved task exception.
+    if not task.cancelled() and task.exception():
+        logger.debug(
+            f"{task.get_name()} failed after being given up on: {task.exception()!r}"
+        )
+
+
 class Worker:
     def __init__(
         self,
@@ -41,6 +50,7 @@ class Worker:
         fetch_job_polling_interval: float = FETCH_JOB_POLLING_INTERVAL,
         abort_job_polling_interval: float = ABORT_JOB_POLLING_INTERVAL,
         shutdown_graceful_timeout: float | None = None,
+        shutdown_timeout: float | None = None,
         listen_notify: bool = True,
         delete_jobs: str | jobs.DeleteJobCondition | None = None,
         additional_context: dict[str, Any] | None = None,
@@ -97,6 +107,12 @@ class Worker:
         self._job_semaphore = asyncio.Semaphore(self.concurrency)
         self._stop_event = asyncio.Event()
         self.shutdown_graceful_timeout = shutdown_graceful_timeout
+        self.shutdown_timeout = shutdown_timeout
+        # Set once the run loop has started shutting down.
+        self._shutdown_started = asyncio.Event()
+        # Set when the run loop had to be cancelled because it did not start
+        # shutting down within shutdown_timeout.
+        self._shutdown_forced = False
         self._job_ids_to_abort: dict[int, job_context.AbortReason] = {}
         self.run_task: asyncio.Task[Any] | None = None
         self._loop: asyncio.AbstractEventLoop | None = None
@@ -441,6 +457,8 @@ class Worker:
         # the first await: anything later (e.g. the top of the run loop task) can
         # run after a fresh stop() and erase it, leaving the worker unstoppable.
         self._stop_event.clear()
+        self._shutdown_started.clear()
+        self._shutdown_forced = False
 
         logger.debug("Pruning stalled workers with old heartbeats")
         pruned_workers = await self.app.job_manager.prune_stalled_workers(
@@ -455,20 +473,129 @@ class Worker:
         self.run_task = asyncio.current_task()
         self._loop = asyncio.get_running_loop()
         loop_task = asyncio.create_task(self._run_loop(), name="worker loop")
+        # Only set once a stop of the loop task has started, bounded by
+        # shutdown_timeout. It runs in its own task, so that cancelling run()
+        # meanwhile does not interrupt it.
+        stop_loop_task: asyncio.Task[bool] | None = None
+        loop_outcome_retrieved = False
 
         try:
-            # shield the loop task from cancellation
-            # instead, a stop event is set to enable graceful shutdown
-            await asyncio.shield(loop_task)
+            if self.shutdown_timeout is None:
+                # shield the loop task from cancellation
+                # instead, a stop event is set to enable graceful shutdown
+                await asyncio.shield(loop_task)
+            else:
+                # Same as above, except that the loop task is given at most
+                # shutdown_timeout to start shutting down once asked to stop,
+                # however it was asked (signal, stop(), or the loop itself).
+                stop_requested = asyncio.create_task(
+                    self._stop_event.wait(), name="worker stop requested"
+                )
+                try:
+                    await asyncio.wait(
+                        {loop_task, stop_requested},
+                        return_when=asyncio.FIRST_COMPLETED,
+                    )
+                finally:
+                    stop_requested.cancel()
+                if not loop_task.done():
+                    stop_loop_task = asyncio.create_task(
+                        self._stop_loop_task(loop_task), name="stop worker loop"
+                    )
+                    if not await asyncio.shield(stop_loop_task):
+                        # The loop task had to be cancelled, but the worker
+                        # did stop as asked: this is not an error.
+                        return
+                loop_outcome_retrieved = True
+                await loop_task
         except asyncio.CancelledError:
             # worker.run is cancelled, usually by cancelling app.run_worker_async
             self.stop()
-            await loop_task
+            if self.shutdown_timeout is None:
+                await loop_task
+            else:
+                # If a stop was already in progress, wait for it to complete
+                # rather than starting over, which would double the time allowed
+                # to stop.
+                if stop_loop_task is None:
+                    stop_loop_task = asyncio.create_task(
+                        self._stop_loop_task(loop_task), name="stop worker loop"
+                    )
+                if await asyncio.shield(stop_loop_task):
+                    # Surface an error from the loop rather than the
+                    # cancellation, as awaiting the loop task directly does.
+                    loop_outcome_retrieved = True
+                    await loop_task
             raise
         finally:
             # The loop is about to go away; a late stop() (e.g. from another
             # thread) must not try to wake it.
             self._loop = None
+            if stop_loop_task and not loop_outcome_retrieved:
+                # The loop task was cancelled or abandoned, or run() was
+                # cancelled again while stopping it (the stop then carries on in
+                # the background): nobody is left to retrieve its outcome.
+                loop_task.add_done_callback(_consume_task_exception)
+
+    async def _stop_loop_task(self, loop_task: asyncio.Task[Any]) -> bool:
+        """
+        Wait up to shutdown_timeout for the loop task to start shutting down
+        after a stop request, then cancel it, and if it still has not stopped
+        after another shutdown_timeout, abandon it. Once it has started shutting
+        down, wait for it to stop, however long that takes.
+
+        Returns whether the loop task stopped by itself (rather than being
+        cancelled or abandoned).
+        """
+        # The loop task may be blocked on a database call that cannot observe
+        # the stop event (e.g. a connection left half-open by a database
+        # failover). Waiting for it unconditionally would hang the shutdown
+        # forever.
+        shutdown_started = asyncio.create_task(
+            self._shutdown_started.wait(), name="worker shutdown started"
+        )
+        try:
+            await asyncio.wait(
+                {loop_task, shutdown_started},
+                timeout=self.shutdown_timeout,
+                return_when=asyncio.FIRST_COMPLETED,
+            )
+        finally:
+            shutdown_started.cancel()
+        if self._shutdown_started.is_set() or loop_task.done():
+            # A loop that is shutting down is not stuck: it is waiting for
+            # running jobs, as bounded by shutdown_graceful_timeout (if any).
+            await asyncio.wait({loop_task})
+            return True
+
+        self.logger.warning(
+            "Worker loop did not stop within shutdown_timeout. Cancelling it",
+            extra=self._log_extra(
+                context=None,
+                action="shutdown_loop_timeout",
+                queues=self.queues,
+                job_result=None,
+            ),
+        )
+        # The database is unresponsive: _shutdown must not wait on it again.
+        self._shutdown_forced = True
+        loop_task.cancel()
+        # The cancellation itself may be swallowed by a driver blocked on an
+        # unresponsive connection, so this wait is bounded too. If the loop task
+        # is still pending afterwards, it is abandoned: the caller has asked us
+        # to stop and must not be blocked further.
+        _, pending = await asyncio.wait({loop_task}, timeout=self.shutdown_timeout)
+        if pending:
+            self.logger.warning(
+                "Worker loop did not react to cancellation. Abandoning it",
+                extra=self._log_extra(
+                    context=None,
+                    action="shutdown_loop_abandoned",
+                    queues=self.queues,
+                    job_result=None,
+                ),
+            )
+        return False
 
     async def _handle_notification(
         self, *, channel: str, notification: jobs.Notification
@@ -553,6 +680,7 @@ class Worker:
         Gracefully shutdown the worker by cancelling side tasks
         and waiting for all pending jobs.
         """
+        self._shutdown_started.set()
         await utils.cancel_and_capture_errors(side_tasks)
 
         now = time.time()
@@ -586,8 +714,57 @@ class Worker:
             await self._abort_running_jobs()
 
         assert self.worker_id is not None
-        await self.app.job_manager.unregister_worker(self.worker_id)
-        logger.debug(f"Unregistered finished worker {self.worker_id} from the database")
+        # Unregistering is best effort: a worker that could not unregister (for
+        # instance because its database connection is unresponsive) is
+        # eventually pruned through its stale heartbeat by another worker.
+        if self._shutdown_forced:
+            # The run loop was cancelled because the database did not respond in
+            # time; don't wait on it for another shutdown_timeout.
+            self.logger.warning(
+                "Not unregistering the worker: shutdown was forced. "
+                "Its heartbeat will go stale and it will eventually be pruned",
+                extra=self._log_extra(
+                    context=None,
+                    action="shutdown_unregister_skipped",
+                    queues=self.queues,
+                    job_result=None,
+                ),
+            )
+        else:
+            # Bound it like the run loop itself, so that a shutdown with a stuck
+            # connection can complete (without shutdown_timeout, wait forever, as
+            # before).
+            unregister_task = asyncio.create_task(
+                self.app.job_manager.unregister_worker(self.worker_id),
+                name="unregister_worker",
+            )
+            try:
+                done, _ = await asyncio.wait(
+                    {unregister_task}, timeout=self.shutdown_timeout
+                )
+            finally:
+                # Also on cancellation (e.g. of a stuck shutdown), so the call
+                # isn't left running on its own.
+                if not unregister_task.done():
+                    unregister_task.cancel()
+                    unregister_task.add_done_callback(_consume_task_exception)
+            if done:
+                # Surface an error from the task, as awaiting it directly used to do.
+                await unregister_task
+                logger.debug(
+                    f"Unregistered finished worker {self.worker_id} from the database"
+                )
+            else:
+                self.logger.warning(
+                    "Could not unregister the worker within shutdown_timeout. "
+                    "Its heartbeat will go stale and it will eventually be pruned",
+                    extra=self._log_extra(
+                        context=None,
+                        action="shutdown_unregister_timeout",
+                        queues=self.queues,
+                        job_result=None,
+                    ),
+                )
         self.worker_id = None
 
         self.logger.info(
