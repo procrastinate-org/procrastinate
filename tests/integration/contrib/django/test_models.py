@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import datetime
+from unittest import mock
 
 import pytest
 
@@ -30,6 +31,7 @@ def test_procrastinate_job(db):
         "queueing_lock": None,
         "abort_requested": False,
         "worker_id": None,
+        "deferred_at": mock.ANY,
     }
 
 

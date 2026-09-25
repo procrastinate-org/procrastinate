@@ -61,11 +61,14 @@ async def test_fetch_job(
     # Now add the job we're testing
     job = await deferred_job_factory(**job_kwargs)
 
-    expected_job = job.evolve(status="doing", worker_id=worker_id)
-    assert (
-        await pg_job_manager.fetch_job(queues=fetch_queues, worker_id=worker_id)
-        == expected_job
+    fetched_job = await pg_job_manager.fetch_job(
+        queues=fetch_queues, worker_id=worker_id
     )
+    assert fetched_job.deferred_at is not None
+    expected_job = job.evolve(
+        status="doing", worker_id=worker_id, deferred_at=fetched_job.deferred_at
+    )
+    assert fetched_job == expected_job
 
 
 async def test_fetch_job_not_fetching_started_job(
@@ -772,7 +775,9 @@ async def fixture_jobs(pg_job_manager, job_factory, worker_id):
 
 async def test_list_jobs_dict(fixture_jobs, pg_job_manager):
     j1, *_ = fixture_jobs
-    assert (await pg_job_manager.list_jobs_async())[0] == j1
+    listed_job = (await pg_job_manager.list_jobs_async())[0]
+    assert listed_job.deferred_at is not None
+    assert listed_job == j1.evolve(deferred_at=listed_job.deferred_at)
 
 
 @pytest.mark.parametrize(

@@ -75,6 +75,7 @@ CREATE TABLE procrastinate_jobs (
     attempts integer DEFAULT 0 NOT NULL,
     abort_requested boolean DEFAULT false NOT NULL,
     worker_id bigint REFERENCES procrastinate_workers(id) ON DELETE SET NULL,
+    deferred_at timestamp with time zone DEFAULT NOW(),
     CONSTRAINT check_not_todo_abort_requested CHECK (NOT (status = 'todo' AND abort_requested = true))
 );
 
