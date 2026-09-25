@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_QUEUE = "default"
 DEFAULT_PRIORITY = 0
+DEFAULT_LOCK_MODE = "ordered"
 
 cached_property = getattr(functools, "cached_property", property)
 
@@ -40,6 +41,36 @@ def check_aware(
 ) -> None:
     if value and value.utcoffset() is None:
         raise ValueError("Timezone aware datetime is required")
+
+
+class LockMode(Enum):
+    """
+    An enumeration with all the possible lock modes.
+
+    Both modes guarantee that no two jobs sharing a lock run simultaneously, and both
+    hand out runnable jobs in priority then creation order. They differ in whether a job
+    scheduled for the future still holds the lock for the ones behind it.
+    """
+
+    #: A waiting job holds the lock even when it is scheduled for the future. This is
+    #: what guarantees jobs sharing the lock are started in order.
+    ORDERED = "ordered"
+    #: Same as `ORDERED`, except a job scheduled for the future steps aside instead of
+    #: holding the lock until it is due. Use this when the lock protects a resource and
+    #: a job scheduled for later should not reserve it. Note that a job sitting on a
+    #: queue no worker consumes still holds the lock in both modes.
+    MUTEX = "mutex"
+
+
+def normalize_lock_mode(value: str | LockMode | None) -> str:
+    """
+    Turn a `LockMode` member or its string value into the string stored in the
+    database, ``None`` meaning the default mode. Raise `ValueError` on any other
+    value, rather than letting it reach the database.
+    """
+    if value is None:
+        return DEFAULT_LOCK_MODE
+    return LockMode(value).value
 
 
 class Status(Enum):
@@ -83,6 +114,8 @@ class Job:
     priority: int = DEFAULT_PRIORITY
     #: No two jobs with the same lock string can run simultaneously
     lock: str | None
+    #: Whether the lock also guarantees ordering (see `LockMode`).
+    lock_mode: str = attr.ib(default=DEFAULT_LOCK_MODE, converter=normalize_lock_mode)
     #: No two jobs with the same queueing lock can be waiting in the queue.
     queueing_lock: str | None
     #: Name of the associated task.
@@ -107,6 +140,7 @@ class Job:
             status=row["status"],
             priority=row["priority"],
             lock=row["lock"],
+            lock_mode=row.get("lock_mode"),
             queueing_lock=row["queueing_lock"],
             task_name=row["task_name"],
             task_kwargs=row["args"],
