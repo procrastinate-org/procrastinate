@@ -209,6 +209,17 @@ JOBS = DueWorkContract(
 )
 
 
+# This is where the magic happens. The class is empty on purpose: the decorator reads
+# the JOBS contract above and generates its tests, one or more for every guarantee the
+# contract claims, bound to procrastinate's real worker, heartbeats, retry_stalled_jobs
+# recipe, delete_old_jobs and retry strategy. No test case is written by hand.
+#
+# One of the generated cases is how #1633 was found: B-assert_stale_token_is_rejected
+# lets a worker's job be reclaimed and fetched by a second worker, then has the first
+# worker report its attempt. procrastinate accepts that report, so the case fails, and
+# because the contract declares it as a gap it is reported as a strict XFAIL. The day
+# finish_job and retry_job refuse a stale worker, it passes, and the strict marker fails
+# the run until the gap is changed to a claim.
 @due_work_contract_suite(JOBS)
 class TestJobLifecycle:
-    pass
+    """Every case in this class is generated from JOBS; see the comment above."""
