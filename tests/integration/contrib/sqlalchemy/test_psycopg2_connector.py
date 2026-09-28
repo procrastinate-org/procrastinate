@@ -93,7 +93,7 @@ def test_json_loads(sqlalchemy_psycopg2_connector_factory, mocker):
 
 async def test_wrap_exceptions(sqlalchemy_psycopg2_connector):
     sqlalchemy_psycopg2_connector.execute_query(
-        """SELECT procrastinate_defer_jobs_v1(
+        """SELECT procrastinate_defer_jobs_v2(
             ARRAY[
                 ROW(
                     'queue'::character varying,
@@ -102,14 +102,15 @@ async def test_wrap_exceptions(sqlalchemy_psycopg2_connector):
                     NULL::text,
                     'same_queueing_lock'::text,
                     '{}'::jsonb,
-                    NULL::timestamptz
+                    NULL::timestamptz,
+                    'ordered'::procrastinate_lock_mode
                 )
-            ]::procrastinate_job_to_defer_v1[]
+            ]::procrastinate_job_to_defer_v2[]
         ) AS id;"""
     )
     with pytest.raises(exceptions.UniqueViolation) as excinfo:
         sqlalchemy_psycopg2_connector.execute_query(
-            """SELECT procrastinate_defer_jobs_v1(
+            """SELECT procrastinate_defer_jobs_v2(
                 ARRAY[
                     ROW(
                         'queue'::character varying,
@@ -118,9 +119,10 @@ async def test_wrap_exceptions(sqlalchemy_psycopg2_connector):
                         NULL::text,
                         'same_queueing_lock'::text,
                         '{}'::jsonb,
-                        NULL::timestamptz
+                        NULL::timestamptz,
+                        'ordered'::procrastinate_lock_mode
                     )
-                ]::procrastinate_job_to_defer_v1[]
+                ]::procrastinate_job_to_defer_v2[]
             ) AS id;"""
         )
     assert excinfo.value.constraint_name == manager.QUEUEING_LOCK_CONSTRAINT

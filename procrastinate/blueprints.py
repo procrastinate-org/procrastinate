@@ -211,6 +211,7 @@ class Blueprint:
         queue: str = jobs.DEFAULT_QUEUE,
         priority: int = jobs.DEFAULT_PRIORITY,
         lock: str | None = None,
+        lock_mode: str | jobs.LockMode | None = None,
         queueing_lock: str | None = None,
         task_middleware: list[middleware.TaskMiddleware] | None = None,
     ) -> Callable[[Callable[P, R]], Task[P, R, P]]: ...
@@ -227,6 +228,7 @@ class Blueprint:
         queue: str = jobs.DEFAULT_QUEUE,
         priority: int = jobs.DEFAULT_PRIORITY,
         lock: str | None = None,
+        lock_mode: str | jobs.LockMode | None = None,
         queueing_lock: str | None = None,
         task_middleware: list[middleware.TaskMiddleware] | None = None,
     ) -> Callable[
@@ -248,6 +250,7 @@ class Blueprint:
         queue: str = jobs.DEFAULT_QUEUE,
         priority: int = jobs.DEFAULT_PRIORITY,
         lock: str | None = None,
+        lock_mode: str | jobs.LockMode | None = None,
         queueing_lock: str | None = None,
         task_middleware: list[middleware.TaskMiddleware] | None = None,
     ):
@@ -304,6 +307,8 @@ class Blueprint:
             If no default priority is set then the default priority is 0.
         lock :
             Default value for the ``lock`` (see `Task.defer`).
+        lock_mode :
+            Default value for the ``lock_mode`` (see `Task.defer`).
         queueing_lock :
             Default value for the ``queueing_lock`` (see `Task.defer`).
         task_middleware :
@@ -321,6 +326,7 @@ class Blueprint:
                 queue=queue,
                 priority=priority,
                 lock=lock,
+                lock_mode=lock_mode,
                 queueing_lock=queueing_lock,
                 name=name,
                 aliases=aliases,
