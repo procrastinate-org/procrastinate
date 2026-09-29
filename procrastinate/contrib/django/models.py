@@ -165,3 +165,23 @@ class ProcrastinatePeriodicDefer(ProcrastinateReadOnlyModelMixin, models.Model):
         managed = False
         db_table = "procrastinate_periodic_defers"
         unique_together = [("task_name", "periodic_id", "defer_timestamp")]
+
+
+class ProcrastinatePausedQueue(ProcrastinateReadOnlyModelMixin, models.Model):
+    id = models.BigAutoField(primary_key=True)
+    queue_name = models.CharField(max_length=128)
+    pause_key = models.CharField(max_length=128)
+    paused_at = models.DateTimeField()
+
+    objects = ProcrastinateReadOnlyManager()
+
+    class Meta:  # type: ignore
+        managed = False
+        db_table = "procrastinate_paused_queues"
+        unique_together = [("queue_name", "pause_key")]
+
+    def __str__(self) -> str:
+        return (
+            f"Queue {self.queue_name} - "
+            f"Paused with key {self.pause_key} at {self.paused_at}"
+        )
