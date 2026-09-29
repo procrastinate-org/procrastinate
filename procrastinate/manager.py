@@ -319,6 +319,7 @@ class JobManager:
         job: jobs_module.Job,
         status: jobs_module.Status,
         delete_job: bool,
+        exc_info: bool | BaseException = False,
     ) -> None:
         """
         Set a job to its final state (``succeeded``, ``failed`` or ``aborted``).
@@ -331,7 +332,7 @@ class JobManager:
         """
         assert job.id  # TODO remove this
         await self.finish_job_by_id_async(
-            job_id=job.id, status=status, delete_job=delete_job
+            job_id=job.id, status=status, delete_job=delete_job, exc_info=exc_info
         )
 
     async def finish_job_by_id_async(
@@ -339,12 +340,14 @@ class JobManager:
         job_id: int,
         status: jobs_module.Status,
         delete_job: bool,
+        exc_info: bool | BaseException = False,
     ) -> None:
         await self.connector.execute_query_async(
             query=sql.queries["finish_job"],
             job_id=job_id,
             status=status.value,
             delete_job=delete_job,
+            exc_info=str(exc_info) if exc_info else None,
         )
 
     def cancel_job_by_id(
