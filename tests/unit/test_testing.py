@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from unittest.mock import AsyncMock
+from unittest.mock import ANY, AsyncMock
 
 import pytest
 
@@ -88,6 +88,7 @@ async def test_defer_one_job(connector: testing.InMemoryConnector):
             "attempts": 0,
             "abort_requested": False,
             "worker_id": None,
+            "deferred_at": ANY,
         }
     }
     assert connector.jobs[1] == jobs[0]

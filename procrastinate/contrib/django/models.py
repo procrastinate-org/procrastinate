@@ -97,6 +97,7 @@ class ProcrastinateJob(ProcrastinateReadOnlyModelMixin, models.Model):
     worker = models.ForeignKey(
         ProcrastinateWorker, on_delete=models.SET_NULL, blank=True, null=True
     )
+    deferred_at = models.DateTimeField(blank=True, null=True)
 
     objects = ProcrastinateReadOnlyManager()
 
@@ -118,6 +119,7 @@ class ProcrastinateJob(ProcrastinateReadOnlyModelMixin, models.Model):
             attempts=self.attempts,
             abort_requested=self.abort_requested,
             queueing_lock=self.queueing_lock,
+            deferred_at=self.deferred_at,
         )
 
     def __str__(self) -> str:
