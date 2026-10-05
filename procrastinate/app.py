@@ -40,6 +40,7 @@ class WorkerOptions(TypedDict):
     fetch_job_polling_interval: NotRequired[float]
     abort_job_polling_interval: NotRequired[float]
     shutdown_graceful_timeout: NotRequired[float]
+    shutdown_timeout: NotRequired[float]
     listen_notify: NotRequired[bool]
     delete_jobs: NotRequired[str | jobs.DeleteJobCondition]
     additional_context: NotRequired[dict[str, Any]]
@@ -312,6 +313,44 @@ class App(blueprints.Blueprint):
             Indicates the maximum duration (in seconds) the worker waits for jobs to
             complete when requested to stop. Jobs that have not been completed by that time
             are aborted. A value of None corresponds to no timeout.
+
+            (defaults to None)
+        shutdown_timeout: ``float``
+            Indicates the maximum duration (in seconds) the worker waits for its
+            run loop to start shutting down after being asked to stop (by a
+            signal, by ``Worker.stop()``, because of ``wait=False``, or by
+            cancelling ``run_worker_async()``), before cancelling the run loop;
+            then again before abandoning it.
+
+            The run loop starts shutting down as soon as it is asked to, unless it
+            is blocked on a database call that never returns (e.g. on a connection
+            left half-open by a database failover), in which case it never
+            observes the request. This timeout ensures that ``run_worker_async()``
+            still returns, within about twice this value. When the run loop has
+            to be cancelled, the worker does not unregister itself from the
+            database; it is pruned later through its stale heartbeat. If the
+            database driver ignores the cancellation altogether (psycopg >= 3.3.6
+            with libpq >= 17 does not), the abandoned run loop keeps running in
+            the background, and can delay the return of ``asyncio.run()`` (used
+            by ``run_worker()`` and the CLI), which waits for remaining tasks.
+
+            Once the run loop has started shutting down, it is not stuck: waiting
+            for running jobs is governed by ``shutdown_graceful_timeout``, not by
+            this timeout (unregistering the worker is still bounded by it).
+            ``run_worker_async()`` then returns after up to this value to start
+            shutting down, plus the time it waits for running jobs. This does not
+            cover a database that becomes unresponsive while the worker is waiting
+            for running jobs: a job that cannot record its result still prevents
+            the worker from stopping.
+
+            This should comfortably exceed the time the database driver takes to
+            give up on a cancelled query (with psycopg >= 3.3.6 and libpq >= 17,
+            about 5 seconds), so that a cancelled run loop can finish rather than
+            be abandoned.
+
+            A value of None corresponds to no timeout, meaning that
+            ``run_worker_async()`` may never return if the worker's connection is
+            unresponsive.
 
             (defaults to None)
         listen_notify : ``bool``
