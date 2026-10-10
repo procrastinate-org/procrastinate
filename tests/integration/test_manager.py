@@ -126,6 +126,106 @@ async def test_fetch_job_no_result(
     )
 
 
+async def test_pause_and_resume_queue(pg_job_manager, deferred_job_factory, worker_id):
+    job = await deferred_job_factory(queue="queue_a")
+
+    await pg_job_manager.pause_queue_async("queue_a")
+    rows = await pg_job_manager.list_paused_queues_async()
+    assert [(row["queue_name"], row["pause_key"]) for row in rows] == [
+        ("queue_a", "default")
+    ]
+    assert rows[0]["paused_at"] is not None
+    assert await pg_job_manager.fetch_job(queues=None, worker_id=worker_id) is None
+
+    await pg_job_manager.resume_queue_async("queue_a")
+    assert await pg_job_manager.list_paused_queues_async() == []
+    fetched = await pg_job_manager.fetch_job(queues=None, worker_id=worker_id)
+    assert fetched.id == job.id
+
+
+async def test_pause_queue_is_idempotent(pg_job_manager):
+    await pg_job_manager.pause_queue_async("queue_a")
+    rows = await pg_job_manager.list_paused_queues_async()
+    await pg_job_manager.pause_queue_async("queue_a")
+    assert await pg_job_manager.list_paused_queues_async() == rows
+
+    await pg_job_manager.resume_queue_async("queue_a")
+    await pg_job_manager.resume_queue_async("queue_a")
+    assert await pg_job_manager.list_paused_queues_async() == []
+
+
+async def test_pause_queue_with_multiple_keys(
+    pg_job_manager, deferred_job_factory, worker_id
+):
+    job = await deferred_job_factory(queue="queue_a")
+
+    await pg_job_manager.pause_queue_async("queue_a", pause_key="deploy")
+    await pg_job_manager.pause_queue_async("queue_a", pause_key="maintenance")
+
+    await pg_job_manager.resume_queue_async("queue_a", pause_key="deploy")
+    rows = await pg_job_manager.list_paused_queues_async()
+    assert [(row["queue_name"], row["pause_key"]) for row in rows] == [
+        ("queue_a", "maintenance")
+    ]
+    assert await pg_job_manager.fetch_job(queues=None, worker_id=worker_id) is None
+
+    await pg_job_manager.resume_queue_async("queue_a", pause_key="maintenance")
+    assert await pg_job_manager.list_paused_queues_async() == []
+    fetched = await pg_job_manager.fetch_job(queues=None, worker_id=worker_id)
+    assert fetched.id == job.id
+
+
+async def test_resume_queue_all_keys(pg_job_manager, deferred_job_factory, worker_id):
+    job = await deferred_job_factory(queue="queue_a")
+
+    await pg_job_manager.pause_queue_async("queue_a", pause_key="deploy")
+    await pg_job_manager.pause_queue_async("queue_a", pause_key="maintenance")
+    await pg_job_manager.pause_queue_async("queue_b")
+
+    await pg_job_manager.resume_queue_async("queue_a", all_keys=True)
+    rows = await pg_job_manager.list_paused_queues_async()
+    assert [(row["queue_name"], row["pause_key"]) for row in rows] == [
+        ("queue_b", "default")
+    ]
+    fetched = await pg_job_manager.fetch_job(queues=None, worker_id=worker_id)
+    assert fetched.id == job.id
+
+
+async def test_pause_queue_only_affects_paused_queue(
+    pg_job_manager, deferred_job_factory, worker_id
+):
+    await deferred_job_factory(queue="queue_a")
+    job_b = await deferred_job_factory(queue="queue_b")
+
+    await pg_job_manager.pause_queue_async("queue_a")
+
+    fetched = await pg_job_manager.fetch_job(queues=None, worker_id=worker_id)
+    assert fetched.id == job_b.id
+
+
+async def test_fetch_job_scoped_to_paused_queue_returns_none(
+    pg_job_manager, deferred_job_factory, worker_id
+):
+    await deferred_job_factory(queue="queue_a")
+    await pg_job_manager.pause_queue_async("queue_a")
+
+    # A worker restricted to the paused queue fetches nothing.
+    assert (
+        await pg_job_manager.fetch_job(queues=["queue_a"], worker_id=worker_id) is None
+    )
+
+
+def test_pause_and_resume_queue_sync(pg_job_manager):
+    pg_job_manager.pause_queue("queue_a")
+    rows = pg_job_manager.list_paused_queues()
+    assert [(row["queue_name"], row["pause_key"]) for row in rows] == [
+        ("queue_a", "default")
+    ]
+
+    pg_job_manager.resume_queue("queue_a")
+    assert pg_job_manager.list_paused_queues() == []
+
+
 @pytest.mark.parametrize(
     "filter_args",
     [
