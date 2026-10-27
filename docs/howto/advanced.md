@@ -9,6 +9,7 @@ advanced/locks
 advanced/schedule
 advanced/priorities
 advanced/cancellation
+advanced/pause_queue
 advanced/queueing_locks
 advanced/cron
 advanced/retry
