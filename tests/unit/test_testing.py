@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 from unittest.mock import AsyncMock
 
 import pytest
@@ -176,11 +177,11 @@ async def test_defer_same_job_with_queueing_lock_second_time_after_first_one_suc
 
     # 3. Finish first job
     await connector.finish_job_run(
-        job_id=job_rows[0]["id"], status="finished", delete_job=False
+        job_id=job_rows[0]["id"], status="succeeded", delete_job=False
     )
 
     # 4. Defering a second time should work now,
-    #    as first job in state `finished`
+    #    as first job in state `succeeded`
     await connector.defer_jobs_all(jobs_to_defer)
     assert len(connector.jobs) == 2
 
@@ -553,11 +554,76 @@ async def test_finish_job_run(connector: testing.InMemoryConnector):
 
     job_row = await connector.fetch_job_one(queues=None, worker_id=1)
     id = job_row["id"]
+    connector.jobs[id]["abort_requested"] = True
 
-    await connector.finish_job_run(job_id=id, status="finished", delete_job=False)
+    await connector.finish_job_run(job_id=id, status="succeeded", delete_job=False)
 
     assert connector.jobs[id]["attempts"] == 1
-    assert connector.jobs[id]["status"] == "finished"
+    assert connector.jobs[id]["status"] == "succeeded"
+    assert connector.jobs[id]["abort_requested"] is False
+
+
+async def fetch_new_job(connector: testing.InMemoryConnector) -> int:
+    await connector.defer_jobs_all(
+        [
+            t.JobToDefer(
+                queue_name="marsupilami",
+                task_name="mytask",
+                priority=0,
+                lock="sher",
+                queueing_lock="houba",
+                args={},
+                scheduled_at=None,
+            )
+        ]
+    )
+    connector.workers = {1: utils.utcnow()}
+    return (await connector.fetch_job_one(queues=None, worker_id=1))["id"]
+
+
+@pytest.mark.parametrize(
+    "current_row, applied",
+    [
+        ({}, True),
+        ({"worker_id": None}, True),
+        ({"status": "failed"}, False),
+        ({"attempts": 1}, False),
+    ],
+)
+async def test_finish_job_with_ownership_one(
+    connector: testing.InMemoryConnector, current_row, applied
+):
+    id = await fetch_new_job(connector)
+    connector.jobs[id].update(current_row)
+
+    result = await connector.finish_job_with_ownership_one(
+        job_id=id,
+        status="succeeded",
+        delete_job=False,
+        expected_status="doing",
+        expected_attempts=0,
+    )
+
+    assert result == {"applied": applied}
+
+
+async def test_cancel_job_one_abort_notification_identifies_attempt(
+    connector: testing.InMemoryConnector,
+):
+    on_notification = AsyncMock()
+    await connector.open_async()
+    await connector.listen_notify(
+        on_notification=on_notification, channels=["procrastinate_any_queue_v1"]
+    )
+    id = await fetch_new_job(connector)
+
+    await connector.cancel_job_one(job_id=id, abort=True, delete_job=False)
+
+    assert json.loads(on_notification.call_args.kwargs["payload"]) == {
+        "type": "abort_job_requested",
+        "job_id": id,
+        "attempts": 0,
+    }
 
 
 async def test_retry_job_run(connector: testing.InMemoryConnector):

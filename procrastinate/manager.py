@@ -50,7 +50,7 @@ class JobManager:
         Returns
         -------
         :
-            A copy of the job instance with the id set.
+            A queued job with its new ID and reset attempt metadata.
         """
         return (await self.batch_defer_jobs_async(jobs=[job], connection=connection))[0]
 
@@ -72,7 +72,7 @@ class JobManager:
         Returns
         -------
         :
-            A list of jobs with their id set.
+            Queued jobs with new IDs and reset attempt metadata.
         """
         # Make sure this code stays synchronized with .batch_defer_jobs()
         try:
@@ -87,10 +87,7 @@ class JobManager:
         except exceptions.UniqueViolation as exc:
             self._raise_already_enqueued(exc=exc, queueing_lock=exc.queueing_lock)
 
-        return [
-            job.evolve(id=results[index]["id"], status=jobs_module.Status.TODO.value)
-            for index, job in enumerate(jobs)
-        ]
+        return self._queued_jobs(jobs=jobs, results=results)
 
     def defer_job(
         self,
@@ -122,8 +119,23 @@ class JobManager:
         except exceptions.UniqueViolation as exc:
             self._raise_already_enqueued(exc=exc, queueing_lock=exc.queueing_lock)
 
+        return self._queued_jobs(jobs=jobs, results=results)
+
+    def _queued_jobs(
+        self, jobs: list[jobs_module.Job], results: Iterable[dict[str, Any]]
+    ) -> list[jobs_module.Job]:
+        """
+        Build the returned jobs as inserted, with new ids and reset attempt metadata
+        """
+        rows = list(results)
         return [
-            job.evolve(id=results[index]["id"], status=jobs_module.Status.TODO.value)
+            job.evolve(
+                id=rows[index]["id"],
+                status=jobs_module.Status.TODO.value,
+                worker_id=None,
+                attempts=0,
+                abort_requested=False,
+            )
             for index, job in enumerate(jobs)
         ]
 
@@ -319,20 +331,40 @@ class JobManager:
         job: jobs_module.Job,
         status: jobs_module.Status,
         delete_job: bool,
-    ) -> None:
+    ) -> bool:
         """
         Set a job to its final state (``succeeded``, ``failed`` or ``aborted``).
 
         Parameters
         ----------
         job:
+            The captured job attempt to finish.
         status:
             ``succeeded``, ``failed`` or ``aborted``
+        delete_job:
+            If set, the job is deleted instead of being kept in its final state.
+
+        Returns
+        -------
+        :
+            ``False`` if the captured attempt has ended and the job was left unchanged,
+            ``True`` otherwise.
         """
         assert job.id  # TODO remove this
-        await self.finish_job_by_id_async(
-            job_id=job.id, status=status, delete_job=delete_job
+        if job.status is None:
+            raise ValueError(
+                "finish_job requires a captured job; "
+                "use finish_job_by_id_async for ID-only completion"
+            )
+        result = await self.connector.execute_query_one_async(
+            query=sql.queries["finish_job_with_ownership"],
+            job_id=job.id,
+            status=status.value,
+            delete_job=delete_job,
+            expected_status=job.status,
+            expected_attempts=job.attempts,
         )
+        return result["applied"]
 
     async def finish_job_by_id_async(
         self,
@@ -516,13 +548,14 @@ class JobManager:
         priority: int | None = None,
         queue: str | None = None,
         lock: str | None = None,
-    ) -> None:
+    ) -> bool:
         """
         Indicates that a job should be retried later.
 
         Parameters
         ----------
         job:
+            The captured job attempt to retry.
         retry_at:
             If set at present time or in the past, the job may be retried immediately.
             Otherwise, the job will be retried no sooner than this date & time.
@@ -536,15 +569,30 @@ class JobManager:
         lock:
             If set, the job will be retried with this lock. If not set, the lock remains
             unchanged.
+
+        Returns
+        -------
+        :
+            ``False`` if the captured attempt has ended and the job was left unchanged,
+            ``True`` otherwise.
         """
         assert job.id  # TODO remove this
-        await self.retry_job_by_id_async(
+        if job.status is None:
+            raise ValueError(
+                "retry_job requires a captured job; "
+                "use retry_job_by_id_async for ID-only retries"
+            )
+        result = await self.connector.execute_query_one_async(
+            query=sql.queries["retry_job_with_ownership"],
             job_id=job.id,
             retry_at=retry_at or utils.utcnow(),
-            priority=priority,
-            queue=queue,
-            lock=lock,
+            new_priority=priority,
+            new_queue_name=queue,
+            new_lock=lock,
+            expected_status=job.status,
+            expected_attempts=job.attempts,
         )
+        return result["applied"]
 
     async def retry_job_by_id_async(
         self,
@@ -973,10 +1021,19 @@ class JobManager:
         """
         List ids of running jobs to abort
         """
+        attempts = await self.list_job_attempts_to_abort_async(queue=queue)
+        return [job_id for job_id, _ in attempts]
+
+    async def list_job_attempts_to_abort_async(
+        self, queue: str | None = None
+    ) -> Iterable[tuple[int, int]]:
+        """
+        List the ids and attempt counts of running jobs to abort
+        """
         rows = await self.connector.execute_query_all_async(
             query=sql.queries["list_jobs_to_abort"], queue_name=queue
         )
-        return [row["id"] for row in rows]
+        return [(row["id"], row["attempts"]) for row in rows]
 
     async def register_worker(self) -> int:
         """

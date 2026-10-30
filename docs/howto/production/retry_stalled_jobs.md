@@ -11,7 +11,7 @@ To address this problem, Procrastinate workers update heartbeats at a regular
 interval (every 10 seconds by default). If a worker is terminated without a regular
 shutdown, the heartbeat of that worker will not be updated, and the worker will be
 considered stalled. Jobs in the `doing` state of such stalled workers are considered
-stalled as well and can be fetched by the with the {py:meth}`JobManager.get_stalled_jobs`
+stalled as well and can be fetched with the {py:meth}`JobManager.get_stalled_jobs`
 method.
 
 :::{note}
@@ -36,7 +36,8 @@ async def retry_stalled_jobs(context, timestamp):
 This defines a periodic task, configured to be deferred at every 10th minute. The task
 retrieves all the jobs that have been in the `doing` status of workers that have not
 received a heartbeat since the last (by default) 30 seconds. This duration can be
-configured with the `seconds_since_heartbeat` parameter of the `get_stalled_jobs` method.
+configured with the `seconds_since_heartbeat` parameter of the `get_stalled_jobs`
+method.
 
 :::{note}
 If you change the `seconds_since_heartbeat` parameter, make sure to also check the
@@ -47,6 +48,37 @@ and adjust them accordingly.
 With this, if you have multiple workers, and, for some reason, one of them gets killed
 while running jobs, then one of the remaining workers will run the
 `retry_stalled_jobs` task, marking the stalled jobs for retry.
+
+`finish_job(job)` and `retry_job(job)` compare the captured job's status and attempt
+count under a row lock. A job only returns to `todo` with an incremented attempt count,
+so they return `False` once the captured attempt has ended. A late worker report then
+leaves the current job and its events unchanged. A worker removed by pruning can still
+report its attempt until the job is retried. The by-ID methods remain explicit
+administrative operations and do not check a captured attempt. Requeue jobs with these
+methods rather than direct SQL, because a manual update that leaves the attempt count
+unchanged is not fenced.
+
+`finish_job` and `retry_job` require a captured job, such as one returned by
+{py:meth}`JobManager.get_stalled_jobs` or {py:meth}`JobManager.list_jobs_async`.
+Passing a manually constructed `Job` with an ID and no status raises `ValueError`.
+When upgrading ID-only callers, use {py:meth}`JobManager.retry_job_by_id_async`
+with an explicit `retry_at`, or {py:meth}`JobManager.finish_job_by_id_async` for
+completion. These administrative operations apply to the current job regardless
+of its owner.
+
+Abort notifications include the attempt count. With `LISTEN/NOTIFY` active, workers can
+apply them to the captured attempt even when a task holds the last available query-pool
+connection. `AiopgConnector(maxsize=1)` disables `LISTEN/NOTIFY`. In that configuration,
+or with `listen_notify=False`, abort polling needs an available pool connection and may
+wait for the task to release one. Notifications received while a job is being fetched
+are matched before its task starts. A delayed notification cannot abort a newer attempt
+of the same job. Notifications sent in the old format during an upgrade are left to
+polling.
+
+When upgrading from 3.10.0 or earlier, stop all old worker processes before relying
+on this protection. Old workers do not send their attempt identity when reporting
+completion or retry. A stale task can still perform external side effects, so tasks
+must remain safe to retry.
 
 If you have specific rules for task retry (e.g. only some tasks should be retried, based
 on specific parameters, or the duration before a task is considered stalled should
