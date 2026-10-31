@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import datetime
 import functools
+import time
 
+import psycopg
 import pytest
 
 from procrastinate import exceptions, jobs, manager
@@ -857,3 +859,39 @@ async def test_list_tasks(fixture_jobs, pg_job_manager, kwargs, expected):
     assert [
         e["name"] for e in await pg_job_manager.list_tasks_async(**kwargs)
     ] == expected
+
+
+async def test_fetch_job_many_null_lock_jobs_after_idle_polling(connection_params):
+    # A worker that polls an empty queue makes Postgres cache a plan for
+    # procrastinate_fetch_job_v2 that was built for a tiny table. If the lock
+    # check is not skipped for NULL locks, that plan compares every job with every
+    # other job once a large backlog of jobs without a lock shows up: fetching one
+    # job took ~1.3s for 5000 jobs, against a few milliseconds with the fix.
+    backlog = 5000
+    with psycopg.connect(**connection_params, autocommit=True) as worker_conn:
+        worker_conn.execute("ANALYZE procrastinate_jobs")
+        for _ in range(10):
+            worker_conn.execute(
+                "SELECT procrastinate_fetch_job_v2(%s::varchar[], NULL)",
+                (["default"],),
+            )
+
+        worker_conn.execute(
+            """
+            INSERT INTO procrastinate_jobs (queue_name, task_name, args, status)
+            SELECT 'default', 'noop', '{}', 'todo' FROM generate_series(1, %s)
+            """,
+            (backlog,),
+        )
+
+        start = time.perf_counter()
+        job = worker_conn.execute(
+            "SELECT id FROM procrastinate_fetch_job_v2(%s::varchar[], NULL)",
+            (["default"],),
+        ).fetchone()
+        elapsed = time.perf_counter() - start
+
+    assert job is not None
+    # Generous bound: ~100 times slower than the fixed query, ~4 times faster than the
+    # quadratic one.
+    assert elapsed < 0.3
