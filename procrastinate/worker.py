@@ -30,6 +30,12 @@ FETCH_JOB_POLLING_INTERVAL = 5.0  # seconds
 ABORT_JOB_POLLING_INTERVAL = 5.0  # seconds
 
 
+def _job_attempt_key(job: jobs.Job) -> tuple[int, int]:
+    """Identify a captured worker attempt"""
+    assert job.id is not None
+    return job.id, job.attempts
+
+
 class Worker:
     def __init__(
         self,
@@ -97,7 +103,8 @@ class Worker:
         self._job_semaphore = asyncio.Semaphore(self.concurrency)
         self._stop_event = asyncio.Event()
         self.shutdown_graceful_timeout = shutdown_graceful_timeout
-        self._job_ids_to_abort: dict[int, job_context.AbortReason] = {}
+        self._job_attempts_to_abort: dict[tuple[int, int], job_context.AbortReason] = {}
+        self._fetch_abort_requests: set[tuple[int, int]] | None = None
         self.run_task: asyncio.Task[Any] | None = None
         self._loop: asyncio.AbstractEventLoop | None = None
 
@@ -170,8 +177,9 @@ class Worker:
         context: job_context.JobContext,
         job_result: job_context.JobResult | None,
     ):
+        """Report the job outcome, discarding it if the attempt is no longer current"""
         if retry_decision:
-            await self.app.job_manager.retry_job(
+            applied = await self.app.job_manager.retry_job(
                 job=job,
                 retry_at=retry_decision.retry_at,
                 lock=retry_decision.lock,
@@ -184,12 +192,21 @@ class Worker:
                 jobs.DeleteJobCondition.NEVER: False,
                 jobs.DeleteJobCondition.SUCCESSFUL: status == jobs.Status.SUCCEEDED,
             }[self.delete_jobs]
-            await self.app.job_manager.finish_job(
+            applied = await self.app.job_manager.finish_job(
                 job=job, status=status, delete_job=delete_job
             )
 
-        assert job.id
-        self._job_ids_to_abort.pop(job.id, None)
+        if not applied:
+            self.logger.warning(
+                f"Discarded stale job completion {job.call_string}",
+                extra=self._log_extra(
+                    action="stale_job_report",
+                    context=context,
+                    status=status,
+                    job_result=job_result,
+                ),
+            )
+            return
 
         self.logger.debug(
             f"Acknowledged job completion {job.call_string}",
@@ -273,6 +290,8 @@ class Worker:
         try:
             if not task:
                 raise exceptions.TaskNotFound
+            if context.should_abort():
+                raise exceptions.JobAborted
 
             self.logger.debug(
                 f"Loaded job info, about to start job {job.call_string}",
@@ -388,16 +407,19 @@ class Worker:
         while not self._stop_event.is_set():
             acquire_sem_task = asyncio.create_task(self._job_semaphore.acquire())
             job = None
+            abort_requests: set[tuple[int, int]] = set()
             try:
                 await utils.wait_any(acquire_sem_task, self._stop_event.wait())
                 if self._stop_event.is_set():
                     break
 
                 assert self.worker_id is not None
+                self._fetch_abort_requests = abort_requests
                 job = await self.app.job_manager.fetch_job(
                     queues=self.queues, worker_id=self.worker_id
                 )
             finally:
+                self._fetch_abort_requests = None
                 if (not job or self._stop_event.is_set()) and acquire_sem_task.done():
                     self._job_semaphore.release()
                 self._new_job_event.clear()
@@ -405,7 +427,11 @@ class Worker:
             if not job:
                 break
 
-            job_id = job.id
+            attempt_key = _job_attempt_key(job)
+            if attempt_key in abort_requests:
+                self._job_attempts_to_abort[attempt_key] = (
+                    job_context.AbortReason.USER_REQUEST
+                )
 
             context = job_context.JobContext(
                 app=self.app,
@@ -415,8 +441,8 @@ class Worker:
                 if self.additional_context
                 else {},
                 job=job,
-                abort_reason=lambda job_id=job_id: (
-                    self._job_ids_to_abort.get(job_id) if job_id else None
+                abort_reason=lambda attempt_key=attempt_key: (
+                    self._job_attempts_to_abort.get(attempt_key)
                 ),
                 start_timestamp=time.time(),
             )
@@ -427,7 +453,8 @@ class Worker:
             self._running_jobs[job_task] = context
 
             def on_job_complete(task: asyncio.Task):
-                del self._running_jobs[task]
+                context = self._running_jobs.pop(task)
+                self._job_attempts_to_abort.pop(_job_attempt_key(context.job), None)
                 self._job_semaphore.release()
 
             job_task.add_done_callback(on_job_complete)
@@ -473,10 +500,18 @@ class Worker:
     async def _handle_notification(
         self, *, channel: str, notification: jobs.Notification
     ):
+        """Wake the fetch loop or apply an abort request to its attempt"""
         if notification["type"] == "job_inserted":
             self._new_job_event.set()
         elif notification["type"] == "abort_job_requested":
-            self._handle_abort_jobs_requested([notification["job_id"]])
+            # A transaction left open across the pre-migration can still send the old
+            # payload. It has no attempt to match, so polling handles the request.
+            if "attempts" not in notification:
+                return
+            attempt = (notification["job_id"], notification["attempts"])
+            if self._fetch_abort_requests is not None:
+                self._fetch_abort_requests.add(attempt)
+            self._handle_abort_jobs_requested([attempt])
 
     async def _update_heartbeat(self):
         while True:
@@ -490,6 +525,7 @@ class Worker:
             await self.app.job_manager.update_heartbeat(self.worker_id)
 
     async def _poll_jobs_to_abort(self):
+        """Periodically apply pending abort requests to running attempts"""
         while True:
             logger.debug(
                 f"waiting for {self.abort_job_polling_interval}s before querying jobs to abort"
@@ -499,8 +535,8 @@ class Worker:
                 logger.debug("Not querying jobs to abort because no job is running")
                 continue
             try:
-                job_ids = await self.app.job_manager.list_jobs_to_abort_async()
-                self._handle_abort_jobs_requested(job_ids)
+                attempts = await self.app.job_manager.list_job_attempts_to_abort_async()
+                self._handle_abort_jobs_requested(attempts)
             except Exception as error:
                 logger.exception(
                     "poll_jobs_to_abort error",
@@ -512,14 +548,15 @@ class Worker:
                 )
                 # recover from errors and continue polling
 
-    def _handle_abort_jobs_requested(self, job_ids: Iterable[int]):
-        running_job_ids = {c.job.id for c in self._running_jobs.values() if c.job.id}
-        new_job_ids_to_abort = (running_job_ids & set(job_ids)) - set(
-            self._job_ids_to_abort
-        )
-
+    def _handle_abort_jobs_requested(self, attempts: Iterable[tuple[int, int]]):
+        """Abort the running attempts that have a pending abort request"""
+        requested_attempts = set(attempts)
         for process_job_task, context in self._running_jobs.items():
-            if context.job.id in new_job_ids_to_abort:
+            attempt_key = _job_attempt_key(context.job)
+            if (
+                attempt_key in requested_attempts
+                and attempt_key not in self._job_attempts_to_abort
+            ):
                 self._abort_job(
                     process_job_task, context, job_context.AbortReason.USER_REQUEST
                 )
@@ -530,8 +567,9 @@ class Worker:
         context: job_context.JobContext,
         reason: job_context.AbortReason,
     ):
+        """Mark an attempt for abort and cancel its task if it is asynchronous"""
         assert context.job.id
-        self._job_ids_to_abort[context.job.id] = reason
+        self._job_attempts_to_abort[_job_attempt_key(context.job)] = reason
 
         log_message: str
         task = self.app.tasks.get(context.job.task_name)
@@ -541,7 +579,8 @@ class Worker:
             log_message = "Received a request to abort a synchronous job. Job is responsible for aborting by checking context.should_abort"
         else:
             log_message = "Received a request to abort an asynchronous job. Cancelling asyncio task"
-            process_job_task.cancel()
+            # A task cancelled before its first step would never persist its status.
+            asyncio.get_running_loop().call_soon(process_job_task.cancel)
 
         self.logger.debug(
             log_message,
