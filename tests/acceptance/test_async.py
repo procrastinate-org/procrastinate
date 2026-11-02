@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import time
 
 import pytest
@@ -24,14 +25,21 @@ async def async_app(request, psycopg_connector, connection_params):
         yield app
 
 
-async def wait_for_job_status(
-    app: app_module.App, job_id: int, status: Status, timeout: float = 5
-):
+async def wait_until(condition, timeout: float = 5):
     async def poll():
-        while await app.job_manager.get_job_status_async(job_id) != status:
+        while not await condition():
             await asyncio.sleep(0.02)
 
     await asyncio.wait_for(poll(), timeout)
+
+
+async def wait_for_job_status(
+    app: app_module.App, job_id: int, status: Status, timeout: float = 5
+):
+    async def has_status():
+        return await app.job_manager.get_job_status_async(job_id) == status
+
+    await wait_until(has_status, timeout=timeout)
 
 
 async def test_defer(async_app: app_module.App):
@@ -126,6 +134,120 @@ async def test_cancel_with_delete(async_app: app_module.App):
     await async_app.run_worker_async(queues=["default"], wait=False)
 
     assert sum_results == [7]
+
+
+@pytest.mark.skip_before_version("3.10.0")
+async def test_pause_queue(async_app: app_module.App):
+    sum_results = []
+
+    @async_app.task(queue="default", name="sum_task")
+    async def sum_task(a, b):
+        sum_results.append(a + b)
+
+    await async_app.job_manager.pause_queue_async("default")
+    job_id = await sum_task.defer_async(a=1, b=2)
+
+    # The queue is paused: the worker fetches nothing and the job stays todo.
+    await async_app.run_worker_async(queues=["default"], wait=False)
+    assert sum_results == []
+    assert await async_app.job_manager.get_job_status_async(job_id) == Status.TODO
+    rows = await async_app.job_manager.list_paused_queues_async()
+    assert [(row["queue_name"], row["pause_key"]) for row in rows] == [
+        ("default", "default")
+    ]
+
+    # After resuming, the worker processes the job.
+    await async_app.job_manager.resume_queue_async("default")
+    await async_app.run_worker_async(queues=["default"], wait=False)
+    assert sum_results == [3]
+    assert await async_app.job_manager.get_job_status_async(job_id) == Status.SUCCEEDED
+    assert await async_app.job_manager.list_paused_queues_async() == []
+
+
+@pytest.mark.skip_before_version("3.10.0")
+async def test_pause_queue_does_not_interrupt_running_job(async_app: app_module.App):
+    may_finish = asyncio.Event()
+
+    @async_app.task(queue="default", name="blocking_task")
+    async def blocking_task():
+        await may_finish.wait()
+
+    job_id = await blocking_task.defer_async()
+
+    worker_task = asyncio.create_task(
+        async_app.run_worker_async(queues=["default"], wait=False)
+    )
+    await wait_for_job_status(async_app, job_id, Status.DOING)
+
+    # Pause while the job is running: it must run to completion, not be aborted.
+    await async_app.job_manager.pause_queue_async("default")
+    may_finish.set()
+
+    await asyncio.wait_for(worker_task, timeout=2)
+    assert await async_app.job_manager.get_job_status_async(job_id) == Status.SUCCEEDED
+
+
+@pytest.mark.skip_before_version("3.10.0")
+async def test_resume_queue_wakes_waiting_worker(async_app: app_module.App):
+    results = []
+
+    @async_app.task(queue="default", name="sum_task")
+    async def sum_task(a, b):
+        results.append(a + b)
+
+    ping_ids = []
+
+    @async_app.task(queue="ping", name="ping_task")
+    async def ping_task():
+        ping_ids.append(1)
+
+    await async_app.job_manager.pause_queue_async("default", pause_key="deploy")
+    await async_app.job_manager.pause_queue_async("default", pause_key="maintenance")
+    await sum_task.defer_async(a=1, b=2)
+
+    # A long polling interval so the worker can only pick the job back up through
+    # the resume notification, not by polling.
+    worker_task = asyncio.create_task(
+        async_app.run_worker_async(
+            queues=["default", "ping"],
+            wait=True,
+            fetch_job_polling_interval=30,
+            listen_notify=True,
+        )
+    )
+
+    async def has_ping():
+        return bool(ping_ids)
+
+    async def wait_until_listening(timeout: float = 10):
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            await ping_task.defer_async()
+            with contextlib.suppress(asyncio.TimeoutError):
+                await wait_until(has_ping, timeout=0.5)
+                return
+        pytest.fail("worker never started listening for notifications")
+
+    await wait_until_listening()
+    assert results == []
+
+    # One pause key is still held, so the queue stays paused: the worker may be
+    # woken by the resume notification, but it still fetches nothing.
+    await async_app.job_manager.resume_queue_async("default", pause_key="deploy")
+    await asyncio.sleep(0.5)
+    assert results == []
+
+    # Resuming the last key notifies the idle worker, which picks the job up.
+    await async_app.job_manager.resume_queue_async("default", pause_key="maintenance")
+
+    async def job_processed():
+        return results == [3]
+
+    await wait_until(job_processed, timeout=5)
+
+    worker_task.cancel()
+    with contextlib.suppress(asyncio.CancelledError):
+        await worker_task
 
 
 async def test_no_job_to_cancel_found(async_app: app_module.App):

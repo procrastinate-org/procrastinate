@@ -93,6 +93,28 @@ def test_procrastinate_job__no_delete(db):
         models.ProcrastinateJob().delete()
 
 
+def test_procrastinate_paused_queue(db):
+    procrastinate.contrib.django.app.job_manager.pause_queue("foo", pause_key="deploy")
+    now = datetime.datetime.now(datetime.timezone.utc)
+    one_sec = datetime.timedelta(seconds=1)
+    paused = models.ProcrastinatePausedQueue.objects.values().get(queue_name="foo")
+    paused_at = paused.pop("paused_at")
+    paused.pop("id")
+    assert paused == {"queue_name": "foo", "pause_key": "deploy"}
+    assert now - one_sec < paused_at < now + one_sec
+
+
+def test_procrastinate_paused_queue__resumed(db):
+    procrastinate.contrib.django.app.job_manager.pause_queue("foo")
+    procrastinate.contrib.django.app.job_manager.resume_queue("foo")
+    assert not models.ProcrastinatePausedQueue.objects.exists()
+
+
+def test_procrastinate_paused_queue__no_create(db):
+    with pytest.raises(procrastinate.contrib.django.exceptions.ReadOnlyModel):
+        models.ProcrastinatePausedQueue.objects.create(queue_name="foo")
+
+
 def test_procrastinate_event(db):
     job_id = procrastinate.contrib.django.app.configure_task("test_task").defer(
         a=1, b=2
