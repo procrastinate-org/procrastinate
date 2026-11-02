@@ -17,12 +17,14 @@ in which case you don't need to call `django.setup()`.
 import django
 from procrastinate.contrib.django import app
 
+
 def main():
     django.setup()
     # By default, the app uses the Django database connection, which is unsuitable
     # for the worker.
     with app.replace_connector(app.connector.get_worker_connector()):
         app.run_worker()
+
 
 if __name__ == "__main__":
     main()

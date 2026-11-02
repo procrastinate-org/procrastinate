@@ -31,8 +31,7 @@ Set the default priority for all jobs of this task to 3 (otherwise it would be 0
 
 ```python
 @app.task(priority=3)
-def my_task():
-    ...
+def my_task(): ...
 ```
 
 :::{warning}

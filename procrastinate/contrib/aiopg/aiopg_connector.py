@@ -69,7 +69,7 @@ def wrap_query_exceptions(coro: T) -> T:
         final_exc = None
         try:
             max_tries = args[0]._pool.maxsize + 1
-        except Exception:
+        except Exception:  # noqa: BLE001
             max_tries = 1
         for _ in range(max_tries):
             try:
@@ -78,7 +78,7 @@ def wrap_query_exceptions(coro: T) -> T:
                 if "server closed the connection unexpectedly" in str(exc):
                     final_exc = exc
                     continue
-                raise exc
+                raise
         raise exceptions.ConnectorException(
             f"Could not get a valid connection after {max_tries} tries"
         ) from final_exc

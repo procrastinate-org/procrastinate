@@ -60,7 +60,7 @@ class Migration(migrations.Migration):
             reverse_sql="""
                 ALTER TABLE app_name_mymodel
                 DROP CONSTRAINT app_name_mymodel_job_id_key;
-            """
+            """,
         ),
     ]
 ```

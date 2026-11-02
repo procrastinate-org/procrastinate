@@ -58,7 +58,7 @@ def wrap_query_exceptions(func: Callable[..., Any]) -> Callable[..., Any]:
         except sqlalchemy.exc.DBAPIError as exc:
             if exc.connection_invalidated:
                 return func(*args, **kwargs)
-            raise exc
+            raise
 
     return wrapped
 

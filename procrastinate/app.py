@@ -11,7 +11,7 @@ from typing import (
     TypedDict,
 )
 
-from typing_extensions import NotRequired, Unpack
+from typing_extensions import NotRequired, Self, Unpack
 
 from procrastinate import (
     blueprints,
@@ -25,6 +25,8 @@ from procrastinate import (
 from procrastinate import connector as connector_module
 
 if TYPE_CHECKING:
+    import types
+
     from procrastinate import worker
 
 logger = logging.getLogger(__name__)
@@ -119,6 +121,7 @@ class App(blueprints.Blueprint):
         self.import_paths = import_paths or []
         self.worker_defaults = worker_defaults or {}
         self.periodic_defaults = periodic_defaults or {}
+        self._import_paths_performed = False
 
         #: The :py:class:`~manager.JobManager` linked to the application
         self.job_manager: manager.JobManager = manager.JobManager(
@@ -245,17 +248,22 @@ class App(blueprints.Blueprint):
 
         return worker.Worker(app=self, **final_kwargs)
 
-    @functools.lru_cache(maxsize=1)
     def perform_import_paths(self):
         """
         Whenever using app.tasks, make sure the apps have been imported by calling
         this method.
         """
+        if self._import_paths_performed:
+            return
+
         utils.import_all(import_paths=self.import_paths)
         logger.debug(
             "All tasks imported",
             extra={"action": "imported_tasks", "tasks": list(self.tasks)},
         )
+        # Set last, so that a failed import is retried on the next call, which is
+        # what the lru_cache this replaced used to do.
+        self._import_paths_performed = True
 
     async def run_worker_async(self, **kwargs: Unpack[WorkerOptions]) -> None:
         """
@@ -412,8 +420,13 @@ class App(blueprints.Blueprint):
     async def close_async(self) -> None:
         await self.connector.close_async()
 
-    def __enter__(self) -> App:
+    def __enter__(self) -> Self:
         return self
 
-    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: types.TracebackType | None,
+    ) -> None:
         self.close()

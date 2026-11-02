@@ -29,8 +29,8 @@ Currently, Procrastinate does not provide a built-in method to forcefully termin
 
 ```python
 async with app.open_async():
-        await app.run_worker_async(wait=False)
-        # at this point, the worker has gracefully shut down
+    await app.run_worker_async(wait=False)
+    # at this point, the worker has gracefully shut down
 ```
 
 ### Run a worker until receiving a stop signal
@@ -83,7 +83,7 @@ async with app.open_async():
     worker.cancel()
 
     try:
-            # give the jobs 10 seconds to complete and abort remaining jobs
+        # give the jobs 10 seconds to complete and abort remaining jobs
         await asyncio.wait_for(worker, timeout=10)
     except asyncio.CancelledError:
         # all jobs have completed within 10 seconds
@@ -91,5 +91,4 @@ async with app.open_async():
     except asyncio.TimeoutError:
         # one or more jobs took longer than 10 seconds and have aborted.
         pass
-
 ```

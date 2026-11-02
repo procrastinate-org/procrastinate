@@ -1,11 +1,14 @@
 name: Label PR
 
-on:
+on: # zizmor: ignore[dangerous-triggers]
   pull_request_target:
     types:
       - opened
       - reopened
       - edited
+
+permissions:
+  contents: read
 
 jobs:
   label:

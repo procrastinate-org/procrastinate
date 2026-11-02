@@ -54,10 +54,9 @@ def test_do_nothing_on_secondary_thread(mocker):
 
 
 def test_on_stop_signal_twice(kill_own_pid):
-    with pytest.raises(KeyboardInterrupt):
-        with signals.on_stop(callback=lambda: None):
-            kill_own_pid(signal=signal.SIGINT)
-            kill_own_pid(signal=signal.SIGINT)
+    with pytest.raises(KeyboardInterrupt), signals.on_stop(callback=lambda: None):
+        kill_own_pid(signal=signal.SIGINT)
+        kill_own_pid(signal=signal.SIGINT)
 
 
 def test_on_stop_signal_unused(kill_own_pid):

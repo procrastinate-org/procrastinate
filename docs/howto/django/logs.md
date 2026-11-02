@@ -21,9 +21,7 @@ fields.
 LOGGING = {
     "version": 1,
     "formatters": {
-        "procrastinate": {
-            "format": "%(asctime)s %(levelname)-7s %(name)s %(message)s"
-        },
+        "procrastinate": {"format": "%(asctime)s %(levelname)-7s %(name)s %(message)s"},
     },
     "handlers": {
         "procrastinate": {
@@ -46,7 +44,6 @@ Here is an example of settings where you get the structured logs without using a
 extrernal library:
 
 ```python
-
 # This emulates what a normal structured logging setup would get you out of the box
 class ProcrastinateFilter(logging.Filter):
     # from https://github.com/madzak/python-json-logger/blob/master/src/pythonjsonlogger/jsonlogger.py#L19
@@ -55,6 +52,7 @@ class ProcrastinateFilter(logging.Filter):
         funcName levelname levelno lineno module msecs message msg name pathname
         process processName relativeCreated stack_info thread threadName""".split()
     )
+
     def filter(self, record: logging.LogRecord):
         record.procrastinate = {}
         for key, value in vars(record).items():

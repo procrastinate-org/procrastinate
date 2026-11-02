@@ -10,10 +10,12 @@ a log filter:
 ```python
 import logging
 
+
 class ProcrastinateLogFilter(logging.Filter):
     def filter(record):
         # adapt your record here
         return True
+
 
 logging.getLogger("procrastinate").addFilter(ProcrastinateLogFilter)
 ```
@@ -56,7 +58,8 @@ shared_processors = [
 ]
 
 structlog.configure(
-    processors=shared_processors + [structlog.stdlib.ProcessorFormatter.wrap_for_formatter],
+    processors=shared_processors
+    + [structlog.stdlib.ProcessorFormatter.wrap_for_formatter],
     logger_factory=structlog.stdlib.LoggerFactory(),
     cache_logger_on_first_use=True,
 )

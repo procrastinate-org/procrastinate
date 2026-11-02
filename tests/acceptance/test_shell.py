@@ -47,8 +47,7 @@ def read(shell):
                     break
                 continue
             line = line.decode()
-            if line.startswith(prefix):
-                line = line[len(prefix) :]
+            line = line.removeprefix(prefix)
             line = line.strip()
             if line:
                 lines.append(line)

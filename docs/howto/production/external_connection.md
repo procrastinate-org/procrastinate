@@ -21,9 +21,10 @@ from procrastinate import App, SyncPsycopgConnector
 app = App(connector=SyncPsycopgConnector(conninfo="..."))
 app.open()
 
+
 @app.task
-def process_order(order_id):
-    ...
+def process_order(order_id): ...
+
 
 with psycopg.connect("...") as conn:
     conn.autocommit = False
@@ -41,9 +42,10 @@ from procrastinate import App, PsycopgConnector
 app = App(connector=PsycopgConnector(conninfo="..."))
 await app.open_async()
 
+
 @app.task
-def process_order(order_id):
-    ...
+def process_order(order_id): ...
+
 
 async with await psycopg.AsyncConnection.connect("...") as conn:
     conn.autocommit = False
@@ -62,9 +64,10 @@ connector = SQLAlchemyPsycopg2Connector(dsn="postgresql+psycopg2:///mydb")
 app = App(connector=connector)
 app.open()
 
+
 @app.task
-def process_order(order_id):
-    ...
+def process_order(order_id): ...
+
 
 with connector.engine.connect() as conn:
     conn.exec_driver_sql("INSERT INTO orders (id) VALUES (%s)", [42])
