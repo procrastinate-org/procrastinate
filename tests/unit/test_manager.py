@@ -285,24 +285,40 @@ async def test_delete_old_jobs(
 async def test_finish_job(job_manager, job_factory, connector):
     job = job_factory(id=1)
     await job_manager.defer_job_async(job=job)
+    worker_id = await job_manager.register_worker()
+    job = await job_manager.fetch_job(queues=None, worker_id=worker_id)
 
     await job_manager.finish_job(
         job=job, status=jobs.Status.SUCCEEDED, delete_job=False
     )
     assert connector.queries[-1] == (
-        "finish_job",
-        {"job_id": 1, "status": "succeeded", "delete_job": False},
+        "finish_job_with_ownership",
+        {
+            "job_id": 1,
+            "status": "succeeded",
+            "delete_job": False,
+            "expected_status": "doing",
+            "expected_attempts": 0,
+        },
     )
 
 
 async def test_finish_job_with_deletion(job_manager, job_factory, connector):
     job = job_factory(id=1)
     await job_manager.defer_job_async(job=job)
+    worker_id = await job_manager.register_worker()
+    job = await job_manager.fetch_job(queues=None, worker_id=worker_id)
 
     await job_manager.finish_job(job=job, status=jobs.Status.SUCCEEDED, delete_job=True)
     assert connector.queries[-1] == (
-        "finish_job",
-        {"job_id": 1, "status": "succeeded", "delete_job": True},
+        "finish_job_with_ownership",
+        {
+            "job_id": 1,
+            "status": "succeeded",
+            "delete_job": True,
+            "expected_status": "doing",
+            "expected_attempts": 0,
+        },
     )
     assert 1 not in connector.jobs
 
@@ -408,19 +424,23 @@ async def test_get_job_status_async(job_manager, job_factory, connector, worker_
 async def test_retry_job(job_manager, job_factory, connector):
     job = job_factory(id=1)
     await job_manager.defer_job_async(job=job)
+    worker_id = await job_manager.register_worker()
+    job = await job_manager.fetch_job(queues=None, worker_id=worker_id)
     retry_at = conftest.aware_datetime(2000, 1, 1)
 
     await job_manager.retry_job(
         job=job, retry_at=retry_at, priority=7, queue="some_queue", lock="some_lock"
     )
     assert connector.queries[-1] == (
-        "retry_job",
+        "retry_job_with_ownership",
         {
             "job_id": 1,
             "retry_at": retry_at,
             "new_priority": 7,
             "new_queue_name": "some_queue",
             "new_lock": "some_lock",
+            "expected_status": "doing",
+            "expected_attempts": 0,
         },
     )
 
@@ -539,8 +559,12 @@ def dt():
     return datetime.datetime(2000, 1, 1, tzinfo=datetime.timezone.utc)
 
 
-async def test_retry_job_by_id_async(job_manager, connector, job_factory, dt):
+async def test_retry_job_by_id_async(
+    job_manager, connector, job_factory, dt, worker_id
+):
     job = await job_manager.defer_job_async(job=job_factory())
+    fetched_job = await job_manager.fetch_job(queues=None, worker_id=worker_id)
+    assert fetched_job.id == job.id
 
     await job_manager.retry_job_by_id_async(
         job_id=job.id, retry_at=dt, priority=7, queue="some_queue", lock="some_lock"
@@ -558,8 +582,12 @@ async def test_retry_job_by_id_async(job_manager, connector, job_factory, dt):
     )
 
 
-def test_retry_job_by_id(job_manager, connector, job_factory, dt):
+def test_retry_job_by_id(job_manager, connector, job_factory, dt, worker_id):
     job = job_manager.defer_job(job=job_factory())
+    fetched_job = utils.async_to_sync(
+        job_manager.fetch_job, queues=None, worker_id=worker_id
+    )
+    assert fetched_job.id == job.id
 
     job_manager.retry_job_by_id(
         job_id=job.id, retry_at=dt, priority=7, queue="some_queue", lock="some_lock"

@@ -72,6 +72,11 @@ WHERE id IN (
 -- Finish a job, changing it from "doing" to "succeeded" or "failed"
 SELECT procrastinate_finish_job_v1(%(job_id)s, %(status)s, %(delete_job)s);
 
+-- finish_job_with_ownership --
+-- Finish only the captured job attempt
+SELECT procrastinate_finish_job_v2(%(job_id)s, %(status)s, %(delete_job)s,
+    %(expected_status)s, %(expected_attempts)s) AS applied;
+
 -- cancel_job --
 -- Cancel a job, changing it from "todo" to "cancelled" or mark for abortion
 SELECT procrastinate_cancel_job_v1(%(job_id)s, %(abort)s, %(delete_job)s) AS id;
@@ -83,6 +88,12 @@ SELECT status FROM procrastinate_jobs WHERE id = %(job_id)s;
 -- retry_job --
 -- Retry a job, changing it from "doing" to "todo" or from "failed" to "todo"
 SELECT procrastinate_retry_job_v2(%(job_id)s, %(retry_at)s, %(new_priority)s, %(new_queue_name)s, %(new_lock)s);
+
+-- retry_job_with_ownership --
+-- Retry only the captured job attempt
+SELECT procrastinate_retry_job_v3(%(job_id)s, %(retry_at)s, %(new_priority)s,
+    %(new_queue_name)s, %(new_lock)s, %(expected_status)s,
+    %(expected_attempts)s) AS applied;
 
 -- listen_queue --
 -- In this one, the argument is an identifier, shoud not be escaped the same way
@@ -215,7 +226,7 @@ ORDER BY name;
 
 -- list_jobs_to_abort --
 -- Get list of running jobs that are requested to be aborted
-SELECT id from procrastinate_jobs
+SELECT id, attempts FROM procrastinate_jobs
 WHERE status = 'doing'
 AND abort_requested = true
 AND (%(queue_name)s::varchar IS NULL OR queue_name = %(queue_name)s)

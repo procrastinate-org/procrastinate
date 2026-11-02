@@ -7,6 +7,7 @@ from enum import Enum
 from typing import TYPE_CHECKING, Any, Literal, TypeAlias, TypedDict
 
 import attr
+from typing_extensions import NotRequired
 
 from procrastinate import types
 
@@ -30,6 +31,7 @@ class JobInserted(TypedDict):
 class AbortJobRequested(TypedDict):
     type: Literal["abort_job_requested"]
     job_id: int
+    attempts: NotRequired[int]
 
 
 Notification: TypeAlias = JobInserted | AbortJobRequested
