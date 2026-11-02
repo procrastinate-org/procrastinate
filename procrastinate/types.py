@@ -29,3 +29,4 @@ class JobToDefer(NamedTuple):
     queueing_lock: str | None
     args: JSONDict
     scheduled_at: datetime.datetime | None
+    lock_mode: str = "ordered"

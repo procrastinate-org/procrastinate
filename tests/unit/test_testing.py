@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import datetime
 from unittest.mock import AsyncMock
 
 import pytest
@@ -81,6 +82,7 @@ async def test_defer_one_job(connector: testing.InMemoryConnector):
             "priority": 5,
             "task_name": "mytask",
             "lock": "sher",
+            "lock_mode": "ordered",
             "queueing_lock": "houba",
             "args": {"a": "b"},
             "status": "todo",
@@ -671,3 +673,144 @@ async def test_prune_stalled_workers_all(connector: testing.InMemoryConnector):
         {"worker_id": "worker2"},
     ]
     assert connector.workers == {"worker3": conftest.aware_datetime(2100, 1, 1)}
+
+
+async def test_fetch_job_one_lock_blocks_on_future_scheduled_job(
+    connector: testing.InMemoryConnector,
+):
+    # A job that is not runnable yet still holds its lock, so the ready job sharing it
+    # is not handed out. This mirrors procrastinate_fetch_job_v2, which rejects a job
+    # whose lock has an earlier or higher priority job waiting.
+    await connector.defer_jobs_all(
+        [
+            t.JobToDefer(
+                queue_name="marsupilami",
+                task_name="mytask",
+                priority=5,
+                lock="a",
+                queueing_lock=None,
+                args={},
+                scheduled_at=utils.utcnow() + datetime.timedelta(hours=24),
+            ),
+            t.JobToDefer(
+                queue_name="marsupilami",
+                task_name="mytask",
+                priority=0,
+                lock="a",
+                queueing_lock=None,
+                args={},
+                scheduled_at=None,
+            ),
+        ]
+    )
+    connector.workers = {1: utils.utcnow()}
+
+    assert (await connector.fetch_job_one(queues=None, worker_id=1))["id"] is None
+
+
+async def test_fetch_job_one_lock_keeps_creation_order(
+    connector: testing.InMemoryConnector,
+):
+    # With equal priorities, jobs sharing a lock are handed out in creation order, one
+    # at a time.
+    await connector.defer_jobs_all(
+        [
+            t.JobToDefer(
+                queue_name="marsupilami",
+                task_name="mytask",
+                priority=0,
+                lock="a",
+                queueing_lock=None,
+                args={},
+                scheduled_at=None,
+            ),
+            t.JobToDefer(
+                queue_name="marsupilami",
+                task_name="mytask",
+                priority=0,
+                lock="a",
+                queueing_lock=None,
+                args={},
+                scheduled_at=None,
+            ),
+        ]
+    )
+    connector.workers = {1: utils.utcnow()}
+
+    assert (await connector.fetch_job_one(queues=None, worker_id=1))["id"] == 1
+    # The second job waits for the first one to be finished.
+    assert (await connector.fetch_job_one(queues=None, worker_id=1))["id"] is None
+
+    await connector.finish_job_run(job_id=1, status="succeeded", delete_job=False)
+    assert (await connector.fetch_job_one(queues=None, worker_id=1))["id"] == 2
+
+
+async def test_fetch_job_one_mutex_lock_ignores_waiting_job(
+    connector: testing.InMemoryConnector,
+):
+    # A 'mutex' lock is only held while a job runs, so a job that is not runnable yet
+    # does not hold up the ready jobs sharing its lock.
+    await connector.defer_jobs_all(
+        [
+            t.JobToDefer(
+                queue_name="marsupilami",
+                task_name="mytask",
+                priority=5,
+                lock="a",
+                queueing_lock=None,
+                args={},
+                scheduled_at=utils.utcnow() + datetime.timedelta(hours=24),
+                lock_mode="mutex",
+            ),
+            t.JobToDefer(
+                queue_name="marsupilami",
+                task_name="mytask",
+                priority=0,
+                lock="a",
+                queueing_lock=None,
+                args={},
+                scheduled_at=None,
+                lock_mode="mutex",
+            ),
+        ]
+    )
+    connector.workers = {1: utils.utcnow()}
+
+    assert (await connector.fetch_job_one(queues=None, worker_id=1))["id"] == 2
+    # ... but mutual exclusion still applies while that job is running.
+    assert (await connector.fetch_job_one(queues=None, worker_id=1))["id"] is None
+
+
+async def test_fetch_job_one_mutex_lock_blocks_on_runnable_job(
+    connector: testing.InMemoryConnector,
+):
+    # A 'mutex' lock is still reserved by a job that is runnable now, which is what
+    # keeps a single candidate per lock. Only jobs that cannot run yet step aside.
+    await connector.defer_jobs_all(
+        [
+            t.JobToDefer(
+                queue_name="marsupilami",
+                task_name="mytask",
+                priority=0,
+                lock="a",
+                queueing_lock=None,
+                args={},
+                scheduled_at=None,
+                lock_mode="mutex",
+            ),
+            t.JobToDefer(
+                queue_name="marsupilami",
+                task_name="mytask",
+                priority=0,
+                lock="a",
+                queueing_lock=None,
+                args={},
+                scheduled_at=None,
+                lock_mode="mutex",
+            ),
+        ]
+    )
+    connector.workers = {1: utils.utcnow()}
+
+    assert (await connector.fetch_job_one(queues=None, worker_id=1))["id"] == 1
+    assert (await connector.fetch_job_one(queues=None, worker_id=1))["id"] is None
