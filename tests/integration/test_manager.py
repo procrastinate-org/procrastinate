@@ -313,6 +313,56 @@ async def test_get_stalled_jobs_by_heartbeat__pruned_worker(
     assert result == [pruned_job]
 
 
+@pytest.mark.xfail(
+    strict=True,
+    reason=(
+        "finish_job and retry_job do not check the job's worker: "
+        "https://github.com/procrastinate-org/procrastinate/issues/1633"
+    ),
+)
+@pytest.mark.parametrize(
+    "stale_report",
+    [
+        lambda manager, job: manager.finish_job(
+            job, status=jobs.Status.SUCCEEDED, delete_job=False
+        ),
+        lambda manager, job: manager.retry_job(job),
+    ],
+    ids=["finish_job", "retry_job"],
+)
+async def test_a_reclaimed_job_ignores_its_previous_worker(
+    pg_job_manager, fetched_job_factory, psycopg_connector, stale_report
+):
+    # Worker A fetched the job, then stopped heartbeating while its attempt ran on.
+    stale_job = await fetched_job_factory(queue="queue_a")
+    await psycopg_connector.execute_query_async(
+        "UPDATE procrastinate_workers SET last_heartbeat=last_heartbeat - INTERVAL '35 minutes' "
+        f"WHERE id='{stale_job.worker_id}'"
+    )
+
+    # The retry_stalled_jobs recipe hands the job to worker B. (retry_at is in the past so
+    # that the application's and the database's clocks cannot keep it from being fetched.)
+    (stalled_job,) = await pg_job_manager.get_stalled_jobs()
+    await pg_job_manager.retry_job(
+        stalled_job, retry_at=conftest.aware_datetime(2000, 1, 1)
+    )
+    worker_b = await pg_job_manager.register_worker()
+    current_job = await pg_job_manager.fetch_job(queues=None, worker_id=worker_b)
+    assert current_job.id == stale_job.id
+
+    # Worker A's attempt ends, and it reports its outcome for the job it no longer owns.
+    try:
+        await stale_report(pg_job_manager, stale_job)
+    except exceptions.ProcrastinateException:
+        pass
+
+    # Worker B is still running the job: it must still be doing, and still B's.
+    row = await psycopg_connector.execute_query_one_async(
+        f"SELECT status, worker_id FROM procrastinate_jobs WHERE id={stale_job.id}"
+    )
+    assert (row["status"], row["worker_id"]) == ("doing", worker_b)
+
+
 async def test_register_and_unregister_worker(pg_job_manager, psycopg_connector):
     worker_id = await pg_job_manager.register_worker()
     assert worker_id is not None
