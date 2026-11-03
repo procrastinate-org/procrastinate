@@ -38,4 +38,37 @@ def my_task(**kwargs):
 
 To enforce that only one job runs at a time while limiting the queue size, you can combine `queueing_lock` with [lock](./locks.md).
 
+A queueing lock limits admission to `todo`, rather than execution in `doing`.
+When a worker starts a job, its status changes from `todo` to `doing`, freeing
+that queueing-lock value for a new waiting job. Another worker may start the new
+job while the first one is still running.
+
+:::{figure} ../../images/queueing-and-execution-locks.png
+:alt: With queueing_lock alone, at most one matching job waits in todo, but several may run in doing. Adding lock also limits doing to one matching job.
+:width: 544px
+
+Admission and execution limits for matching lock values.
+[Editable SVG](../../images/queueing-and-execution-locks.svg).
+[Edit diagram](https://svgdiagram.ai/diagram-sources/procrastinate-queueing-and-execution-locks?version=1).
+:::
+
+In the right-hand case, jobs share the same `queueing_lock` value **and** the
+same `lock` value. At most one matching job waits and one runs; both states can
+be occupied at the same time. The waiting job cannot be fetched until the
+execution lock is available, even though a worker is free.
+
+For example, give repeated maintenance jobs both limits:
+
+```python
+@app.task(queueing_lock="maintenance-pending", lock="maintenance-running")
+def maintenance(): ...
+```
+
+The two strings need not be identical: each identifies a separate group of jobs.
+A second waiting job with the same queueing-lock value still raises
+{py:class}`AlreadyEnqueued`, as above. Locks apply across tasks and queues that
+use matching values; see [execution locks](./locks.md) for ordering and scheduling
+considerations.
+
+
 You might also want to [schedule](./schedule.md) jobs for such task in the near future, which can be effective to throttle the task.
