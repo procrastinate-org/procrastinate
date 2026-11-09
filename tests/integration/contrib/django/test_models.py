@@ -9,6 +9,7 @@ import procrastinate
 import procrastinate.contrib.django
 import procrastinate.contrib.django.exceptions
 from procrastinate import jobs as jobs_module
+from procrastinate import utils
 from procrastinate.contrib.django import models
 
 
@@ -60,6 +61,48 @@ def test_procrastinate_job__property(db):
         attempts=0,
         queueing_lock="baz",
     )
+
+
+@pytest.mark.parametrize(
+    "initial_status, operation",
+    [("doing", "finish"), ("doing", "retry"), ("failed", "retry")],
+)
+def test_procrastinate_job__snapshot_owns_current_attempt(
+    db, initial_status, operation
+):
+    """
+    Tests that a Django model snapshot can report the current attempt
+    """
+    app = procrastinate.contrib.django.app
+    queue = "snapshot_ownership"
+    job_id = app.configure_task("test_task", queue=queue).defer()
+    worker_id = utils.async_to_sync(app.job_manager.register_worker)
+    claimed = utils.async_to_sync(
+        app.job_manager.fetch_job, queues=[queue], worker_id=worker_id
+    )
+    assert claimed.id == job_id
+    if initial_status == "failed":
+        utils.async_to_sync(
+            app.job_manager.finish_job,
+            claimed,
+            status=jobs_module.Status.FAILED,
+            delete_job=False,
+        )
+    snapshot = models.ProcrastinateJob.objects.get(pk=job_id).procrastinate_job
+    assert snapshot.status == initial_status
+    if operation == "retry":
+        applied = utils.async_to_sync(app.job_manager.retry_job, snapshot)
+    else:
+        applied = utils.async_to_sync(
+            app.job_manager.finish_job,
+            snapshot,
+            status=jobs_module.Status.SUCCEEDED,
+            delete_job=False,
+        )
+    assert applied is True
+    current = models.ProcrastinateJob.objects.get(pk=job_id).procrastinate_job
+    assert current.status == ("todo" if operation == "retry" else "succeeded")
+    assert current.attempts == snapshot.attempts + 1
 
 
 def test_procrastinate_job__no_create(db):

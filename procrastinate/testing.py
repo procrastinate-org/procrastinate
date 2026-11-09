@@ -51,6 +51,7 @@ class InMemoryConnector(connector.BaseAsyncConnector):
         self.events: dict[int, list[EventRow]] = {}
         self.workers: dict[int, datetime.datetime] = {}
         self.job_counter = count(1)
+        self.worker_counter = count(1)
         self.queries: list[tuple[str, dict[str, Any]]] = []
         self.on_notification: connector.Notify | None = None
         self.notify_channels: list[str] = []
@@ -313,15 +314,65 @@ class InMemoryConnector(connector.BaseAsyncConnector):
         return job
 
     async def finish_job_run(self, job_id: int, status: str, delete_job: bool) -> None:
+        if status not in {"succeeded", "failed", "aborted"}:
+            raise exceptions.ConnectorException(
+                'End status should be either "succeeded", "failed" or "aborted"'
+            )
+        job_row = self.jobs.get(job_id)
+        if job_row is None or job_row["status"] not in {"todo", "doing"}:
+            raise exceptions.ConnectorException(
+                'Job was not found or not in "doing" or "todo" status'
+            )
         if delete_job:
             self.jobs.pop(job_id)
+            self.events.pop(job_id, None)
             return
 
-        job_row = self.jobs[job_id]
+        was_doing = job_row["status"] == "doing"
         job_row["status"] = status
-        job_row["attempts"] += 1
+        if was_doing:
+            job_row["attempts"] += 1
         job_row["abort_requested"] = False
-        self.events[job_id].append({"type": status, "at": utils.utcnow()})
+        if was_doing:
+            event_type = status
+        elif status in {"succeeded", "failed"}:
+            event_type = "cancelled"
+        else:
+            event_type = None
+        if event_type is not None:
+            self.events[job_id].append({"type": event_type, "at": utils.utcnow()})
+
+    def _matches_job_attempt(
+        self,
+        job_id: int,
+        expected_status: str | None,
+        expected_attempts: int,
+    ) -> bool:
+        """
+        Compare a captured job attempt with its current row
+        """
+        row = self.jobs.get(job_id)
+        return (
+            row is not None
+            and row["status"] == expected_status
+            and row["attempts"] == expected_attempts
+        )
+
+    async def finish_job_with_ownership_one(
+        self,
+        job_id: int,
+        status: str,
+        delete_job: bool,
+        expected_status: str | None,
+        expected_attempts: int,
+    ) -> dict[str, bool]:
+        """
+        Finish the job if the captured attempt is still current
+        """
+        if not self._matches_job_attempt(job_id, expected_status, expected_attempts):
+            return {"applied": False}
+        await self.finish_job_run(job_id=job_id, status=status, delete_job=delete_job)
+        return {"applied": True}
 
     async def cancel_job_one(
         self, job_id: int, abort: bool, delete_job: bool
@@ -336,13 +387,14 @@ class InMemoryConnector(connector.BaseAsyncConnector):
             job_row["status"] = "cancelled"
             return {"id": job_id}
 
-        if abort:
+        if abort and job_row["status"] == "doing":
             job_row["abort_requested"] = True
             await self._notify(
                 job_row["queue_name"],
                 {
                     "type": "abort_job_requested",
                     "job_id": job_id,
+                    "attempts": job_row["attempts"],
                 },
             )
 
@@ -361,7 +413,22 @@ class InMemoryConnector(connector.BaseAsyncConnector):
         new_queue_name: str | None = None,
         new_lock: str | None = None,
     ) -> None:
-        job_row = self.jobs[job_id]
+        job_row = self.jobs.get(job_id)
+        if job_row is None or job_row["status"] not in {"doing", "failed"}:
+            raise exceptions.ConnectorException(
+                "Job was not found or has an invalid status to retry"
+            )
+        if job_row["status"] == "doing" and job_row["abort_requested"]:
+            job_row["status"] = "failed"
+            self.events[job_id].append({"type": "failed", "at": utils.utcnow()})
+            return
+
+        if job_row["abort_requested"]:
+            raise exceptions.ConnectorException(
+                "Cannot retry a job while its abort request remains set"
+            )
+
+        was_failed = job_row["status"] == "failed"
         job_row["status"] = "todo"
         job_row["attempts"] += 1
         job_row["scheduled_at"] = retry_at
@@ -372,7 +439,36 @@ class InMemoryConnector(connector.BaseAsyncConnector):
         if new_lock is not None:
             job_row["lock"] = new_lock
         self.events[job_id].append({"type": "scheduled", "at": retry_at})
-        self.events[job_id].append({"type": "deferred_for_retry", "at": utils.utcnow()})
+        self.events[job_id].append(
+            {
+                "type": "retried" if was_failed else "deferred_for_retry",
+                "at": utils.utcnow(),
+            }
+        )
+
+    async def retry_job_with_ownership_one(
+        self,
+        job_id: int,
+        retry_at: datetime.datetime,
+        new_priority: int | None,
+        new_queue_name: str | None,
+        new_lock: str | None,
+        expected_status: str | None,
+        expected_attempts: int,
+    ) -> dict[str, bool]:
+        """
+        Retry the job if the captured attempt is still current
+        """
+        if not self._matches_job_attempt(job_id, expected_status, expected_attempts):
+            return {"applied": False}
+        await self.retry_job_run(
+            job_id=job_id,
+            retry_at=retry_at,
+            new_priority=new_priority,
+            new_queue_name=new_queue_name,
+            new_lock=new_lock,
+        )
+        return {"applied": True}
 
     async def select_stalled_jobs_by_started_all(
         self, nb_seconds: int, queue: str, task_name: str
@@ -482,12 +578,12 @@ class InMemoryConnector(connector.BaseAsyncConnector):
         return {"check": self.table_exists or None}
 
     async def register_worker_one(self):
-        worker_id = max(self.workers, default=0) + 1
+        worker_id = next(self.worker_counter)
         self.workers[worker_id] = utils.utcnow()
         return {"worker_id": worker_id}
 
     async def unregister_worker_run(self, worker_id: int):
-        self.workers.pop(worker_id)
+        self.workers.pop(worker_id, None)
         for job in self.jobs.values():
             if job["worker_id"] == worker_id:
                 job["worker_id"] = None

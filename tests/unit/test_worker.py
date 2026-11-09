@@ -325,7 +325,9 @@ async def test_process_job_without_deletion(app: App, worker, fail_task):
     job_id = await task_func.defer_async()
 
     await start_worker(worker)
-    await wait_for(lambda: count_queries(app, "finish_job") >= 1)
+    await wait_for_job_status(
+        app, job_id, Status.FAILED if fail_task else Status.SUCCEEDED
+    )
 
     connector = cast(InMemoryConnector, app.connector)
     assert job_id in connector.jobs
@@ -349,7 +351,7 @@ async def test_process_job_with_deletion(app: App, worker, fail_task):
     job_id = await task_func.defer_async()
 
     await start_worker(worker)
-    await wait_for(lambda: count_queries(app, "finish_job") >= 1)
+    await wait_for(lambda: job_id not in cast(InMemoryConnector, app.connector).jobs)
 
     connector = cast(InMemoryConnector, app.connector)
     assert job_id not in connector.jobs
@@ -670,7 +672,9 @@ async def test_abort_async_job_while_finishing(app: App, worker, mocker: MockerF
     await wait_for(finish_job_started_event.is_set)
 
     await app.job_manager.cancel_job_by_id_async(job_id, abort=True)
-    await wait_for(lambda: job_id in worker._job_ids_to_abort)
+    await wait_for(
+        lambda: any(key[0] == job_id for key in worker._job_attempts_to_abort)
+    )
 
     complete_finish_job_event.set()
 
@@ -703,6 +707,87 @@ async def test_abort_async_job_preventing_cancellation(app: App, worker):
     await wait_for_job_status(app, job_id, Status.SUCCEEDED)
 
 
+async def test_repeated_abort_delivery_cancels_job_once(app: App, worker, mocker):
+    started = asyncio.Event()
+    never = asyncio.Event()
+
+    @app.task
+    async def task_func():
+        started.set()
+        await never.wait()
+
+    job_id = await task_func.defer_async()
+    await start_worker(worker)
+    await wait_for(started.is_set)
+
+    abort_job = mocker.spy(worker, "_abort_job")
+    worker._handle_abort_jobs_requested([(job_id, 0)])
+    worker._handle_abort_jobs_requested([(job_id, 0)])
+
+    assert abort_job.call_count == 1
+    await wait_for_job_status(app, job_id, Status.ABORTED)
+
+
+async def test_abort_notification_is_only_kept_during_fetch(app: App, worker):
+    started = asyncio.Event()
+    never = asyncio.Event()
+
+    @app.task
+    async def task_func():
+        started.set()
+        await never.wait()
+
+    job_id = await task_func.defer_async()
+    await start_worker(worker)
+    await wait_for(started.is_set)
+
+    try:
+        await worker._handle_notification(
+            channel="procrastinate_any_queue_v1",
+            notification={
+                "type": "abort_job_requested",
+                "job_id": job_id + 1,
+                "attempts": 0,
+            },
+        )
+        assert not worker._fetch_abort_requests
+    finally:
+        never.set()
+
+
+@pytest.mark.parametrize(
+    "worker",
+    [{"listen_notify": False, "abort_job_polling_interval": 0.01}],
+    indirect=True,
+)
+async def test_abort_notification_without_attempts_is_left_to_polling(app: App, worker):
+    """
+    Tests that an old-format abort notification is ignored and polling aborts the job
+    """
+    started = asyncio.Event()
+    never = asyncio.Event()
+
+    @app.task
+    async def task_func():
+        started.set()
+        await never.wait()
+
+    job_id = await task_func.defer_async()
+    await start_worker(worker)
+    await wait_for(started.is_set)
+
+    try:
+        await worker._handle_notification(
+            channel="procrastinate_any_queue_v1",
+            notification={"type": "abort_job_requested", "job_id": job_id},
+        )
+        assert worker._job_attempts_to_abort == {}
+        await app.job_manager.cancel_job_by_id_async(job_id, abort=True)
+        await wait_for_job_status(app, job_id, Status.ABORTED)
+    finally:
+        never.set()
+
+
 @pytest.mark.parametrize(
     "worker",
     [
@@ -731,8 +816,8 @@ async def test_run_job_abort(app: App, worker: Worker):
 
     await wait_for_job_status(app, job_id, Status.ABORTED)
 
-    await wait_for(lambda: worker._job_ids_to_abort == {})
-    assert worker._job_ids_to_abort == {}, (
+    await wait_for(lambda: worker._job_attempts_to_abort == {})
+    assert worker._job_attempts_to_abort == {}, (
         "Expected cancelled job id to be removed from set"
     )
 
@@ -793,6 +878,143 @@ async def test_run_job_retry_failed_job(
     assert len(error_records) == expected_error_logs
 
 
+async def test_reclaimed_attempt_keeps_its_own_abort_reason(app: App, caplog):
+    """
+    Tests that abort state stays separate between attempts of the same job
+    """
+    started = [asyncio.Event(), asyncio.Event()]
+    aborted = [asyncio.Event(), asyncio.Event()]
+    release = [asyncio.Event(), asyncio.Event()]
+    contexts = {}
+
+    @app.task(pass_context=True)
+    async def task_func(context):
+        attempt = context.job.attempts
+        contexts[attempt] = context
+        started[attempt].set()
+        try:
+            await release[attempt].wait()
+        except asyncio.CancelledError:
+            aborted[attempt].set()
+            await release[attempt].wait()
+
+    job_id = await task_func.defer_async()
+    worker = Worker(
+        app, concurrency=2, listen_notify=False, fetch_job_polling_interval=0.01
+    )
+    run_task = await start_worker(worker)
+    try:
+        await asyncio.wait_for(started[0].wait(), 2)
+        worker._handle_abort_jobs_requested([(job_id, 0)])
+        await asyncio.wait_for(aborted[0].wait(), 2)
+        assert contexts[0].should_abort()
+        assert await app.job_manager.retry_job(contexts[0].job) is True
+        await asyncio.wait_for(started[1].wait(), 2)
+        assert not contexts[1].should_abort()
+        await worker._handle_notification(
+            channel="procrastinate_any_queue_v1",
+            notification={
+                "type": "abort_job_requested",
+                "job_id": job_id,
+                "attempts": 0,
+            },
+        )
+        assert not contexts[1].should_abort()
+        assert not aborted[1].is_set()
+        await app.job_manager.cancel_job_by_id_async(job_id, abort=True)
+        attempts = await app.job_manager.list_job_attempts_to_abort_async()
+        worker._handle_abort_jobs_requested(attempts)
+        await asyncio.wait_for(aborted[1].wait(), 2)
+        release[0].set()
+        await wait_for(
+            lambda: any(
+                getattr(r, "action", None) == "stale_job_report" for r in caplog.records
+            )
+        )
+        assert contexts[1].should_abort()
+        assert await app.job_manager.get_job_status_async(job_id) == Status.DOING
+    finally:
+        for gate in release:
+            gate.set()
+        worker.stop()
+        await asyncio.wait_for(run_task, 2)
+
+
+async def test_job_completion_clears_abort_delivered_after_ack(app: App, mocker):
+    worker = Worker(app, wait=False, install_signal_handlers=False, delete_jobs="never")
+    persist = worker._persist_job_status
+
+    async def persist_then_deliver_abort(**kwargs):
+        await persist(**kwargs)
+        job = kwargs["job"]
+        worker._handle_abort_jobs_requested([(job.id, job.attempts)])
+
+    mocker.patch.object(
+        worker, "_persist_job_status", side_effect=persist_then_deliver_abort
+    )
+
+    @app.task
+    async def task_func():
+        return None
+
+    job_id = await task_func.defer_async()
+    run_task = await start_worker(worker)
+    try:
+        await asyncio.wait_for(run_task, 2)
+        assert await app.job_manager.get_job_status_async(job_id) == Status.SUCCEEDED
+        assert worker._running_jobs == {}
+        assert worker._job_attempts_to_abort == {}
+    finally:
+        worker.stop()
+        await asyncio.wait_for(asyncio.gather(run_task, return_exceptions=True), 2)
+
+
+@pytest.mark.parametrize("during_fetch", [False, True])
+async def test_abort_before_task_starts_persists_aborted_status(
+    app: App, mocker, during_fetch
+):
+    """
+    Tests that a job aborted before it starts is persisted as aborted without running
+    """
+    running_worker = Worker(
+        app, wait=False, install_signal_handlers=False, delete_jobs="never"
+    )
+    fetch_job = app.job_manager.fetch_job
+    cancellations = []
+    executed = False
+
+    async def cancel_job(job_id):
+        await app.job_manager.cancel_job_by_id_async(job_id, abort=True)
+
+    async def fetch_then_cancel(**kwargs):
+        """
+        Request an abort during or just after the fetch
+        """
+        job = await fetch_job(**kwargs)
+        if job and during_fetch:
+            await cancel_job(job.id)
+        elif job:
+            cancellations.append(asyncio.create_task(cancel_job(job.id)))
+        return job
+
+    mocker.patch.object(app.job_manager, "fetch_job", side_effect=fetch_then_cancel)
+
+    @app.task(retry=True)
+    async def task_func():
+        nonlocal executed
+        executed = True
+
+    job_id = await task_func.defer_async()
+    try:
+        await asyncio.wait_for(running_worker.run(), 2)
+        await asyncio.gather(*cancellations)
+        assert await app.job_manager.get_job_status_async(job_id) == Status.ABORTED
+        assert not executed
+    finally:
+        running_worker.stop()
+        await asyncio.gather(*cancellations, return_exceptions=True)
+
+
 async def test_run_log_actions(app: App, caplog, worker):
     caplog.set_level("DEBUG")
 
@@ -814,7 +1036,7 @@ async def test_run_log_actions(app: App, caplog, worker):
         "prune_stalled_workers",
         "register_worker",
         "fetch_job",
-        "finish_job",
+        "finish_job_with_ownership",
         "fetch_job",
     ]
 
@@ -936,8 +1158,8 @@ async def test_job_receives_worker_id(app: App):
 async def test_worker_prunes_stalled_workers(app: App):
     worker = Worker(app, wait=False)
 
-    worker1_id = 1
-    worker2_id = 2
+    worker1_id = await app.job_manager.register_worker()
+    worker2_id = await app.job_manager.register_worker()
 
     connector = cast(InMemoryConnector, app.connector)
     connector.workers = {
