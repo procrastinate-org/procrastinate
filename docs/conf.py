@@ -24,7 +24,7 @@ import django
 
 project = "Procrastinate"
 copyright = (
-    f"2019-{datetime.datetime.now(tz=datetime.timezone.utc).year}, "
+    f"2019-{datetime.datetime.now(tz=datetime.UTC).year}, "
     "Joachim Jablon, Eric Lemoine, Kai Schlamp, PeopleDoc"
 )
 author = "Joachim Jablon, Eric Lemoine, Kai Schlamp"

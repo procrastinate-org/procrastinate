@@ -5,6 +5,7 @@ from collections.abc import Generator, Iterable
 from typing import (
     TYPE_CHECKING,
     Any,
+    LiteralString,
 )
 
 import asgiref.sync
@@ -12,7 +13,6 @@ from django import db as django_db
 from django.core import exceptions as django_exceptions
 from django.db import connections
 from django.db.backends.base.base import BaseDatabaseWrapper
-from typing_extensions import LiteralString
 
 from procrastinate import connector
 from procrastinate.contrib.django import settings, utils

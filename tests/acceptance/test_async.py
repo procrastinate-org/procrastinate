@@ -239,7 +239,7 @@ async def test_concurrency(async_app: app_module.App):
         await asyncio.wait_for(
             async_app.run_worker_async(concurrency=20, wait=False), timeout=timeout
         )
-    except asyncio.TimeoutError:
+    except TimeoutError:
         pytest.fail(
             f"Failed to process all jobs within {timeout} seconds. "
             "Is the concurrency respected?"
@@ -293,7 +293,7 @@ async def test_polling(async_app: app_module.App):
         )
     except asyncio.CancelledError:
         pass
-    except asyncio.TimeoutError:
+    except TimeoutError:
         pytest.fail("Failed to stop worker")
 
 

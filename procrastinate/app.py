@@ -8,10 +8,12 @@ from collections.abc import Generator, Iterable
 from typing import (
     TYPE_CHECKING,
     Any,
+    NotRequired,
+    Self,
     TypedDict,
 )
 
-from typing_extensions import NotRequired, Self, Unpack
+from typing_extensions import Unpack
 
 from procrastinate import (
     blueprints,

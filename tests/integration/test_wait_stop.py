@@ -41,7 +41,7 @@ async def test_wait_for_activity_cancelled(psycopg_connector):
     try:
         with pytest.raises(asyncio.CancelledError):
             await asyncio.wait_for(task, timeout=0.2)
-    except asyncio.TimeoutError:
+    except TimeoutError:
         pytest.fail("Failed to stop worker within .2s")
 
 
@@ -87,7 +87,7 @@ async def test_wait_for_activity_stop_from_signal(psycopg_connector, kill_own_pi
 
     try:
         await asyncio.wait_for(task, timeout=0.2)
-    except asyncio.TimeoutError:
+    except TimeoutError:
         pytest.fail("Failed to stop worker within .2s")
 
 
@@ -104,5 +104,5 @@ async def test_wait_for_activity_stop(psycopg_connector):
 
     try:
         await asyncio.wait_for(task, timeout=0.2)
-    except asyncio.TimeoutError:
+    except TimeoutError:
         pytest.fail("Failed to stop worker within .2s")

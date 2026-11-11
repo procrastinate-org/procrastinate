@@ -4,13 +4,12 @@ import contextlib
 import logging
 import re
 from collections.abc import Callable, Generator
-from typing import Any
+from typing import Any, LiteralString
 
 import psycopg
 import psycopg.rows
 import psycopg.types.json
 import psycopg_pool
-from typing_extensions import LiteralString
 
 from procrastinate import connector, exceptions, manager
 

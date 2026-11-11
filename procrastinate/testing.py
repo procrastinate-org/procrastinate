@@ -399,7 +399,7 @@ class InMemoryConnector(connector.BaseAsyncConnector):
             and (
                 self.workers.get(
                     job["worker_id"],
-                    datetime.datetime.min.replace(tzinfo=datetime.timezone.utc),
+                    datetime.datetime.min.replace(tzinfo=datetime.UTC),
                 )
                 < utils.utcnow() - datetime.timedelta(seconds=seconds_since_heartbeat)
             )
