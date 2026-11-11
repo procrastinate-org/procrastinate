@@ -2,9 +2,7 @@ from __future__ import annotations
 
 import pathlib
 from importlib import resources
-from typing import cast
-
-from typing_extensions import LiteralString
+from typing import LiteralString, cast
 
 from procrastinate import connector as connector_module
 

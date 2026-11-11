@@ -208,7 +208,7 @@ async def test_listen_notify(psycopg_connector):
         args = received_args.pop()
         assert args["channel"] == "somechannel"
         assert args["payload"] == "somepayload"
-    except asyncio.TimeoutError:
+    except TimeoutError:
         pytest.fail("Notify not received within 1 sec")
     finally:
         task.cancel()
@@ -240,7 +240,7 @@ async def test_loop_notify_stop_when_connection_closed(psycopg_connector):
 
     try:
         await asyncio.wait_for(coro, 1)
-    except asyncio.TimeoutError:
+    except TimeoutError:
         pytest.fail("Failed to detect that connection was closed and stop")
 
 
@@ -267,7 +267,7 @@ async def test_loop_notify_timeout(psycopg_connector):
 
     try:
         await asyncio.wait_for(task, 0.2)
-    except asyncio.TimeoutError:
+    except TimeoutError:
         pytest.fail("Failed to detect that connection was closed and stop")
 
     assert not event.is_set()

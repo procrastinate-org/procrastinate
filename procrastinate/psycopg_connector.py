@@ -11,11 +11,11 @@ from collections.abc import (
 from typing import (
     TYPE_CHECKING,
     Any,
+    LiteralString,
     cast,
 )
 
 import packaging.version
-from typing_extensions import LiteralString
 
 from procrastinate import connector, exceptions, sql, sync_psycopg_connector, utils
 

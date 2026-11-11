@@ -1,9 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable, Iterable
-from typing import Any, Protocol
-
-from typing_extensions import LiteralString
+from typing import Any, LiteralString, Protocol
 
 from procrastinate import exceptions, utils
 

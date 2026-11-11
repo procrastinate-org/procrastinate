@@ -169,7 +169,7 @@ def callback(launched):
 def test_utcnow(mocker):
     dt = mocker.patch("datetime.datetime")
     assert utils.utcnow() == dt.now.return_value
-    dt.now.assert_called_once_with(tz=datetime.timezone.utc)
+    dt.now.assert_called_once_with(tz=datetime.UTC)
 
 
 @pytest.mark.parametrize(
@@ -177,25 +177,23 @@ def test_utcnow(mocker):
     [
         (
             "2020-01-05",
-            datetime.datetime(2020, 1, 5, 0, 0, tzinfo=datetime.timezone.utc),
+            datetime.datetime(2020, 1, 5, 0, 0, tzinfo=datetime.UTC),
         ),
         (
             "2020/01/05",
-            datetime.datetime(2020, 1, 5, 0, 0, tzinfo=datetime.timezone.utc),
+            datetime.datetime(2020, 1, 5, 0, 0, tzinfo=datetime.UTC),
         ),
         (
             "2020/01/05 22:07",
-            datetime.datetime(2020, 1, 5, 22, 7, tzinfo=datetime.timezone.utc),
+            datetime.datetime(2020, 1, 5, 22, 7, tzinfo=datetime.UTC),
         ),
         (
             "1984-06-02 19:05:57",
-            datetime.datetime(1984, 6, 2, 19, 5, 57, tzinfo=datetime.timezone.utc),
+            datetime.datetime(1984, 6, 2, 19, 5, 57, tzinfo=datetime.UTC),
         ),
         (
             "1984-06-02T19:05:57.720Z",
-            datetime.datetime(
-                1984, 6, 2, 19, 5, 57, 720000, tzinfo=datetime.timezone.utc
-            ),
+            datetime.datetime(1984, 6, 2, 19, 5, 57, 720000, tzinfo=datetime.UTC),
         ),
         (
             "1984-06-02T19:05:57.720+01:00",

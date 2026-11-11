@@ -320,7 +320,7 @@ def aware_datetime(
     tzinfo = (
         datetime.timezone(datetime.timedelta(hours=tz_offset))
         if tz_offset
-        else datetime.timezone.utc
+        else datetime.UTC
     )
     return datetime.datetime(
         year, month, day, hour, minute, second, microsecond, tzinfo=tzinfo

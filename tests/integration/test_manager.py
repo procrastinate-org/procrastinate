@@ -524,7 +524,7 @@ async def test_retry_job(pg_job_manager, fetched_job_factory, worker_id):
     job1 = await fetched_job_factory(queue="queue_a")
 
     await pg_job_manager.retry_job(
-        job=job1, retry_at=datetime.datetime.now(datetime.timezone.utc)
+        job=job1, retry_at=datetime.datetime.now(datetime.UTC)
     )
 
     job2 = await pg_job_manager.fetch_job(queues=None, worker_id=worker_id)
@@ -541,7 +541,7 @@ async def test_retry_job_with_additional_params(
 
     await pg_job_manager.retry_job(
         job=job1,
-        retry_at=datetime.datetime.now(datetime.timezone.utc),
+        retry_at=datetime.datetime.now(datetime.UTC),
         priority=5,
         queue="queue_b",
         lock="some_lock",

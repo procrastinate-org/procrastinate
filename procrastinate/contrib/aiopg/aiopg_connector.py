@@ -350,7 +350,7 @@ class AiopgConnector(connector.BaseAsyncConnector):
                 await on_notification(
                     channel=notification.channel, payload=notification.payload
                 )
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 continue
             except psycopg2.Error:
                 # aiopg>=1.3.1 will raise if the connection is closed while

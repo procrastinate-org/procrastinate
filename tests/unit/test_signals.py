@@ -86,5 +86,5 @@ async def test_on_stop_work_with_asyncio(kill_own_pid):
             task = asyncio.ensure_future(wait_and_kill())
             await asyncio.wait_for(event.wait(), timeout=0.01)
             assert task
-    except asyncio.TimeoutError:
+    except TimeoutError:
         pytest.fail("Signal did not awake coroutine")
