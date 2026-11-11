@@ -36,6 +36,10 @@ def my_task(**kwargs):
 
 `queueing_lock` allows a single job in `todo` status. Meanwhile, it allows multiple jobs to be in `doing` status.
 
+If a job fails and should be [retried](./retry.md) while another job with the same
+`queueing_lock` is already in `todo` status, it is not retried: it is marked as `failed`,
+and the job in `todo` status runs instead.
+
 To enforce that only one job runs at a time while limiting the queue size, you can combine `queueing_lock` with [lock](./locks.md).
 
 You might also want to [schedule](./schedule.md) jobs for such task in the near future, which can be effective to throttle the task.

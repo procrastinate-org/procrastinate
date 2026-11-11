@@ -698,6 +698,64 @@ async def test_retry_job_with_additional_params(
     assert job2.lock == "some_lock"
 
 
+async def test_retry_job_with_queueing_lock_and_no_todo_sibling(
+    pg_job_manager, fetched_job_factory, worker_id
+):
+    job1 = await fetched_job_factory(queueing_lock="queueing_lock")
+
+    await pg_job_manager.retry_job(
+        job=job1, retry_at=datetime.datetime.now(datetime.timezone.utc)
+    )
+
+    job2 = await pg_job_manager.fetch_job(queues=None, worker_id=worker_id)
+
+    assert job2.id == job1.id
+    assert job2.attempts == 1
+
+
+async def test_retry_job_with_queueing_lock_and_todo_sibling(
+    pg_job_manager, fetched_job_factory, deferred_job_factory, worker_id, get_all
+):
+    # job1 cannot go back to "todo": another job with the same queueing lock is
+    # already there, and will do the same work. job1 is closed as failed so that
+    # it releases its lock instead of staying in "doing" forever.
+    job1 = await fetched_job_factory(lock="lock", queueing_lock="queueing_lock")
+    job2 = await deferred_job_factory(lock="lock", queueing_lock="queueing_lock")
+
+    await pg_job_manager.retry_job(
+        job=job1, retry_at=datetime.datetime.now(datetime.timezone.utc)
+    )
+
+    rows = await get_all("procrastinate_jobs", "id", "status", "attempts")
+    assert sorted(rows, key=lambda row: row["id"]) == [
+        {"id": job1.id, "status": "failed", "attempts": 1},
+        {"id": job2.id, "status": "todo", "attempts": 0},
+    ]
+    events = await get_all("procrastinate_events", "job_id", "type")
+    assert {"job_id": job1.id, "type": "failed"} in events
+    assert {"job_id": job1.id, "type": "deferred_for_retry"} not in events
+
+    fetched_job = await pg_job_manager.fetch_job(queues=None, worker_id=worker_id)
+    assert fetched_job.id == job2.id
+
+
+async def test_retry_failed_job_with_queueing_lock_and_todo_sibling(
+    pg_job_manager, fetched_job_factory, deferred_job_factory
+):
+    # A failed job holds no lock, so there is nothing to release: retrying it
+    # while a sibling is waiting still raises.
+    job1 = await fetched_job_factory(queueing_lock="queueing_lock")
+    await pg_job_manager.finish_job(
+        job=job1, status=jobs.Status.FAILED, delete_job=False
+    )
+    await deferred_job_factory(queueing_lock="queueing_lock")
+
+    with pytest.raises(exceptions.UniqueViolation):
+        await pg_job_manager.retry_job(
+            job=job1, retry_at=datetime.datetime.now(datetime.timezone.utc)
+        )
+
+
 async def test_enum_synced(psycopg_connector):
     # If this test breaks, it means you've changed either the task_status PG enum
     # or the python procrastinate.jobs.Status Enum without updating the other.

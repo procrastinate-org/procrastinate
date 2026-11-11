@@ -408,15 +408,30 @@ BEGIN
         WHERE id = job_id AND status = 'doing'
         RETURNING id INTO _job_id;
     ELSE
-        UPDATE procrastinate_jobs
-        SET status = 'todo'::procrastinate_job_status,
-            attempts = attempts + 1,
-            scheduled_at = retry_at,
-            priority = COALESCE(new_priority, priority),
-            queue_name = COALESCE(new_queue_name, queue_name),
-            lock = COALESCE(new_lock, lock)
-        WHERE id = job_id AND status IN ('doing', 'failed')
-        RETURNING id INTO _job_id;
+        BEGIN
+            UPDATE procrastinate_jobs
+            SET status = 'todo'::procrastinate_job_status,
+                attempts = attempts + 1,
+                scheduled_at = retry_at,
+                priority = COALESCE(new_priority, priority),
+                queue_name = COALESCE(new_queue_name, queue_name),
+                lock = COALESCE(new_lock, lock)
+            WHERE id = job_id AND status IN ('doing', 'failed')
+            RETURNING id INTO _job_id;
+        EXCEPTION WHEN unique_violation THEN
+            -- Another job with the same queueing lock is already waiting in "todo",
+            -- and it will do the same work. A "doing" job that cannot be retried
+            -- is closed as failed, otherwise it would keep its lock forever.
+            -- A "failed" job holds no lock, so the error is raised as before.
+            IF _current_status IS DISTINCT FROM 'doing' THEN
+                RAISE;
+            END IF;
+            UPDATE procrastinate_jobs
+            SET status = 'failed'::procrastinate_job_status,
+                attempts = attempts + 1
+            WHERE id = job_id AND status = 'doing'
+            RETURNING id INTO _job_id;
+        END;
     END IF;
 
     IF _job_id IS NULL THEN
