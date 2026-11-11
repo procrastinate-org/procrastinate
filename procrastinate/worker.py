@@ -531,7 +531,9 @@ class Worker:
         reason: job_context.AbortReason,
     ):
         assert context.job.id
-        self._job_ids_to_abort[context.job.id] = reason
+        # Keep the first reason: a user abort must not become a retryable
+        # shutdown abort when the graceful timeout expires.
+        self._job_ids_to_abort.setdefault(context.job.id, reason)
 
         log_message: str
         task = self.app.tasks.get(context.job.task_name)
@@ -553,37 +555,48 @@ class Worker:
         Gracefully shutdown the worker by cancelling side tasks
         and waiting for all pending jobs.
         """
-        await utils.cancel_and_capture_errors(side_tasks)
+        # Abort polling must outlive the drain, so that running jobs can still
+        # be aborted while the worker waits for them.
+        side_tasks_to_stop_late = ["poll_jobs_to_abort"]
+        late_side_tasks = [
+            t for t in side_tasks if t.get_name() in side_tasks_to_stop_late
+        ]
+        await utils.cancel_and_capture_errors(
+            [t for t in side_tasks if t not in late_side_tasks]
+        )
 
-        now = time.time()
-        for context in self._running_jobs.values():
-            duration = now - context.start_timestamp
-            self.logger.info(
-                f"Waiting for job to finish: worker: {context.job.call_string} (started {duration:.3f} s ago)",
-                extra=self._log_extra(
-                    context=None, action="ending_job", job_result=None
-                ),
-            )
+        try:
+            now = time.time()
+            for context in self._running_jobs.values():
+                duration = now - context.start_timestamp
+                self.logger.info(
+                    f"Waiting for job to finish: worker: {context.job.call_string} (started {duration:.3f} s ago)",
+                    extra=self._log_extra(
+                        context=None, action="ending_job", job_result=None
+                    ),
+                )
 
-        if self._running_jobs:
-            await asyncio.wait(
-                self._running_jobs, timeout=self.shutdown_graceful_timeout
-            )
+            if self._running_jobs:
+                await asyncio.wait(
+                    self._running_jobs, timeout=self.shutdown_graceful_timeout
+                )
 
-        # As a reminder, tasks have a done callback that
-        # removes them from the self._running_jobs dict,
-        # so as the tasks stop, this dict will shrink.
-        if self._running_jobs:
-            self.logger.info(
-                f"{len(self._running_jobs)} jobs still running after graceful timeout. Aborting them",
-                extra=self._log_extra(
-                    action="stop_worker",
-                    queues=self.queues,
-                    context=None,
-                    job_result=None,
-                ),
-            )
-            await self._abort_running_jobs()
+            # As a reminder, tasks have a done callback that
+            # removes them from the self._running_jobs dict,
+            # so as the tasks stop, this dict will shrink.
+            if self._running_jobs:
+                self.logger.info(
+                    f"{len(self._running_jobs)} jobs still running after graceful timeout. Aborting them",
+                    extra=self._log_extra(
+                        action="stop_worker",
+                        queues=self.queues,
+                        context=None,
+                        job_result=None,
+                    ),
+                )
+                await self._abort_running_jobs()
+        finally:
+            await utils.cancel_and_capture_errors(late_side_tasks)
 
         assert self.worker_id is not None
         await self.app.job_manager.unregister_worker(self.worker_id)
