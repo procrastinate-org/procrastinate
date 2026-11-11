@@ -553,11 +553,14 @@ class Worker:
         Gracefully shutdown the worker by cancelling side tasks
         and waiting for all pending jobs.
         """
-        # Stop side tasks that can be stopped early, but exclude those that
-        # should be stopped *after* running jobs have stopped.
+        # Abort polling must outlive the drain, so that running jobs can still
+        # be aborted while the worker waits for them.
         side_tasks_to_stop_late = ["poll_jobs_to_abort"]
+        late_side_tasks = [
+            t for t in side_tasks if t.get_name() in side_tasks_to_stop_late
+        ]
         await utils.cancel_and_capture_errors(
-            [t for t in side_tasks if t.get_name() not in side_tasks_to_stop_late]
+            [t for t in side_tasks if t not in late_side_tasks]
         )
 
         now = time.time()
@@ -590,8 +593,7 @@ class Worker:
             )
             await self._abort_running_jobs()
 
-        # Now stop *all* side tasks.
-        await utils.cancel_and_capture_errors(side_tasks)
+        await utils.cancel_and_capture_errors(late_side_tasks)
 
         assert self.worker_id is not None
         await self.app.job_manager.unregister_worker(self.worker_id)

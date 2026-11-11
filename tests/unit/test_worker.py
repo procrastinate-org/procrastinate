@@ -647,21 +647,6 @@ async def test_abort_async_job_during_graceful_shutdown(app: App, caplog):
     """
     caplog.set_level("INFO")
 
-    async def wait_for_msg(msg):
-        """Poll until specified status is seen in log."""
-        while True:
-            for record in caplog.records:
-                if msg in record.msg:
-                    return
-            await asyncio.sleep(0.01)
-
-    async def wait_for_status(job_manager, job_id, status):
-        """Poll until specified job status is seen."""
-        while True:
-            if status == await job_manager.get_job_status_async(job_id):
-                return
-            await asyncio.sleep(0.01)
-
     @app.task()
     async def task_func():
         await asyncio.Event().wait()
@@ -678,19 +663,23 @@ async def test_abort_async_job_during_graceful_shutdown(app: App, caplog):
         shutdown_graceful_timeout=None,
     )
     run_task = await start_worker(worker)
-    await asyncio.wait_for(wait_for_status(app.job_manager, job_id, Status.DOING), 1)
+    await wait_for_job_status(app, job_id, Status.DOING)
 
     # Ask the worker to shutdown, verify it has begun to shut down, and verify
     # the job still has DOING status.
     worker.stop()
-    await asyncio.wait_for(wait_for_msg("Waiting for job to finish"), 1)
+    await wait_for(
+        lambda: any(
+            "Waiting for job to finish" in record.message for record in caplog.records
+        )
+    )
     assert await app.job_manager.get_job_status_async(job_id) == Status.DOING
 
     # Abort the job and verify the abortion was successful.
     await app.job_manager.cancel_job_by_id_async(job_id, abort=True)
-    await asyncio.wait_for(wait_for_status(app.job_manager, job_id, Status.ABORTED), 1)
+    await wait_for_job_status(app, job_id, Status.ABORTED)
 
-    await run_task
+    await asyncio.wait_for(run_task, timeout=2)
 
 
 async def test_abort_async_job_while_finishing(app: App, worker, mocker: MockerFixture):
