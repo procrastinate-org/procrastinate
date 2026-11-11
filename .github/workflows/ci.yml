@@ -20,8 +20,6 @@ jobs:
     strategy:
       matrix:
         include:
-          - python-version: "3.10"
-            postgres-version: "14"
           - python-version: "3.11"
             postgres-version: "15"
           - python-version: "3.12"
@@ -29,6 +27,8 @@ jobs:
           - python-version: "3.13"
             postgres-version: "17"
           - python-version: "3.14"
+            postgres-version: "18"
+          - python-version: "3.15"
             postgres-version: "18"
 
     name: "py${{ matrix.python-version }}"
@@ -233,6 +233,7 @@ jobs:
       id-token: write
     needs:
       - tests
+      - acceptance-tests
       - lint
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

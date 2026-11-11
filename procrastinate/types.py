@@ -1,9 +1,7 @@
 from __future__ import annotations
 
 import datetime
-from typing import NamedTuple, TypeAlias, TypedDict
-
-from typing_extensions import NotRequired
+from typing import NamedTuple, NotRequired, TypeAlias, TypedDict
 
 JSONValue: TypeAlias = (
     'dict[str, "JSONValue"] | list["JSONValue"] | str | int | float | bool | None'

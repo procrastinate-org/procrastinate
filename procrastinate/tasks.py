@@ -4,9 +4,9 @@ import datetime
 import inspect
 import logging
 from collections.abc import Callable
-from typing import Any, Generic, TypedDict, cast
+from typing import Any, Generic, NotRequired, TypedDict, cast
 
-from typing_extensions import NotRequired, ParamSpec, TypeVar, Unpack
+from typing_extensions import ParamSpec, TypeVar, Unpack
 
 from procrastinate import app as app_module
 from procrastinate import blueprints, exceptions, jobs, manager, types, utils

@@ -536,7 +536,7 @@ def test_raise_already_enqueued_wrong_constraint(job_manager):
 
 @pytest.fixture
 def dt():
-    return datetime.datetime(2000, 1, 1, tzinfo=datetime.timezone.utc)
+    return datetime.datetime(2000, 1, 1, tzinfo=datetime.UTC)
 
 
 async def test_retry_job_by_id_async(job_manager, connector, job_factory, dt):

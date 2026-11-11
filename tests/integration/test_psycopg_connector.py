@@ -208,7 +208,7 @@ async def test_listen_notify(psycopg_connector):
         args = received_args.pop()
         assert args["channel"] == "somechannel"
         assert args["payload"] == "somepayload"
-    except asyncio.TimeoutError:
+    except TimeoutError:
         pytest.fail("Notify not received within 1 sec")
     finally:
         task.cancel()
@@ -240,7 +240,7 @@ async def test_loop_notify_stop_when_connection_closed(psycopg_connector):
 
     try:
         await asyncio.wait_for(coro, 1)
-    except asyncio.TimeoutError:
+    except TimeoutError:
         pytest.fail("Failed to detect that connection was closed and stop")
 
 
@@ -267,7 +267,7 @@ async def test_loop_notify_timeout(psycopg_connector):
 
     try:
         await asyncio.wait_for(task, 0.2)
-    except asyncio.TimeoutError:
+    except TimeoutError:
         pytest.fail("Failed to detect that connection was closed and stop")
 
     assert not event.is_set()
@@ -538,3 +538,119 @@ async def test_get_job_status_with_external_connection(
     ) as conn:
         status = await app.job_manager.get_job_status_async(job_id, connection=conn)
     assert status == jobs.Status.TODO
+
+
+async def test_execute_query_with_sync_connection(psycopg_connector, connection_params):
+    import psycopg
+
+    conninfo = psycopg.conninfo.make_conninfo(**connection_params)
+
+    @asgiref.sync.sync_to_async()
+    def sync():
+        with psycopg.connect(conninfo) as conn:
+            one = psycopg_connector.execute_query_one_with_connection(
+                conn, "SELECT %(arg)s as col", arg=1
+            )
+            rows = psycopg_connector.execute_query_all_with_connection(
+                conn, "SELECT %(arg)s as col", arg=1
+            )
+        return one, rows
+
+    assert await sync() == ({"col": 1}, [{"col": 1}])
+
+
+async def test_execute_query_with_async_connection_from_sync(psycopg_connector):
+    async with psycopg_connector.pool.connection() as conn:
+
+        @asgiref.sync.sync_to_async()
+        def sync():
+            one = psycopg_connector.execute_query_one_with_connection(
+                conn, "SELECT %(arg)s as col", arg=1
+            )
+            rows = psycopg_connector.execute_query_all_with_connection(
+                conn, "SELECT %(arg)s as col", arg=1
+            )
+            return one, rows
+
+        assert await sync() == ({"col": 1}, [{"col": 1}])
+
+
+@pytest.mark.parametrize("commit, expected_count", [(True, 1), (False, 0)])
+async def test_sync_defer_with_external_sync_connection(
+    psycopg_connector, connection_params, commit, expected_count
+):
+    # The async pool is open (e.g. inside a worker), but the caller defers
+    # synchronously on its own psycopg.Connection.
+    import psycopg
+
+    from procrastinate import App, sql
+
+    app = App(connector=psycopg_connector)
+    await app.open_async()
+
+    @app.task
+    def my_sync_conn_task(x):
+        pass
+
+    conninfo = psycopg.conninfo.make_conninfo(**connection_params)
+
+    @asgiref.sync.sync_to_async()
+    def sync():
+        with psycopg.connect(conninfo, autocommit=False) as conn:
+            my_sync_conn_task.configure(connection=conn).defer(x=1)
+            if commit:
+                conn.commit()
+            else:
+                conn.rollback()
+
+    await sync()
+
+    jobs = await psycopg_connector.execute_query_all_async(
+        query=sql.queries["list_jobs"],
+        id=None,
+        queue_name=None,
+        task_name="tests.integration.test_psycopg_connector.my_sync_conn_task",
+        status=None,
+        lock=None,
+        queueing_lock=None,
+        worker_id=None,
+    )
+    assert len(jobs) == expected_count
+
+
+@pytest.mark.parametrize(
+    "commit, expected_status", [(True, "cancelled"), (False, "todo")]
+)
+async def test_sync_cancel_and_status_with_external_sync_connection(
+    psycopg_connector, connection_params, commit, expected_status
+):
+    import psycopg
+
+    from procrastinate import App, jobs
+
+    app = App(connector=psycopg_connector)
+    await app.open_async()
+
+    @app.task
+    def my_sync_conn_cancel_task(x):
+        pass
+
+    job_id = await my_sync_conn_cancel_task.defer_async(x=1)
+
+    conninfo = psycopg.conninfo.make_conninfo(**connection_params)
+
+    @asgiref.sync.sync_to_async()
+    def sync():
+        with psycopg.connect(conninfo, autocommit=False) as conn:
+            assert app.job_manager.cancel_job_by_id(job_id, connection=conn) is True
+            status = app.job_manager.get_job_status(job_id, connection=conn)
+            assert status == jobs.Status.CANCELLED
+            if commit:
+                conn.commit()
+            else:
+                conn.rollback()
+
+    await sync()
+
+    status = await app.job_manager.get_job_status_async(job_id)
+    assert status == jobs.Status(expected_status)

@@ -11,10 +11,11 @@ from collections.abc import (
 from typing import (
     TYPE_CHECKING,
     Any,
+    LiteralString,
+    cast,
 )
 
 import packaging.version
-from typing_extensions import LiteralString
 
 from procrastinate import connector, exceptions, sql, sync_psycopg_connector, utils
 
@@ -275,6 +276,40 @@ class PsycopgConnector(connector.BaseAsyncConnector):
             await cursor.execute(query, self._wrap_json(arguments))
 
             return await cursor.fetchall()
+
+    def _get_external_sync_connector(
+        self,
+    ) -> sync_psycopg_connector.SyncPsycopgConnector:
+        # Only used to run queries on a caller-provided psycopg.Connection,
+        # so it is never opened and holds no pool.
+        return sync_psycopg_connector.SyncPsycopgConnector(
+            json_dumps=self._json_dumps, json_loads=self._json_loads
+        )
+
+    def execute_query_one_with_connection(
+        self, connection: Any, query: LiteralString, **arguments: Any
+    ) -> dict[str, Any]:
+        # When the async pool is open, get_sync_connector() returns self, so
+        # a sync psycopg.Connection passed by the caller ends up here and
+        # must not be handed to the async implementation.
+        if isinstance(connection, psycopg.Connection):
+            return (
+                self._get_external_sync_connector().execute_query_one_with_connection(
+                    cast("psycopg.Connection[Any]", connection), query, **arguments
+                )
+            )
+        return super().execute_query_one_with_connection(connection, query, **arguments)
+
+    def execute_query_all_with_connection(
+        self, connection: Any, query: LiteralString, **arguments: Any
+    ) -> list[dict[str, Any]]:
+        if isinstance(connection, psycopg.Connection):
+            return (
+                self._get_external_sync_connector().execute_query_all_with_connection(
+                    cast("psycopg.Connection[Any]", connection), query, **arguments
+                )
+            )
+        return super().execute_query_all_with_connection(connection, query, **arguments)
 
     def _make_dynamic_query(
         self,

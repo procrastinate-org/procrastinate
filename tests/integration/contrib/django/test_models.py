@@ -42,7 +42,7 @@ def test_procrastinate_job__property(db):
         lock="bar",
         args={"a": 1, "b": 2},
         status="todo",
-        scheduled_at=datetime.datetime(2021, 1, 1, tzinfo=datetime.timezone.utc),
+        scheduled_at=datetime.datetime(2021, 1, 1, tzinfo=datetime.UTC),
         attempts=0,
         queueing_lock="baz",
         abort_requested=False,
@@ -56,7 +56,7 @@ def test_procrastinate_job__property(db):
         priority=0,
         lock="bar",
         status="todo",
-        scheduled_at=datetime.datetime(2021, 1, 1, tzinfo=datetime.timezone.utc),
+        scheduled_at=datetime.datetime(2021, 1, 1, tzinfo=datetime.UTC),
         attempts=0,
         queueing_lock="baz",
     )
@@ -76,7 +76,7 @@ def test_procrastinate_job__create__with_setting(db, settings):
         lock="bar",
         args={"a": 1, "b": 2},
         status="todo",
-        scheduled_at=datetime.datetime.now(datetime.timezone.utc),
+        scheduled_at=datetime.datetime.now(datetime.UTC),
         attempts=0,
         queueing_lock="baz",
         abort_requested=False,
@@ -97,7 +97,7 @@ def test_procrastinate_event(db):
     job_id = procrastinate.contrib.django.app.configure_task("test_task").defer(
         a=1, b=2
     )
-    now = datetime.datetime.now(datetime.timezone.utc)
+    now = datetime.datetime.now(datetime.UTC)
     one_sec = datetime.timedelta(seconds=1)
     event = models.ProcrastinateEvent.objects.values().get(job_id=job_id)
     at = event.pop("at")

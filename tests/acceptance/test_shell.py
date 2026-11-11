@@ -42,7 +42,7 @@ def read(shell):
         while True:
             try:
                 line = await asyncio.wait_for(shell.stdout.readline(), 0.1)
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 if lines:
                     break
                 continue

@@ -2,9 +2,7 @@ from __future__ import annotations
 
 import re
 from importlib import resources
-from typing import cast
-
-from typing_extensions import LiteralString
+from typing import LiteralString, cast
 
 QUERIES_REGEX = re.compile(r"(?:\n|^)-- ([a-z0-9_]+) --\n(?:-- .+\n)*", re.MULTILINE)
 

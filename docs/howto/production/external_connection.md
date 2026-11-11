@@ -94,7 +94,8 @@ async with await psycopg.AsyncConnection.connect("...") as conn:
 ## Supported connectors
 
 - `SyncPsycopgConnector` — pass a `psycopg.Connection`
-- `PsycopgConnector` — pass a `psycopg.AsyncConnection`
+- `PsycopgConnector` — pass a `psycopg.AsyncConnection` (async methods) or a
+  `psycopg.Connection` (sync methods)
 - `SQLAlchemyPsycopg2Connector` — pass a `sqlalchemy.engine.Connection`
 
 Other connectors will raise a `ConnectorException` if `connection` is provided.

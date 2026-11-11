@@ -156,11 +156,11 @@ def get_full_path(obj: Any) -> str:
 
 
 def utcnow() -> datetime.datetime:
-    return datetime.datetime.now(tz=datetime.timezone.utc)
+    return datetime.datetime.now(tz=datetime.UTC)
 
 
 def utcmax() -> datetime.datetime:
-    return datetime.datetime.max.replace(tzinfo=datetime.timezone.utc)
+    return datetime.datetime.max.replace(tzinfo=datetime.UTC)
 
 
 def parse_datetime(raw: str) -> datetime.datetime:
@@ -168,14 +168,14 @@ def parse_datetime(raw: str) -> datetime.datetime:
         # this parser is the stricter one, so we try it first
         dt = dateutil.parser.isoparse(raw)
         if not dt.tzinfo:
-            dt = dt.replace(tzinfo=datetime.timezone.utc)
+            dt = dt.replace(tzinfo=datetime.UTC)
         return dt
     except ValueError:
         pass
     # this parser is quite forgiving, and will attempt to return
     # a value in most circumstances, so we use it as last option
     dt = dateutil.parser.parse(raw)
-    dt = dt.replace(tzinfo=datetime.timezone.utc)
+    dt = dt.replace(tzinfo=datetime.UTC)
     return dt
 
 
@@ -362,7 +362,7 @@ async def gen_with_timeout(
             yield await asyncio.wait_for(aiterator.__anext__(), timeout=timeout)
         except StopAsyncIteration:
             break
-        except asyncio.TimeoutError:
+        except TimeoutError:
             if raise_timeout:
                 raise
             else:

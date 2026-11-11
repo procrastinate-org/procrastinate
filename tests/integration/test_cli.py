@@ -222,9 +222,7 @@ async def test_defer_at(entrypoint, cli_app, connector):
             "lock": "sherlock",
             "queueing_lock": None,
             "queue_name": "default",
-            "scheduled_at": datetime.datetime(
-                2020, 1, 1, 12, tzinfo=datetime.timezone.utc
-            ),
+            "scheduled_at": datetime.datetime(2020, 1, 1, 12, tzinfo=datetime.UTC),
             "status": "todo",
             "task_name": "hello",
             "priority": 0,
@@ -239,7 +237,7 @@ async def test_defer_in(entrypoint, cli_app, connector):
     def mytask(a):
         pass
 
-    now = datetime.datetime.now(datetime.timezone.utc)
+    now = datetime.datetime.now(datetime.UTC)
 
     # No space in the json helps entrypoint() to simply split args
     result = await entrypoint("""defer --lock=sherlock --in=10 hello {"a":1}""")
