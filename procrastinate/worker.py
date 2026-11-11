@@ -531,7 +531,9 @@ class Worker:
         reason: job_context.AbortReason,
     ):
         assert context.job.id
-        self._job_ids_to_abort[context.job.id] = reason
+        # Keep the first reason: a user abort must not become a retryable
+        # shutdown abort when the graceful timeout expires.
+        self._job_ids_to_abort.setdefault(context.job.id, reason)
 
         log_message: str
         task = self.app.tasks.get(context.job.task_name)

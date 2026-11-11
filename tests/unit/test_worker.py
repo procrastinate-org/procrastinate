@@ -4,6 +4,7 @@ import asyncio
 import contextlib
 import datetime
 import signal
+import threading
 from collections.abc import Callable
 from typing import cast
 from unittest import mock
@@ -14,7 +15,7 @@ from pytest_mock import MockerFixture
 from procrastinate import utils
 from procrastinate.app import App
 from procrastinate.exceptions import JobAborted
-from procrastinate.job_context import JobContext
+from procrastinate.job_context import AbortReason, JobContext
 from procrastinate.jobs import DEFAULT_QUEUE, Job, Status
 from procrastinate.testing import InMemoryConnector
 from procrastinate.worker import Worker
@@ -680,6 +681,46 @@ async def test_abort_async_job_during_graceful_shutdown(app: App, caplog):
     await wait_for_job_status(app, job_id, Status.ABORTED)
 
     await asyncio.wait_for(run_task, timeout=2)
+
+
+async def test_user_abort_kept_when_graceful_timeout_expires(app: App, caplog):
+    caplog.set_level("INFO")
+    job_started = threading.Event()
+    graceful_timeout_expired = threading.Event()
+
+    @app.task(retry=1, pass_context=True)
+    def task_func(job_context: JobContext):
+        job_started.set()
+        graceful_timeout_expired.wait(timeout=5)
+        if job_context.should_abort():
+            raise JobAborted()
+
+    job_id = await task_func.defer_async()
+    worker = Worker(
+        app,
+        abort_job_polling_interval=0.01,
+        listen_notify=False,
+        shutdown_graceful_timeout=0.01,
+    )
+    run_task = await start_worker(worker)
+    await wait_for(job_started.is_set)
+
+    await app.job_manager.cancel_job_by_id_async(job_id, abort=True)
+    await wait_for(
+        lambda: worker._job_ids_to_abort.get(job_id) == AbortReason.USER_REQUEST
+    )
+
+    worker.stop()
+    await wait_for(
+        lambda: any(
+            "still running after graceful timeout" in record.message
+            for record in caplog.records
+        )
+    )
+    graceful_timeout_expired.set()
+
+    await asyncio.wait_for(run_task, timeout=2)
+    await wait_for_job_status(app, job_id, Status.ABORTED)
 
 
 async def test_abort_async_job_while_finishing(app: App, worker, mocker: MockerFixture):
