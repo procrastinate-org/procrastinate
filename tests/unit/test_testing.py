@@ -598,6 +598,98 @@ async def test_retry_job_run(connector: testing.InMemoryConnector):
     assert len(connector.events[id]) == 4
 
 
+async def defer_job(
+    connector: testing.InMemoryConnector, queueing_lock: str | None = None
+) -> int:
+    (job_row,) = await connector.defer_jobs_all(
+        [
+            t.JobToDefer(
+                queue_name="marsupilami",
+                task_name="mytask",
+                priority=0,
+                lock=None,
+                queueing_lock=queueing_lock,
+                args={},
+                scheduled_at=None,
+            )
+        ]
+    )
+    return job_row["id"]
+
+
+async def start_job(connector: testing.InMemoryConnector) -> int:
+    connector.workers = {1: utils.utcnow()}
+    job_row = await connector.fetch_job_one(queues=None, worker_id=1)
+    return job_row["id"]
+
+
+async def test_retry_job_run_abort_requested(connector: testing.InMemoryConnector):
+    await defer_job(connector)
+    id = await start_job(connector)
+    await connector.cancel_job_one(job_id=id, abort=True, delete_job=False)
+
+    await connector.retry_job_run(
+        job_id=id, retry_at=conftest.aware_datetime(2000, 1, 1)
+    )
+
+    assert connector.jobs[id]["status"] == "failed"
+    assert connector.jobs[id]["attempts"] == 0
+
+
+async def test_retry_job_run_queueing_lock_conflict(
+    connector: testing.InMemoryConnector,
+):
+    await defer_job(connector, queueing_lock="houba")
+    id = await start_job(connector)
+    await defer_job(connector, queueing_lock="houba")
+
+    with pytest.raises(exceptions.UniqueViolation) as exc_info:
+        await connector.retry_job_run(
+            job_id=id, retry_at=conftest.aware_datetime(2000, 1, 1)
+        )
+
+    assert exc_info.value.constraint_name == "procrastinate_jobs_queueing_lock_idx_v1"
+    assert exc_info.value.queueing_lock == "houba"
+    assert connector.jobs[id]["status"] == "doing"
+
+
+async def test_finish_job_run_todo_job(connector: testing.InMemoryConnector):
+    id = await defer_job(connector)
+
+    await connector.finish_job_run(job_id=id, status="failed", delete_job=False)
+
+    assert connector.jobs[id]["status"] == "failed"
+    assert connector.jobs[id]["attempts"] == 0
+
+
+async def test_cancel_job_one_abort_todo_job(connector: testing.InMemoryConnector):
+    id = await defer_job(connector)
+
+    result = await connector.cancel_job_one(job_id=id, abort=True, delete_job=False)
+
+    assert result == {"id": id}
+    assert connector.jobs[id]["status"] == "cancelled"
+    assert connector.jobs[id]["abort_requested"] is True
+
+
+async def test_cancel_job_one_abort_finished_job(
+    connector: testing.InMemoryConnector,
+):
+    await defer_job(connector)
+    id = await start_job(connector)
+    await connector.finish_job_run(job_id=id, status="succeeded", delete_job=False)
+    on_notification = AsyncMock()
+    await connector.listen_notify(
+        on_notification=on_notification, channels=["procrastinate_any_queue_v1"]
+    )
+
+    result = await connector.cancel_job_one(job_id=id, abort=True, delete_job=False)
+
+    assert result == {"id": None}
+    assert connector.jobs[id]["abort_requested"] is False
+    on_notification.assert_not_called()
+
+
 async def test_apply_schema_run(connector: testing.InMemoryConnector):
     # If we don't crash, it's enough
     await connector.apply_schema_run()
