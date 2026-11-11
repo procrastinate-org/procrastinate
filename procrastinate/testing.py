@@ -318,8 +318,9 @@ class InMemoryConnector(connector.BaseAsyncConnector):
             return
 
         job_row = self.jobs[job_id]
+        if job_row["status"] == "doing":
+            job_row["attempts"] += 1
         job_row["status"] = status
-        job_row["attempts"] += 1
         job_row["abort_requested"] = False
         self.events[job_id].append({"type": status, "at": utils.utcnow()})
 
@@ -334,9 +335,11 @@ class InMemoryConnector(connector.BaseAsyncConnector):
                 return {"id": job_id}
 
             job_row["status"] = "cancelled"
+            if abort:
+                job_row["abort_requested"] = True
             return {"id": job_id}
 
-        if abort:
+        if abort and job_row["status"] == "doing":
             job_row["abort_requested"] = True
             await self._notify(
                 job_row["queue_name"],
@@ -362,6 +365,21 @@ class InMemoryConnector(connector.BaseAsyncConnector):
         new_lock: str | None = None,
     ) -> None:
         job_row = self.jobs[job_id]
+        if job_row["status"] == "doing" and job_row["abort_requested"]:
+            job_row["status"] = "failed"
+            self.events[job_id].append({"type": "failed", "at": utils.utcnow()})
+            return
+
+        queueing_lock = job_row["queueing_lock"]
+        if queueing_lock is not None and any(
+            job["queueing_lock"] == queueing_lock and job["status"] == "todo"
+            for job in self.jobs.values()
+        ):
+            raise exceptions.UniqueViolation(
+                constraint_name=manager.QUEUEING_LOCK_CONSTRAINT,
+                queueing_lock=queueing_lock,
+            )
+
         job_row["status"] = "todo"
         job_row["attempts"] += 1
         job_row["scheduled_at"] = retry_at
