@@ -613,6 +613,150 @@ async def test_delete_old_jobs_parameters(
     assert jobs_count == expected_job_count
 
 
+async def set_event_ages(psycopg_connector, job_id, **minutes_ago_by_type):
+    # Rewrites the ``at`` of each event of the given type, so that it is
+    # ``minutes_ago`` minutes in the past (``None`` means a NULL ``at``).
+    for event_type, minutes_ago in minutes_ago_by_type.items():
+        at = (
+            "NULL"
+            if minutes_ago is None
+            else f"NOW() - INTERVAL '{minutes_ago} minutes'"
+        )
+        await psycopg_connector.execute_query_async(
+            f"UPDATE procrastinate_events SET at={at} "
+            f"WHERE job_id={job_id} AND type='{event_type}'"
+        )
+
+
+@pytest.mark.parametrize(
+    "deferred, started, succeeded, expected_job_count",
+    [
+        # All events are older than nb_hours
+        (120, 120, 120, 0),
+        # The latest event is just older / just newer than nb_hours
+        (120, 120, 61, 0),
+        (120, 120, 59, 1),
+        # The latest event is not the final one: it is still the one
+        # that counts
+        (120, 30, 120, 1),
+        (30, 120, 120, 1),
+    ],
+)
+async def test_delete_old_jobs_latest_event(
+    get_all,
+    pg_job_manager,
+    psycopg_connector,
+    fetched_job_factory,
+    deferred,
+    started,
+    succeeded,
+    expected_job_count,
+):
+    job = await fetched_job_factory(queue="queue_a")
+    await pg_job_manager.finish_job(job, status=jobs.Status.SUCCEEDED, delete_job=False)
+    await set_event_ages(
+        psycopg_connector,
+        job.id,
+        deferred=deferred,
+        started=started,
+        succeeded=succeeded,
+    )
+
+    await pg_job_manager.delete_old_jobs(nb_hours=1)
+    assert len(await get_all("procrastinate_jobs", "id")) == expected_job_count
+
+
+async def test_delete_old_jobs_event_without_timestamp(
+    get_all, pg_job_manager, psycopg_connector, fetched_job_factory
+):
+    job = await fetched_job_factory(queue="queue_a")
+    await pg_job_manager.finish_job(job, status=jobs.Status.SUCCEEDED, delete_job=False)
+    await set_event_ages(
+        psycopg_connector, job.id, deferred=120, started=None, succeeded=120
+    )
+
+    await pg_job_manager.delete_old_jobs(nb_hours=1)
+    assert len(await get_all("procrastinate_jobs", "id")) == 1
+
+
+async def test_delete_old_jobs_job_without_events(
+    get_all, pg_job_manager, psycopg_connector, fetched_job_factory
+):
+    job = await fetched_job_factory(queue="queue_a")
+    await pg_job_manager.finish_job(job, status=jobs.Status.SUCCEEDED, delete_job=False)
+    await psycopg_connector.execute_query_async(
+        f"DELETE FROM procrastinate_events WHERE job_id={job.id}"
+    )
+
+    await pg_job_manager.delete_old_jobs(nb_hours=0)
+    assert len(await get_all("procrastinate_jobs", "id")) == 1
+
+
+@pytest.mark.parametrize(
+    "status, include, expected_job_count",
+    [
+        (jobs.Status.CANCELLED, {}, 1),
+        (jobs.Status.CANCELLED, {"include_cancelled": True}, 0),
+        (jobs.Status.ABORTED, {}, 1),
+        (jobs.Status.ABORTED, {"include_aborted": True}, 0),
+        (jobs.Status.ABORTED, {"include_failed": True, "include_cancelled": True}, 1),
+    ],
+)
+async def test_delete_old_jobs_cancelled_aborted(
+    get_all,
+    pg_job_manager,
+    psycopg_connector,
+    deferred_job_factory,
+    fetched_job_factory,
+    status,
+    include,
+    expected_job_count,
+):
+    if status == jobs.Status.CANCELLED:
+        job = await deferred_job_factory(queue="queue_a")
+        await pg_job_manager.cancel_job_by_id_async(job.id)
+    else:
+        job = await fetched_job_factory(queue="queue_a")
+        await pg_job_manager.finish_job(
+            job, status=jobs.Status.ABORTED, delete_job=False
+        )
+    await psycopg_connector.execute_query_async(
+        f"UPDATE procrastinate_events SET at=at - INTERVAL '2 hours' "
+        f"WHERE job_id={job.id}"
+    )
+
+    await pg_job_manager.delete_old_jobs(nb_hours=1, **include)
+    assert len(await get_all("procrastinate_jobs", "id")) == expected_job_count
+
+
+async def test_delete_old_jobs_mixed_jobs(
+    get_all, pg_job_manager, psycopg_connector, fetched_job_factory
+):
+    # Several jobs in one call: only the old, succeeded jobs of the requested
+    # queue are deleted.
+    old_a = await fetched_job_factory(queue="queue_a")
+    old_b = await fetched_job_factory(queue="queue_b")
+    recent_a = await fetched_job_factory(queue="queue_a")
+    failed_a = await fetched_job_factory(queue="queue_a")
+    doing_a = await fetched_job_factory(queue="queue_a")
+    for job in (old_a, old_b, recent_a):
+        await pg_job_manager.finish_job(
+            job, status=jobs.Status.SUCCEEDED, delete_job=False
+        )
+    await pg_job_manager.finish_job(
+        failed_a, status=jobs.Status.FAILED, delete_job=False
+    )
+    for job in (old_a, old_b, failed_a, doing_a):
+        await psycopg_connector.execute_query_async(
+            f"UPDATE procrastinate_events SET at=at - INTERVAL '2 hours' "
+            f"WHERE job_id={job.id}"
+        )
+
+    await pg_job_manager.delete_old_jobs(nb_hours=1, queue="queue_a")
+    remaining = {row["id"] for row in await get_all("procrastinate_jobs", "id")}
+    assert remaining == {old_b.id, recent_a.id, failed_a.id, doing_a.id}
+
+
 async def test_finish_job(get_all, pg_job_manager, fetched_job_factory):
     job = await fetched_job_factory(queue="queue_a")
 
