@@ -8,6 +8,8 @@ import pytest
 from procrastinate import app
 from procrastinate import worker as worker_module
 
+from ..helpers import wait_or_fail
+
 
 async def wait_for_signal_handler(sig: signal.Signals, previous, timeout: float = 5):
     """
@@ -38,11 +40,8 @@ async def test_wait_for_activity_cancelled(psycopg_connector):
 
     task.cancel()
 
-    try:
-        with pytest.raises(asyncio.CancelledError):
-            await asyncio.wait_for(task, timeout=0.2)
-    except TimeoutError:
-        pytest.fail("Failed to stop worker within .2s")
+    with pytest.raises(asyncio.CancelledError):
+        await wait_or_fail(task, timeout=0.2)
 
 
 async def test_wait_for_activity_timeout(psycopg_connector):
@@ -53,8 +52,11 @@ async def test_wait_for_activity_timeout(psycopg_connector):
     worker = worker_module.Worker(app=pg_app, fetch_job_polling_interval=2)
     task = asyncio.ensure_future(worker.run())
     await asyncio.sleep(0.2)  # should be enough so that we're waiting
-    with pytest.raises(asyncio.TimeoutError):
-        await asyncio.wait_for(task, timeout=0.2)
+    done, _ = await asyncio.wait({task}, timeout=0.2)
+    assert not done
+
+    worker.stop()
+    await wait_or_fail(task)
 
 
 async def test_wait_for_activity_stop_from_signal(psycopg_connector, kill_own_pid):
@@ -85,10 +87,7 @@ async def test_wait_for_activity_stop_from_signal(psycopg_connector, kill_own_pi
 
     kill_own_pid()
 
-    try:
-        await asyncio.wait_for(task, timeout=0.2)
-    except TimeoutError:
-        pytest.fail("Failed to stop worker within .2s")
+    await wait_or_fail(task, timeout=0.2)
 
 
 async def test_wait_for_activity_stop(psycopg_connector):
@@ -102,7 +101,4 @@ async def test_wait_for_activity_stop(psycopg_connector):
 
     worker.stop()
 
-    try:
-        await asyncio.wait_for(task, timeout=0.2)
-    except TimeoutError:
-        pytest.fail("Failed to stop worker within .2s")
+    await wait_or_fail(task, timeout=0.2)
