@@ -565,37 +565,38 @@ class Worker:
             [t for t in side_tasks if t not in late_side_tasks]
         )
 
-        now = time.time()
-        for context in self._running_jobs.values():
-            duration = now - context.start_timestamp
-            self.logger.info(
-                f"Waiting for job to finish: worker: {context.job.call_string} (started {duration:.3f} s ago)",
-                extra=self._log_extra(
-                    context=None, action="ending_job", job_result=None
-                ),
-            )
+        try:
+            now = time.time()
+            for context in self._running_jobs.values():
+                duration = now - context.start_timestamp
+                self.logger.info(
+                    f"Waiting for job to finish: worker: {context.job.call_string} (started {duration:.3f} s ago)",
+                    extra=self._log_extra(
+                        context=None, action="ending_job", job_result=None
+                    ),
+                )
 
-        if self._running_jobs:
-            await asyncio.wait(
-                self._running_jobs, timeout=self.shutdown_graceful_timeout
-            )
+            if self._running_jobs:
+                await asyncio.wait(
+                    self._running_jobs, timeout=self.shutdown_graceful_timeout
+                )
 
-        # As a reminder, tasks have a done callback that
-        # removes them from the self._running_jobs dict,
-        # so as the tasks stop, this dict will shrink.
-        if self._running_jobs:
-            self.logger.info(
-                f"{len(self._running_jobs)} jobs still running after graceful timeout. Aborting them",
-                extra=self._log_extra(
-                    action="stop_worker",
-                    queues=self.queues,
-                    context=None,
-                    job_result=None,
-                ),
-            )
-            await self._abort_running_jobs()
-
-        await utils.cancel_and_capture_errors(late_side_tasks)
+            # As a reminder, tasks have a done callback that
+            # removes them from the self._running_jobs dict,
+            # so as the tasks stop, this dict will shrink.
+            if self._running_jobs:
+                self.logger.info(
+                    f"{len(self._running_jobs)} jobs still running after graceful timeout. Aborting them",
+                    extra=self._log_extra(
+                        action="stop_worker",
+                        queues=self.queues,
+                        context=None,
+                        job_result=None,
+                    ),
+                )
+                await self._abort_running_jobs()
+        finally:
+            await utils.cancel_and_capture_errors(late_side_tasks)
 
         assert self.worker_id is not None
         await self.app.job_manager.unregister_worker(self.worker_id)

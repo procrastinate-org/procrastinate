@@ -723,6 +723,40 @@ async def test_user_abort_kept_when_graceful_timeout_expires(app: App, caplog):
     await wait_for_job_status(app, job_id, Status.ABORTED)
 
 
+async def test_abort_polling_stopped_when_drain_is_cancelled(app: App, caplog):
+    caplog.set_level("INFO")
+    release_job = asyncio.Event()
+
+    @app.task()
+    async def task_func():
+        await release_job.wait()
+
+    job_id = await task_func.defer_async()
+    worker = Worker(app, listen_notify=False)
+    run_task = await start_worker(worker)
+    await wait_for_job_status(app, job_id, Status.DOING)
+
+    # The first cancellation starts a graceful shutdown, the second one
+    # interrupts it while it waits for the running job.
+    run_task.cancel()
+    await wait_for(
+        lambda: any(
+            "Waiting for job to finish" in record.message for record in caplog.records
+        )
+    )
+    run_task.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await asyncio.wait_for(run_task, timeout=2)
+
+    assert not [
+        task
+        for task in asyncio.all_tasks()
+        if task.get_name() == "poll_jobs_to_abort" and not task.done()
+    ]
+
+    release_job.set()
+
+
 async def test_abort_async_job_while_finishing(app: App, worker, mocker: MockerFixture):
     """
     Tests that aborting a job after that job completes but before the job status is updated
