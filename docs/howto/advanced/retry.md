@@ -114,7 +114,7 @@ you can know whether a currently executing job is on its last attempt:
 def my_task(job_context: procrastinate.JobContext) -> None:
     job = job_context.job
     task = job_context.task
-    if task.retry.get_retry_decision(exception=Exception(), job=job) is None:
+    if task.retry_strategy.get_retry_decision(exception=Exception(), job=job) is None:
         print("Warning: last attempt!")
 
     if random.random() < 0.9:
