@@ -996,9 +996,7 @@ async def test_worker_stops_when_side_task_fails_after_another_returned(app: App
     monitor = asyncio.create_task(
         worker._monitor_side_tasks([returns_immediately, fails_later])
     )
-    await asyncio.sleep(0.05)
+    await asyncio.wait_for(monitor, timeout=2)
 
     assert fails_later.done()
     assert worker._stop_event.is_set()
-
-    monitor.cancel()
