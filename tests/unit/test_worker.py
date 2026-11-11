@@ -20,6 +20,8 @@ from procrastinate.jobs import DEFAULT_QUEUE, Job, Status
 from procrastinate.testing import InMemoryConnector
 from procrastinate.worker import Worker
 
+from ..helpers import wait_or_fail
+
 
 async def start_worker(worker: Worker):
     task = asyncio.create_task(worker.run())
@@ -70,7 +72,7 @@ async def worker(app: App, request: pytest.FixtureRequest):
     if worker.run_task and not worker.run_task.done():
         worker.stop()
         try:
-            await asyncio.wait_for(worker.run_task, timeout=5)
+            await wait_or_fail(worker.run_task, timeout=5)
         except asyncio.CancelledError:
             pass
 
@@ -96,13 +98,18 @@ async def test_worker_run_no_wait(app: App, available_jobs, concurrency):
     for i in range(available_jobs):
         await perform_job.defer_async()
 
-    await asyncio.wait_for(worker.run(), 2)
+    await wait_or_fail(worker.run())
 
 
 async def test_worker_run_wait_until_cancelled(app: App):
     worker = Worker(app, wait=True)
-    with pytest.raises(asyncio.TimeoutError):
-        await asyncio.wait_for(worker.run(), 0.05)
+    run_task = asyncio.create_task(worker.run())
+    done, _ = await asyncio.wait({run_task}, timeout=0.05)
+    assert not done
+
+    run_task.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await wait_or_fail(run_task)
 
 
 async def test_worker_run_wait_stop(app: App, caplog):
@@ -111,7 +118,7 @@ async def test_worker_run_wait_stop(app: App, caplog):
     run_task = asyncio.create_task(worker.run())
     await wait_for(lambda: "Starting worker on all queues" in caplog.messages)
     worker.stop()
-    await asyncio.wait_for(run_task, 2)
+    await wait_or_fail(run_task)
 
     assert set(caplog.messages) == {
         "Starting worker on all queues",
@@ -135,7 +142,7 @@ async def test_stop_requested_before_run_loop_starts_is_not_lost(app: App):
 
     worker._run_loop = run_loop_with_late_start
 
-    await asyncio.wait_for(worker.run(), timeout=2)
+    await wait_or_fail(worker.run())
 
 
 def test_stop_after_run_exited_with_error_does_not_raise(not_opened_app: App):
@@ -159,7 +166,7 @@ def test_stop_after_run_exited_with_error_does_not_raise(not_opened_app: App):
 async def test_worker_run_once_log_messages(app: App, caplog):
     caplog.set_level("INFO")
     worker = Worker(app, wait=False)
-    await asyncio.wait_for(worker.run(), 2)
+    await wait_or_fail(worker.run())
 
     assert set(caplog.messages) == {
         "Starting worker on all queues",
@@ -380,7 +387,7 @@ async def test_stopping_worker_waits_for_task(app: App, worker):
     # this should successfully complete the job and re-raise the CancelledError
     run_task.cancel()
     with pytest.raises(asyncio.CancelledError):
-        await asyncio.wait_for(run_task, 2)
+        await wait_or_fail(run_task)
 
     status = await app.job_manager.get_job_status_async(job_id)
     assert status == Status.SUCCEEDED
@@ -418,12 +425,12 @@ async def test_stopping_worker_aborts_job_after_timeout(app: App, worker, mode):
     if mode == "stop":
         worker.stop()
 
-        await asyncio.wait_for(run_task, 2)
+        await wait_or_fail(run_task)
     else:
         run_task.cancel()
 
         with pytest.raises(asyncio.CancelledError):
-            await asyncio.wait_for(run_task, 2)
+            await wait_or_fail(run_task)
 
     status = await app.job_manager.get_job_status_async(job_id)
     assert status == Status.ABORTED
@@ -455,7 +462,7 @@ async def test_stopping_worker_job_suppresses_cancellation(app: App, worker):
 
     worker.stop()
 
-    await asyncio.wait_for(run_task, 2)
+    await wait_or_fail(run_task)
 
     status = await app.job_manager.get_job_status_async(job_id)
     assert status == Status.SUCCEEDED
@@ -680,7 +687,7 @@ async def test_abort_async_job_during_graceful_shutdown(app: App, caplog):
     await app.job_manager.cancel_job_by_id_async(job_id, abort=True)
     await wait_for_job_status(app, job_id, Status.ABORTED)
 
-    await asyncio.wait_for(run_task, timeout=2)
+    await wait_or_fail(run_task)
 
 
 async def test_user_abort_kept_when_graceful_timeout_expires(app: App, caplog):
@@ -719,7 +726,7 @@ async def test_user_abort_kept_when_graceful_timeout_expires(app: App, caplog):
     )
     graceful_timeout_expired.set()
 
-    await asyncio.wait_for(run_task, timeout=2)
+    await wait_or_fail(run_task)
     await wait_for_job_status(app, job_id, Status.ABORTED)
 
 
@@ -746,7 +753,7 @@ async def test_abort_polling_stopped_when_drain_is_cancelled(app: App, caplog):
     )
     run_task.cancel()
     with pytest.raises(asyncio.CancelledError):
-        await asyncio.wait_for(run_task, timeout=2)
+        await wait_or_fail(run_task)
 
     assert not [
         task
@@ -893,7 +900,7 @@ async def test_run_job_retry_failed_job(
     run_task = await start_worker(worker)
 
     # wait=False: the worker exits once it runs out of jobs to process.
-    await asyncio.wait_for(run_task, 2)
+    await wait_or_fail(run_task)
 
     connector = cast(InMemoryConnector, app.connector)
     job_row = connector.jobs[job_id]
@@ -975,7 +982,7 @@ async def test_run_log_current_job_when_stopping(app: App, worker, caplog):
     await wait_for(lambda: any(expected_log in r.message for r in caplog.records))
 
     complete_job_event.set()
-    await asyncio.wait_for(run_task, timeout=2)
+    await wait_or_fail(run_task)
 
     logs = " ".join(r.message for r in caplog.records)
     assert "Stop requested" in logs
@@ -1013,7 +1020,7 @@ async def test_worker_id_and_heartbeat_lifecycle(app: App):
     await wait_for(lambda: connector.workers[worker_id] > heartbeat1)
 
     worker.stop()
-    await asyncio.wait_for(run_task, 2)
+    await wait_or_fail(run_task)
 
     assert worker.worker_id is None
     assert connector.workers == {}
@@ -1044,7 +1051,7 @@ async def test_job_receives_worker_id(app: App):
     assert job_row["worker_id"] == worker.worker_id
 
     complete_job_event.set()
-    await asyncio.wait_for(run_task, 2)
+    await wait_or_fail(run_task)
 
     assert job_row["status"] == "succeeded"
     assert job_row["worker_id"] is None
@@ -1065,7 +1072,7 @@ async def test_worker_prunes_stalled_workers(app: App):
     }
 
     run_task = await start_worker(worker)
-    await asyncio.wait_for(run_task, 2)
+    await wait_or_fail(run_task)
 
     assert worker1_id in connector.workers
     assert worker2_id not in connector.workers

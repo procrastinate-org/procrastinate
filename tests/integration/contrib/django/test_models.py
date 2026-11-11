@@ -11,6 +11,8 @@ import procrastinate.contrib.django.exceptions
 from procrastinate import jobs as jobs_module
 from procrastinate.contrib.django import models
 
+from ....helpers import wait_or_fail
+
 
 def test_procrastinate_job(db):
     job_id = procrastinate.contrib.django.app.configure_task("test_task").defer(
@@ -138,10 +140,8 @@ async def test_procrastinate_periodic_defers(db):
                 await asyncio.wait_for(wait_for_periodic_defer(), timeout=5)
             finally:
                 worker.cancel()
-                # Bounded, so that a worker refusing to shut down fails the test
-                # instead of hanging the job until CI's own timeout.
                 try:
-                    await asyncio.wait_for(worker, timeout=10)
+                    await wait_or_fail(worker, timeout=10)
                 except asyncio.CancelledError:
                     pass
 

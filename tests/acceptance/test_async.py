@@ -11,6 +11,8 @@ from procrastinate.exceptions import JobAborted
 from procrastinate.job_context import JobContext
 from procrastinate.jobs import Status
 
+from ..helpers import wait_or_fail
+
 
 @pytest.fixture(params=["psycopg_connector", "aiopg_connector"])
 async def async_app(request, psycopg_connector, connection_params):
@@ -174,7 +176,7 @@ async def test_abort_async_task(async_app: app_module.App, mode):
 
     # Generous multiples of the expected latency (notification: ms, polling: one
     # 0.1s interval) so a slow CI runner doesn't fail the test.
-    await asyncio.wait_for(worker_task, timeout=1 if mode == "listen" else 2)
+    await wait_or_fail(worker_task, timeout=1 if mode == "listen" else 2)
 
     status = await async_app.job_manager.get_job_status_async(job_id)
     assert status == Status.ABORTED
@@ -210,7 +212,7 @@ async def test_abort_sync_task(async_app: app_module.App, mode):
 
     # Generous multiples of the expected latency (notification: ms, polling: one
     # 0.1s interval) so a slow CI runner doesn't fail the test.
-    await asyncio.wait_for(worker_task, timeout=1 if mode == "listen" else 2)
+    await wait_or_fail(worker_task, timeout=1 if mode == "listen" else 2)
 
     status = await async_app.job_manager.get_job_status_async(job_id)
     assert status == Status.ABORTED
@@ -235,15 +237,12 @@ async def test_concurrency(async_app: app_module.App):
     timeout = 5
 
     start_time = time.time()
-    try:
-        await asyncio.wait_for(
-            async_app.run_worker_async(concurrency=20, wait=False), timeout=timeout
-        )
-    except TimeoutError:
-        pytest.fail(
-            f"Failed to process all jobs within {timeout} seconds. "
-            "Is the concurrency respected?"
-        )
+    await wait_or_fail(
+        async_app.run_worker_async(concurrency=20, wait=False),
+        timeout=timeout,
+        reason=f"Failed to process all jobs within {timeout} seconds. "
+        "Is the concurrency respected?",
+    )
     duration = time.time() - start_time
 
     assert duration >= 0.5, (
@@ -285,16 +284,9 @@ async def test_polling(async_app: app_module.App):
 
     await wait_for_job_status(async_app, job_id, Status.SUCCEEDED)
 
-    try:
-        worker_task.cancel()
-        await asyncio.wait_for(
-            worker_task,
-            timeout=0.5,
-        )
-    except asyncio.CancelledError:
-        pass
-    except TimeoutError:
-        pytest.fail("Failed to stop worker")
+    worker_task.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await wait_or_fail(worker_task, timeout=0.5)
 
 
 async def test_retry_when_aborting(async_app: app_module.App):
@@ -335,7 +327,7 @@ async def test_stop_worker(async_app: app_module.App):
 
     with pytest.raises(asyncio.CancelledError):
         run_task.cancel()
-        await asyncio.wait_for(run_task, 1)
+        await wait_or_fail(run_task, timeout=1)
 
     for job_id in job_ids:
         status = await async_app.job_manager.get_job_status_async(job_id)

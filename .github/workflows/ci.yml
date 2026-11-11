@@ -33,6 +33,7 @@ jobs:
 
     name: "py${{ matrix.python-version }}"
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     services:
       postgres:
@@ -84,6 +85,7 @@ jobs:
 
     name: "e2e ${{ matrix.mode }}"
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     services:
       postgres:
@@ -179,6 +181,7 @@ jobs:
   benchmark:
     name: Benchmark
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       deployments: write
       contents: write

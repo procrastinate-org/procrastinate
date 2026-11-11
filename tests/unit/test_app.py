@@ -10,6 +10,7 @@ from procrastinate import app as app_module
 from procrastinate import exceptions, tasks, testing
 
 from .. import conftest
+from ..helpers import wait_or_fail
 
 
 def task_func():
@@ -101,7 +102,7 @@ async def test_app_run_worker_async_cancel(app: app_module.App):
     await asyncio.sleep(0.01)
     task.cancel()
     with pytest.raises(asyncio.CancelledError):
-        await asyncio.wait_for(task, timeout=0.1)
+        await wait_or_fail(task, timeout=0.1)
 
     assert result == [1]
 
@@ -119,8 +120,7 @@ async def test_app_run_worker_async_abort(app: app_module.App):
     await asyncio.sleep(0.01)
     task.cancel()
     with pytest.raises(asyncio.CancelledError):
-        # this wait_for is just here to fail the test faster
-        await asyncio.wait_for(task, timeout=1)
+        await wait_or_fail(task, timeout=1)
         pytest.fail("Expected the worker to be force stopped")
 
     assert result == []
