@@ -8,10 +8,10 @@ from .. import migrations_utils
 class Migration(migrations.Migration):
     operations = [
         migrations_utils.RunProcrastinateSQL(
-            name="03.12.00_01_pre_retry_job_fail_on_queueing_lock_conflict.sql"
+            name="03.12.00_02_pre_retry_job_fail_on_queueing_lock_conflict.sql"
         ),
     ]
-    name = "0043_pre_retry_job_fail_on_queueing_lock_conflict"
+    name = "0045_pre_retry_job_fail_on_queueing_lock_conflict"
     dependencies = [
-        ("procrastinate", "0042_pre_fetch_job_skip_null_lock"),
+        ("procrastinate", "0044_post_add_lock_mode"),
     ]

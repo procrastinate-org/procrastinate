@@ -645,6 +645,23 @@ async def test_retry_job_run_queueing_lock_conflict(
     id = await start_job(connector)
     await defer_job(connector, queueing_lock="houba")
 
+    await connector.retry_job_run(
+        job_id=id, retry_at=conftest.aware_datetime(2000, 1, 1)
+    )
+
+    assert connector.jobs[id]["status"] == "failed"
+    assert connector.jobs[id]["attempts"] == 1
+    assert connector.events[id][-1]["type"] == "failed"
+
+
+async def test_retry_job_run_queueing_lock_conflict_failed_job(
+    connector: testing.InMemoryConnector,
+):
+    await defer_job(connector, queueing_lock="houba")
+    id = await start_job(connector)
+    await connector.finish_job_run(job_id=id, status="failed", delete_job=False)
+    await defer_job(connector, queueing_lock="houba")
+
     with pytest.raises(exceptions.UniqueViolation) as exc_info:
         await connector.retry_job_run(
             job_id=id, retry_at=conftest.aware_datetime(2000, 1, 1)
@@ -652,7 +669,7 @@ async def test_retry_job_run_queueing_lock_conflict(
 
     assert exc_info.value.constraint_name == "procrastinate_jobs_queueing_lock_idx_v1"
     assert exc_info.value.queueing_lock == "houba"
-    assert connector.jobs[id]["status"] == "doing"
+    assert connector.jobs[id]["status"] == "failed"
 
 
 async def test_finish_job_run_todo_job(connector: testing.InMemoryConnector):
