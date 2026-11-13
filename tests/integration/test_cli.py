@@ -176,6 +176,32 @@ async def test_defer(entrypoint, cli_app, connector):
     }
 
 
+async def test_defer_lock_mode(entrypoint, cli_app, connector):
+    @cli_app.task(name="hello")
+    def mytask(a):
+        pass
+
+    result = await entrypoint(
+        """defer --lock=sherlock --lock-mode=mutex hello {"a":1}"""
+    )
+
+    assert result.exit_code == 0
+    assert connector.jobs[1]["lock_mode"] == "mutex"
+
+
+async def test_defer_lock_mode_defaults_to_task_lock_mode(
+    entrypoint, cli_app, connector
+):
+    @cli_app.task(name="hello", lock_mode="mutex")
+    def mytask(a):
+        pass
+
+    result = await entrypoint("""defer --lock=sherlock hello {"a":1}""")
+
+    assert result.exit_code == 0
+    assert connector.jobs[1]["lock_mode"] == "mutex"
+
+
 async def test_defer_priority(entrypoint, cli_app, connector):
     @cli_app.task(name="hello")
     def mytask(a):
