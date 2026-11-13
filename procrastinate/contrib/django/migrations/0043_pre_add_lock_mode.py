@@ -7,9 +7,9 @@ from .. import migrations_utils
 
 class Migration(migrations.Migration):
     operations = [
-        migrations_utils.RunProcrastinateSQL(name="03.11.00_50_post_add_lock_mode.sql"),
+        migrations_utils.RunProcrastinateSQL(name="03.12.00_01_pre_add_lock_mode.sql"),
     ]
-    name = "0043_post_add_lock_mode"
+    name = "0043_pre_add_lock_mode"
     dependencies = [
-        ("procrastinate", "0042_pre_add_lock_mode"),
+        ("procrastinate", "0042_pre_fetch_job_skip_null_lock"),
     ]
