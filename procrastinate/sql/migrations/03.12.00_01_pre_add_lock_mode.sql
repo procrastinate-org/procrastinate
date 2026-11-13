@@ -188,9 +188,7 @@ BEGIN
 END;
 $$;
 
-DROP FUNCTION IF EXISTS procrastinate_fetch_job_v2(target_queue_names character varying[], p_worker_id bigint);
-
-CREATE FUNCTION procrastinate_fetch_job_v2(
+CREATE OR REPLACE FUNCTION procrastinate_fetch_job_v2(
     target_queue_names character varying[],
     p_worker_id bigint
 )
@@ -204,46 +202,44 @@ BEGIN
         SELECT jobs.*
             FROM procrastinate_jobs AS jobs
             WHERE
-                -- reject the job if its lock has earlier or higher priority jobs
-                NOT EXISTS (
-                    SELECT 1
-                        FROM procrastinate_jobs AS other_jobs
-                        WHERE
-                            jobs.lock IS NOT NULL
-                            AND other_jobs.lock = jobs.lock
-                            AND (
-                                -- job with same lock is already running
-                                other_jobs.status = 'doing'
-                                OR
-                                -- job with same lock is waiting and has higher priority (or same priority but was queued first).
-                                -- An 'ordered' lock is reserved even by a job that cannot run yet, which is what
-                                -- guarantees jobs sharing it are started in order. A 'mutex' lock is only reserved
-                                -- while its job is actually runnable, so a job scheduled for later steps aside.
-                                --
-                                -- This condition must stay evaluable identically by every worker, so that it leaves
-                                -- exactly one candidate per lock. Mutual exclusion is ultimately enforced by the
-                                -- index procrastinate_jobs_lock_idx_v1, UNIQUE (lock) WHERE status = 'doing', which
-                                -- enforces it by raising rather than by withholding a job. If several jobs sharing a
-                                -- lock were candidates at once, SKIP LOCKED would hand two workers two different
-                                -- rows; neither can see the other's uncommitted 'doing' row, so nothing here can
-                                -- reject it, and both would UPDATE to 'doing' on the same lock -- leaving the second
-                                -- worker with a unique violation instead of simply finding no job to run.
-                                (
-                                    other_jobs.status = 'todo'
-                                    AND (
-                                        other_jobs.lock_mode = 'ordered'
-                                        OR other_jobs.scheduled_at IS NULL
-                                        OR other_jobs.scheduled_at <= now()
-                                    )
-                                    AND (
-                                        other_jobs.priority > jobs.priority
-                                        OR (
-                                        other_jobs.priority = jobs.priority
-                                        AND other_jobs.id < jobs.id
+                -- reject the job if its lock has earlier or higher priority jobs.
+                -- Jobs without a lock are accepted before the subquery is considered:
+                -- keeping "jobs.lock IS NOT NULL" inside the subquery lets Postgres
+                -- plan a nested loop that scans every other job for each NULL-lock job.
+                (
+                    jobs.lock IS NULL
+                    OR NOT EXISTS (
+                        SELECT 1
+                            FROM procrastinate_jobs AS other_jobs
+                            WHERE
+                                other_jobs.lock = jobs.lock
+                                AND (
+                                    -- job with same lock is already running
+                                    other_jobs.status = 'doing'
+                                    OR
+                                    -- job with same lock is waiting and has higher priority (or same priority but was queued first).
+                                    -- A waiting 'mutex' job only counts once it is due, so a job scheduled for later steps
+                                    -- aside; an 'ordered' job always counts, which keeps the jobs sharing its lock in order.
+                                    -- Workers fetching as a 'mutex' job becomes due can disagree on this, as now() differs
+                                    -- per transaction, and pick two jobs sharing a lock: procrastinate_jobs_lock_idx_v1
+                                    -- then refuses the second one, which the caller treats as finding no job.
+                                    (
+                                        other_jobs.status = 'todo'
+                                        AND (
+                                            other_jobs.lock_mode = 'ordered'
+                                            OR other_jobs.scheduled_at IS NULL
+                                            OR other_jobs.scheduled_at <= now()
+                                        )
+                                        AND (
+                                            other_jobs.priority > jobs.priority
+                                            OR (
+                                            other_jobs.priority = jobs.priority
+                                            AND other_jobs.id < jobs.id
+                                            )
                                         )
                                     )
                                 )
-                            )
+                    )
                 )
                 AND jobs.status = 'todo'
                 AND (target_queue_names IS NULL OR jobs.queue_name = ANY( target_queue_names ))
