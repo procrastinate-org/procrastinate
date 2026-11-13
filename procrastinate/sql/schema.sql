@@ -20,49 +20,58 @@ $$;
 
 -- Enums
 
-CREATE TYPE procrastinate_job_status AS ENUM (
-    'todo',  -- The job is queued
-    'doing',  -- The job has been fetched by a worker
-    'succeeded',  -- The job ended successfully
-    'failed',  -- The job ended with an error
-    'cancelled', -- The job was cancelled
-    'aborting',  -- legacy, not used anymore since v3.0.0
-    'aborted'  -- The job was aborted
-);
+DO $$ BEGIN
+    CREATE TYPE procrastinate_job_status AS ENUM (
+        'todo',  -- The job is queued
+        'doing',  -- The job has been fetched by a worker
+        'succeeded',  -- The job ended successfully
+        'failed',  -- The job ended with an error
+        'cancelled', -- The job was cancelled
+        'aborting',  -- legacy, not used anymore since v3.0.0
+        'aborted'  -- The job was aborted
+    );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-CREATE TYPE procrastinate_job_event_type AS ENUM (
-    'deferred',  -- Job created, in todo
-    'started',  -- todo -> doing
-    'deferred_for_retry',  -- doing -> todo
-    'failed',  -- doing -> failed
-    'succeeded',  -- doing -> succeeded
-    'cancelled', -- todo -> cancelled
-    'abort_requested', -- not a state transition, but set in a separate field
-    'aborted', -- doing -> aborted (only allowed when abort_requested field is set)
-    'scheduled', -- not a state transition, but recording when a task is scheduled for
-    'retried' -- Manually retried failed job
-);
+DO $$ BEGIN
+    CREATE TYPE procrastinate_job_event_type AS ENUM (
+        'deferred',  -- Job created, in todo
+        'started',  -- todo -> doing
+        'deferred_for_retry',  -- doing -> todo
+        'failed',  -- doing -> failed
+        'succeeded',  -- doing -> succeeded
+        'cancelled', -- todo -> cancelled
+        'abort_requested', -- not a state transition, but set in a separate field
+        'aborted', -- doing -> aborted (only allowed when abort_requested field is set)
+        'scheduled', -- not a state transition, but recording when a task is scheduled for
+        'retried' -- Manually retried failed job
+    );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- Composite Types
 
-CREATE TYPE procrastinate_job_to_defer_v1 AS (
-    queue_name character varying,
-    task_name character varying,
-    priority integer,
-    lock text,
-    queueing_lock text,
-    args jsonb,
-    scheduled_at timestamp with time zone
-);
+DO $$ BEGIN
+    CREATE TYPE procrastinate_job_to_defer_v1 AS (
+        queue_name character varying,
+        task_name character varying,
+        priority integer,
+        lock text,
+        queueing_lock text,
+        args jsonb,
+        scheduled_at timestamp with time zone
+    );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- Tables
 
-CREATE TABLE procrastinate_workers(
+CREATE TABLE IF NOT EXISTS procrastinate_workers(
     id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     last_heartbeat timestamp with time zone NOT NULL DEFAULT NOW()
 );
 
-CREATE TABLE procrastinate_jobs (
+CREATE TABLE IF NOT EXISTS procrastinate_jobs (
     id bigserial PRIMARY KEY,
     queue_name character varying(128) NOT NULL,
     task_name character varying(128) NOT NULL,
@@ -78,7 +87,7 @@ CREATE TABLE procrastinate_jobs (
     CONSTRAINT check_not_todo_abort_requested CHECK (NOT (status = 'todo' AND abort_requested = true))
 );
 
-CREATE TABLE procrastinate_periodic_defers (
+CREATE TABLE IF NOT EXISTS procrastinate_periodic_defers (
     id bigserial PRIMARY KEY,
     task_name character varying(128) NOT NULL,
     defer_timestamp bigint,
@@ -87,7 +96,7 @@ CREATE TABLE procrastinate_periodic_defers (
     CONSTRAINT procrastinate_periodic_defers_unique UNIQUE (task_name, periodic_id, defer_timestamp)
 );
 
-CREATE TABLE procrastinate_events (
+CREATE TABLE IF NOT EXISTS procrastinate_events (
     id bigserial PRIMARY KEY,
     job_id bigint NOT NULL REFERENCES procrastinate_jobs ON DELETE CASCADE,
     type procrastinate_job_event_type,
@@ -97,25 +106,25 @@ CREATE TABLE procrastinate_events (
 -- Constraints & Indices
 
 -- this prevents from having several jobs with the same queueing lock in the "todo" state
-CREATE UNIQUE INDEX procrastinate_jobs_queueing_lock_idx_v1 ON procrastinate_jobs (queueing_lock) WHERE status = 'todo';
+CREATE UNIQUE INDEX IF NOT EXISTS procrastinate_jobs_queueing_lock_idx_v1 ON procrastinate_jobs (queueing_lock) WHERE status = 'todo';
 -- this prevents from having several jobs with the same lock in the "doing" state
-CREATE UNIQUE INDEX procrastinate_jobs_lock_idx_v1 ON procrastinate_jobs (lock) WHERE status = 'doing';
+CREATE UNIQUE INDEX IF NOT EXISTS procrastinate_jobs_lock_idx_v1 ON procrastinate_jobs (lock) WHERE status = 'doing';
 
 -- Index for select_stalled_jobs_by_heartbeat query
-CREATE INDEX idx_procrastinate_jobs_worker_not_null ON procrastinate_jobs(worker_id) WHERE worker_id IS NOT NULL AND status = 'doing'::procrastinate_job_status;
+CREATE INDEX IF NOT EXISTS idx_procrastinate_jobs_worker_not_null ON procrastinate_jobs(worker_id) WHERE worker_id IS NOT NULL AND status = 'doing'::procrastinate_job_status;
 
-CREATE INDEX procrastinate_jobs_queue_name_idx_v1 ON procrastinate_jobs(queue_name);
-CREATE INDEX procrastinate_jobs_id_lock_idx_v1 ON procrastinate_jobs (id, lock) WHERE status = ANY (ARRAY['todo'::procrastinate_job_status, 'doing'::procrastinate_job_status]);
-CREATE INDEX procrastinate_jobs_priority_idx_v1 ON procrastinate_jobs(priority desc, id asc) WHERE (status = 'todo'::procrastinate_job_status);
+CREATE INDEX IF NOT EXISTS procrastinate_jobs_queue_name_idx_v1 ON procrastinate_jobs(queue_name);
+CREATE INDEX IF NOT EXISTS procrastinate_jobs_id_lock_idx_v1 ON procrastinate_jobs (id, lock) WHERE status = ANY (ARRAY['todo'::procrastinate_job_status, 'doing'::procrastinate_job_status]);
+CREATE INDEX IF NOT EXISTS procrastinate_jobs_priority_idx_v1 ON procrastinate_jobs(priority desc, id asc) WHERE (status = 'todo'::procrastinate_job_status);
 
-CREATE INDEX procrastinate_events_job_id_fkey_v1 ON procrastinate_events(job_id);
+CREATE INDEX IF NOT EXISTS procrastinate_events_job_id_fkey_v1 ON procrastinate_events(job_id);
 
-CREATE INDEX procrastinate_periodic_defers_job_id_fkey_v1 ON procrastinate_periodic_defers(job_id);
+CREATE INDEX IF NOT EXISTS procrastinate_periodic_defers_job_id_fkey_v1 ON procrastinate_periodic_defers(job_id);
 
-CREATE INDEX idx_procrastinate_workers_last_heartbeat ON procrastinate_workers(last_heartbeat);
+CREATE INDEX IF NOT EXISTS idx_procrastinate_workers_last_heartbeat ON procrastinate_workers(last_heartbeat);
 
 -- Functions
-CREATE FUNCTION procrastinate_defer_jobs_v1(
+CREATE OR REPLACE FUNCTION procrastinate_defer_jobs_v1(
     jobs procrastinate_job_to_defer_v1[]
 )
     RETURNS bigint[]
@@ -142,7 +151,7 @@ BEGIN
 END;
 $$;
 
-CREATE FUNCTION procrastinate_defer_periodic_job_v2(
+CREATE OR REPLACE FUNCTION procrastinate_defer_periodic_job_v2(
     _queue_name character varying,
     _lock character varying,
     _queueing_lock character varying,
@@ -207,7 +216,7 @@ BEGIN
 END;
 $$;
 
-CREATE FUNCTION procrastinate_fetch_job_v2(
+CREATE OR REPLACE FUNCTION procrastinate_fetch_job_v2(
     target_queue_names character varying[],
     p_worker_id bigint
 )
@@ -266,7 +275,7 @@ BEGIN
 END;
 $$;
 
-CREATE FUNCTION procrastinate_finish_job_v1(job_id bigint, end_status procrastinate_job_status, delete_job boolean)
+CREATE OR REPLACE FUNCTION procrastinate_finish_job_v1(job_id bigint, end_status procrastinate_job_status, delete_job boolean)
     RETURNS void
     LANGUAGE plpgsql
 AS $$
@@ -296,7 +305,7 @@ BEGIN
 END;
 $$;
 
-CREATE FUNCTION procrastinate_cancel_job_v1(job_id bigint, abort boolean, delete_job boolean)
+CREATE OR REPLACE FUNCTION procrastinate_cancel_job_v1(job_id bigint, abort boolean, delete_job boolean)
     RETURNS bigint
     LANGUAGE plpgsql
 AS $$
@@ -328,7 +337,7 @@ BEGIN
 END;
 $$;
 
-CREATE FUNCTION procrastinate_retry_job_v1(
+CREATE OR REPLACE FUNCTION procrastinate_retry_job_v1(
     job_id bigint,
     retry_at timestamp with time zone,
     new_priority integer,
@@ -366,7 +375,7 @@ BEGIN
 END;
 $$;
 
-CREATE FUNCTION procrastinate_retry_job_v2(
+CREATE OR REPLACE FUNCTION procrastinate_retry_job_v2(
     job_id bigint,
     retry_at timestamp with time zone,
     new_priority integer,
@@ -406,7 +415,7 @@ BEGIN
 END;
 $$;
 
-CREATE FUNCTION procrastinate_notify_queue_job_inserted_v1()
+CREATE OR REPLACE FUNCTION procrastinate_notify_queue_job_inserted_v1()
     RETURNS trigger
     LANGUAGE plpgsql
 AS $$
@@ -420,7 +429,7 @@ BEGIN
 END;
 $$;
 
-CREATE FUNCTION procrastinate_notify_queue_abort_job_v1()
+CREATE OR REPLACE FUNCTION procrastinate_notify_queue_abort_job_v1()
 RETURNS trigger
     LANGUAGE plpgsql
 AS $$
@@ -434,7 +443,7 @@ BEGIN
 END;
 $$;
 
-CREATE FUNCTION procrastinate_trigger_function_status_events_insert_v1()
+CREATE OR REPLACE FUNCTION procrastinate_trigger_function_status_events_insert_v1()
     RETURNS trigger
     LANGUAGE plpgsql
 AS $$
@@ -445,7 +454,7 @@ BEGIN
 END;
 $$;
 
-CREATE FUNCTION procrastinate_trigger_function_status_events_update_v1()
+CREATE OR REPLACE FUNCTION procrastinate_trigger_function_status_events_update_v1()
     RETURNS trigger
     LANGUAGE plpgsql
 AS $$
@@ -488,7 +497,7 @@ BEGIN
 END;
 $$;
 
-CREATE FUNCTION procrastinate_trigger_function_scheduled_events_v1()
+CREATE OR REPLACE FUNCTION procrastinate_trigger_function_scheduled_events_v1()
     RETURNS trigger
     LANGUAGE plpgsql
 AS $$
@@ -500,7 +509,7 @@ BEGIN
 END;
 $$;
 
-CREATE FUNCTION procrastinate_trigger_abort_requested_events_procedure_v1()
+CREATE OR REPLACE FUNCTION procrastinate_trigger_abort_requested_events_procedure_v1()
     RETURNS trigger
     LANGUAGE plpgsql
 AS $$
@@ -511,7 +520,7 @@ BEGIN
 END;
 $$;
 
-CREATE FUNCTION procrastinate_unlink_periodic_defers_v1()
+CREATE OR REPLACE FUNCTION procrastinate_unlink_periodic_defers_v1()
     RETURNS trigger
     LANGUAGE plpgsql
 AS $$
@@ -523,7 +532,7 @@ BEGIN
 END;
 $$;
 
-CREATE FUNCTION procrastinate_register_worker_v1()
+CREATE OR REPLACE FUNCTION procrastinate_register_worker_v1()
     RETURNS TABLE(worker_id bigint)
     LANGUAGE plpgsql
 AS $$
@@ -534,7 +543,7 @@ BEGIN
 END;
 $$;
 
-CREATE FUNCTION procrastinate_unregister_worker_v1(worker_id bigint)
+CREATE OR REPLACE FUNCTION procrastinate_unregister_worker_v1(worker_id bigint)
     RETURNS void
     LANGUAGE plpgsql
 AS $$
@@ -544,7 +553,7 @@ BEGIN
 END;
 $$;
 
-CREATE FUNCTION procrastinate_update_heartbeat_v1(worker_id bigint)
+CREATE OR REPLACE FUNCTION procrastinate_update_heartbeat_v1(worker_id bigint)
     RETURNS void
     LANGUAGE plpgsql
 AS $$
@@ -555,7 +564,7 @@ BEGIN
 END;
 $$;
 
-CREATE FUNCTION procrastinate_prune_stalled_workers_v1(seconds_since_heartbeat float)
+CREATE OR REPLACE FUNCTION procrastinate_prune_stalled_workers_v1(seconds_since_heartbeat float)
     RETURNS TABLE(worker_id bigint)
     LANGUAGE plpgsql
 AS $$
@@ -569,36 +578,57 @@ $$;
 
 -- Triggers
 
-CREATE TRIGGER procrastinate_jobs_notify_queue_job_inserted_v1
-    AFTER INSERT ON procrastinate_jobs
-    FOR EACH ROW WHEN ((new.status = 'todo'::procrastinate_job_status))
-    EXECUTE PROCEDURE procrastinate_notify_queue_job_inserted_v1();
+DO $$ BEGIN
+    CREATE TRIGGER procrastinate_jobs_notify_queue_job_inserted_v1
+        AFTER INSERT ON procrastinate_jobs
+        FOR EACH ROW WHEN ((new.status = 'todo'::procrastinate_job_status))
+        EXECUTE PROCEDURE procrastinate_notify_queue_job_inserted_v1();
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-CREATE TRIGGER procrastinate_jobs_notify_queue_job_aborted_v1
-    AFTER UPDATE OF abort_requested ON procrastinate_jobs
-    FOR EACH ROW WHEN ((old.abort_requested = false AND new.abort_requested = true AND new.status = 'doing'::procrastinate_job_status))
-    EXECUTE PROCEDURE procrastinate_notify_queue_abort_job_v1();
+DO $$ BEGIN
+    CREATE TRIGGER procrastinate_jobs_notify_queue_job_aborted_v1
+        AFTER UPDATE OF abort_requested ON procrastinate_jobs
+        FOR EACH ROW WHEN ((old.abort_requested = false AND new.abort_requested = true AND new.status = 'doing'::procrastinate_job_status))
+        EXECUTE PROCEDURE procrastinate_notify_queue_abort_job_v1();
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-CREATE TRIGGER procrastinate_trigger_status_events_update_v1
-    AFTER UPDATE OF status ON procrastinate_jobs
-    FOR EACH ROW
-    EXECUTE PROCEDURE procrastinate_trigger_function_status_events_update_v1();
+DO $$ BEGIN
+    CREATE TRIGGER procrastinate_trigger_status_events_update_v1
+        AFTER UPDATE OF status ON procrastinate_jobs
+        FOR EACH ROW
+        EXECUTE PROCEDURE procrastinate_trigger_function_status_events_update_v1();
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-CREATE TRIGGER procrastinate_trigger_status_events_insert_v1
-    AFTER INSERT ON procrastinate_jobs
-    FOR EACH ROW WHEN ((new.status = 'todo'::procrastinate_job_status))
-    EXECUTE PROCEDURE procrastinate_trigger_function_status_events_insert_v1();
+DO $$ BEGIN
+    CREATE TRIGGER procrastinate_trigger_status_events_insert_v1
+        AFTER INSERT ON procrastinate_jobs
+        FOR EACH ROW WHEN ((new.status = 'todo'::procrastinate_job_status))
+        EXECUTE PROCEDURE procrastinate_trigger_function_status_events_insert_v1();
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-CREATE TRIGGER procrastinate_trigger_scheduled_events_v1
-    AFTER UPDATE OR INSERT ON procrastinate_jobs
-    FOR EACH ROW WHEN ((new.scheduled_at IS NOT NULL AND new.status = 'todo'::procrastinate_job_status))
-    EXECUTE PROCEDURE procrastinate_trigger_function_scheduled_events_v1();
+DO $$ BEGIN
+    CREATE TRIGGER procrastinate_trigger_scheduled_events_v1
+        AFTER UPDATE OR INSERT ON procrastinate_jobs
+        FOR EACH ROW WHEN ((new.scheduled_at IS NOT NULL AND new.status = 'todo'::procrastinate_job_status))
+        EXECUTE PROCEDURE procrastinate_trigger_function_scheduled_events_v1();
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-CREATE TRIGGER procrastinate_trigger_abort_requested_events_v1
-    AFTER UPDATE OF abort_requested ON procrastinate_jobs
-    FOR EACH ROW WHEN ((new.abort_requested = true))
-    EXECUTE PROCEDURE procrastinate_trigger_abort_requested_events_procedure_v1();
+DO $$ BEGIN
+    CREATE TRIGGER procrastinate_trigger_abort_requested_events_v1
+        AFTER UPDATE OF abort_requested ON procrastinate_jobs
+        FOR EACH ROW WHEN ((new.abort_requested = true))
+        EXECUTE PROCEDURE procrastinate_trigger_abort_requested_events_procedure_v1();
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-CREATE TRIGGER procrastinate_trigger_delete_jobs_v1
-    BEFORE DELETE ON procrastinate_jobs
-    FOR EACH ROW EXECUTE PROCEDURE procrastinate_unlink_periodic_defers_v1();
+DO $$ BEGIN
+    CREATE TRIGGER procrastinate_trigger_delete_jobs_v1
+        BEFORE DELETE ON procrastinate_jobs
+        FOR EACH ROW EXECUTE PROCEDURE procrastinate_unlink_periodic_defers_v1();
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
