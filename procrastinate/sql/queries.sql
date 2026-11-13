@@ -19,7 +19,7 @@ SELECT procrastinate_defer_periodic_job_v2(%(queue)s, %(lock)s, %(queueing_lock)
 -- fetch_job --
 -- Get the first awaiting job
 SELECT id, status, task_name, priority, lock, queueing_lock, args, scheduled_at, queue_name, attempts, worker_id
-    FROM procrastinate_fetch_job_v2(%(queues)s::varchar[], %(worker_id)s);
+    FROM procrastinate_fetch_job_v3(%(queues)s::varchar[], %(worker_id)s);
 
 -- select_stalled_jobs_by_started --
 -- Get running jobs that started more than a given time ago
@@ -79,6 +79,25 @@ SELECT procrastinate_cancel_job_v1(%(job_id)s, %(abort)s, %(delete_job)s) AS id;
 -- get_job_status --
 -- Get the status of a job
 SELECT status FROM procrastinate_jobs WHERE id = %(job_id)s;
+
+-- pause_queue --
+-- Pause a queue under the given pause key so that workers stop fetching its jobs
+INSERT INTO procrastinate_paused_queues (queue_name, pause_key)
+    VALUES (%(queue_name)s, %(pause_key)s)
+    ON CONFLICT (queue_name, pause_key) DO NOTHING;
+
+-- resume_queue --
+-- Remove the given pause key (or all of them) from a queue so that workers fetch its jobs again
+DELETE FROM procrastinate_paused_queues
+    WHERE queue_name = %(queue_name)s
+    AND (%(all_keys)s OR pause_key = %(pause_key)s);
+
+-- list_paused_queues --
+-- Get the pauses currently held on queues
+SELECT queue_name, pause_key, paused_at FROM procrastinate_paused_queues
+    WHERE (%(queue_name)s::varchar IS NULL OR queue_name = %(queue_name)s::varchar)
+    AND (%(pause_key)s::varchar IS NULL OR pause_key = %(pause_key)s::varchar)
+    ORDER BY queue_name, pause_key;
 
 -- retry_job --
 -- Retry a job, changing it from "doing" to "todo" or from "failed" to "todo"
