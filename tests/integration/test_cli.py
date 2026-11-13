@@ -163,6 +163,7 @@ async def test_defer(entrypoint, cli_app, connector):
             "attempts": 0,
             "id": 1,
             "lock": "sherlock",
+            "lock_mode": "ordered",
             "queueing_lock": "houba",
             "queue_name": "default",
             "scheduled_at": None,
@@ -173,6 +174,32 @@ async def test_defer(entrypoint, cli_app, connector):
             "worker_id": None,
         }
     }
+
+
+async def test_defer_lock_mode(entrypoint, cli_app, connector):
+    @cli_app.task(name="hello")
+    def mytask(a):
+        pass
+
+    result = await entrypoint(
+        """defer --lock=sherlock --lock-mode=mutex hello {"a":1}"""
+    )
+
+    assert result.exit_code == 0
+    assert connector.jobs[1]["lock_mode"] == "mutex"
+
+
+async def test_defer_lock_mode_defaults_to_task_lock_mode(
+    entrypoint, cli_app, connector
+):
+    @cli_app.task(name="hello", lock_mode="mutex")
+    def mytask(a):
+        pass
+
+    result = await entrypoint("""defer --lock=sherlock hello {"a":1}""")
+
+    assert result.exit_code == 0
+    assert connector.jobs[1]["lock_mode"] == "mutex"
 
 
 async def test_defer_priority(entrypoint, cli_app, connector):
@@ -190,6 +217,7 @@ async def test_defer_priority(entrypoint, cli_app, connector):
             "attempts": 0,
             "id": 1,
             "lock": "sherlock",
+            "lock_mode": "ordered",
             "queueing_lock": None,
             "queue_name": "default",
             "scheduled_at": None,
@@ -220,6 +248,7 @@ async def test_defer_at(entrypoint, cli_app, connector):
             "attempts": 0,
             "id": 1,
             "lock": "sherlock",
+            "lock_mode": "ordered",
             "queueing_lock": None,
             "queue_name": "default",
             "scheduled_at": datetime.datetime(2020, 1, 1, 12, tzinfo=datetime.UTC),
@@ -252,6 +281,7 @@ async def test_defer_in(entrypoint, cli_app, connector):
         "attempts": 0,
         "id": 1,
         "lock": "sherlock",
+        "lock_mode": "ordered",
         "queueing_lock": None,
         "queue_name": "default",
         "status": "todo",
@@ -317,6 +347,7 @@ async def test_defer_unknown(entrypoint, cli_app, connector):
             "attempts": 0,
             "id": 1,
             "lock": "sherlock",
+            "lock_mode": "ordered",
             "queueing_lock": "houba",
             "queue_name": "default",
             "scheduled_at": None,

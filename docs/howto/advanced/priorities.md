@@ -9,7 +9,10 @@ Priority is used as a way to order available jobs. If a procrastinate worker
 requests a job, and there is a high-priority job scheduled that is blocked by a
 lock, and a low-priority job that is available, the worker will take
 the low-priority job. Procrastinate will never wait for a high-priority job to
-become available if there are lower-priority jobs already available.
+become available if there are lower-priority jobs already available, with one
+exception: by default, a high-priority job scheduled for later keeps the
+lower-priority jobs sharing its lock waiting until it runs, unless it was deferred
+with `lock_mode="mutex"` (see {ref}`what-holds-a-lock`).
 
 ## From the code
 

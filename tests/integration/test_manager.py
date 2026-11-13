@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import asyncio
 import datetime
 import functools
 import time
 
 import psycopg
+import psycopg.conninfo
 import pytest
 
 from procrastinate import exceptions, jobs, manager
@@ -107,6 +109,146 @@ async def test_fetch_job_spacial_case_none_lock(
     assert (
         await pg_job_manager.fetch_job(queues=None, worker_id=worker_id)
     ).id == job.id
+
+
+async def test_fetch_job_ordered_lock_blocks_on_future_scheduled_job(
+    pg_job_manager, deferred_job_factory, worker_id
+):
+    # Backward compatibility: an 'ordered' lock (the default) keeps guaranteeing that
+    # jobs sharing it start in order, so a job that is not runnable yet holds the lock
+    # for the ones behind it.
+    await deferred_job_factory(
+        lock="lock_1",
+        priority=5,
+        scheduled_at=conftest.aware_datetime(2050, 1, 1),
+    )
+    await deferred_job_factory(lock="lock_1", priority=0)
+
+    assert await pg_job_manager.fetch_job(queues=None, worker_id=worker_id) is None
+
+
+async def test_fetch_job_ordered_lock_keeps_creation_order(
+    pg_job_manager, deferred_job_factory, worker_id
+):
+    # Backward compatibility: with equal priorities, 'ordered' locks hand out jobs in
+    # creation order, one at a time.
+    first = await deferred_job_factory(lock="lock_1")
+    second = await deferred_job_factory(lock="lock_1")
+
+    fetched = await pg_job_manager.fetch_job(queues=None, worker_id=worker_id)
+    assert fetched.id == first.id
+    # The second job is not handed out while the first one is running.
+    assert await pg_job_manager.fetch_job(queues=None, worker_id=worker_id) is None
+
+    await pg_job_manager.finish_job(
+        job=fetched, status=jobs.Status.SUCCEEDED, delete_job=False
+    )
+    fetched = await pg_job_manager.fetch_job(queues=None, worker_id=worker_id)
+    assert fetched.id == second.id
+
+
+async def test_fetch_job_mutex_lock_ignores_future_scheduled_job(
+    pg_job_manager, deferred_job_factory, worker_id
+):
+    # A 'mutex' lock only reserves the lock while a job runs, so a job scheduled far in
+    # the future no longer starves the ready jobs sharing its lock.
+    # See https://github.com/procrastinate-org/procrastinate/issues/1599
+    await deferred_job_factory(
+        lock="lock_1",
+        lock_mode="mutex",
+        priority=5,
+        scheduled_at=conftest.aware_datetime(2050, 1, 1),
+    )
+    job = await deferred_job_factory(lock="lock_1", lock_mode="mutex", priority=0)
+
+    fetched_job = await pg_job_manager.fetch_job(queues=None, worker_id=worker_id)
+    assert fetched_job is not None
+    assert fetched_job.id == job.id
+
+
+async def test_fetch_job_mutex_lock_leaves_a_single_candidate_per_lock(
+    pg_job_manager, deferred_job_factory, connection_params
+):
+    # Two ready jobs sharing a 'mutex' lock. While one worker holds the first in an
+    # open transaction, a second worker must find no candidate at all. If it picked
+    # the other job, both would end up 'doing' on the same lock and collide on the
+    # procrastinate_jobs_lock_idx_v1 unique index.
+    #
+    # This uses its own connections rather than the psycopg_connector fixture because
+    # reproducing the race needs two *overlapping* transactions, which the connector
+    # pool gives no way to hold open.
+    await deferred_job_factory(lock="lock_1", lock_mode="mutex")
+    await deferred_job_factory(lock="lock_1", lock_mode="mutex")
+    first_worker = await pg_job_manager.register_worker()
+    second_worker = await pg_job_manager.register_worker()
+
+    query = "SELECT id FROM procrastinate_fetch_job_v2(NULL, %s)"
+    conninfo = psycopg.conninfo.make_conninfo(**connection_params)
+    with psycopg.connect(conninfo) as first:
+        first.autocommit = False
+        assert first.execute(query, (first_worker,)).fetchone()[0] is not None
+
+        # Still inside the first worker's open transaction.
+        with psycopg.connect(conninfo) as second:
+            # Fail fast rather than block on the unique index if the invariant breaks.
+            second.execute("SET lock_timeout = '5s'")
+            assert second.execute(query, (second_worker,)).fetchone()[0] is None
+
+
+async def test_fetch_job_mutex_lock_job_becoming_due_between_fetches(
+    pg_job_manager, deferred_job_factory, connection_params
+):
+    # Two workers fetching as a 'mutex' job becomes due disagree on whether it holds
+    # its lock: the first, whose now() is just before, takes the ready job, the second
+    # takes the newly due one, and the lock index refuses it once the first commits.
+    # The second worker must then find no job rather than crash.
+    ready = await deferred_job_factory(lock="lock_1", lock_mode="mutex")
+    first_worker = await pg_job_manager.register_worker()
+    second_worker = await pg_job_manager.register_worker()
+
+    conninfo = psycopg.conninfo.make_conninfo(**connection_params)
+    with (
+        psycopg.connect(conninfo) as first,
+        psycopg.connect(conninfo, autocommit=True) as other,
+    ):
+        # now() is frozen when the first worker's transaction starts.
+        first.execute("SELECT now()")
+        other.execute(
+            "INSERT INTO procrastinate_jobs"
+            " (queue_name, task_name, priority, lock, lock_mode, scheduled_at)"
+            " VALUES ('default', 'foo', 1, 'lock_1', 'mutex', clock_timestamp())"
+        )
+        fetched = first.execute(
+            "SELECT id FROM procrastinate_fetch_job_v2(NULL, %s)", (first_worker,)
+        ).fetchone()
+        assert fetched == (ready.id,)
+
+        second_fetch = asyncio.create_task(
+            pg_job_manager.fetch_job(queues=None, worker_id=second_worker)
+        )
+
+        async def second_fetch_blocked_on_lock_index():
+            query = (
+                "SELECT count(*) FROM pg_stat_activity"
+                " WHERE datname = current_database() AND wait_event_type = 'Lock'"
+            )
+            while not other.execute(query).fetchone()[0]:
+                await asyncio.sleep(0.01)
+
+        await asyncio.wait_for(second_fetch_blocked_on_lock_index(), timeout=5)
+        first.commit()
+
+    assert await asyncio.wait_for(second_fetch, timeout=5) is None
+
+
+async def test_fetch_job_mutex_lock_still_excludes_running_job(
+    pg_job_manager, deferred_job_factory, fetched_job_factory, worker_id
+):
+    # A 'mutex' lock drops the ordering guarantee, but not mutual exclusion.
+    await fetched_job_factory(lock="lock_1", lock_mode="mutex")
+    await deferred_job_factory(lock="lock_1", lock_mode="mutex")
+
+    assert await pg_job_manager.fetch_job(queues=None, worker_id=worker_id) is None
 
 
 @pytest.mark.parametrize(

@@ -13,6 +13,7 @@ from procrastinate import jobs as jobs_module
 logger = logging.getLogger(__name__)
 
 QUEUEING_LOCK_CONSTRAINT = "procrastinate_jobs_queueing_lock_idx_v1"
+LOCK_CONSTRAINT = "procrastinate_jobs_lock_idx_v1"
 
 
 class NotificationCallback(Protocol):
@@ -136,6 +137,7 @@ class JobManager:
                     task_name=job.task_name,
                     priority=job.priority,
                     lock=job.lock,
+                    lock_mode=job.lock_mode,
                     queueing_lock=job.queueing_lock,
                     args=job.task_kwargs,
                     scheduled_at=job.scheduled_at,
@@ -182,6 +184,7 @@ class JobManager:
                 queue=job.queue,
                 priority=job.priority,
                 lock=job.lock,
+                lock_mode=job.lock_mode,
                 queueing_lock=job.queueing_lock,
                 args=job.task_kwargs,
             )
@@ -209,9 +212,16 @@ class JobManager:
             None if no suitable job was found. The job otherwise.
         """
 
-        row = await self.connector.execute_query_one_async(
-            query=sql.queries["fetch_job"], queues=queues, worker_id=worker_id
-        )
+        try:
+            row = await self.connector.execute_query_one_async(
+                query=sql.queries["fetch_job"], queues=queues, worker_id=worker_id
+            )
+        except exceptions.UniqueViolation as exc:
+            # Workers fetching as a 'mutex' job becomes due may disagree on whether it
+            # holds its lock and pick two jobs sharing it: the database refuses one.
+            if exc.constraint_name != LOCK_CONSTRAINT:
+                raise
+            return None
 
         # fetch_tasks will always return a row, but is there's no relevant
         # value, it will all be None

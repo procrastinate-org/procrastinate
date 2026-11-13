@@ -438,6 +438,15 @@ def configure_defer_parser(subparsers: argparse._SubParsersAction[Any]):  # pyri
     )
     add_argument(
         defer_parser,
+        "--lock-mode",
+        choices=[mode.value for mode in jobs.LockMode],
+        default=argparse.SUPPRESS,
+        help="How the job holds its lock. Defaults to the task's lock mode "
+        "(ordered unless set)",
+        envvar="DEFER_LOCK_MODE",
+    )
+    add_argument(
+        defer_parser,
         "--queueing-lock",
         default=argparse.SUPPRESS,
         help="A string value. The defer operation will fail if there already is a job "

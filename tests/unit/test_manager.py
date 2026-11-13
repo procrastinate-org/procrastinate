@@ -34,6 +34,7 @@ async def test_manager_defer_job(job_manager, job_factory, connector):
             "attempts": 0,
             "id": 1,
             "lock": "sher",
+            "lock_mode": "ordered",
             "queueing_lock": None,
             "queue_name": "marsupilami",
             "priority": 5,
@@ -76,6 +77,7 @@ async def test_manager_batch_defer_jobs(job_manager, job_factory, connector):
             "attempts": 0,
             "id": 1,
             "lock": "sher",
+            "lock_mode": "ordered",
             "queueing_lock": None,
             "queue_name": "marsupilami",
             "priority": 5,
@@ -90,6 +92,7 @@ async def test_manager_batch_defer_jobs(job_manager, job_factory, connector):
             "attempts": 0,
             "id": 2,
             "lock": "sher",
+            "lock_mode": "ordered",
             "queueing_lock": None,
             "queue_name": "marsupilami",
             "priority": 7,
@@ -182,6 +185,33 @@ async def test_fetch_job(job_manager, job_factory, worker_id):
     await job_manager.defer_job_async(job=job)
     expected_job = job.evolve(id=1, status="doing", worker_id=worker_id)
     assert await job_manager.fetch_job(queues=None, worker_id=worker_id) == expected_job
+
+
+async def test_fetch_job_lock_violation(job_manager, connector, worker_id, mocker):
+    mocker.patch.object(
+        connector,
+        "execute_query_one_async",
+        side_effect=exceptions.UniqueViolation(
+            constraint_name=manager.LOCK_CONSTRAINT, queueing_lock=None
+        ),
+    )
+
+    assert await job_manager.fetch_job(queues=None, worker_id=worker_id) is None
+
+
+async def test_fetch_job_other_unique_violation(
+    job_manager, connector, worker_id, mocker
+):
+    mocker.patch.object(
+        connector,
+        "execute_query_one_async",
+        side_effect=exceptions.UniqueViolation(
+            constraint_name="some_other_constraint", queueing_lock=None
+        ),
+    )
+
+    with pytest.raises(exceptions.UniqueViolation):
+        await job_manager.fetch_job(queues=None, worker_id=worker_id)
 
 
 async def test_get_stalled_jobs_by_started_not_stalled(job_manager, job_factory):
@@ -458,6 +488,21 @@ async def test_defer_periodic_job(configure):
         defer_timestamp=1234567890,
     )
     assert result == 1
+
+
+async def test_defer_periodic_job_lock_mode(configure, connector):
+    # A periodic job must keep the lock_mode it was configured with, rather than
+    # silently falling back to "ordered".
+    deferrer = configure(
+        task_kwargs={"timestamp": 1234567890}, lock="lock_1", lock_mode="mutex"
+    )
+
+    await deferrer.job_manager.defer_periodic_job(
+        job=deferrer.job,
+        periodic_id="",
+        defer_timestamp=1234567890,
+    )
+    assert connector.jobs[1]["lock_mode"] == "mutex"
 
 
 async def test_defer_periodic_job_with_suffixes(configure):
