@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import datetime
 import functools
 import time
@@ -192,6 +193,52 @@ async def test_fetch_job_mutex_lock_leaves_a_single_candidate_per_lock(
             # Fail fast rather than block on the unique index if the invariant breaks.
             second.execute("SET lock_timeout = '5s'")
             assert second.execute(query, (second_worker,)).fetchone()[0] is None
+
+
+async def test_fetch_job_mutex_lock_job_becoming_due_between_fetches(
+    pg_job_manager, deferred_job_factory, connection_params
+):
+    # Two workers fetching as a 'mutex' job becomes due disagree on whether it holds
+    # its lock: the first, whose now() is just before, takes the ready job, the second
+    # takes the newly due one, and the lock index refuses it once the first commits.
+    # The second worker must then find no job rather than crash.
+    ready = await deferred_job_factory(lock="lock_1", lock_mode="mutex")
+    first_worker = await pg_job_manager.register_worker()
+    second_worker = await pg_job_manager.register_worker()
+
+    conninfo = psycopg.conninfo.make_conninfo(**connection_params)
+    with (
+        psycopg.connect(conninfo) as first,
+        psycopg.connect(conninfo, autocommit=True) as other,
+    ):
+        # now() is frozen when the first worker's transaction starts.
+        first.execute("SELECT now()")
+        other.execute(
+            "INSERT INTO procrastinate_jobs"
+            " (queue_name, task_name, priority, lock, lock_mode, scheduled_at)"
+            " VALUES ('default', 'foo', 1, 'lock_1', 'mutex', clock_timestamp())"
+        )
+        fetched = first.execute(
+            "SELECT id FROM procrastinate_fetch_job_v2(NULL, %s)", (first_worker,)
+        ).fetchone()
+        assert fetched == (ready.id,)
+
+        second_fetch = asyncio.create_task(
+            pg_job_manager.fetch_job(queues=None, worker_id=second_worker)
+        )
+
+        async def second_fetch_blocked_on_lock_index():
+            query = (
+                "SELECT count(*) FROM pg_stat_activity"
+                " WHERE datname = current_database() AND wait_event_type = 'Lock'"
+            )
+            while not other.execute(query).fetchone()[0]:
+                await asyncio.sleep(0.01)
+
+        await asyncio.wait_for(second_fetch_blocked_on_lock_index(), timeout=5)
+        first.commit()
+
+    assert await asyncio.wait_for(second_fetch, timeout=5) is None
 
 
 async def test_fetch_job_mutex_lock_still_excludes_running_job(

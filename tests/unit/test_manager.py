@@ -187,6 +187,33 @@ async def test_fetch_job(job_manager, job_factory, worker_id):
     assert await job_manager.fetch_job(queues=None, worker_id=worker_id) == expected_job
 
 
+async def test_fetch_job_lock_violation(job_manager, connector, worker_id, mocker):
+    mocker.patch.object(
+        connector,
+        "execute_query_one_async",
+        side_effect=exceptions.UniqueViolation(
+            constraint_name=manager.LOCK_CONSTRAINT, queueing_lock=None
+        ),
+    )
+
+    assert await job_manager.fetch_job(queues=None, worker_id=worker_id) is None
+
+
+async def test_fetch_job_other_unique_violation(
+    job_manager, connector, worker_id, mocker
+):
+    mocker.patch.object(
+        connector,
+        "execute_query_one_async",
+        side_effect=exceptions.UniqueViolation(
+            constraint_name="some_other_constraint", queueing_lock=None
+        ),
+    )
+
+    with pytest.raises(exceptions.UniqueViolation):
+        await job_manager.fetch_job(queues=None, worker_id=worker_id)
+
+
 async def test_get_stalled_jobs_by_started_not_stalled(job_manager, job_factory):
     job = job_factory(id=1)
     await job_manager.defer_job_async(job=job)
