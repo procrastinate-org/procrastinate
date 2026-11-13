@@ -76,26 +76,31 @@ same lock for the whole backoff, while under `"mutex"` the others keep running.
 
 ### What holds a lock
 
-For a job waiting on a lock, these are the other jobs sharing that lock which keep it
-from starting. Apart from the running one, only jobs that come *first* in the order
-described below are considered; the mode is the one set on that other job, not on the
-job waiting:
+Consider jobs `A` with id 1 and `B` with id 2, they both share the same lock value and
+priority.
 
-| Other job sharing the lock                     | `ordered` | `mutex`            |
-|------------------------------------------------|-----------|--------------------|
-| Currently running                               | blocks    | blocks             |
-| Waiting, due now                                | blocks    | blocks             |
-| Waiting, `scheduled_at` still in the future     | blocks    | **does not block** |
-| Waiting, due now, on a queue no worker consumes | blocks    | blocks             |
+If job `A` is due, then it blocks job `B` from running. This is true whether there
+is a worker consuming `A`'s queue or not.
 
-The last row is the one to be aware of: `"mutex"` does **not** help with a lock held up
-by a job sitting on a queue nobody consumes. Only the `scheduled_at` case is relaxed.
+If job `A` is scheduled later:
+- If job `A` has `lock_mode="mutex"`, then it **doesn't** block job `B`.
+- If job `A` has `lock_mode="ordered"` (the default), then it blocks `B`.
 
-The reason is that the rule has to be evaluated identically by every worker. Whether a
-job is due is the same fact for everyone, but which queues are being consumed differs
-per worker. If workers disagreed about what holds a lock, two of them could pick
-different jobs sharing that lock and both try to run them, which is exactly what a lock
-exists to prevent.
+If job `A` is running, then it blocks `B` from running, whatever their priorities.
+
+If `A` had a lower priority than `B`, the roles would be swapped: `B` would come first,
+and everything above applies with `A` and `B` exchanged.
+
+It might be surprising that with `lock_mode="mutex"`, you can still end up with jobs
+sharing a lock stuck for a long time waiting for a job on a queue that no worker
+consumes.
+
+The reason is that workers must agree on what holds a lock. If they disagreed, two of
+them could pick different jobs sharing that lock and both try to run them, which is
+exactly what a lock exists to prevent. Which queues are being consumed differs per
+worker, so it can't be part of the rule. Whether a job is due can only differ for an
+instant, between workers fetching right as it becomes due: the database then refuses to
+start the second job, and that worker finds no job this time.
 
 ### Pausing a lock until a given time
 
