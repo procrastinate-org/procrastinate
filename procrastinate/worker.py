@@ -555,9 +555,9 @@ class Worker:
         Gracefully shutdown the worker by cancelling side tasks
         and waiting for all pending jobs.
         """
-        # Abort polling must outlive the drain, so that running jobs can still
-        # be aborted while the worker waits for them.
-        side_tasks_to_stop_late = ["poll_jobs_to_abort"]
+        # These must outlive the drain: running jobs can still be aborted, and the
+        # worker must not look dead to stalled-worker recovery while it waits.
+        side_tasks_to_stop_late = ["poll_jobs_to_abort", "update_heartbeats"]
         late_side_tasks = [
             t for t in side_tasks if t.get_name() in side_tasks_to_stop_late
         ]

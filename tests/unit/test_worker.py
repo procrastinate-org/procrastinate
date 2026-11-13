@@ -1026,6 +1026,39 @@ async def test_worker_id_and_heartbeat_lifecycle(app: App):
     assert connector.workers == {}
 
 
+async def test_heartbeat_continues_during_graceful_shutdown(app: App, caplog):
+    caplog.set_level("INFO")
+    connector = cast(InMemoryConnector, app.connector)
+    job_started = asyncio.Event()
+    release_job = asyncio.Event()
+
+    @app.task()
+    async def long_job():
+        job_started.set()
+        await release_job.wait()
+
+    await long_job.defer_async()
+    worker = Worker(app, update_heartbeat_interval=0.01)
+    run_task = await start_worker(worker)
+    await wait_for(job_started.is_set)
+    worker_id = worker.worker_id
+    assert worker_id is not None
+
+    worker.stop()
+    await wait_for(
+        lambda: any(
+            "Waiting for job to finish" in record.message for record in caplog.records
+        )
+    )
+    heartbeat_while_draining = connector.workers[worker_id]
+
+    await wait_for(lambda: connector.workers[worker_id] > heartbeat_while_draining)
+
+    release_job.set()
+    await wait_or_fail(run_task)
+    assert connector.workers == {}
+
+
 async def test_job_receives_worker_id(app: App):
     job_started_event = asyncio.Event()
     complete_job_event = asyncio.Event()
