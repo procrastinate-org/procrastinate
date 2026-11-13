@@ -52,9 +52,10 @@ Both lock modes guarantee that **no two jobs sharing a lock ever run at the same
 What differs is whether a job *scheduled for the future* still holds the lock for the
 ones behind it.
 
-`lock_mode="ordered"` (the default) holds the lock regardless. That is what guarantees
-jobs sharing a lock are started in order, and it is also why the caveat above exists: a
-job scheduled for tomorrow keeps the whole lock idle until then.
+`lock_mode="ordered"` (the default) holds the lock regardless: the jobs behind an
+`"ordered"` job start after it, even while it's scheduled for later. So when every job on
+a lock is `"ordered"`, as by default, they start in order. That is also why the caveat
+above exists: a job scheduled for tomorrow keeps the whole lock idle until then.
 
 `lock_mode="mutex"` behaves exactly like `"ordered"`, **except that a job scheduled for
 the future steps aside** instead of holding the lock until it is due:
