@@ -67,7 +67,7 @@
             <a id="nextFileLink" class="nav" href="index.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.17.3">coverage.py v7.17.3</a>,
-            created at 2026-11-13 06:42 +0000
+            created at 2026-11-13 23:27 +0000
         </p>
         <aside class="hidden">
             <button type="button" class="button_next_chunk" data-shortcut="j"></button>
@@ -639,9 +639,9 @@
     <p class="pln"><span class="n"><a id="t555" href="#t555">555</a></span><span class="t"><span class="str">        Gracefully shutdown the worker by cancelling side tasks</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t556" href="#t556">556</a></span><span class="t"><span class="str">        and waiting for all pending jobs.</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t557" href="#t557">557</a></span><span class="t"><span class="str">        &quot;&quot;&quot;</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t558" href="#t558">558</a></span><span class="t">        <span class="com"># Abort polling must outlive the drain, so that running jobs can still</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t559" href="#t559">559</a></span><span class="t">        <span class="com"># be aborted while the worker waits for them.</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t560" href="#t560">560</a></span><span class="t">        <span class="nam">side_tasks_to_stop_late</span> <span class="op">=</span> <span class="op">[</span><span class="str">&quot;poll_jobs_to_abort&quot;</span><span class="op">]</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t558" href="#t558">558</a></span><span class="t">        <span class="com"># These must outlive the drain: running jobs can still be aborted, and the</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t559" href="#t559">559</a></span><span class="t">        <span class="com"># worker must not look dead to stalled-worker recovery while it waits.</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t560" href="#t560">560</a></span><span class="t">        <span class="nam">side_tasks_to_stop_late</span> <span class="op">=</span> <span class="op">[</span><span class="str">&quot;poll_jobs_to_abort&quot;</span><span class="op">,</span> <span class="str">&quot;update_heartbeats&quot;</span><span class="op">]</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t561" href="#t561">561</a></span><span class="t">        <span class="nam">late_side_tasks</span> <span class="op">=</span> <span class="op">[</span>&nbsp;</span><span class="r"></span></p>
     <p class="run run2"><span class="n"><a id="t562" href="#t562">562</a></span><span class="t">            <span class="nam">t</span> <span class="key">for</span> <span class="nam">t</span> <span class="key">in</span> <span class="nam">side_tasks</span> <span class="key">if</span> <span class="nam">t</span><span class="op">.</span><span class="nam">get_name</span><span class="op">(</span><span class="op">)</span> <span class="key">in</span> <span class="nam">side_tasks_to_stop_late</span>&nbsp;</span><span class="r"></span></p>
     <p class="run run2"><span class="n"><a id="t563" href="#t563">563</a></span><span class="t">        <span class="op">]</span>&nbsp;</span><span class="r"></span></p>
@@ -812,7 +812,7 @@
             <a class="nav" href="index.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.17.3">coverage.py v7.17.3</a>,
-            created at 2026-11-13 06:42 +0000
+            created at 2026-11-13 23:27 +0000
         </p>
     </div>
 </footer>
