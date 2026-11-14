@@ -74,11 +74,11 @@
 | procrastinate/sql/migrations/\_\_init\_\_.py                      |        0 |        0 |        0 |        0 |    100% |           |
 | procrastinate/sync\_psycopg\_connector.py                         |      110 |        3 |       24 |        3 |     96% |170, 195, 217 |
 | procrastinate/tasks.py                                            |       95 |        0 |       14 |        0 |    100% |           |
-| procrastinate/testing.py                                          |      249 |       10 |       70 |        2 |     96% |95, 105, 305-317, 558-\>557 |
+| procrastinate/testing.py                                          |      254 |       10 |       72 |        2 |     96% |95, 105, 305-317, 563-\>562 |
 | procrastinate/types.py                                            |       22 |        0 |        0 |        0 |    100% |           |
 | procrastinate/utils.py                                            |      184 |        0 |       42 |        0 |    100% |           |
 | procrastinate/worker.py                                           |      311 |       10 |       98 |        8 |     96% |90, 106, 226-\>229, 478-\>exit, 499-500, 504-505, 541, 638-\>exit, 644, 660-669 |
-| **TOTAL**                                                         | **3326** |  **256** |  **602** |   **26** | **92%** |           |
+| **TOTAL**                                                         | **3331** |  **256** |  **604** |   **26** | **92%** |           |
 
 
 ## Setup coverage badge
