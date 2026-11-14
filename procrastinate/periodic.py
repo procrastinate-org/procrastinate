@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import datetime
 import functools
 import logging
 import time
@@ -40,9 +41,10 @@ class PeriodicTask(Generic[P, R, Args]):
 
     @cached_property
     def croniter(self) -> croniter.croniter:
-        croniter_instance = croniter.croniter(self.cron)
-        croniter_instance.tzinfo = self.tzinfo
-        return croniter_instance
+        # croniter evaluates the expression in the timezone of its start time.
+        return croniter.croniter(
+            self.cron, datetime.datetime.now(self.tzinfo or datetime.UTC)
+        )
 
 
 TaskAtTime = tuple[PeriodicTask, int]

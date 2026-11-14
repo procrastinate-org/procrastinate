@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import datetime
 import itertools
 import zoneinfo
 
@@ -29,9 +30,9 @@ def task(app):
 
 @pytest.fixture
 def cron_task(periodic_registry, task):
-    def _(cron="0 0 * * *"):
+    def _(cron="0 0 * * *", tzinfo=None):
         return periodic_registry.register_task(
-            task=task, cron=cron, periodic_id="", configure_kwargs={}
+            task=task, cron=cron, periodic_id="", configure_kwargs={}, tzinfo=tzinfo
         )
 
     return _
@@ -96,6 +97,27 @@ def test_schedule_decorator_tzinfo_unknown(periodic_registry):
         )
 
     assert periodic_registry.periodic_tasks == {}
+
+
+def utc_timestamp(*args):
+    return int(datetime.datetime(*args, tzinfo=datetime.UTC).timestamp())
+
+
+PARIS = zoneinfo.ZoneInfo("Europe/Paris")
+
+
+@pytest.mark.parametrize(
+    "at, expected",
+    [
+        # 09:00 in Paris is 08:00 UTC in winter, 07:00 UTC in summer
+        (utc_timestamp(2026, 1, 1), utc_timestamp(2026, 1, 1, 8)),
+        (utc_timestamp(2026, 6, 1), utc_timestamp(2026, 6, 1, 7)),
+    ],
+)
+def test_get_next_tick_tzinfo(periodic_deferrer, cron_task, at, expected):
+    cron_task(cron="0 9 * * *", tzinfo=PARIS)
+
+    assert periodic_deferrer.get_next_tick(at=at) == expected - at
 
 
 @pytest.mark.parametrize(
