@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import collections
 
 import psycopg2
@@ -7,6 +8,8 @@ import pytest
 
 from procrastinate import exceptions
 from procrastinate.contrib.aiopg import aiopg_connector
+
+from ....helpers import wait_or_fail
 
 
 @pytest.fixture
@@ -197,3 +200,39 @@ async def test_open_async_pool_argument_specified(fake_connector):
 def test_get_pool(connector):
     with pytest.raises(exceptions.AppNotOpen):
         _ = connector.pool
+
+
+async def test_loop_notify_cancelled_despite_swallowed_cancellation(connector):
+    listening = asyncio.Event()
+    swallowed = False
+
+    class Notifies:
+        async def get(self):
+            nonlocal swallowed
+            listening.set()
+            try:
+                await asyncio.Event().wait()
+            except asyncio.CancelledError:
+                if swallowed:
+                    raise
+                swallowed = True
+                raise psycopg2.OperationalError from None
+
+    class Connection:
+        closed = False
+        notifies = Notifies()
+
+    async def handle_notification(channel: str, payload: str):
+        pass
+
+    task = asyncio.create_task(
+        connector._loop_notify(
+            on_notification=handle_notification, connection=Connection()
+        )
+    )
+    await wait_or_fail(listening.wait())
+
+    task.cancel()
+
+    with pytest.raises(asyncio.CancelledError):
+        await wait_or_fail(task)

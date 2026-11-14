@@ -350,6 +350,7 @@ class PsycopgConnector(connector.BaseAsyncConnector):
         self, on_notification: connector.Notify, channels: Iterable[str]
     ) -> None:
         while True:
+            utils.raise_if_cancelling()
             async with self._get_standalone_connection() as connection:
                 for channel_name in channels:
                     await connection.execute(
@@ -372,6 +373,7 @@ class PsycopgConnector(connector.BaseAsyncConnector):
         # We'll leave this loop with a CancelledError, when we get cancelled
 
         while True:
+            utils.raise_if_cancelling()
             try:
                 async for notification in utils.gen_with_timeout(
                     aiterable=connection.notifies(),
@@ -382,6 +384,7 @@ class PsycopgConnector(connector.BaseAsyncConnector):
                         channel=notification.channel, payload=notification.payload
                     )
 
+                utils.raise_if_cancelling()
                 await connection.execute("SELECT 1")
             except psycopg.OperationalError:
                 # Connection is dead, we need to reconnect
