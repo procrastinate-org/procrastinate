@@ -669,6 +669,7 @@ async def test_retry_job_run_queueing_lock_conflict_failed_job(
 
     assert exc_info.value.constraint_name == "procrastinate_jobs_queueing_lock_idx_v1"
     assert exc_info.value.queueing_lock == "houba"
+    assert "(queueing_lock)=(houba)" in str(exc_info.value)
     assert connector.jobs[id]["status"] == "failed"
 
 

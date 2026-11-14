@@ -127,6 +127,7 @@ async def test_wrap_exceptions(sqlalchemy_psycopg2_connector):
         )
     assert excinfo.value.constraint_name == manager.QUEUEING_LOCK_CONSTRAINT
     assert excinfo.value.queueing_lock == "same_queueing_lock"
+    assert "(queueing_lock)=(same_queueing_lock)" in str(excinfo.value)
 
 
 def test_execute_query(sqlalchemy_psycopg2_connector):

@@ -128,7 +128,6 @@ async def test_manager_defer_job_unique_violation_exception(
     connector.execute_query_all_async = mocker.Mock(
         side_effect=exceptions.UniqueViolation(
             constraint_name="procrastinate_jobs_queueing_lock_idx_v1",
-            queueing_lock="some_queueing_lock",
         )
     )
 
@@ -140,9 +139,7 @@ async def test_manager_defer_job_unique_violation_exception_other_constraint(
     mocker, job_manager, job_factory, connector
 ):
     connector.execute_query_all_async = mocker.Mock(
-        side_effect=exceptions.UniqueViolation(
-            constraint_name="some_other_constraint", queueing_lock=None
-        )
+        side_effect=exceptions.UniqueViolation(constraint_name="some_other_constraint")
     )
 
     with pytest.raises(exceptions.ConnectorException):
@@ -155,7 +152,6 @@ async def test_manager_defer_job_unique_violation_exception_sync(
     connector.execute_query_all = mocker.Mock(
         side_effect=exceptions.UniqueViolation(
             constraint_name="procrastinate_jobs_queueing_lock_idx_v1",
-            queueing_lock="some_queueing_lock",
         )
     )
 
@@ -167,9 +163,7 @@ async def test_manager_defer_job_unique_violation_exception_other_constraint_syn
     mocker, job_manager, job_factory, connector
 ):
     connector.execute_query_all = mocker.Mock(
-        side_effect=exceptions.UniqueViolation(
-            constraint_name="some_other_constraint", queueing_lock=None
-        )
+        side_effect=exceptions.UniqueViolation(constraint_name="some_other_constraint")
     )
 
     with pytest.raises(exceptions.ConnectorException):
@@ -191,9 +185,7 @@ async def test_fetch_job_lock_violation(job_manager, connector, worker_id, mocke
     mocker.patch.object(
         connector,
         "execute_query_one_async",
-        side_effect=exceptions.UniqueViolation(
-            constraint_name=manager.LOCK_CONSTRAINT, queueing_lock=None
-        ),
+        side_effect=exceptions.UniqueViolation(constraint_name=manager.LOCK_CONSTRAINT),
     )
 
     assert await job_manager.fetch_job(queues=None, worker_id=worker_id) is None
@@ -205,9 +197,7 @@ async def test_fetch_job_other_unique_violation(
     mocker.patch.object(
         connector,
         "execute_query_one_async",
-        side_effect=exceptions.UniqueViolation(
-            constraint_name="some_other_constraint", queueing_lock=None
-        ),
+        side_effect=exceptions.UniqueViolation(constraint_name="some_other_constraint"),
     )
 
     with pytest.raises(exceptions.UniqueViolation):
@@ -561,22 +551,42 @@ async def test_defer_periodic_job_wrong_timestamp(configure):
         )
 
 
-def test_raise_already_enqueued_right_constraint(job_manager):
-    class UniqueViolation(Exception):
-        constraint_name = manager.QUEUEING_LOCK_CONSTRAINT
+def test_raise_already_enqueued_right_constraint(job_manager, job_factory):
+    exc = exceptions.UniqueViolation(
+        "Schlüssel »(queueing_lock)=(foo)« existiert bereits.",
+        constraint_name=manager.QUEUEING_LOCK_CONSTRAINT,
+    )
 
     with pytest.raises(exceptions.AlreadyEnqueued) as exc_info:
-        job_manager._raise_already_enqueued(exc=UniqueViolation(), queueing_lock="foo")
+        job_manager._raise_already_enqueued(
+            exc=exc, jobs=[job_factory(queueing_lock="foo")]
+        )
 
     assert "queueing lock foo" in str(exc_info.value)
 
 
-def test_raise_already_enqueued_wrong_constraint(job_manager):
-    class UniqueViolation(Exception):
-        constraint_name = "foo"
+def test_raise_already_enqueued_right_constraint_batch(job_manager, job_factory):
+    exc = exceptions.UniqueViolation(
+        "Schlüssel »(queueing_lock)=(foo)« existiert bereits.",
+        constraint_name=manager.QUEUEING_LOCK_CONSTRAINT,
+    )
 
-    with pytest.raises(UniqueViolation):
-        job_manager._raise_already_enqueued(exc=UniqueViolation(), queueing_lock="foo")
+    with pytest.raises(exceptions.AlreadyEnqueued) as exc_info:
+        job_manager._raise_already_enqueued(
+            exc=exc,
+            jobs=[job_factory(queueing_lock="foo"), job_factory(queueing_lock="bar")],
+        )
+
+    assert "»(queueing_lock)=(foo)«" in str(exc_info.value)
+
+
+def test_raise_already_enqueued_wrong_constraint(job_manager, job_factory):
+    exc = exceptions.UniqueViolation(constraint_name="foo")
+
+    with pytest.raises(exceptions.UniqueViolation):
+        job_manager._raise_already_enqueued(
+            exc=exc, jobs=[job_factory(queueing_lock="foo")]
+        )
 
 
 @pytest.fixture
