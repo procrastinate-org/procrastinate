@@ -704,7 +704,7 @@ async def test_retry_job_with_queueing_lock_and_no_todo_sibling(
     job1 = await fetched_job_factory(queueing_lock="queueing_lock")
 
     await pg_job_manager.retry_job(
-        job=job1, retry_at=datetime.datetime.now(datetime.timezone.utc)
+        job=job1, retry_at=datetime.datetime.now(datetime.UTC)
     )
 
     job2 = await pg_job_manager.fetch_job(queues=None, worker_id=worker_id)
@@ -723,7 +723,7 @@ async def test_retry_job_with_queueing_lock_and_todo_sibling(
     job2 = await deferred_job_factory(lock="lock", queueing_lock="queueing_lock")
 
     await pg_job_manager.retry_job(
-        job=job1, retry_at=datetime.datetime.now(datetime.timezone.utc)
+        job=job1, retry_at=datetime.datetime.now(datetime.UTC)
     )
 
     rows = await get_all("procrastinate_jobs", "id", "status", "attempts")
@@ -752,7 +752,7 @@ async def test_retry_failed_job_with_queueing_lock_and_todo_sibling(
 
     with pytest.raises(exceptions.UniqueViolation):
         await pg_job_manager.retry_job(
-            job=job1, retry_at=datetime.datetime.now(datetime.timezone.utc)
+            job=job1, retry_at=datetime.datetime.now(datetime.UTC)
         )
 
 
