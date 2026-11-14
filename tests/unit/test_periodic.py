@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import itertools
+import zoneinfo
 
 import pytest
 
@@ -77,6 +78,24 @@ def test_schedule_decorator(periodic_registry, task):
             task=task, cron="0 0 * * *", periodic_id="foo", configure_kwargs={}
         )
     ]
+
+
+def test_schedule_decorator_tzinfo_name(periodic_registry, task):
+    periodic_registry.periodic_decorator(
+        cron="0 0 * * *", periodic_id="foo", tzinfo="Europe/Paris"
+    )(task)
+
+    (periodic_task,) = periodic_registry.periodic_tasks.values()
+    assert periodic_task.tzinfo == zoneinfo.ZoneInfo("Europe/Paris")
+
+
+def test_schedule_decorator_tzinfo_unknown(periodic_registry):
+    with pytest.raises(zoneinfo.ZoneInfoNotFoundError):
+        periodic_registry.periodic_decorator(
+            cron="0 0 * * *", periodic_id="foo", tzinfo="Europe/Atlantis"
+        )
+
+    assert periodic_registry.periodic_tasks == {}
 
 
 @pytest.mark.parametrize(

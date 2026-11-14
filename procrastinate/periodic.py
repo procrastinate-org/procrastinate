@@ -1,13 +1,12 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime
 import functools
 import logging
 import time
 from collections.abc import Callable, Iterable
 from typing import Concatenate, Generic, cast
-from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+from zoneinfo import ZoneInfo
 
 import attr
 import croniter
@@ -37,26 +36,13 @@ class PeriodicTask(Generic[P, R, Args]):
     cron: str
     periodic_id: str
     configure_kwargs: tasks.ConfigureTaskOptions
-    tzinfo:str|None|ZoneInfo=None
+    tzinfo: ZoneInfo | None = None
 
     @cached_property
     def croniter(self) -> croniter.croniter:
         croniter_instance = croniter.croniter(self.cron)
-        # croniter sets the timezone info object in
-        croniter_instance.tzinfo = self.get_tzinfo()
+        croniter_instance.tzinfo = self.tzinfo
         return croniter_instance
-
-    def get_tzinfo(self):
-        tzinfo = self.tzinfo
-        if isinstance(tzinfo, str):
-            try:
-                return ZoneInfo(tzinfo)
-            except (ZoneInfoNotFoundError, ValueError):
-                logger.error(f"{tzinfo} is not a valid timezone.")
-                return None
-        if isinstance(tzinfo, ZoneInfo):
-            return tzinfo
-        return None
 
 
 TaskAtTime = tuple[PeriodicTask, int]
@@ -70,7 +56,7 @@ class PeriodicRegistry:
         self,
         cron: str,
         periodic_id: str,
-        tzinfo:str|None|ZoneInfo=None,
+        tzinfo: str | ZoneInfo | None = None,
         **configure_kwargs: Unpack[tasks.ConfigureTaskOptions],
     ) -> Callable[[tasks.Task[P, R, Concatenate[int, Args]]], tasks.Task[P, R, Args]]:
         """
@@ -78,6 +64,9 @@ class PeriodicRegistry:
         launch. This decorator should not be used directly, ``@app.periodic()`` is meant
         to be used instead.
         """
+        if isinstance(tzinfo, str):
+            tzinfo = ZoneInfo(tzinfo)
+
         def wrapper(
             task: tasks.Task[P, R, Concatenate[int, Args]],
         ) -> tasks.Task[P, R, Args]:
@@ -98,8 +87,7 @@ class PeriodicRegistry:
         cron: str,
         periodic_id: str,
         configure_kwargs: tasks.ConfigureTaskOptions,
-        tzinfo:str|None|ZoneInfo=None,
-
+        tzinfo: ZoneInfo | None = None,
     ) -> PeriodicTask[P, R, Concatenate[int, Args]]:
         key = (task.name, periodic_id)
         if key in self.periodic_tasks:
@@ -125,7 +113,7 @@ class PeriodicRegistry:
             cron=cron,
             periodic_id=periodic_id,
             configure_kwargs=configure_kwargs,
-            tzinfo=tzinfo
+            tzinfo=tzinfo,
         )
         return periodic_task
 

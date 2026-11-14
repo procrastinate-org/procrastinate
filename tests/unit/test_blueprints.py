@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import zoneinfo
+
 import pytest
 
 from procrastinate import blueprints, exceptions, periodic, retry
@@ -150,6 +152,20 @@ def test_add_tasks_from__periodic(blueprint: blueprints.Blueprint):
             configure_kwargs={},
         ),
     }
+
+
+def test_add_tasks_from__periodic_tzinfo(blueprint: blueprints.Blueprint):
+    other = blueprints.Blueprint()
+
+    @other.periodic(cron="0 9 * * *", tzinfo="Europe/Paris")
+    @other.task(name="bar")
+    def my_task(timestamp: int):
+        pass
+
+    blueprint.add_tasks_from(other, namespace="ns")
+
+    (periodic_task,) = blueprint.periodic_registry.periodic_tasks.values()
+    assert periodic_task.tzinfo == zoneinfo.ZoneInfo("Europe/Paris")
 
 
 def test_add_tasks_from_clash(blueprint: blueprints.Blueprint):

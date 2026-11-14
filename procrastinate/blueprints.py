@@ -5,12 +5,12 @@ import logging
 import sys
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Concatenate, Literal, cast, overload
+from zoneinfo import ZoneInfo
 
 from typing_extensions import ParamSpec, TypeVar, Unpack
 
 from procrastinate import exceptions, jobs, middleware, periodic, retry, utils
 from procrastinate.job_context import JobContext
-from zoneinfo import ZoneInfo
 
 if TYPE_CHECKING:
     from procrastinate.tasks import ConfigureTaskOptions, Task
@@ -363,7 +363,7 @@ class Blueprint:
         *,
         cron: str,
         periodic_id: str = "",
-        tzinfo: str | None | ZoneInfo = None,
+        tzinfo: str | ZoneInfo | None = None,
         **configure_kwargs: Unpack[ConfigureTaskOptions],
     ) -> Callable[
         [Task[P, R, Concatenate[int, periodic.Args]]],
