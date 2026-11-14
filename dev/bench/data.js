@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794675580444,
+  "lastUpdate": 1794679209658,
   "repoUrl": "https://github.com/procrastinate-org/procrastinate",
   "entries": {
     "Procrastinate Benchmarks": [
@@ -15964,6 +15964,86 @@ window.BENCHMARK_DATA = {
             "unit": "iter/sec",
             "range": "stddev: 0.22143639219813502",
             "extra": "mean: 2.8679657565999945 sec\nrounds: 5"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "ewjoachim@gmail.com",
+            "name": "Joachim Jablon",
+            "username": "ewjoachim"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "ad8f87aa54d7890df7e7ba902cbc6eab7f71bdf7",
+          "message": "Merge pull request #1474 from dreackm/tzinfo-support\n\nadded timezone support for cron schedules in periodic tasks",
+          "timestamp": "2026-11-14T18:56:32+01:00",
+          "tree_id": "5baa977d1f905df7be80ab15dc6acc265df6651e",
+          "url": "https://github.com/procrastinate-org/procrastinate/commit/ad8f87aa54d7890df7e7ba902cbc6eab7f71bdf7"
+        },
+        "date": 1794679208779,
+        "tool": "pytest",
+        "benches": [
+          {
+            "name": "tests/benchmarks/test_benchmark_async.py::test_benchmark_1000_async_jobs[psycopg_connector]",
+            "value": 0.26519703960663515,
+            "unit": "iter/sec",
+            "range": "stddev: 0.1256925232250924",
+            "extra": "mean: 3.770781157599997 sec\nrounds: 5"
+          },
+          {
+            "name": "tests/benchmarks/test_benchmark_async.py::test_benchmark_1000_async_jobs[aiopg_connector]",
+            "value": 0.4794029963497843,
+            "unit": "iter/sec",
+            "range": "stddev: 0.017945418256094036",
+            "extra": "mean: 2.085927721800002 sec\nrounds: 5"
+          },
+          {
+            "name": "tests/benchmarks/test_benchmark_async.py::test_benchmark_1000_async_batch_jobs[psycopg_connector]",
+            "value": 0.3612222927761772,
+            "unit": "iter/sec",
+            "range": "stddev: 0.17962323784208054",
+            "extra": "mean: 2.768378419599995 sec\nrounds: 5"
+          },
+          {
+            "name": "tests/benchmarks/test_benchmark_async.py::test_benchmark_1000_async_batch_jobs[aiopg_connector]",
+            "value": 0.591131441776562,
+            "unit": "iter/sec",
+            "range": "stddev: 0.16169296498164157",
+            "extra": "mean: 1.6916711399999997 sec\nrounds: 5"
+          },
+          {
+            "name": "tests/benchmarks/test_benchmark_sync.py::test_benchmark_1000_sync_jobs[sync_psycopg_connector]",
+            "value": 0.23577860456652536,
+            "unit": "iter/sec",
+            "range": "stddev: 0.17728525321762453",
+            "extra": "mean: 4.2412669369999945 sec\nrounds: 5"
+          },
+          {
+            "name": "tests/benchmarks/test_benchmark_sync.py::test_benchmark_1000_sync_jobs[psycopg2_connector]",
+            "value": 0.2551133227214319,
+            "unit": "iter/sec",
+            "range": "stddev: 0.12828131096808648",
+            "extra": "mean: 3.9198266454000077 sec\nrounds: 5"
+          },
+          {
+            "name": "tests/benchmarks/test_benchmark_sync.py::test_benchmark_1000_sync_batch_jobs[sync_psycopg_connector]",
+            "value": 0.32675100901731036,
+            "unit": "iter/sec",
+            "range": "stddev: 0.15596998245141355",
+            "extra": "mean: 3.060434313600001 sec\nrounds: 5"
+          },
+          {
+            "name": "tests/benchmarks/test_benchmark_sync.py::test_benchmark_1000_sync_batch_jobs[psycopg2_connector]",
+            "value": 0.3050829051799637,
+            "unit": "iter/sec",
+            "range": "stddev: 0.15380349889645206",
+            "extra": "mean: 3.2777975528000014 sec\nrounds: 5"
           }
         ]
       }
