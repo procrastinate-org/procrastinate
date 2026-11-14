@@ -121,6 +121,35 @@ def test_get_next_tick_tzinfo(periodic_deferrer, cron_task, at, expected):
 
 
 @pytest.mark.parametrize(
+    "since, until, expected",
+    [
+        # Clocks go forward at 02:00: 02:30 doesn't exist, the task runs once at 03:00
+        (
+            utc_timestamp(2026, 3, 28, 12),
+            utc_timestamp(2026, 3, 30),
+            [utc_timestamp(2026, 3, 29, 1)],
+        ),
+        # Clocks go back at 03:00: 02:30 happens twice, and so does the task
+        (
+            utc_timestamp(2026, 10, 24, 12),
+            utc_timestamp(2026, 10, 26),
+            [utc_timestamp(2026, 10, 25, 0, 30), utc_timestamp(2026, 10, 25, 1, 30)],
+        ),
+    ],
+)
+def test_get_timestamps_tzinfo_dst(
+    periodic_deferrer, cron_task, since, until, expected
+):
+    task = cron_task(cron="30 2 * * *", tzinfo=PARIS)
+
+    timestamps = periodic_deferrer.get_timestamps(
+        periodic_task=task, since=since, until=until
+    )
+
+    assert list(timestamps) == expected
+
+
+@pytest.mark.parametrize(
     "cron, expected",
     [
         # ┌───────────── minute (0 - 59)

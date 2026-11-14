@@ -1133,7 +1133,7 @@ requires-dist = [
     { name = "aiopg", marker = "extra == 'aiopg'" },
     { name = "asgiref" },
     { name = "attrs" },
-    { name = "croniter" },
+    { name = "croniter", specifier = ">=6.1" },
     { name = "django", marker = "extra == 'django'", specifier = ">=2.2" },
     { name = "packaging" },
     { name = "psycopg", extras = ["pool"] },

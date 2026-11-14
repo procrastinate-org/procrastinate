@@ -24,7 +24,8 @@ dependencies = [
     "psycopg[pool]",
     "asgiref",
     "attrs",
-    "croniter",
+    # Older versions get daylight saving changes wrong for periodic tasks with tzinfo
+    "croniter>=6.1",
     "python-dateutil",
     "typing-extensions",
     "packaging",
