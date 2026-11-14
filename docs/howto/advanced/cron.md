@@ -26,6 +26,23 @@ The cron syntax is on 5 columns (minute, hour, day, month, day of week). Here, a
 optional 6th column is supported for seconds with the same syntax, allowing you to make
 a periodic task as frequent as "1 per second".
 
+## Timezone
+
+Cron expressions are evaluated in UTC. To evaluate one in another timezone, pass
+`tzinfo`, either a name or a `zoneinfo.ZoneInfo`:
+
+```
+# scheduled at 09:00 Paris time, all year round
+@app.periodic(cron="0 9 * * *", tzinfo="Europe/Paris")
+@app.task
+def send_report(timestamp: int):
+    ...
+```
+
+When clocks change, a time that doesn't exist (clocks go forward) is scheduled once,
+when the clocks jump, and a time that happens twice (clocks go back) is scheduled twice.
+If that's a problem, avoid scheduling tasks at those hours, or use UTC.
+
 ## Caveats
 
 When using periodic tasks there are a few things to know:
