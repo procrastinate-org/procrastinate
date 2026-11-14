@@ -407,10 +407,15 @@ class InMemoryConnector(connector.BaseAsyncConnector):
             job["queueing_lock"] == queueing_lock and job["status"] == "todo"
             for job in self.jobs.values()
         ):
-            raise exceptions.UniqueViolation(
-                constraint_name=manager.QUEUEING_LOCK_CONSTRAINT,
-                queueing_lock=queueing_lock,
-            )
+            if job_row["status"] != "doing":
+                raise exceptions.UniqueViolation(
+                    constraint_name=manager.QUEUEING_LOCK_CONSTRAINT,
+                    queueing_lock=queueing_lock,
+                )
+            job_row["status"] = "failed"
+            job_row["attempts"] += 1
+            self.events[job_id].append({"type": "failed", "at": utils.utcnow()})
+            return
 
         job_row["status"] = "todo"
         job_row["attempts"] += 1

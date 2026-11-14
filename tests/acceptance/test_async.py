@@ -308,6 +308,36 @@ async def test_retry_when_aborting(async_app: app_module.App):
     assert attempts == 1
 
 
+async def test_retry_with_queueing_lock_sibling_waiting(async_app: app_module.App):
+    runs = []
+
+    @async_app.task(queue="default", name="task1", pass_context=True, retry=True)
+    async def example_task(context):
+        runs.append(context.job.id)
+        if len(runs) == 1:
+            # Another job with the same locks is queued while this one runs,
+            # then this one fails and should be retried.
+            await example_task.configure(
+                lock="lock", queueing_lock="queueing_lock"
+            ).defer_async()
+            raise ValueError()
+
+    job_id = await example_task.configure(
+        lock="lock", queueing_lock="queueing_lock"
+    ).defer_async()
+
+    await async_app.run_worker_async(queues=["default"], wait=False)
+
+    # The failed job is not retried, since the queued job does the same work, and
+    # it releases the lock so that the queued job can run.
+    assert len(runs) == 2
+    assert runs[0] == job_id
+    status = await async_app.job_manager.get_job_status_async(job_id)
+    assert status == Status.FAILED
+    status = await async_app.job_manager.get_job_status_async(runs[1])
+    assert status == Status.SUCCEEDED
+
+
 async def test_stop_worker(async_app: app_module.App):
     results = []
 
