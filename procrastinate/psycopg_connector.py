@@ -384,6 +384,7 @@ class PsycopgConnector(connector.BaseAsyncConnector):
                         channel=notification.channel, payload=notification.payload
                     )
 
+                utils.raise_if_cancelling()
                 await connection.execute("SELECT 1")
             except psycopg.OperationalError:
                 # Connection is dead, we need to reconnect

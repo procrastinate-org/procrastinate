@@ -113,6 +113,7 @@ class CancellationSwallowingConnection:
         self.listening = asyncio.Event()
         self.on_cancel = on_cancel
         self.swallowed = False
+        self.executed_after_cancellation = False
 
     async def notifies(self):
         self.listening.set()
@@ -128,7 +129,8 @@ class CancellationSwallowingConnection:
         yield  # pragma: no cover
 
     async def execute(self, *args, **kwargs):
-        pass
+        if self.swallowed:
+            self.executed_after_cancellation = True
 
 
 async def handle_notification(channel: str, payload: str):
@@ -148,6 +150,7 @@ async def test_loop_notify_cancelled_despite_swallowed_cancellation(connector):
 
     with pytest.raises(asyncio.CancelledError):
         await wait_or_fail(task)
+    assert not connection.executed_after_cancellation
 
 
 async def test_listen_notify_cancelled_despite_swallowed_cancellation(
