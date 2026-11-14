@@ -60,7 +60,7 @@ async def test_list_jobs(
         (
             "list_jobs",
             {
-                "id": None,
+                "ids": None,
                 "queue_name": None,
                 "task_name": None,
                 "queueing_lock": None,
@@ -111,7 +111,7 @@ async def test_list_jobs_filters(
         (
             "list_jobs",
             {
-                "id": 2,
+                "ids": [2],
                 "queue_name": "queue2",
                 "task_name": "task2",
                 "queueing_lock": None,

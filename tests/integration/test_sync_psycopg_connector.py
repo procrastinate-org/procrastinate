@@ -124,7 +124,7 @@ def test_defer_with_external_connection_commit(
     # Job should be in DB after commit
     jobs = sync_psycopg_connector.execute_query_all(
         query=sql.queries["list_jobs"],
-        id=None,
+        ids=None,
         queue_name=None,
         task_name=None,
         status=None,
@@ -162,7 +162,7 @@ def test_defer_with_external_connection_rollback(
     # Job should NOT be in DB after rollback
     jobs = sync_psycopg_connector.execute_query_all(
         query=sql.queries["list_jobs"],
-        id=None,
+        ids=None,
         queue_name=None,
         task_name="tests.integration.test_sync_psycopg_connector.my_rollback_task",
         status=None,
@@ -195,7 +195,7 @@ def test_batch_defer_with_external_connection_commit(
 
     jobs = sync_psycopg_connector.execute_query_all(
         query=sql.queries["list_jobs"],
-        id=None,
+        ids=None,
         queue_name=None,
         task_name=None,
         status=None,
@@ -238,7 +238,7 @@ def test_batch_defer_with_external_connection_rollback(
 
     jobs = sync_psycopg_connector.execute_query_all(
         query=sql.queries["list_jobs"],
-        id=None,
+        ids=None,
         queue_name=None,
         task_name="tests.integration.test_sync_psycopg_connector.my_batch_rollback_task",
         status=None,
