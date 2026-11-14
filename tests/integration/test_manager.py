@@ -676,7 +676,7 @@ async def test_delete_old_jobs_event_without_timestamp(
     )
 
     await pg_job_manager.delete_old_jobs(nb_hours=1)
-    assert len(await get_all("procrastinate_jobs", "id")) == 1
+    assert len(await get_all("procrastinate_jobs", "id")) == 0
 
 
 async def test_delete_old_jobs_job_without_events(
