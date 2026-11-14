@@ -380,10 +380,9 @@ class Blueprint:
         periodic_id :
             Task name suffix. Used to distinguish periodic tasks with different kwargs.
         tzinfo :
-            Timezone in which the cron expression should be interpreted. Accepts a
-            timezone name string (e.g., "Africa/Blantyre"), a `zoneinfo.ZoneInfo` instance,
-            or `None`. When `None` (the default), the underlying `croniter` library
-            will interpret the schedule in UTC (the current behaviour).
+            Timezone in which the cron expression is interpreted, as a name (e.g.
+            ``"Europe/Paris"``) or a ``zoneinfo.ZoneInfo``. Defaults to UTC. An invalid
+            name raises an error when the task is registered.
         **configure_kwargs :
             Additional parameters are passed to ``Task.configure``.
         """
