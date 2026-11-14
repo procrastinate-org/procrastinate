@@ -53,11 +53,8 @@ SELECT job.id, status, task_name, priority, lock, lock_mode, queueing_lock,
    AND (job.worker_id IS NULL OR sw.id IS NOT NULL)
 
 -- delete_old_jobs --
--- Delete jobs that have been in a final state for longer than nb_hours
--- A job qualifies when it has at least one event and all of its events are
--- older than the cutoff (an event with a NULL "at" disqualifies it), i.e. when
--- its latest event is older than the cutoff. Written this way, the status and
--- queue filters apply before events are looked at, and no sort is needed.
+-- Delete jobs in a final state whose latest event is older than nb_hours.
+-- Jobs are filtered before their events are read: joining all events is much slower.
 DELETE FROM procrastinate_jobs job
 WHERE job.status = ANY(%(statuses)s::procrastinate_job_status[])
   AND (%(queue)s::varchar IS NULL OR job.queue_name = %(queue)s)
@@ -68,6 +65,7 @@ WHERE job.status = ANY(%(statuses)s::procrastinate_job_status[])
   AND NOT EXISTS (
       SELECT 1 FROM procrastinate_events event
        WHERE event.job_id = job.id
+         -- IS NOT TRUE: an event without "at" keeps the job
          AND (event.at < NOW() - (%(nb_hours)s || 'HOUR')::INTERVAL) IS NOT TRUE
   )
 
