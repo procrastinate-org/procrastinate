@@ -306,6 +306,7 @@ class AiopgConnector(connector.BaseAsyncConnector):
             return
 
         while True:
+            utils.raise_if_cancelling()
             async with self.pool.acquire() as connection:
                 for channel_name in channels:
                     await self._execute_query_connection(
@@ -327,6 +328,7 @@ class AiopgConnector(connector.BaseAsyncConnector):
     ) -> None:
         # We'll leave this loop with a CancelledError, when we get cancelled
         while True:
+            utils.raise_if_cancelling()
             # because of https://github.com/aio-libs/aiopg/issues/249 for
             # aiopg<1.3.0, we could get stuck in here forever if the connection
             # closes. That's why we need timeout and if connection is closed,

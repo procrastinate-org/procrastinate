@@ -1,9 +1,14 @@
 from __future__ import annotations
 
+import asyncio
+import contextlib
+
 import psycopg
 import pytest
 
 from procrastinate import exceptions, psycopg_connector
+
+from ..helpers import wait_or_fail
 
 
 @pytest.fixture
@@ -99,3 +104,70 @@ async def test_open_async_pool_factory_argument_specified(mocker):
 def test_get_pool(connector):
     with pytest.raises(exceptions.AppNotOpen):
         _ = connector.pool
+
+
+class CancellationSwallowingConnection:
+    """Swallows the first cancellation of its notifications, as some drivers do."""
+
+    def __init__(self, on_cancel: type[BaseException] | None = None):
+        self.listening = asyncio.Event()
+        self.on_cancel = on_cancel
+        self.swallowed = False
+
+    async def notifies(self):
+        self.listening.set()
+        try:
+            await asyncio.Event().wait()
+        except asyncio.CancelledError:
+            if self.swallowed:
+                raise
+            self.swallowed = True
+            if self.on_cancel:
+                raise self.on_cancel from None
+            return
+        yield  # pragma: no cover
+
+    async def execute(self, *args, **kwargs):
+        pass
+
+
+async def handle_notification(channel: str, payload: str):
+    pass
+
+
+async def test_loop_notify_cancelled_despite_swallowed_cancellation(connector):
+    connection = CancellationSwallowingConnection()
+    task = asyncio.create_task(
+        connector._loop_notify(
+            on_notification=handle_notification, connection=connection
+        )
+    )
+    await wait_or_fail(connection.listening.wait())
+
+    task.cancel()
+
+    with pytest.raises(asyncio.CancelledError):
+        await wait_or_fail(task)
+
+
+async def test_listen_notify_cancelled_despite_swallowed_cancellation(
+    connector, mocker
+):
+    connection = CancellationSwallowingConnection(on_cancel=psycopg.OperationalError)
+
+    @contextlib.asynccontextmanager
+    async def get_standalone_connection():
+        yield connection
+
+    mocker.patch.object(
+        connector, "_get_standalone_connection", get_standalone_connection
+    )
+    task = asyncio.create_task(
+        connector.listen_notify(on_notification=handle_notification, channels=["a"])
+    )
+    await wait_or_fail(connection.listening.wait())
+
+    task.cancel()
+
+    with pytest.raises(asyncio.CancelledError):
+        await wait_or_fail(task)

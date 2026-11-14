@@ -348,6 +348,16 @@ class MovedElsewhere:
 V = TypeVar("V")
 
 
+def raise_if_cancelling() -> None:
+    """
+    Raise CancelledError if the current task is being cancelled, even if the
+    CancelledError was swallowed (e.g. by a database driver).
+    """
+    task = asyncio.current_task()
+    if task and task.cancelling():
+        raise asyncio.CancelledError
+
+
 async def gen_with_timeout(
     aiterable: AsyncIterator[V],
     timeout: float,
