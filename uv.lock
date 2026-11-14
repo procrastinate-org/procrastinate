@@ -1054,6 +1054,7 @@ dependencies = [
     { name = "psycopg", extra = ["pool"] },
     { name = "python-dateutil" },
     { name = "typing-extensions" },
+    { name = "tzdata" },
 ]
 
 [package.optional-dependencies]
@@ -1133,7 +1134,7 @@ requires-dist = [
     { name = "aiopg", marker = "extra == 'aiopg'" },
     { name = "asgiref" },
     { name = "attrs" },
-    { name = "croniter" },
+    { name = "croniter", specifier = ">=6.1" },
     { name = "django", marker = "extra == 'django'", specifier = ">=2.2" },
     { name = "packaging" },
     { name = "psycopg", extras = ["pool"] },
@@ -1143,6 +1144,7 @@ requires-dist = [
     { name = "sphinx", marker = "extra == 'sphinx'" },
     { name = "sqlalchemy", marker = "extra == 'sqlalchemy'", specifier = "~=2.0" },
     { name = "typing-extensions" },
+    { name = "tzdata" },
 ]
 provides-extras = ["aiopg", "django", "psycopg2", "sphinx", "sqlalchemy"]
 

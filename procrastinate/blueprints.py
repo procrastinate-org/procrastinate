@@ -5,6 +5,7 @@ import logging
 import sys
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Concatenate, Literal, cast, overload
+from zoneinfo import ZoneInfo
 
 from typing_extensions import ParamSpec, TypeVar, Unpack
 
@@ -196,6 +197,7 @@ class Blueprint:
                 task=periodic_task.task,
                 cron=periodic_task.cron,
                 periodic_id=periodic_task.periodic_id,
+                tzinfo=periodic_task.tzinfo,
                 configure_kwargs=periodic_task.configure_kwargs,
             )
 
@@ -361,6 +363,7 @@ class Blueprint:
         *,
         cron: str,
         periodic_id: str = "",
+        tzinfo: str | ZoneInfo | None = None,
         **configure_kwargs: Unpack[ConfigureTaskOptions],
     ) -> Callable[
         [Task[P, R, Concatenate[int, periodic.Args]]],
@@ -376,11 +379,16 @@ class Blueprint:
             Cron-like string. Optionally add a 6th column for seconds.
         periodic_id :
             Task name suffix. Used to distinguish periodic tasks with different kwargs.
-        **kwargs :
-            Additional parameters are passed to `Task.configure`.
+        tzinfo :
+            Timezone in which the cron expression is interpreted, as a name (e.g.
+            ``"Europe/Paris"``) or a ``zoneinfo.ZoneInfo``. Defaults to UTC. An invalid
+            name raises an error when the task is registered.
+        **configure_kwargs :
+            Additional parameters are passed to ``Task.configure``.
         """
+
         return self.periodic_registry.periodic_decorator(
-            cron=cron, periodic_id=periodic_id, **configure_kwargs
+            cron=cron, periodic_id=periodic_id, tzinfo=tzinfo, **configure_kwargs
         )
 
     def will_configure_task(self) -> None:

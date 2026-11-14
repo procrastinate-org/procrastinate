@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import asyncio
+import datetime
 import functools
 import logging
 import time
 from collections.abc import Callable, Iterable
 from typing import Concatenate, Generic, cast
+from zoneinfo import ZoneInfo
 
 import attr
 import croniter
@@ -35,10 +37,14 @@ class PeriodicTask(Generic[P, R, Args]):
     cron: str
     periodic_id: str
     configure_kwargs: tasks.ConfigureTaskOptions
+    tzinfo: ZoneInfo | None = None
 
     @cached_property
     def croniter(self) -> croniter.croniter:
-        return croniter.croniter(self.cron)
+        # croniter evaluates the expression in the timezone of its start time.
+        return croniter.croniter(
+            self.cron, datetime.datetime.now(self.tzinfo or datetime.UTC)
+        )
 
 
 TaskAtTime = tuple[PeriodicTask, int]
@@ -52,6 +58,7 @@ class PeriodicRegistry:
         self,
         cron: str,
         periodic_id: str,
+        tzinfo: str | ZoneInfo | None = None,
         **configure_kwargs: Unpack[tasks.ConfigureTaskOptions],
     ) -> Callable[[tasks.Task[P, R, Concatenate[int, Args]]], tasks.Task[P, R, Args]]:
         """
@@ -59,6 +66,8 @@ class PeriodicRegistry:
         launch. This decorator should not be used directly, ``@app.periodic()`` is meant
         to be used instead.
         """
+        if isinstance(tzinfo, str):
+            tzinfo = ZoneInfo(tzinfo)
 
         def wrapper(
             task: tasks.Task[P, R, Concatenate[int, Args]],
@@ -68,6 +77,7 @@ class PeriodicRegistry:
                 cron=cron,
                 periodic_id=periodic_id,
                 configure_kwargs=configure_kwargs,
+                tzinfo=tzinfo,
             )
             return cast(tasks.Task[P, R, Args], task)
 
@@ -79,6 +89,7 @@ class PeriodicRegistry:
         cron: str,
         periodic_id: str,
         configure_kwargs: tasks.ConfigureTaskOptions,
+        tzinfo: ZoneInfo | None = None,
     ) -> PeriodicTask[P, R, Concatenate[int, Args]]:
         key = (task.name, periodic_id)
         if key in self.periodic_tasks:
@@ -99,12 +110,12 @@ class PeriodicRegistry:
                 "kwargs": str(configure_kwargs),
             },
         )
-
         self.periodic_tasks[key] = periodic_task = PeriodicTask(
             task=task,
             cron=cron,
             periodic_id=periodic_id,
             configure_kwargs=configure_kwargs,
+            tzinfo=tzinfo,
         )
         return periodic_task
 
