@@ -162,6 +162,7 @@ class InMemoryConnector(connector.BaseAsyncConnector):
 
         if duplicate is not None:
             raise exceptions.UniqueViolation(
+                f"Key (queueing_lock)=({duplicate}) already exists.",
                 constraint_name=manager.QUEUEING_LOCK_CONSTRAINT,
                 queueing_lock=duplicate,
             )
@@ -409,6 +410,7 @@ class InMemoryConnector(connector.BaseAsyncConnector):
         ):
             if job_row["status"] != "doing":
                 raise exceptions.UniqueViolation(
+                    f"Key (queueing_lock)=({queueing_lock}) already exists.",
                     constraint_name=manager.QUEUEING_LOCK_CONSTRAINT,
                     queueing_lock=queueing_lock,
                 )

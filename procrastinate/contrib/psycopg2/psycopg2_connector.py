@@ -3,7 +3,6 @@ from __future__ import annotations
 import contextlib
 import functools
 import logging
-import re
 from collections.abc import Callable, Generator
 from typing import Any
 
@@ -12,7 +11,7 @@ import psycopg2.errors
 import psycopg2.pool
 from psycopg2.extras import Json, RealDictCursor
 
-from procrastinate import connector, exceptions, manager
+from procrastinate import connector, exceptions
 
 logger = logging.getLogger(__name__)
 
@@ -25,18 +24,9 @@ def wrap_exceptions() -> Generator[None, None, None]:
     try:
         yield
     except psycopg2.errors.UniqueViolation as exc:
-        constraint_name = exc.diag.constraint_name
-        queueing_lock = None
-        if constraint_name == manager.QUEUEING_LOCK_CONSTRAINT:
-            assert exc.diag.message_detail
-            match = re.search(r"Key \((.*?)\)=\((.*?)\)", exc.diag.message_detail)
-            assert match
-            column, queueing_lock = match.groups()
-            assert column == "queueing_lock"
-
-        raise exceptions.UniqueViolation(
-            constraint_name=constraint_name, queueing_lock=queueing_lock
-        )
+        raise exceptions.UniqueViolation.from_detail(
+            exc.diag.message_detail, constraint_name=exc.diag.constraint_name
+        ) from exc
     except psycopg2.Error as exc:
         raise exceptions.ConnectorException from exc
 

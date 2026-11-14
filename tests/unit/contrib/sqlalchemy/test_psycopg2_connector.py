@@ -29,13 +29,17 @@ def test_wrap_exceptions_unique_violation(mocker):
     @sqlalchemy_psycopg2_connector.wrap_exceptions()
     def func():
         exc = UniqueViolation()
-        exc.diag = mocker.Mock(constraint_name="constraint name")
+        exc.diag = mocker.Mock(
+            constraint_name="constraint name",
+            message_detail="Key (queueing_lock)=(foo) already exists.",
+        )
         raise sqlalchemy.exc.IntegrityError(statement="SELECT 1", params={}, orig=exc)
 
     with pytest.raises(exceptions.UniqueViolation) as excinfo:
         func()
 
     assert excinfo.value.constraint_name == "constraint name"
+    assert excinfo.value.queueing_lock == "foo"
 
 
 def test_wrap_exceptions_integrity_error_not_unique(mocker):

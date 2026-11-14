@@ -115,6 +115,7 @@ async def test_wrap_exceptions(aiopg_connector):
         )
     assert excinfo.value.constraint_name == manager.QUEUEING_LOCK_CONSTRAINT
     assert excinfo.value.queueing_lock == "same_queueing_lock"
+    assert "(queueing_lock)=(same_queueing_lock)" in str(excinfo.value)
 
 
 async def test_execute_query(aiopg_connector):

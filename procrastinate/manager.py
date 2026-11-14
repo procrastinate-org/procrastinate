@@ -86,7 +86,7 @@ class JobManager:
                     **self._defer_jobs_query_kwargs(jobs=jobs)
                 )
         except exceptions.UniqueViolation as exc:
-            self._raise_already_enqueued(exc=exc, queueing_lock=exc.queueing_lock)
+            self._raise_already_enqueued(exc=exc, jobs=jobs)
 
         return [
             job.evolve(id=results[index]["id"], status=jobs_module.Status.TODO.value)
@@ -121,7 +121,7 @@ class JobManager:
                     **self._defer_jobs_query_kwargs(jobs=jobs)
                 )
         except exceptions.UniqueViolation as exc:
-            self._raise_already_enqueued(exc=exc, queueing_lock=exc.queueing_lock)
+            self._raise_already_enqueued(exc=exc, jobs=jobs)
 
         return [
             job.evolve(id=results[index]["id"], status=jobs_module.Status.TODO.value)
@@ -147,14 +147,21 @@ class JobManager:
         }
 
     def _raise_already_enqueued(
-        self, exc: exceptions.UniqueViolation, queueing_lock: str | None
+        self, exc: exceptions.UniqueViolation, jobs: list[jobs_module.Job]
     ) -> NoReturn:
-        if exc.constraint_name == QUEUEING_LOCK_CONSTRAINT:
-            raise exceptions.AlreadyEnqueued(
+        if exc.constraint_name != QUEUEING_LOCK_CONSTRAINT:
+            raise exc
+        if len(jobs) == 1:
+            message = (
                 "Job cannot be enqueued: there is already a job in the queue "
-                f"with the queueing lock {queueing_lock}"
-            ) from exc
-        raise exc
+                f"with the queueing lock {jobs[0].queueing_lock}"
+            )
+        else:
+            message = (
+                "Jobs cannot be enqueued: one of them has the same queueing lock "
+                f"as a job already in the queue ({exc})"
+            )
+        raise exceptions.AlreadyEnqueued(message) from exc
 
     async def defer_periodic_job(
         self,
@@ -189,7 +196,7 @@ class JobManager:
                 args=job.task_kwargs,
             )
         except exceptions.UniqueViolation as exc:
-            self._raise_already_enqueued(exc=exc, queueing_lock=job.queueing_lock)
+            self._raise_already_enqueued(exc=exc, jobs=[job])
 
         return result["id"]
 

@@ -11,7 +11,7 @@ import sqlalchemy
 import sqlalchemy.exc
 from psycopg2.extras import Json
 
-from procrastinate import connector, exceptions, manager
+from procrastinate import connector, exceptions
 
 
 @contextlib.contextmanager
@@ -23,19 +23,10 @@ def wrap_exceptions() -> Generator[None, None, None]:
         yield
     except sqlalchemy.exc.StatementError as exc:
         if isinstance(exc.orig, psycopg2.errors.UniqueViolation):
-            exc = exc.orig
-            constraint_name = exc.diag.constraint_name
-            queueing_lock = None
-            if constraint_name == manager.QUEUEING_LOCK_CONSTRAINT:
-                assert exc.diag.message_detail
-                match = re.search(r"Key \((.*?)\)=\((.*?)\)", exc.diag.message_detail)
-                assert match
-                column, queueing_lock = match.groups()
-                assert column == "queueing_lock"
-
-            raise exceptions.UniqueViolation(
-                constraint_name=constraint_name, queueing_lock=queueing_lock
-            )
+            raise exceptions.UniqueViolation.from_detail(
+                exc.orig.diag.message_detail,
+                constraint_name=exc.orig.diag.constraint_name,
+            ) from exc.orig
         raise exceptions.ConnectorException from exc
     except sqlalchemy.exc.SQLAlchemyError as exc:
         raise exceptions.ConnectorException from exc

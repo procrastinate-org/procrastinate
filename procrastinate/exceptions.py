@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
@@ -98,11 +99,26 @@ class UniqueViolation(ConnectorException):
     """
 
     def __init__(
-        self, *args: Any, constraint_name: str | None, queueing_lock: str | None
+        self,
+        *args: Any,
+        constraint_name: str | None,
+        queueing_lock: str | None = None,
     ):
         super().__init__(*args)
         self.constraint_name = constraint_name
         self.queueing_lock = queueing_lock
+
+    @classmethod
+    def from_detail(
+        cls, detail: str | None, constraint_name: str | None
+    ) -> UniqueViolation:
+        # Postgres translates the detail, but not its "(column)=(value)" part.
+        match = re.search(r"\(queueing_lock\)=\((.*)\)", detail or "")
+        return cls(
+            detail,
+            constraint_name=constraint_name,
+            queueing_lock=match.group(1) if match else None,
+        )
 
 
 class NoResult(ConnectorException):
