@@ -145,6 +145,54 @@ async def test_stop_requested_before_run_loop_starts_is_not_lost(app: App):
     await wait_or_fail(worker.run())
 
 
+async def test_worker_stop_gives_up_on_stuck_fetch(
+    app: App, mocker: MockerFixture, caplog
+):
+    mocker.patch("procrastinate.worker.STOP_FETCH_JOB_TIMEOUT", 0.01)
+    fetch_started = asyncio.Event()
+
+    async def fetch_job(**kwargs):
+        fetch_started.set()
+        await asyncio.Event().wait()
+
+    mocker.patch.object(app.job_manager, "fetch_job", fetch_job)
+    worker = Worker(app, wait=True)
+    run_task = asyncio.create_task(worker.run())
+    await wait_or_fail(fetch_started.wait())
+
+    worker.stop()
+    await wait_or_fail(run_task)
+
+    connector = cast(InMemoryConnector, app.connector)
+    assert list(connector.workers) != []
+    assert any(r.action == "stop_fetch_job_timeout" for r in caplog.records)
+    assert any(r.action == "skip_unregister_worker" for r in caplog.records)
+
+
+async def test_worker_stop_waits_for_slow_fetch(app: App, mocker: MockerFixture):
+    fetch_started = asyncio.Event()
+    finish_fetch = asyncio.Event()
+    fetch_job = app.job_manager.fetch_job
+
+    async def slow_fetch_job(**kwargs):
+        fetch_started.set()
+        await finish_fetch.wait()
+        return await fetch_job(**kwargs)
+
+    mocker.patch.object(app.job_manager, "fetch_job", slow_fetch_job)
+    worker = Worker(app, wait=True)
+    run_task = asyncio.create_task(worker.run())
+    await wait_or_fail(fetch_started.wait())
+
+    worker.stop()
+    await asyncio.sleep(0)
+    finish_fetch.set()
+    await wait_or_fail(run_task)
+
+    connector = cast(InMemoryConnector, app.connector)
+    assert connector.workers == {}
+
+
 def test_stop_after_run_exited_with_error_does_not_raise(not_opened_app: App):
     # If run() dies on an exception (e.g. a database error), the stop event is
     # never set and the worker's event loop ends up closed. A late stop() (e.g.
