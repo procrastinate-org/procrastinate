@@ -82,6 +82,7 @@ CREATE TABLE procrastinate_jobs (
     attempts integer DEFAULT 0 NOT NULL,
     abort_requested boolean DEFAULT false NOT NULL,
     worker_id bigint REFERENCES procrastinate_workers(id) ON DELETE SET NULL,
+    result text,
     CONSTRAINT check_not_todo_abort_requested CHECK (NOT (status = 'todo' AND abort_requested = true))
 );
 
@@ -286,7 +287,7 @@ BEGIN
 END;
 $$;
 
-CREATE FUNCTION procrastinate_finish_job_v1(job_id bigint, end_status procrastinate_job_status, delete_job boolean)
+CREATE FUNCTION procrastinate_finish_job_v1(job_id bigint, end_status procrastinate_job_status, delete_job boolean, job_result text default null)
     RETURNS void
     LANGUAGE plpgsql
 AS $$
@@ -304,6 +305,7 @@ BEGIN
         UPDATE procrastinate_jobs
         SET status = end_status,
             abort_requested = false,
+            result = job_result,
             attempts = CASE status
                 WHEN 'doing' THEN attempts + 1 ELSE attempts
             END
