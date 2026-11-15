@@ -22,17 +22,11 @@ ALTER TABLE procrastinate_jobs ADD COLUMN extra TEXT;
 The migration scripts are pure-SQL scripts, meaning that they may be applied to the
 database using any PostgreSQL client, including `psql` and `PGAdmin`.
 
-Procrastinate also ships optional Alembic revisions that wrap the same SQL
-migration scripts. Install them with:
-
-```console
-pip install "procrastinate[alembic]"
-```
-
 :::{note}
 If you use Django, instead of using the SQL migration scripts directly, you way want
 to rely on the Procrastinate Django app, and the Django database migration scripts
 this app provides. See {doc}`../django/migrations` for more information.
+If you use Alembic, see {ref}`alembic-migrations`.
 :::
 
 The migration scripts are located in the `procrastinate/sql/migrations` directory of
@@ -42,36 +36,6 @@ on PyPI. A simple way to list all the migrations is to use the command:
 ```console
 $ procrastinate schema --migrations-path
 /home/me/my_venv/lib/python3.x/lib/site-packages/procrastinate/sql/migrations
-```
-
-If your project already uses Alembic, add Procrastinate's packaged Alembic
-versions directory to your Alembic `version_locations`, then run Alembic normally:
-
-```ini
-[alembic]
-version_locations = %(here)s/versions procrastinate.contrib.alembic:versions
-```
-
-The `procrastinate.contrib.alembic:versions` entry is resolved by Alembic from the
-installed Python package, so it does not depend on where your virtual environment
-or site-packages directory is located.
-
-The Procrastinate Alembic tree uses revision IDs prefixed with `procrastinate_`
-and a `procrastinate` branch label, so it can live alongside your own revisions.
-Most projects should keep the Procrastinate and application revision trees
-independent. If your own schema changes must run after a specific Procrastinate
-revision, your revision may set `down_revision` to that Procrastinate revision.
-
-Each Alembic revision wraps exactly one SQL migration script: the revision ID
-(e.g. `procrastinate_0036`) is sequential, and each revision file records the
-name of the SQL script it wraps. For blue-green deployments, upgrade to the
-last `pre` revision of the target version before deploying, then to the last
-`post` revision after:
-
-```console
-alembic upgrade procrastinate_0036
-yoursystem/deploy procrastinate 3.4.0
-alembic upgrade procrastinate_0037
 ```
 
 It's your responsibility to keep track of which migrations have been applied yet
@@ -118,6 +82,8 @@ $ ...
 
 This, as you've noticed, only works if you're able to stop the services.
 
+(migrations-without-interruption)=
+
 ### The safer way, without service interruption
 
 If you need to ensure service continuity, you'll need to make intermediate upgrades.
@@ -139,4 +105,45 @@ $ yoursystem/deploy procrastinate 2.2.0
 
 $ MIGRATION_TO_APPLY="02.02.00_01_post_some_migration.sql"
 $ cat $(procrastinate schema --migrations-path)/${MIGRATION_TO_APPLY} | psql
+```
+
+(alembic-migrations)=
+
+## With Alembic
+
+Procrastinate ships Alembic revisions that wrap the same SQL migration scripts, one
+revision per script. Install them with:
+
+```console
+$ pip install "procrastinate[alembic]"
+```
+
+### Setup
+
+Add Procrastinate's revisions to your Alembic `version_locations`:
+
+```ini
+[alembic]
+version_locations = %(here)s/versions procrastinate.contrib.alembic:versions
+```
+
+Alembic finds `procrastinate.contrib.alembic:versions` in the installed package,
+wherever your virtual environment is.
+
+Procrastinate's revisions are on their own branch, labelled `procrastinate`, with
+revision IDs prefixed with `procrastinate_`. They live alongside your own revisions,
+and `alembic upgrade heads` applies both. If one of your revisions must run after a
+specific Procrastinate revision, set its `down_revision` (or `depends_on`) to that
+revision.
+
+### Upgrading without service interruption
+
+`alembic upgrade heads` applies the `pre` and `post` migrations together. To upgrade
+without interruption, stop at the last `pre` revision of the version you deploy, as in
+{ref}`the safer way <migrations-without-interruption>` above. For 3.12.0:
+
+```console
+$ alembic upgrade procrastinate_0040
+$ yoursystem/deploy procrastinate 3.12.0
+$ alembic upgrade procrastinate_0041
 ```
