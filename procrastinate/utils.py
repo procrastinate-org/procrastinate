@@ -175,7 +175,8 @@ def parse_datetime(raw: str) -> datetime.datetime:
     # this parser is quite forgiving, and will attempt to return
     # a value in most circumstances, so we use it as last option
     dt = dateutil.parser.parse(raw)
-    dt = dt.replace(tzinfo=datetime.UTC)
+    if not dt.tzinfo:
+        dt = dt.replace(tzinfo=datetime.UTC)
     return dt
 
 
