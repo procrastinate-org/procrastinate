@@ -136,6 +136,42 @@ and `alembic upgrade heads` applies both. If one of your revisions must run afte
 specific Procrastinate revision, set its `down_revision` (or `depends_on`) to that
 revision.
 
+Your models don't describe Procrastinate's tables, so autogenerate would want to drop
+them. Exclude them in your `env.py`:
+
+```python
+def include_name(name, type_, parent_names):
+    if type_ == "table":
+        return not name.startswith("procrastinate_")
+    return True
+
+
+context.configure(
+    # ...
+    include_name=include_name,
+)
+```
+
+### Existing databases
+
+If the Procrastinate schema is already in your database (created with
+`procrastinate schema --apply`, or with the SQL scripts), tell Alembic where it
+stands instead of letting it create the schema again. If the schema is up to date
+with your installed Procrastinate version:
+
+```console
+$ alembic stamp procrastinate@head
+```
+
+Otherwise, stamp the revision that wraps the last SQL script you applied.
+`alembic history` shows the script each revision wraps:
+
+```console
+$ alembic history -r procrastinate_0040:procrastinate@head
+procrastinate_0040 -> procrastinate_0041 (procrastinate) (head), 03.12.00 50 post add lock mode.
+procrastinate_0039 -> procrastinate_0040 (procrastinate), 03.12.00 02 pre retry job fail on queueing lock conflict.
+```
+
 ### Upgrading without service interruption
 
 `alembic upgrade heads` applies the `pre` and `post` migrations together. To upgrade
@@ -147,3 +183,10 @@ $ alembic upgrade procrastinate_0040
 $ yoursystem/deploy procrastinate 3.12.0
 $ alembic upgrade procrastinate_0041
 ```
+
+### Transactions
+
+Each Procrastinate revision runs in its own transaction: some migrations add enum
+values, which can't be used in the transaction that added them. When an
+`alembic upgrade` also runs your own revisions, the ones applied before a
+Procrastinate revision are committed at that point, even if a later revision fails.
