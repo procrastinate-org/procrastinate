@@ -205,6 +205,12 @@ serial number for that release number and your migration should be
 applied after deploying the corresponding python code. In that case, if you
 need to add a migration script, its name will start with `03.01.00_51_post_`.
 
+Each SQL migration script also needs a Django migration in
+`procrastinate/contrib/django/migrations/` (with `RunProcrastinateSQL`) and an
+Alembic revision in `procrastinate/contrib/alembic/versions/` (copy the latest one,
+then update its docstring, `revision`, `down_revision` and `MIGRATION_FILE`). Unit
+tests fail if either is missing.
+
 ### Backward-compatibility
 
 As a Procrastinate developer, you must ensure you use pre-migrations and post-migrations

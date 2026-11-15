@@ -104,7 +104,7 @@ def cursor_execute(cursor, query, *identifiers):
         query = psycopg.sql.SQL(query).format(
             *(psycopg.sql.Identifier(identifier) for identifier in identifiers)
         )
-    cursor.execute(query)
+    return cursor.execute(query)
 
 
 @contextlib.contextmanager

@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import ast
 import contextlib
 import pathlib
 import subprocess
+import textwrap
 
 import packaging.version
 import psycopg
@@ -12,6 +14,9 @@ from django.db import connection
 from results.dbdiff import Migration
 
 from procrastinate import psycopg_connector, schema
+from procrastinate.contrib.alembic import versions as alembic_versions
+
+ALEMBIC_VERSIONS = "procrastinate.contrib.alembic:versions"
 
 
 @pytest.fixture
@@ -57,6 +62,14 @@ def django_db(db):
     yield db
 
 
+@pytest.fixture
+def alembic_database(db_factory):
+    dbname = "procrastinate_alembic"
+    db_factory(dbname=dbname)
+
+    return dbname
+
+
 def test_migration(schema_database, migrations_database, run_migrations):
     # apply the migrations on the migrations_database database
     run_migrations(migrations_database)
@@ -79,6 +92,155 @@ def test_migration(schema_database, migrations_database, run_migrations):
 
     print(m.sql)
     assert not m.statements
+
+
+def make_alembic_config(tmp_path, dbname, *version_locations, driver="psycopg"):
+    alembic_config = pytest.importorskip("alembic.config")
+
+    script_location = tmp_path / "alembic"
+    script_location.mkdir()
+    (script_location / "env.py").write_text(
+        textwrap.dedent(
+            """
+            import asyncio
+
+            from alembic import context
+            from sqlalchemy import engine_from_config, make_url, pool
+            from sqlalchemy.ext.asyncio import async_engine_from_config
+
+            config = context.config
+            section = config.get_section(config.config_ini_section)
+
+
+            def run_migrations(connection):
+                context.configure(connection=connection)
+                with context.begin_transaction():
+                    context.run_migrations()
+
+
+            async def run_async_migrations():
+                connectable = async_engine_from_config(
+                    section, prefix="sqlalchemy.", poolclass=pool.NullPool
+                )
+                async with connectable.connect() as connection:
+                    await connection.run_sync(run_migrations)
+                await connectable.dispose()
+
+
+            if make_url(section["sqlalchemy.url"]).get_dialect().is_async:
+                asyncio.run(run_async_migrations())
+            else:
+                connectable = engine_from_config(
+                    section, prefix="sqlalchemy.", poolclass=pool.NullPool
+                )
+                with connectable.connect() as connection:
+                    run_migrations(connection)
+            """
+        ),
+        encoding="utf-8",
+    )
+
+    config = alembic_config.Config()
+    config.set_main_option("script_location", str(script_location))
+    config.set_main_option("sqlalchemy.url", f"postgresql+{driver}:///{dbname}")
+    config.set_main_option("path_separator", "space")
+    config.set_main_option(
+        "version_locations", " ".join(str(path) for path in version_locations)
+    )
+    return config
+
+
+def run_alembic_migrations(tmp_path, dbname, *version_locations, driver="psycopg"):
+    alembic_command = pytest.importorskip("alembic.command")
+
+    config = make_alembic_config(tmp_path, dbname, *version_locations, driver=driver)
+    alembic_command.upgrade(config, "heads")
+
+
+@pytest.mark.parametrize("driver", ["psycopg", "psycopg_async", "psycopg2", "asyncpg"])
+def test_alembic_migration(
+    schema_database, alembic_database, db_execute, tmp_path, driver
+):
+    run_alembic_migrations(tmp_path, alembic_database, ALEMBIC_VERSIONS, driver=driver)
+
+    # Alembic's own bookkeeping table is not part of Procrastinate's schema.
+    with db_execute(alembic_database) as execute:
+        execute("DROP TABLE alembic_version")
+
+    with contextlib.ExitStack() as stack:
+        schema_db_conn = stack.enter_context(
+            psycopg.connect(f"postgresql:///{schema_database}")
+        )
+        alembic_db_conn = stack.enter_context(
+            psycopg.connect(f"postgresql:///{alembic_database}")
+        )
+        schema_db_cursor = stack.enter_context(schema_db_conn.cursor())
+        alembic_db_cursor = stack.enter_context(alembic_db_conn.cursor())
+        m = Migration(alembic_db_cursor, schema_db_cursor)
+        m.set_safety(False)
+        m.add_all_changes()
+
+    print(m.sql)
+    assert not m.statements
+
+
+def test_alembic_multiple_version_locations(db_factory, db_execute, tmp_path):
+    dbname = "procrastinate_alembic_multi_base"
+    db_factory(dbname=dbname)
+    user_versions = tmp_path / "user_versions"
+    user_versions.mkdir()
+    (user_versions / "user_0001.py").write_text(
+        textwrap.dedent(
+            """
+            from __future__ import annotations
+
+            from alembic import op
+
+            revision = "user_0001"
+            down_revision = None
+            branch_labels = ("user",)
+            depends_on = None
+
+
+            def upgrade() -> None:
+                op.execute("CREATE TABLE user_alembic_revision (id integer PRIMARY KEY)")
+
+
+            def downgrade() -> None:
+                op.execute("DROP TABLE user_alembic_revision")
+            """
+        ),
+        encoding="utf-8",
+    )
+
+    run_alembic_migrations(
+        tmp_path,
+        dbname,
+        user_versions,
+        ALEMBIC_VERSIONS,
+    )
+
+    procrastinate_head = max(
+        pathlib.Path(alembic_versions.__path__[0]).glob("procrastinate_*.py")
+    )
+    module = ast.parse(procrastinate_head.read_text(encoding="utf-8"))
+    procrastinate_head_revision = next(
+        node.value.value
+        for node in module.body
+        if isinstance(node, ast.Assign)
+        and len(node.targets) == 1
+        and isinstance(node.targets[0], ast.Name)
+        and node.targets[0].id == "revision"
+        and isinstance(node.value, ast.Constant)
+        and isinstance(node.value.value, str)
+    )
+    with db_execute(dbname) as execute:
+        execute("SELECT * FROM procrastinate_jobs")
+        execute("SELECT * FROM user_alembic_revision")
+        cursor = execute("SELECT version_num FROM alembic_version")
+        heads = {row[0] for row in cursor.fetchall()}
+
+    assert heads == {procrastinate_head_revision, "user_0001"}
 
 
 def test_django_migrations_run_properly(django_db):

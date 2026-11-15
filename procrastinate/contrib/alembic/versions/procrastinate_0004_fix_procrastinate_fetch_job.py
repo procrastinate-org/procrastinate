@@ -1,0 +1,20 @@
+"""00.06.00 01 fix procrastinate fetch job."""
+
+from __future__ import annotations
+
+from procrastinate.contrib.alembic import migrations_utils
+
+revision = "procrastinate_0004"
+down_revision: str | None = "procrastinate_0003"
+branch_labels = None
+depends_on = None
+
+MIGRATION_FILE = "00.06.00_01_fix_procrastinate_fetch_job.sql"
+
+
+def upgrade() -> None:
+    migrations_utils.run_procrastinate_sql(MIGRATION_FILE)
+
+
+def downgrade() -> None:
+    migrations_utils.irreversible()

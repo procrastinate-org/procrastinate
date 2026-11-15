@@ -1,0 +1,20 @@
+"""00.10.00 02 add defer job function."""
+
+from __future__ import annotations
+
+from procrastinate.contrib.alembic import migrations_utils
+
+revision = "procrastinate_0008"
+down_revision: str | None = "procrastinate_0007"
+branch_labels = None
+depends_on = None
+
+MIGRATION_FILE = "00.10.00_02_add_defer_job_function.sql"
+
+
+def upgrade() -> None:
+    migrations_utils.run_procrastinate_sql(MIGRATION_FILE)
+
+
+def downgrade() -> None:
+    migrations_utils.irreversible()
