@@ -208,6 +208,32 @@ def test_utcnow(mocker):
                 tzinfo=datetime.timezone(datetime.timedelta(hours=1)),
             ),
         ),
+        # Not ISO-8601, so these go through the forgiving parser, which must
+        # keep the offset too.
+        (
+            "1984-06-02 19:05:57 +01:00",
+            datetime.datetime(
+                1984,
+                6,
+                2,
+                19,
+                5,
+                57,
+                tzinfo=datetime.timezone(datetime.timedelta(hours=1)),
+            ),
+        ),
+        (
+            "Sat, 02 Jun 1984 19:05:57 -0500",
+            datetime.datetime(
+                1984,
+                6,
+                2,
+                19,
+                5,
+                57,
+                tzinfo=datetime.timezone(datetime.timedelta(hours=-5)),
+            ),
+        ),
     ],
 )
 def test_parse_datetime(input, expected):
