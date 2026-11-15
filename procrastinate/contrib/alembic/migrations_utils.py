@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from importlib import resources
 
-import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.engine.interfaces import AdaptedConnection
 
@@ -23,7 +22,7 @@ def run_procrastinate_sql(name: str) -> None:
     context = op.get_context()
     with context.autocommit_block():
         if context.as_sql:
-            op.execute(sa.text(sql.replace(":", r"\:")))
+            context.impl.static_output(sql)
         else:
             execute_script(sql)
 
