@@ -14,6 +14,9 @@ from django.db import connection
 from results.dbdiff import Migration
 
 from procrastinate import psycopg_connector, schema
+from procrastinate.contrib.alembic import versions as alembic_versions
+
+ALEMBIC_VERSIONS = "procrastinate.contrib.alembic:versions"
 
 
 @pytest.fixture
@@ -145,7 +148,7 @@ def test_alembic_migration(schema_database, alembic_database, db_execute, tmp_pa
     run_alembic_migrations(
         tmp_path,
         alembic_database,
-        schema.SchemaManager.get_alembic_versions_path(),
+        ALEMBIC_VERSIONS,
     )
 
     # Alembic's own bookkeeping table is not part of Procrastinate's schema.
@@ -202,14 +205,12 @@ def test_alembic_multiple_version_locations(db_factory, db_execute, tmp_path):
         tmp_path,
         dbname,
         user_versions,
-        schema.SchemaManager.get_alembic_versions_path(),
+        ALEMBIC_VERSIONS,
     )
 
-    procrastinate_head = sorted(
-        pathlib.Path(schema.SchemaManager.get_alembic_versions_path()).glob(
-            "procrastinate_*.py"
-        )
-    )[-1]
+    procrastinate_head = max(
+        pathlib.Path(alembic_versions.__path__[0]).glob("procrastinate_*.py")
+    )
     module = ast.parse(procrastinate_head.read_text(encoding="utf-8"))
     procrastinate_head_revision = next(
         node.value.value

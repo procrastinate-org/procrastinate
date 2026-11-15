@@ -49,10 +49,10 @@ versions directory to your Alembic `version_locations`, then run Alembic normall
 
 ```ini
 [alembic]
-version_locations = %(here)s/versions procrastinate:alembic/versions
+version_locations = %(here)s/versions procrastinate.contrib.alembic:versions
 ```
 
-The `procrastinate:alembic/versions` entry is resolved by Alembic from the
+The `procrastinate.contrib.alembic:versions` entry is resolved by Alembic from the
 installed Python package, so it does not depend on where your virtual environment
 or site-packages directory is located.
 
