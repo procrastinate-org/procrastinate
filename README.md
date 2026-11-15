@@ -76,9 +76,9 @@
 | procrastinate/tasks.py                                            |       95 |        0 |       14 |        0 |    100% |           |
 | procrastinate/testing.py                                          |      254 |       10 |       72 |        2 |     96% |95, 105, 306-318, 565-\>564 |
 | procrastinate/types.py                                            |       22 |        0 |        0 |        0 |    100% |           |
-| procrastinate/utils.py                                            |      188 |        0 |       44 |        0 |    100% |           |
+| procrastinate/utils.py                                            |      189 |        0 |       46 |        0 |    100% |           |
 | procrastinate/worker.py                                           |      328 |       10 |      104 |        8 |     96% |91, 108, 228-\>231, 510-\>exit, 531-532, 536-537, 573, 684-\>exit, 690, 706-715 |
-| **TOTAL**                                                         | **3335** |  **257** |  **608** |   **25** | **92%** |           |
+| **TOTAL**                                                         | **3336** |  **257** |  **610** |   **25** | **92%** |           |
 
 
 ## Setup coverage badge
