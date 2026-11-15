@@ -2,10 +2,7 @@
 
 from __future__ import annotations
 
-from importlib import resources
-
-import sqlalchemy as sa
-from alembic import op
+from procrastinate.contrib.alembic import migrations_utils
 
 revision = "procrastinate_0036"
 down_revision: str | None = "procrastinate_0035"
@@ -15,21 +12,9 @@ depends_on = None
 MIGRATION_FILE = "03.04.00_01_pre_add_retry_failed_job_procedure.sql"
 
 
-def _migration_sql() -> sa.TextClause:
-    sql = (
-        resources.files("procrastinate.sql.migrations")
-        .joinpath(MIGRATION_FILE)
-        .read_text(encoding="utf-8")
-    )
-    return sa.text(sql.replace(":", r"\:"))
-
-
 def upgrade() -> None:
-    with op.get_context().autocommit_block():
-        op.execute(_migration_sql())
+    migrations_utils.run_procrastinate_sql(MIGRATION_FILE)
 
 
 def downgrade() -> None:
-    raise NotImplementedError(
-        "Procrastinate Alembic revisions wrap irreversible SQL migrations."
-    )
+    migrations_utils.irreversible()
