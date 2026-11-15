@@ -58,12 +58,14 @@ lint_format = ["ruff", "django-upgrade"]
 pg_implem = ["aiopg", "sqlalchemy", "psycopg2-binary", "psycopg[binary,pool]"]
 test = [
     "alembic",
+    "asyncpg",
     "pytest-asyncio",
     "pytest-benchmark",
     "pytest-cov",
     "pytest-django",
     "pytest-mock",
     "results",
+    "sqlalchemy[asyncio]",
 ]
 migration_test = ["nox", "httpx", "nox-uv"]
 docs = [

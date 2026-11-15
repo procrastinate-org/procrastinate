@@ -94,7 +94,7 @@ def test_migration(schema_database, migrations_database, run_migrations):
     assert not m.statements
 
 
-def make_alembic_config(tmp_path, dbname, *version_locations):
+def make_alembic_config(tmp_path, dbname, *version_locations, driver="psycopg"):
     alembic_config = pytest.importorskip("alembic.config")
 
     script_location = tmp_path / "alembic"
@@ -102,26 +102,39 @@ def make_alembic_config(tmp_path, dbname, *version_locations):
     (script_location / "env.py").write_text(
         textwrap.dedent(
             """
+            import asyncio
+
             from alembic import context
-            from sqlalchemy import engine_from_config, pool
+            from sqlalchemy import engine_from_config, make_url, pool
+            from sqlalchemy.ext.asyncio import async_engine_from_config
 
             config = context.config
-            target_metadata = None
+            section = config.get_section(config.config_ini_section)
 
 
-            def run_migrations_online():
+            def run_migrations(connection):
+                context.configure(connection=connection)
+                with context.begin_transaction():
+                    context.run_migrations()
+
+
+            async def run_async_migrations():
+                connectable = async_engine_from_config(
+                    section, prefix="sqlalchemy.", poolclass=pool.NullPool
+                )
+                async with connectable.connect() as connection:
+                    await connection.run_sync(run_migrations)
+                await connectable.dispose()
+
+
+            if make_url(section["sqlalchemy.url"]).get_dialect().is_async:
+                asyncio.run(run_async_migrations())
+            else:
                 connectable = engine_from_config(
-                    config.get_section(config.config_ini_section),
-                    prefix="sqlalchemy.",
-                    poolclass=pool.NullPool,
+                    section, prefix="sqlalchemy.", poolclass=pool.NullPool
                 )
                 with connectable.connect() as connection:
-                    context.configure(connection=connection)
-                    with context.begin_transaction():
-                        context.run_migrations()
-
-
-            run_migrations_online()
+                    run_migrations(connection)
             """
         ),
         encoding="utf-8",
@@ -129,7 +142,7 @@ def make_alembic_config(tmp_path, dbname, *version_locations):
 
     config = alembic_config.Config()
     config.set_main_option("script_location", str(script_location))
-    config.set_main_option("sqlalchemy.url", f"postgresql+psycopg:///{dbname}")
+    config.set_main_option("sqlalchemy.url", f"postgresql+{driver}:///{dbname}")
     config.set_main_option("path_separator", "space")
     config.set_main_option(
         "version_locations", " ".join(str(path) for path in version_locations)
@@ -137,19 +150,18 @@ def make_alembic_config(tmp_path, dbname, *version_locations):
     return config
 
 
-def run_alembic_migrations(tmp_path, dbname, *version_locations):
+def run_alembic_migrations(tmp_path, dbname, *version_locations, driver="psycopg"):
     alembic_command = pytest.importorskip("alembic.command")
 
-    config = make_alembic_config(tmp_path, dbname, *version_locations)
+    config = make_alembic_config(tmp_path, dbname, *version_locations, driver=driver)
     alembic_command.upgrade(config, "heads")
 
 
-def test_alembic_migration(schema_database, alembic_database, db_execute, tmp_path):
-    run_alembic_migrations(
-        tmp_path,
-        alembic_database,
-        ALEMBIC_VERSIONS,
-    )
+@pytest.mark.parametrize("driver", ["psycopg", "psycopg_async", "psycopg2", "asyncpg"])
+def test_alembic_migration(
+    schema_database, alembic_database, db_execute, tmp_path, driver
+):
+    run_alembic_migrations(tmp_path, alembic_database, ALEMBIC_VERSIONS, driver=driver)
 
     # Alembic's own bookkeeping table is not part of Procrastinate's schema.
     with db_execute(alembic_database) as execute:
