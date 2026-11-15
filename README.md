@@ -61,7 +61,7 @@
 | procrastinate/exceptions.py                                       |       38 |        0 |        2 |        0 |    100% |           |
 | procrastinate/job\_context.py                                     |       43 |        1 |        2 |        0 |     98% |        84 |
 | procrastinate/jobs.py                                             |      123 |        0 |       10 |        0 |    100% |           |
-| procrastinate/manager.py                                          |      171 |        0 |       40 |        0 |    100% |           |
+| procrastinate/manager.py                                          |      177 |        0 |       44 |        0 |    100% |           |
 | procrastinate/metadata.py                                         |        6 |        0 |        0 |        0 |    100% |           |
 | procrastinate/middleware.py                                       |       27 |        2 |        6 |        0 |     94% |     53-54 |
 | procrastinate/periodic.py                                         |      110 |        0 |       22 |        0 |    100% |           |
@@ -78,7 +78,7 @@
 | procrastinate/types.py                                            |       22 |        0 |        0 |        0 |    100% |           |
 | procrastinate/utils.py                                            |      189 |        0 |       46 |        0 |    100% |           |
 | procrastinate/worker.py                                           |      328 |       10 |      104 |        8 |     96% |91, 108, 228-\>231, 510-\>exit, 531-532, 536-537, 573, 684-\>exit, 690, 706-715 |
-| **TOTAL**                                                         | **3336** |  **257** |  **610** |   **25** | **92%** |           |
+| **TOTAL**                                                         | **3342** |  **257** |  **614** |   **25** | **92%** |           |
 
 
 ## Setup coverage badge

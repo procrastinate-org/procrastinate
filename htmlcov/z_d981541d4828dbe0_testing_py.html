@@ -67,7 +67,7 @@
             <a id="nextFileLink" class="nav" href="z_d981541d4828dbe0_types_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.17.3">coverage.py v7.17.3</a>,
-            created at 2026-11-15 12:05 +0000
+            created at 2026-11-15 12:10 +0000
         </p>
         <aside class="hidden">
             <button type="button" class="button_next_chunk" data-shortcut="j"></button>
@@ -566,10 +566,10 @@
     <p class="run"><span class="n"><a id="t482" href="#t482">482</a></span><span class="t">    <span class="key">async</span> <span class="key">def</span> <span class="nam">apply_schema_run</span><span class="op">(</span><span class="nam">self</span><span class="op">)</span> <span class="op">-&gt;</span> <span class="key">None</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t483" href="#t483">483</a></span><span class="t">        <span class="key">pass</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t484" href="#t484">484</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t485" href="#t485">485</a></span><span class="t">    <span class="key">async</span> <span class="key">def</span> <span class="nam">list_jobs_all</span><span class="op">(</span><span class="nam">self</span><span class="op">,</span> <span class="op">**</span><span class="nam">kwargs</span><span class="op">:</span> <span class="nam">Any</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t485" href="#t485">485</a></span><span class="t">    <span class="key">async</span> <span class="key">def</span> <span class="nam">list_jobs_all</span><span class="op">(</span><span class="nam">self</span><span class="op">,</span> <span class="nam">ids</span><span class="op">:</span> <span class="nam">list</span><span class="op">[</span><span class="nam">int</span><span class="op">]</span> <span class="op">|</span> <span class="key">None</span> <span class="op">=</span> <span class="key">None</span><span class="op">,</span> <span class="op">**</span><span class="nam">kwargs</span><span class="op">:</span> <span class="nam">Any</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t486" href="#t486">486</a></span><span class="t">        <span class="nam">jobs</span><span class="op">:</span> <span class="nam">list</span><span class="op">[</span><span class="nam">JobRow</span><span class="op">]</span> <span class="op">=</span> <span class="op">[</span><span class="op">]</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t487" href="#t487">487</a></span><span class="t">        <span class="key">for</span> <span class="nam">job</span> <span class="key">in</span> <span class="nam">self</span><span class="op">.</span><span class="nam">jobs</span><span class="op">.</span><span class="nam">values</span><span class="op">(</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t488" href="#t488">488</a></span><span class="t">            <span class="key">if</span> <span class="nam">all</span><span class="op">(</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t488" href="#t488">488</a></span><span class="t">            <span class="key">if</span> <span class="op">(</span><span class="nam">ids</span> <span class="key">is</span> <span class="key">None</span> <span class="key">or</span> <span class="nam">job</span><span class="op">[</span><span class="str">&quot;id&quot;</span><span class="op">]</span> <span class="key">in</span> <span class="nam">ids</span><span class="op">)</span> <span class="key">and</span> <span class="nam">all</span><span class="op">(</span>&nbsp;</span><span class="r"></span></p>
     <p class="run run2"><span class="n"><a id="t489" href="#t489">489</a></span><span class="t">                <span class="nam">expected</span> <span class="key">is</span> <span class="key">None</span> <span class="key">or</span> <span class="nam">str</span><span class="op">(</span><span class="nam">job</span><span class="op">[</span><span class="nam">key</span><span class="op">]</span><span class="op">)</span> <span class="op">==</span> <span class="nam">str</span><span class="op">(</span><span class="nam">expected</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="run run2"><span class="n"><a id="t490" href="#t490">490</a></span><span class="t">                <span class="key">for</span> <span class="nam">key</span><span class="op">,</span> <span class="nam">expected</span> <span class="key">in</span> <span class="nam">kwargs</span><span class="op">.</span><span class="nam">items</span><span class="op">(</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="run run2"><span class="n"><a id="t491" href="#t491">491</a></span><span class="t">            <span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
@@ -659,7 +659,7 @@
             <a class="nav" href="z_d981541d4828dbe0_types_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.17.3">coverage.py v7.17.3</a>,
-            created at 2026-11-15 12:05 +0000
+            created at 2026-11-15 12:10 +0000
         </p>
     </div>
 </footer>
