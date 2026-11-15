@@ -48,6 +48,18 @@ And commands to retry (`retry`) & cancel (`cancel`) a specific job.
 
 You can get help for a specific command _cmd_ by typing `help cmd`.
 
+## From your code
+
+The same listings are available from Python, on `app.job_manager` (see
+{py:class}`procrastinate.manager.JobManager`). For instance, to check on jobs you
+deferred earlier, in a single query:
+
+```python
+jobs = app.job_manager.list_jobs(id=[job_id_1, job_id_2], status="failed")
+# or, in async code
+jobs = await app.job_manager.list_jobs_async(id=[job_id_1, job_id_2])
+```
+
 ## Error reporting
 
 When a job throws an error, procrastinate logs an error including `exc_info`.

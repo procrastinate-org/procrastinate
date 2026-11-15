@@ -112,7 +112,7 @@ SELECT id,
        abort_requested,
        worker_id
   FROM procrastinate_jobs
- WHERE (%(id)s::bigint IS NULL OR id = %(id)s)
+ WHERE (%(ids)s::bigint[] IS NULL OR id = ANY(%(ids)s::bigint[]))
    AND (%(queue_name)s::varchar IS NULL OR queue_name = %(queue_name)s)
    AND (%(task_name)s::varchar IS NULL OR task_name = %(task_name)s)
    AND (%(status)s::procrastinate_job_status IS NULL OR status = %(status)s)

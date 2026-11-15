@@ -1128,6 +1128,9 @@ async def test_list_jobs_dict(fixture_jobs, pg_job_manager):
     [
         ({}, [1, 2, 3, 4]),
         ({"id": 1}, [1]),
+        ({"id": [1, 3]}, [1, 3]),
+        ({"id": [3, 2, 999], "status": "failed"}, [2]),
+        ({"id": []}, []),
         ({"lock": "lock3"}, [3]),
         ({"queue": "q1", "task": "task_foo"}, [1]),
         ({"status": "failed"}, [2]),

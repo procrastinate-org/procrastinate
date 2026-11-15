@@ -644,6 +644,32 @@ def test_list_jobs(job_manager, job_factory):
     assert job_manager.list_jobs() == [job]
 
 
+async def test_list_jobs_async_several_ids(job_manager, job_factory):
+    job1, _, job3 = [
+        await job_manager.defer_job_async(job=job_factory()) for _ in range(3)
+    ]
+
+    assert await job_manager.list_jobs_async(id=[job3.id, job1.id]) == [job1, job3]
+
+
+def test_list_jobs_one_id(job_manager, job_factory):
+    job1, _ = [job_manager.defer_job(job=job_factory()) for _ in range(2)]
+
+    assert job_manager.list_jobs(id=job1.id) == [job1]
+
+
+def test_list_jobs_several_ids(job_manager, job_factory):
+    job1, _, job3 = [job_manager.defer_job(job=job_factory()) for _ in range(3)]
+
+    assert job_manager.list_jobs(id=[job3.id, job1.id]) == [job1, job3]
+
+
+def test_list_jobs_no_ids(job_manager, job_factory):
+    job_manager.defer_job(job=job_factory())
+
+    assert job_manager.list_jobs(id=[]) == []
+
+
 async def test_list_queues_async(job_manager, job_factory):
     await job_manager.defer_job_async(job=job_factory(queue="foo"))
 

@@ -482,10 +482,10 @@ class InMemoryConnector(connector.BaseAsyncConnector):
     async def apply_schema_run(self) -> None:
         pass
 
-    async def list_jobs_all(self, **kwargs: Any):
+    async def list_jobs_all(self, ids: list[int] | None = None, **kwargs: Any):
         jobs: list[JobRow] = []
         for job in self.jobs.values():
-            if all(
+            if (ids is None or job["id"] in ids) and all(
                 expected is None or str(job[key]) == str(expected)
                 for key, expected in kwargs.items()
             ):

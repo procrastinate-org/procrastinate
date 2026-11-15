@@ -186,7 +186,7 @@ def test_defer_with_external_connection_commit(sqlalchemy_psycopg2_connector):
 
     jobs = sqlalchemy_psycopg2_connector.execute_query_all(
         query=sql.queries["list_jobs"],
-        id=None,
+        ids=None,
         queue_name=None,
         task_name=None,
         status=None,
@@ -218,7 +218,7 @@ def test_defer_with_external_connection_rollback(sqlalchemy_psycopg2_connector):
 
     jobs = sqlalchemy_psycopg2_connector.execute_query_all(
         query=sql.queries["list_jobs"],
-        id=None,
+        ids=None,
         queue_name=None,
         task_name="tests.integration.contrib.sqlalchemy.test_psycopg2_connector.my_sqla_rollback_task",
         status=None,
@@ -245,7 +245,7 @@ def test_batch_defer_with_external_connection_commit(sqlalchemy_psycopg2_connect
 
     jobs = sqlalchemy_psycopg2_connector.execute_query_all(
         query=sql.queries["list_jobs"],
-        id=None,
+        ids=None,
         queue_name=None,
         task_name=None,
         status=None,
@@ -282,7 +282,7 @@ def test_batch_defer_with_external_connection_rollback(sqlalchemy_psycopg2_conne
 
     jobs = sqlalchemy_psycopg2_connector.execute_query_all(
         query=sql.queries["list_jobs"],
-        id=None,
+        ids=None,
         queue_name=None,
         task_name="tests.integration.contrib.sqlalchemy.test_psycopg2_connector.my_sqla_batch_rollback_task",
         status=None,

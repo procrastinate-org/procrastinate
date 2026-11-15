@@ -16,6 +16,14 @@ QUEUEING_LOCK_CONSTRAINT = "procrastinate_jobs_queueing_lock_idx_v1"
 LOCK_CONSTRAINT = "procrastinate_jobs_lock_idx_v1"
 
 
+def _as_ids(id: int | Iterable[int] | None) -> list[int] | None:
+    if id is None:
+        return None
+    if isinstance(id, int):
+        return [id]
+    return list(id)
+
+
 class NotificationCallback(Protocol):
     def __call__(
         self, *, channel: str, notification: jobs_module.Notification
@@ -682,7 +690,7 @@ class JobManager:
 
     async def list_jobs_async(
         self,
-        id: int | None = None,
+        id: int | Iterable[int] | None = None,
         queue: str | None = None,
         task: str | None = None,
         status: str | None = None,
@@ -696,7 +704,7 @@ class JobManager:
         Parameters
         ----------
         id:
-            Filter by job ID
+            Filter by job ID, or by several job IDs
         queue:
             Filter by job queue name
         task:
@@ -716,7 +724,7 @@ class JobManager:
         """
         rows = await self.connector.execute_query_all_async(
             query=sql.queries["list_jobs"],
-            id=id,
+            ids=_as_ids(id),
             queue_name=queue,
             task_name=task,
             status=status,
@@ -728,7 +736,7 @@ class JobManager:
 
     def list_jobs(
         self,
-        id: int | None = None,
+        id: int | Iterable[int] | None = None,
         queue: str | None = None,
         task: str | None = None,
         status: str | None = None,
@@ -741,7 +749,7 @@ class JobManager:
         """
         rows = self.connector.get_sync_connector().execute_query_all(
             query=sql.queries["list_jobs"],
-            id=id,
+            ids=_as_ids(id),
             queue_name=queue,
             task_name=task,
             status=status,
