@@ -1244,3 +1244,48 @@ async def test_fetch_job_many_null_lock_jobs_after_idle_polling(connection_param
     # Generous bound: ~100 times slower than the fixed query, ~4 times faster than the
     # quadratic one.
     assert elapsed < 0.3
+
+
+def test_fetch_job_lock_check_uses_index_on_lock(connection_params):
+    # The lock check of procrastinate_fetch_job_v2 runs before "FOR UPDATE SKIP
+    # LOCKED" tries the row lock, so a fetch pays one lock check for every
+    # candidate that another fetch has already locked. Without an index leading
+    # with "lock", each check reads the whole (id, lock) index: this fetch took
+    # ~1s, against ~10ms with procrastinate_jobs_todo_doing_lock_idx_v1.
+    backlog = 20000
+    # Far more than a real deployment has in flight: it multiplies the cost of
+    # one lock check so that the bound below is not sensitive to a slow machine.
+    in_flight = 4000
+    with (
+        psycopg.connect(**connection_params, autocommit=True) as worker_conn,
+        psycopg.connect(**connection_params) as other_conn,
+    ):
+        worker_conn.execute(
+            """
+            INSERT INTO procrastinate_jobs (queue_name, task_name, args, lock)
+            SELECT 'default', 'noop', '{}', 'lock-' || g FROM generate_series(1, %s) g
+            """,
+            (backlog,),
+        )
+        worker_conn.execute("ANALYZE procrastinate_jobs")
+
+        locked_ids = other_conn.execute(
+            """
+            SELECT id FROM procrastinate_jobs WHERE status = 'todo'
+            ORDER BY priority DESC, id ASC LIMIT %s FOR UPDATE
+            """,
+            (in_flight,),
+        ).fetchall()
+
+        start = time.perf_counter()
+        job = worker_conn.execute(
+            "SELECT id FROM procrastinate_fetch_job_v2(%s::varchar[], NULL)",
+            (["default"],),
+        ).fetchone()
+        elapsed = time.perf_counter() - start
+
+    assert job is not None
+    assert job[0] == max(row[0] for row in locked_ids) + 1
+    # Generous bound: ~20 times slower than with the index, ~5 times faster than
+    # without it.
+    assert elapsed < 0.2
