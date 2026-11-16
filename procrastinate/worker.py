@@ -426,8 +426,12 @@ class Worker:
             self._running_jobs[job_task] = context
 
             def on_job_complete(task: asyncio.Task):
-                del self._running_jobs[task]
+                completed = self._running_jobs.pop(task)
                 self._job_semaphore.release()
+                # A job waiting on this lock was skipped by the last fetch and
+                # would otherwise sit until the next notification or poll.
+                if completed.job.lock is not None:
+                    self._new_job_event.set()
 
             job_task.add_done_callback(on_job_complete)
 

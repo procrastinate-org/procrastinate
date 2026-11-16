@@ -364,6 +364,31 @@ async def test_worker_run_respects_polling(worker, app):
 
 
 @pytest.mark.parametrize(
+    "worker",
+    [({"concurrency": 2, "fetch_job_polling_interval": 10})],
+    indirect=["worker"],
+)
+async def test_worker_fetches_job_released_by_lock_without_polling(worker, app):
+    release_first = asyncio.Event()
+
+    @app.task(lock="sooo")
+    async def task_func(release: bool):
+        if release:
+            await release_first.wait()
+
+    first_id = await task_func.defer_async(release=True)
+    second_id = await task_func.defer_async(release=False)
+
+    await start_worker(worker)
+    await wait_for_job_status(app, first_id, Status.DOING)
+    await wait_for(lambda: count_queries(app, "fetch_job") >= 2)
+
+    release_first.set()
+
+    await wait_for_job_status(app, second_id, Status.SUCCEEDED)
+
+
+@pytest.mark.parametrize(
     "worker, fail_task",
     [
         ({"delete_jobs": "never"}, False),
