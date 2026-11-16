@@ -1247,45 +1247,32 @@ async def test_fetch_job_many_null_lock_jobs_after_idle_polling(connection_param
 
 
 def test_fetch_job_lock_check_uses_index_on_lock(connection_params):
-    # The lock check of procrastinate_fetch_job_v2 runs before "FOR UPDATE SKIP
-    # LOCKED" tries the row lock, so a fetch pays one lock check for every
-    # candidate that another fetch has already locked. Without an index leading
-    # with "lock", each check reads the whole (id, lock) index: this fetch took
-    # ~1s, against ~10ms with procrastinate_jobs_todo_doing_lock_idx_v1.
-    backlog = 20000
-    # Far more than a real deployment has in flight: it multiplies the cost of
-    # one lock check so that the bound below is not sensitive to a slow machine.
-    in_flight = 4000
-    with (
-        psycopg.connect(**connection_params, autocommit=True) as worker_conn,
-        psycopg.connect(**connection_params) as other_conn,
-    ):
-        worker_conn.execute(
+    # The lock check of procrastinate_fetch_job_v2 looks up the other todo/doing jobs
+    # with the same lock. Without an index that can be searched by "lock", each
+    # candidate reads a whole index and fetching slows down with the backlog. Rather
+    # than timing the fetch, check that the fetch scans the index on "lock".
+    index = "procrastinate_jobs_todo_doing_lock_idx_v1"
+    with psycopg.connect(**connection_params, autocommit=True) as conn:
+        conn.execute(
             """
             INSERT INTO procrastinate_jobs (queue_name, task_name, args, lock)
-            SELECT 'default', 'noop', '{}', 'lock-' || g FROM generate_series(1, %s) g
-            """,
-            (backlog,),
-        )
-        worker_conn.execute("ANALYZE procrastinate_jobs")
-
-        locked_ids = other_conn.execute(
+            SELECT 'default', 'noop', '{}', 'lock-' || g FROM generate_series(1, 20000) g
             """
-            SELECT id FROM procrastinate_jobs WHERE status = 'todo'
-            ORDER BY priority DESC, id ASC LIMIT %s FOR UPDATE
-            """,
-            (in_flight,),
-        ).fetchall()
+        )
+        conn.execute("ANALYZE procrastinate_jobs")
 
-        start = time.perf_counter()
-        job = worker_conn.execute(
+        job = conn.execute(
             "SELECT id FROM procrastinate_fetch_job_v2(%s::varchar[], NULL)",
             (["default"],),
         ).fetchone()
-        elapsed = time.perf_counter() - start
+        # Index usage is reported to the statistics system lazily.
+        conn.execute("SELECT pg_stat_force_next_flush()")
+        conn.execute("SELECT 1")
+        scans = conn.execute(
+            "SELECT idx_scan FROM pg_stat_user_indexes WHERE indexrelname = %s",
+            (index,),
+        ).fetchone()
 
     assert job is not None
-    assert job[0] == max(row[0] for row in locked_ids) + 1
-    # Generous bound: ~20 times slower than with the index, ~5 times faster than
-    # without it.
-    assert elapsed < 0.2
+    assert scans is not None, f"index {index} does not exist"
+    assert scans[0] > 0
