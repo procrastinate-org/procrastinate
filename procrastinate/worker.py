@@ -395,11 +395,11 @@ class Worker:
                 if self._stop_event.is_set():
                     break
 
+                self._new_job_event.clear()
                 job = await self._fetch_job()
             finally:
                 if (not job or self._stop_event.is_set()) and acquire_sem_task.done():
                     self._job_semaphore.release()
-                self._new_job_event.clear()
 
             if not job:
                 break
