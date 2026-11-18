@@ -6,6 +6,7 @@ from .. import migrations_utils
 
 
 class Migration(migrations.Migration):
+    atomic = False
     operations = [
         migrations_utils.RunProcrastinateSQL(
             name="03.12.00_03_pre_add_todo_doing_lock_index.sql"
