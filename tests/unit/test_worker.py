@@ -364,6 +364,65 @@ async def test_worker_run_respects_polling(worker, app):
 
 
 @pytest.mark.parametrize(
+    "worker",
+    [({"concurrency": 2, "fetch_job_polling_interval": 10})],
+    indirect=["worker"],
+)
+async def test_worker_fetches_job_released_by_lock_without_polling(worker, app):
+    release_first = asyncio.Event()
+
+    @app.task(lock="sooo")
+    async def task_func(release: bool):
+        if release:
+            await release_first.wait()
+
+    first_id = await task_func.defer_async(release=True)
+    second_id = await task_func.defer_async(release=False)
+
+    await start_worker(worker)
+    await wait_for_job_status(app, first_id, Status.DOING)
+    await wait_for(lambda: count_queries(app, "fetch_job") >= 2)
+
+    release_first.set()
+
+    await wait_for_job_status(app, second_id, Status.SUCCEEDED)
+
+
+@pytest.mark.parametrize(
+    "worker",
+    [({"concurrency": 2, "fetch_job_polling_interval": 10})],
+    indirect=["worker"],
+)
+async def test_worker_fetches_job_released_by_lock_during_fetch(worker, app, mocker):
+    release_first = asyncio.Event()
+
+    @app.task(lock="sooo")
+    async def task_func(release: bool):
+        if release:
+            await release_first.wait()
+
+    await task_func.defer_async(release=True)
+    second_id = await task_func.defer_async(release=False)
+
+    fetch_job = worker._fetch_job
+
+    async def fetch_job_completing_first_job():
+        job = await fetch_job()
+        if job is None and not release_first.is_set():
+            # The first job completes after the fetch found nothing, but before
+            # the worker gets the result.
+            release_first.set()
+            await wait_for(lambda: not worker._running_jobs)
+        return job
+
+    mocker.patch.object(worker, "_fetch_job", fetch_job_completing_first_job)
+
+    await start_worker(worker)
+
+    await wait_for_job_status(app, second_id, Status.SUCCEEDED)
+
+
+@pytest.mark.parametrize(
     "worker, fail_task",
     [
         ({"delete_jobs": "never"}, False),
