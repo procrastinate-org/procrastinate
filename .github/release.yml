@@ -1,8 +1,8 @@
 changelog:
   exclude:
     authors:
-      - renovate
-      - dependabot
+      - renovate[bot]
+      - dependabot[bot]
   categories:
     - title: "Breaking changes"
       labels: ["PR type: breaking 💥"]
