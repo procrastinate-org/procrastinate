@@ -1244,3 +1244,35 @@ async def test_fetch_job_many_null_lock_jobs_after_idle_polling(connection_param
     # Generous bound: ~100 times slower than the fixed query, ~4 times faster than the
     # quadratic one.
     assert elapsed < 0.3
+
+
+def test_fetch_job_lock_check_uses_index_on_lock(connection_params):
+    # The lock check of procrastinate_fetch_job_v2 looks up the other todo/doing jobs
+    # with the same lock. Without an index that can be searched by "lock", each
+    # candidate reads a whole index and fetching slows down with the backlog. Rather
+    # than timing the fetch, check that the fetch scans the index on "lock".
+    index = "procrastinate_jobs_todo_doing_lock_idx_v1"
+    with psycopg.connect(**connection_params, autocommit=True) as conn:
+        conn.execute(
+            """
+            INSERT INTO procrastinate_jobs (queue_name, task_name, args, lock)
+            SELECT 'default', 'noop', '{}', 'lock-' || g FROM generate_series(1, 20000) g
+            """
+        )
+        conn.execute("ANALYZE procrastinate_jobs")
+
+        job = conn.execute(
+            "SELECT id FROM procrastinate_fetch_job_v2(%s::varchar[], NULL)",
+            (["default"],),
+        ).fetchone()
+        # Index usage is reported to the statistics system lazily.
+        conn.execute("SELECT pg_stat_force_next_flush()")
+        conn.execute("SELECT 1")
+        scans = conn.execute(
+            "SELECT idx_scan FROM pg_stat_user_indexes WHERE indexrelname = %s",
+            (index,),
+        ).fetchone()
+
+    assert job is not None
+    assert scans is not None, f"index {index} does not exist"
+    assert scans[0] > 0

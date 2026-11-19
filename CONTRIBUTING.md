@@ -211,6 +211,11 @@ Alembic revision in `procrastinate/contrib/alembic/versions/` (copy the latest o
 then update its docstring, `revision`, `down_revision` and `MIGRATION_FILE`). Unit
 tests fail if either is missing.
 
+On a large table, use `CREATE INDEX CONCURRENTLY` and `DROP INDEX CONCURRENTLY`, so
+that the migration doesn't block writes. These can't run in a transaction: put the
+statement alone in its migration script, and set `atomic = False` on its Django
+migration. See `03.12.00_03_pre_add_todo_doing_lock_index.sql` for an example.
+
 ### Backward-compatibility
 
 As a Procrastinate developer, you must ensure you use pre-migrations and post-migrations

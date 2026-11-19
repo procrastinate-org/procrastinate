@@ -1,0 +1,13 @@
+-- Migration: Add an index on "lock" for the lock check of procrastinate_fetch_job_v2
+--
+-- The lock check looks up the other todo/doing jobs with the same lock. The only
+-- index covering those jobs was (id, lock), which cannot be searched by lock: each
+-- candidate job read the whole index, so fetching slowed down as the backlog of
+-- jobs with a lock grew. The old index is dropped by the matching post-migration.
+--
+-- The index is built concurrently so that it doesn't block writes: this file must
+-- stay a single statement, run outside of a transaction. If the build fails, it
+-- leaves an invalid index behind and running this again fails: drop it with
+--   DROP INDEX CONCURRENTLY procrastinate_jobs_todo_doing_lock_idx_v1;
+-- then run this migration again.
+CREATE INDEX CONCURRENTLY procrastinate_jobs_todo_doing_lock_idx_v1 ON procrastinate_jobs (lock) WHERE status = ANY (ARRAY['todo'::procrastinate_job_status, 'doing'::procrastinate_job_status]);

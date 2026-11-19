@@ -1,4 +1,4 @@
-"""03.12.00 50 post add lock mode."""
+"""03.12.00 03 pre add todo doing lock index."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ down_revision: str | None = "procrastinate_0040"
 branch_labels = None
 depends_on = None
 
-MIGRATION_FILE = "03.12.00_50_post_add_lock_mode.sql"
+MIGRATION_FILE = "03.12.00_03_pre_add_todo_doing_lock_index.sql"
 
 
 def upgrade() -> None:
