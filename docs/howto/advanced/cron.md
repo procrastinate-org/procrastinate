@@ -24,7 +24,9 @@ periodic scheduling: as long as at least one worker is up, the tasks will be def
 
 The cron syntax is on 5 columns (minute, hour, day, month, day of week). Here, an
 optional 6th column is supported for seconds with the same syntax, allowing you to make
-a periodic task as frequent as "1 per second".
+a periodic task as frequent as "1 per second". The seconds column comes last:
+`* * * * * */30` is every 30 seconds, while `*/30 * * * * *` is every second of
+minutes 0 and 30.
 
 ## Timezone
 
@@ -54,9 +56,14 @@ When using periodic tasks there are a few things to know:
 - Workers are responsible for deferring periodic tasks. If there is no worker running,
   then periodic tasks will not get scheduled. On the other hand, even if you have
   multiple workers, periodic tasks will only be deferred once per period.
-- When a worker starts, it will defer periodic tasks that have not been deferred yet
-  but a task that is more than 10 minutes late will not be deferred. This value is
-  configurable in the {py:class}`App`.
+- When a worker starts, it will defer each periodic task for its latest scheduled time
+  if it has not been deferred yet, but a task that is more than 10 minutes late will
+  not be deferred. This value is configurable in the {py:class}`App`. Earlier times,
+  missed while no worker was running, are not deferred.
+- A periodic task is deferred once per scheduled time, even if its job is deleted
+  afterwards (for example with `delete_jobs`): a worker that restarts doesn't defer it
+  again. The row for that time stays in `procrastinate_periodic_defers`, with a `NULL`
+  `job_id`, until the next time is deferred.
 
 ## Timestamp argument
 
