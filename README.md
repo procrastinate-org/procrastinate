@@ -58,7 +58,9 @@
 | procrastinate/contrib/alembic/versions/procrastinate\_0038\_pre\_fetch\_job\_skip\_null\_lock.py                   |       11 |        1 |        0 |        0 |     91% |        20 |
 | procrastinate/contrib/alembic/versions/procrastinate\_0039\_pre\_add\_lock\_mode.py                                |       11 |        1 |        0 |        0 |     91% |        20 |
 | procrastinate/contrib/alembic/versions/procrastinate\_0040\_pre\_retry\_job\_fail\_on\_queueing\_lock\_conflict.py |       11 |        1 |        0 |        0 |     91% |        20 |
-| procrastinate/contrib/alembic/versions/procrastinate\_0041\_post\_add\_lock\_mode.py                               |       11 |        1 |        0 |        0 |     91% |        20 |
+| procrastinate/contrib/alembic/versions/procrastinate\_0041\_pre\_add\_todo\_doing\_lock\_index.py                  |       11 |        1 |        0 |        0 |     91% |        20 |
+| procrastinate/contrib/alembic/versions/procrastinate\_0042\_post\_add\_lock\_mode.py                               |       11 |        1 |        0 |        0 |     91% |        20 |
+| procrastinate/contrib/alembic/versions/procrastinate\_0043\_post\_drop\_id\_lock\_index.py                         |       11 |        1 |        0 |        0 |     91% |        20 |
 | procrastinate/contrib/django/\_\_init\_\_.py                                                                       |        5 |        0 |        0 |        0 |    100% |           |
 | procrastinate/contrib/django/apps.py                                                                               |       29 |        1 |        6 |        0 |     97% |        24 |
 | procrastinate/contrib/django/db\_cleanup.py                                                                        |       30 |        0 |        0 |        0 |    100% |           |
@@ -122,8 +124,8 @@
 | procrastinate/testing.py                                                                                           |      254 |       10 |       72 |        2 |     96% |95, 105, 306-318, 565-\>564 |
 | procrastinate/types.py                                                                                             |       22 |        0 |        0 |        0 |    100% |           |
 | procrastinate/utils.py                                                                                             |      189 |        0 |       46 |        0 |    100% |           |
-| procrastinate/worker.py                                                                                            |      330 |       10 |      106 |        8 |     96% |91, 108, 228-\>231, 514-\>exit, 535-536, 540-541, 577, 688-\>exit, 694, 710-719 |
-| **TOTAL**                                                                                                          | **3832** |  **300** |  **620** |   **26** | **92%** |           |
+| procrastinate/worker.py                                                                                            |      330 |        8 |      106 |        7 |     97% |91, 108, 228-\>231, 514-\>exit, 540-541, 577, 688-\>exit, 694, 710-719 |
+| **TOTAL**                                                                                                          | **3854** |  **300** |  **620** |   **25** | **92%** |           |
 
 
 ## Setup coverage badge
