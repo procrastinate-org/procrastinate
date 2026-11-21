@@ -90,6 +90,13 @@ def test_schedule_decorator_tzinfo_name(periodic_registry, task):
     assert periodic_task.tzinfo == zoneinfo.ZoneInfo("Europe/Paris")
 
 
+def test_register_task_invalid_cron(periodic_registry, task):
+    with pytest.raises(exceptions.InvalidCronExpression, match="'not a cron'"):
+        periodic_registry.periodic_decorator(cron="not a cron", periodic_id="foo")(task)
+
+    assert periodic_registry.periodic_tasks == {}
+
+
 def test_schedule_decorator_tzinfo_unknown(periodic_registry):
     with pytest.raises(zoneinfo.ZoneInfoNotFoundError):
         periodic_registry.periodic_decorator(
