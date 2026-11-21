@@ -389,19 +389,19 @@ class InMemoryConnector(connector.BaseAsyncConnector):
     async def get_job_status_one(self, job_id: int) -> dict[str, Any]:
         return {"status": self.jobs[job_id]["status"]}
 
-    async def retry_job_run(
+    async def retry_job_one(
         self,
         job_id: int,
         retry_at: datetime.datetime,
         new_priority: int | None = None,
         new_queue_name: str | None = None,
         new_lock: str | None = None,
-    ) -> None:
+    ) -> dict[str, Any]:
         job_row = self.jobs[job_id]
         if job_row["status"] == "doing" and job_row["abort_requested"]:
             job_row["status"] = "failed"
             self.events[job_id].append({"type": "failed", "at": utils.utcnow()})
-            return
+            return {"status": "failed"}
 
         queueing_lock = job_row["queueing_lock"]
         if queueing_lock is not None and any(
@@ -417,7 +417,7 @@ class InMemoryConnector(connector.BaseAsyncConnector):
             job_row["status"] = "failed"
             job_row["attempts"] += 1
             self.events[job_id].append({"type": "failed", "at": utils.utcnow()})
-            return
+            return {"status": "failed"}
 
         job_row["status"] = "todo"
         job_row["attempts"] += 1
@@ -430,6 +430,7 @@ class InMemoryConnector(connector.BaseAsyncConnector):
             job_row["lock"] = new_lock
         self.events[job_id].append({"type": "scheduled", "at": retry_at})
         self.events[job_id].append({"type": "deferred_for_retry", "at": utils.utcnow()})
+        return {"status": "todo"}
 
     async def select_stalled_jobs_by_started_all(
         self, nb_seconds: int, queue: str, task_name: str
