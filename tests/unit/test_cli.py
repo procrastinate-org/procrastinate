@@ -320,7 +320,10 @@ def test_add_arguments__custom_healthchecks():
     "input, error",
     [
         ([], "the following arguments are required: command"),
-        (["-a", "foobar"], "Could not load app from foobar"),
+        (
+            ["-a", "foobar"],
+            "Could not load app from foobar: foobar is not a valid path",
+        ),
         (["defer", "--at", "foo"], "invalid parse_datetime value: 'foo'"),
         (
             ["defer", "--at", "2023-01-01", "--in", "12"],
@@ -429,6 +432,16 @@ def test_load_app(mocker):
     )
     with pytest.raises(argparse.ArgumentError, match="is not async"):
         cli.load_app("foobar")
+
+
+def test_load_app_error_in_module(mocker):
+    error = ValueError("boom")
+    mocker.patch("procrastinate.app.App.from_path", side_effect=error)
+
+    with pytest.raises(RuntimeError, match="Error while importing foobar") as exc_info:
+        cli.load_app("foobar")
+
+    assert exc_info.value.__cause__ is error
 
 
 async def test_shell_single_command(app: app.App, capsys):
