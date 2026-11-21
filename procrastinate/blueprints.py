@@ -377,7 +377,7 @@ class Blueprint:
         ----------
         cron :
             Cron-like string. Optionally add a 6th column for seconds. An invalid
-            expression raises an error when the task is registered.
+            expression raises `InvalidCronExpression` when the task is registered.
         periodic_id :
             Task name suffix. Used to distinguish periodic tasks with different kwargs.
         tzinfo :

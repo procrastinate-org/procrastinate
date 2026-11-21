@@ -90,7 +90,8 @@ Exceptions
 .. automodule:: procrastinate.exceptions
     :members: ProcrastinateException, LoadFromPathError,
               ConnectorException, AlreadyEnqueued, AppNotOpen, TaskNotFound,
-              UnboundTaskError, JobAborted, MiddlewareKindMismatch
+              UnboundTaskError, JobAborted, MiddlewareKindMismatch,
+              InvalidCronExpression
 
 Job statuses
 ------------

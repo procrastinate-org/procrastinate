@@ -38,6 +38,12 @@ class TaskAlreadyRegistered(ProcrastinateException):
     """
 
 
+class InvalidCronExpression(ProcrastinateException, ValueError):  # pyright: ignore[reportUnsafeMultipleInheritance]
+    """
+    The cron expression of a periodic task is invalid.
+    """
+
+
 class MiddlewareKindMismatch(ProcrastinateException):
     """
     A sync task was given an async middleware (or vice versa). Sync tasks require

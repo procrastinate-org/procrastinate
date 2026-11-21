@@ -99,8 +99,12 @@ class PeriodicRegistry:
                 "schedules of the same task."
             )
 
-        # Raises on an invalid expression now rather than when a worker schedules it.
-        croniter.croniter(cron)
+        try:
+            croniter.croniter(cron)
+        except croniter.CroniterError as exc:
+            raise exceptions.InvalidCronExpression(
+                f"Invalid cron expression {cron!r} for periodic task {task.name}: {exc}"
+            ) from exc
 
         logger.info(
             f"Registering task {task.name} with periodic id {periodic_id!r} to run "
