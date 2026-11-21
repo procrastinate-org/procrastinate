@@ -99,6 +99,9 @@ class PeriodicRegistry:
                 "schedules of the same task."
             )
 
+        # Raises on an invalid expression now rather than when a worker schedules it.
+        croniter.croniter(cron)
+
         logger.info(
             f"Registering task {task.name} with periodic id {periodic_id!r} to run "
             f"periodically with cron {cron}",

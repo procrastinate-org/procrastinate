@@ -4,6 +4,7 @@ import datetime
 import itertools
 import zoneinfo
 
+import croniter
 import pytest
 
 from procrastinate import exceptions, periodic
@@ -88,6 +89,13 @@ def test_schedule_decorator_tzinfo_name(periodic_registry, task):
 
     (periodic_task,) = periodic_registry.periodic_tasks.values()
     assert periodic_task.tzinfo == zoneinfo.ZoneInfo("Europe/Paris")
+
+
+def test_register_task_invalid_cron(periodic_registry, task):
+    with pytest.raises(croniter.CroniterBadCronError):
+        periodic_registry.periodic_decorator(cron="not a cron", periodic_id="foo")(task)
+
+    assert periodic_registry.periodic_tasks == {}
 
 
 def test_schedule_decorator_tzinfo_unknown(periodic_registry):
