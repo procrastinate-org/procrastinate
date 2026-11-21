@@ -44,7 +44,13 @@ def load_from_path(path: str, allowed_type: type[T] | None = None) -> T:
     module_path, name = path.rsplit(".", 1)
     try:
         module = importlib.import_module(module_path)
-    except ImportError as exc:
+    except ModuleNotFoundError as exc:
+        # Only a module missing from the path itself means the path is wrong: an
+        # import failing inside the module is the module's own error.
+        if exc.name is None or not (
+            module_path == exc.name or module_path.startswith(f"{exc.name}.")
+        ):
+            raise
         raise exceptions.LoadFromPathError(str(exc)) from exc
 
     try:

@@ -32,6 +32,24 @@ def test_load_from_path_wrong_type():
         utils.load_from_path("json.loads", int)
 
 
+@pytest.mark.parametrize(
+    "module_code, error",
+    [
+        ("import fooobarbaz", ModuleNotFoundError),
+        ("from json import fooobarbaz", ImportError),
+        ("raise ValueError('boom')", ValueError),
+    ],
+)
+def test_load_from_path_error_in_module(tmp_path, monkeypatch, module_code, error):
+    (tmp_path / "broken_module_for_test.py").write_text(f"{module_code}\nobj = 1\n")
+    monkeypatch.syspath_prepend(str(tmp_path))
+
+    with pytest.raises(error) as exc_info:
+        utils.load_from_path("broken_module_for_test.obj")
+
+    assert not isinstance(exc_info.value, exceptions.LoadFromPathError)
+
+
 def test_import_all():
     module = "tests.unit.unused_module"
     assert module not in sys.modules
