@@ -21,7 +21,7 @@ jobs:
       # DO NOT run actions/checkout@v2 here, for securitity reasons
       # For details, refer to https://securitylab.github.com/research/github-actions-preventing-pwn-requests/
       - name: Post comment
-        uses: ewjoachim/python-coverage-comment-action@07249dd712cd2464873eb8a59a24f97fd281e76f # v4.6
+        uses: ewjoachim/python-coverage-comment-action@281cb0dcb5b15d4773037d51873558fddc5a7df8 # v4.7
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_PR_RUN_ID: ${{ github.event.workflow_run.id }}
