@@ -151,8 +151,12 @@ def load_app(app_path: str) -> procrastinate.App:
         app = procrastinate.App.from_path(dotted_path=app_path)
     except exceptions.LoadFromPathError as exc:
         raise argparse.ArgumentError(
-            None, f"Could not load app from {app_path}"
+            None, f"Could not load app from {app_path}: {exc}"
         ) from exc
+    except (TypeError, ValueError) as exc:
+        # argparse would replace these with a generic "invalid value" message,
+        # hiding an error raised by the user's module.
+        raise RuntimeError(f"Error while importing {app_path}") from exc
     if not isinstance(app.connector, connector.BaseAsyncConnector):
         raise argparse.ArgumentError(
             None,
