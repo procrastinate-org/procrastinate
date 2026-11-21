@@ -171,9 +171,14 @@ class Worker:
         retry_decision: retry.RetryDecision | None,
         context: job_context.JobContext,
         job_result: job_context.JobResult | None,
-    ):
+    ) -> jobs.Status:
+        """
+        Returns the job's new status: the database can fail a job instead of
+        retrying it.
+        """
+        new_status = status
         if retry_decision:
-            await self.app.job_manager.retry_job(
+            new_status = await self.app.job_manager.retry_job(
                 job=job,
                 retry_at=retry_decision.retry_at,
                 lock=retry_decision.lock,
@@ -202,6 +207,7 @@ class Worker:
                 job_result=job_result,
             ),
         )
+        return new_status
 
     def _log_job_outcome(
         self,
@@ -362,14 +368,6 @@ class Worker:
             else:
                 status = jobs.Status.SUCCEEDED
 
-            self._log_job_outcome(
-                status=status,
-                context=context,
-                job_result=job_result,
-                job_retry=job_retry,
-                exc_info=exc_info,
-            )
-
             persist_job_status_task = asyncio.create_task(
                 self._persist_job_status(
                     job=job,
@@ -379,11 +377,21 @@ class Worker:
                     job_result=job_result,
                 )
             )
+            new_status = None
             try:
-                await asyncio.shield(persist_job_status_task)
+                new_status = await asyncio.shield(persist_job_status_task)
             except asyncio.CancelledError:
-                await persist_job_status_task
+                new_status = await persist_job_status_task
                 raise
+            finally:
+                retried = new_status == jobs.Status.TODO
+                self._log_job_outcome(
+                    status=status if retried or new_status is None else new_status,
+                    context=context,
+                    job_result=job_result,
+                    job_retry=job_retry if retried else None,
+                    exc_info=exc_info,
+                )
 
     async def _fetch_and_process_jobs(self):
         """Fetch and process jobs until there is no job left or asked to stop"""
