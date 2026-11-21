@@ -334,9 +334,9 @@ class Worker:
         except BaseException as e:
             exc_info = e
 
-            # aborted job can be retried if it is caused by a shutdown.
-            if not (isinstance(e, exceptions.JobAborted)) or (
-                context.abort_reason() == job_context.AbortReason.SHUTDOWN
+            abort_reason = context.abort_reason()
+            if abort_reason == job_context.AbortReason.SHUTDOWN or (
+                abort_reason is None and not isinstance(e, exceptions.JobAborted)
             ):
                 job_retry = (
                     task.get_retry_exception(exception=e, job=job) if task else None

@@ -5,6 +5,7 @@ import contextlib
 import datetime
 import signal
 import threading
+import time
 from collections.abc import Callable
 from typing import cast
 from unittest import mock
@@ -753,6 +754,51 @@ async def test_abort_async_job(app: App, worker):
     await app.job_manager.cancel_job_by_id_async(job_id, abort=True)
 
     await wait_for_job_status(app, job_id, Status.ABORTED)
+
+
+async def test_abort_async_job_with_retry(app: App, worker, caplog):
+    caplog.set_level("INFO")
+    job_started_event = asyncio.Event()
+    never = asyncio.Event()
+
+    @app.task(queue="yay", name="task_func", retry=1)
+    async def task_func():
+        job_started_event.set()
+        await never.wait()
+
+    job_id = await task_func.defer_async()
+
+    await start_worker(worker)
+    await wait_for(job_started_event.is_set)
+
+    await app.job_manager.cancel_job_by_id_async(job_id, abort=True)
+
+    await wait_for_job_status(app, job_id, Status.ABORTED)
+    assert [
+        r.action for r in caplog.records if getattr(r, "action", "").startswith("job_")
+    ] == ["job_aborted"]
+
+
+async def test_job_failing_after_abort_request_not_retried(app: App, worker, caplog):
+    caplog.set_level("INFO")
+
+    @app.task(queue="yay", name="task_func", retry=1, pass_context=True)
+    def task_func(job_context: JobContext):
+        while not job_context.should_abort():
+            time.sleep(0.001)
+        raise ValueError("Nope")
+
+    job_id = await task_func.defer_async()
+
+    await start_worker(worker)
+    await wait_for_job_status(app, job_id, Status.DOING)
+
+    await app.job_manager.cancel_job_by_id_async(job_id, abort=True)
+
+    await wait_for_job_status(app, job_id, Status.FAILED)
+    assert [
+        r.action for r in caplog.records if getattr(r, "action", "").startswith("job_")
+    ] == ["job_error"]
 
 
 async def test_abort_async_job_during_graceful_shutdown(app: App, caplog):
