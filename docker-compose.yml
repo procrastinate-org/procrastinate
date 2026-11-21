@@ -19,7 +19,7 @@ services:
       - postgres
     user: ${UID:-0}:${GID:-0}
   postgres:
-    image: postgres:18
+    image: postgres:19
     ports: ["5432:5432"]
     environment:
       POSTGRES_DB: procrastinate

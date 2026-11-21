@@ -8,7 +8,7 @@ services:
     command: sleep infinity
     network_mode: service:db
   db:
-    image: postgres:18
+    image: postgres:19
     restart: unless-stopped
     volumes:
       - postgres-data:/var/lib/postgresql
