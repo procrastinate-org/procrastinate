@@ -458,19 +458,22 @@ async def test_get_stalled_jobs_by_heartbeat__pruned_worker(
 
 
 async def test_register_and_unregister_worker(pg_job_manager, psycopg_connector):
+    before = await psycopg_connector.execute_query_one_async(
+        "SELECT clock_timestamp() AS now"
+    )
     worker_id = await pg_job_manager.register_worker()
     assert worker_id is not None
+    after = await psycopg_connector.execute_query_one_async(
+        "SELECT clock_timestamp() AS now"
+    )
 
     rows = await psycopg_connector.execute_query_all_async(
         f"SELECT * FROM procrastinate_workers WHERE id={worker_id}"
     )
-    now = await psycopg_connector.execute_query_one_async(
-        "SELECT clock_timestamp() AS now"
-    )
 
     assert len(rows) == 1
     assert rows[0]["id"] == worker_id
-    assert abs((rows[0]["last_heartbeat"] - now["now"]).total_seconds()) < 0.1
+    assert before["now"] <= rows[0]["last_heartbeat"] <= after["now"]
 
     await pg_job_manager.unregister_worker(worker_id=worker_id)
 
