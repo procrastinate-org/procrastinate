@@ -59,7 +59,7 @@ repos:
 
       - id: django-upgrade
         name: django-upgrade
-        entry: uv run --group lint_format django-upgrade --target-version 4.2
+        entry: uv run --group lint_format django-upgrade --target-version 5.2
         language: system
         types: [python]
         require_serial: true

@@ -111,7 +111,6 @@ testpaths = [
 # https://code.djangoproject.com/ticket/36056
 filterwarnings = """
     error
-    ignore:.+django.core.management.base.OutputWrapper:pytest.PytestUnraisableExceptionWarning
     ignore:unclosed.+:ResourceWarning
     ignore:pkg_resources is deprecated as an API:UserWarning
 """
