@@ -19,6 +19,9 @@ jobs:
   tests:
     strategy:
       matrix:
+        # Instead of testing every combination of Python and Postgres, we pair versions
+        # from oldest to newest. This avoids combinatory explosion, and still tests
+        # every supported version at least once.
         include:
           - python-version: "3.11"
             postgres-version: "15"
@@ -29,7 +32,7 @@ jobs:
           - python-version: "3.14"
             postgres-version: "18"
           - python-version: "3.15"
-            postgres-version: "18"
+            postgres-version: "19"
 
     name: "py${{ matrix.python-version }}"
     runs-on: ubuntu-latest
