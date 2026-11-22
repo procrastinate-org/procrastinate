@@ -19,7 +19,7 @@ authors = [
 ]
 readme = "README.md"
 keywords = ["postgres", "task-queue"]
-requires-python = ">=3.11"
+requires-python = ">=3.11.5"
 dependencies = [
     "psycopg[pool]",
     "asgiref",
