@@ -812,15 +812,29 @@ async def test_finish_job_wrong_end_status(
 async def test_retry_job(pg_job_manager, fetched_job_factory, worker_id):
     job1 = await fetched_job_factory(queue="queue_a")
 
-    await pg_job_manager.retry_job(
+    status = await pg_job_manager.retry_job(
         job=job1, retry_at=datetime.datetime.now(datetime.UTC)
     )
 
+    assert status == jobs.Status.TODO
     job2 = await pg_job_manager.fetch_job(queues=None, worker_id=worker_id)
 
     assert job2.id == job1.id
     assert job2.attempts == job1.attempts + 1
     assert job2.priority == job1.priority == 0
+
+
+async def test_retry_job_abort_requested(pg_job_manager, fetched_job_factory):
+    job = await fetched_job_factory()
+    assert job.id
+    await pg_job_manager.cancel_job_by_id_async(job.id, abort=True)
+
+    status = await pg_job_manager.retry_job(
+        job=job, retry_at=datetime.datetime.now(datetime.UTC)
+    )
+
+    assert status == jobs.Status.FAILED
+    assert await pg_job_manager.get_job_status_async(job.id) == jobs.Status.FAILED
 
 
 async def test_retry_job_with_additional_params(
@@ -869,10 +883,11 @@ async def test_retry_job_with_queueing_lock_and_todo_sibling(
     job1 = await fetched_job_factory(lock="lock", queueing_lock="queueing_lock")
     job2 = await deferred_job_factory(lock="lock", queueing_lock="queueing_lock")
 
-    await pg_job_manager.retry_job(
+    status = await pg_job_manager.retry_job(
         job=job1, retry_at=datetime.datetime.now(datetime.UTC)
     )
 
+    assert status == jobs.Status.FAILED
     rows = await get_all("procrastinate_jobs", "id", "status", "attempts")
     assert sorted(rows, key=lambda row: row["id"]) == [
         {"id": job1.id, "status": "failed", "attempts": 1},

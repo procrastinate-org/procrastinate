@@ -3,8 +3,10 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import datetime
+import logging
 import signal
 import threading
+import time
 from collections.abc import Callable
 from typing import cast
 from unittest import mock
@@ -57,6 +59,30 @@ async def wait_for_job_status(
         await asyncio.wait_for(poll(), timeout)
 
     assert actual == status
+
+
+async def wait_for_job_outcome(caplog, job_id: int) -> logging.LogRecord:
+    """
+    The worker logs a job's outcome after persisting its status: wait for it.
+    """
+    outcome_actions = {
+        "job_success",
+        "job_aborted",
+        "job_aborted_retry",
+        "job_error_retry",
+        "job_error",
+    }
+
+    def records():
+        return [
+            r
+            for r in caplog.records
+            if getattr(r, "action", None) in outcome_actions and r.job["id"] == job_id
+        ]
+
+    await wait_for(lambda: bool(records()))
+    (record,) = records()
+    return record
 
 
 def count_queries(app: App, query_name: str) -> int:
@@ -653,9 +679,8 @@ async def test_run_job_log_result(caplog, app: App, worker):
 
     await wait_for_job_status(app, job_id, Status.SUCCEEDED)
 
-    records = [record for record in caplog.records if record.action == "job_success"]
-    assert len(records) == 1
-    record = records[0]
+    record = await wait_for_job_outcome(caplog, job_id)
+    assert record.action == "job_success"
     assert record.result == 12
     assert "Result: 12" in record.message
 
@@ -703,13 +728,8 @@ async def test_run_job_error(app: App, worker, critical_error, caplog):
 
     await wait_for_job_status(app, job_id, Status.FAILED)
 
-    records = [
-        record
-        for record in caplog.records
-        if hasattr(record, "action") and record.action == "job_error"
-    ]
-    assert len(records) == 1
-    record = records[0]
+    record = await wait_for_job_outcome(caplog, job_id)
+    assert record.action == "job_error"
     assert record.levelname == "ERROR"
     assert "to retry" not in record.message
 
@@ -727,9 +747,8 @@ async def test_run_job_raising_job_aborted(app: App, worker, caplog):
 
     await wait_for_job_status(app, job_id, Status.ABORTED)
 
-    records = [record for record in caplog.records if record.action == "job_aborted"]
-    assert len(records) == 1
-    record = records[0]
+    record = await wait_for_job_outcome(caplog, job_id)
+    assert record.action == "job_aborted"
     assert record.levelname == "INFO"
     assert "Aborted" in record.message
 
@@ -753,6 +772,100 @@ async def test_abort_async_job(app: App, worker):
     await app.job_manager.cancel_job_by_id_async(job_id, abort=True)
 
     await wait_for_job_status(app, job_id, Status.ABORTED)
+
+
+async def test_abort_async_job_with_retry(app: App, worker, caplog):
+    caplog.set_level("INFO")
+    job_started_event = asyncio.Event()
+    never = asyncio.Event()
+
+    @app.task(queue="yay", name="task_func", retry=1)
+    async def task_func():
+        job_started_event.set()
+        await never.wait()
+
+    job_id = await task_func.defer_async()
+
+    await start_worker(worker)
+    await wait_for(job_started_event.is_set)
+
+    await app.job_manager.cancel_job_by_id_async(job_id, abort=True)
+
+    await wait_for_job_status(app, job_id, Status.ABORTED)
+    record = await wait_for_job_outcome(caplog, job_id)
+    assert record.action == "job_aborted"
+
+
+async def test_job_failing_after_abort_request_not_retried(app: App, worker, caplog):
+    caplog.set_level("INFO")
+
+    @app.task(queue="yay", name="task_func", retry=1, pass_context=True)
+    def task_func(job_context: JobContext):
+        while not job_context.should_abort():
+            time.sleep(0.001)
+        raise ValueError("Nope")
+
+    job_id = await task_func.defer_async()
+
+    await start_worker(worker)
+    await wait_for_job_status(app, job_id, Status.DOING)
+
+    await app.job_manager.cancel_job_by_id_async(job_id, abort=True)
+
+    await wait_for_job_status(app, job_id, Status.FAILED)
+    record = await wait_for_job_outcome(caplog, job_id)
+    assert record.action == "job_error"
+
+
+async def test_retry_refused_by_database_logged_as_error(app: App, worker, caplog):
+    caplog.set_level("INFO")
+    job_started = asyncio.Event()
+    sibling_deferred = asyncio.Event()
+
+    @app.task(queue="yay", name="task_func", retry=1, queueing_lock="houba")
+    async def task_func():
+        job_started.set()
+        await sibling_deferred.wait()
+        raise ValueError("Nope")
+
+    job_id = await task_func.defer_async()
+
+    await start_worker(worker)
+    await wait_for(job_started.is_set)
+    # The waiting sibling takes the queueing lock, so the retry is refused.
+    await task_func.defer_async()
+    sibling_deferred.set()
+
+    await wait_for_job_status(app, job_id, Status.FAILED)
+    record = await wait_for_job_outcome(caplog, job_id)
+    assert record.action == "job_error"
+    assert record.levelname == "ERROR"
+    assert "to retry" not in record.message
+
+
+async def test_retry_after_shutdown_abort_refused_by_database_logged_as_error(
+    app: App, caplog
+):
+    caplog.set_level("INFO")
+
+    @app.task(queue="yay", name="task_func", retry=1, queueing_lock="houba")
+    async def task_func():
+        await asyncio.Event().wait()
+
+    job_id = await task_func.defer_async()
+    worker = Worker(app, shutdown_graceful_timeout=0.01)
+    run_task = await start_worker(worker)
+    await wait_for_job_status(app, job_id, Status.DOING)
+    # The waiting sibling takes the queueing lock, so the retry is refused.
+    await task_func.defer_async()
+
+    worker.stop()
+    await wait_or_fail(run_task)
+
+    await wait_for_job_status(app, job_id, Status.FAILED)
+    record = await wait_for_job_outcome(caplog, job_id)
+    assert record.action == "job_error"
+    assert record.levelname == "ERROR"
 
 
 async def test_abort_async_job_during_graceful_shutdown(app: App, caplog):

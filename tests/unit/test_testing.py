@@ -562,7 +562,7 @@ async def test_finish_job_run(connector: testing.InMemoryConnector):
     assert connector.jobs[id]["status"] == "finished"
 
 
-async def test_retry_job_run(connector: testing.InMemoryConnector):
+async def test_retry_job_one(connector: testing.InMemoryConnector):
     await connector.defer_jobs_all(
         [
             t.JobToDefer(
@@ -583,7 +583,7 @@ async def test_retry_job_run(connector: testing.InMemoryConnector):
     id = job_row["id"]
 
     retry_at = conftest.aware_datetime(2000, 1, 1)
-    await connector.retry_job_run(
+    result = await connector.retry_job_one(
         job_id=id,
         retry_at=retry_at,
         new_priority=3,
@@ -591,6 +591,7 @@ async def test_retry_job_run(connector: testing.InMemoryConnector):
         new_lock="some_lock",
     )
 
+    assert result == {"status": "todo"}
     assert connector.jobs[id]["attempts"] == 1
     assert connector.jobs[id]["status"] == "todo"
     assert connector.jobs[id]["scheduled_at"] == retry_at
@@ -625,36 +626,38 @@ async def start_job(connector: testing.InMemoryConnector) -> int:
     return job_row["id"]
 
 
-async def test_retry_job_run_abort_requested(connector: testing.InMemoryConnector):
+async def test_retry_job_one_abort_requested(connector: testing.InMemoryConnector):
     await defer_job(connector)
     id = await start_job(connector)
     await connector.cancel_job_one(job_id=id, abort=True, delete_job=False)
 
-    await connector.retry_job_run(
+    result = await connector.retry_job_one(
         job_id=id, retry_at=conftest.aware_datetime(2000, 1, 1)
     )
 
+    assert result == {"status": "failed"}
     assert connector.jobs[id]["status"] == "failed"
     assert connector.jobs[id]["attempts"] == 0
 
 
-async def test_retry_job_run_queueing_lock_conflict(
+async def test_retry_job_one_queueing_lock_conflict(
     connector: testing.InMemoryConnector,
 ):
     await defer_job(connector, queueing_lock="houba")
     id = await start_job(connector)
     await defer_job(connector, queueing_lock="houba")
 
-    await connector.retry_job_run(
+    result = await connector.retry_job_one(
         job_id=id, retry_at=conftest.aware_datetime(2000, 1, 1)
     )
 
+    assert result == {"status": "failed"}
     assert connector.jobs[id]["status"] == "failed"
     assert connector.jobs[id]["attempts"] == 1
     assert connector.events[id][-1]["type"] == "failed"
 
 
-async def test_retry_job_run_queueing_lock_conflict_failed_job(
+async def test_retry_job_one_queueing_lock_conflict_failed_job(
     connector: testing.InMemoryConnector,
 ):
     await defer_job(connector, queueing_lock="houba")
@@ -663,7 +666,7 @@ async def test_retry_job_run_queueing_lock_conflict_failed_job(
     await defer_job(connector, queueing_lock="houba")
 
     with pytest.raises(exceptions.UniqueViolation) as exc_info:
-        await connector.retry_job_run(
+        await connector.retry_job_one(
             job_id=id, retry_at=conftest.aware_datetime(2000, 1, 1)
         )
 

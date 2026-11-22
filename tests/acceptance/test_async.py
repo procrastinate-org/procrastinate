@@ -301,7 +301,14 @@ async def test_retry_when_aborting(async_app: app_module.App):
 
     job_id = await example_task.defer_async()
 
-    await async_app.run_worker_async(queues=["default"], wait=False)
+    # Keep the worker from hearing about the abort, so the database is the one
+    # refusing the retry.
+    await async_app.run_worker_async(
+        queues=["default"],
+        wait=False,
+        listen_notify=False,
+        abort_job_polling_interval=30,
+    )
 
     status = await async_app.job_manager.get_job_status_async(job_id)
     assert status == Status.FAILED

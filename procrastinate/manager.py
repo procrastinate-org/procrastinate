@@ -541,7 +541,7 @@ class JobManager:
         priority: int | None = None,
         queue: str | None = None,
         lock: str | None = None,
-    ) -> None:
+    ) -> jobs_module.Status:
         """
         Indicates that a job should be retried later.
 
@@ -561,9 +561,16 @@ class JobManager:
         lock:
             If set, the job will be retried with this lock. If not set, the lock remains
             unchanged.
+
+        Returns
+        -------
+        :
+            The job's new status: ``todo``, or ``failed`` if the job could not be
+            retried (an abort was requested, or another job with the same queueing
+            lock is already waiting).
         """
         assert job.id  # TODO remove this
-        await self.retry_job_by_id_async(
+        return await self.retry_job_by_id_async(
             job_id=job.id,
             retry_at=retry_at or utils.utcnow(),
             priority=priority,
@@ -578,7 +585,7 @@ class JobManager:
         priority: int | None = None,
         queue: str | None = None,
         lock: str | None = None,
-    ) -> None:
+    ) -> jobs_module.Status:
         """
         Indicates that a job should be retried later.
 
@@ -598,8 +605,15 @@ class JobManager:
         lock:
             If set, the job will be retried with this lock. If not set, the lock remains
             unchanged.
+
+        Returns
+        -------
+        :
+            The job's new status: ``todo``, or ``failed`` if the job could not be
+            retried (an abort was requested, or another job with the same queueing
+            lock is already waiting).
         """
-        await self.connector.execute_query_async(
+        result = await self.connector.execute_query_one_async(
             query=sql.queries["retry_job"],
             job_id=job_id,
             retry_at=retry_at,
@@ -607,6 +621,7 @@ class JobManager:
             new_queue_name=queue,
             new_lock=lock,
         )
+        return jobs_module.Status(result["status"])
 
     def retry_job_by_id(
         self,
@@ -615,11 +630,11 @@ class JobManager:
         priority: int | None = None,
         queue: str | None = None,
         lock: str | None = None,
-    ) -> None:
+    ) -> jobs_module.Status:
         """
         Sync version of `retry_job_by_id_async`.
         """
-        self.connector.get_sync_connector().execute_query(
+        result = self.connector.get_sync_connector().execute_query_one(
             query=sql.queries["retry_job"],
             job_id=job_id,
             retry_at=retry_at,
@@ -627,6 +642,7 @@ class JobManager:
             new_queue_name=queue,
             new_lock=lock,
         )
+        return jobs_module.Status(result["status"])
 
     async def listen_for_jobs(
         self,
