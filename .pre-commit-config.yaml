@@ -64,6 +64,13 @@ repos:
         types: [python]
         require_serial: true
 
+      - id: supported-versions
+        name: supported versions
+        entry: uv run --script scripts/check_supported_versions.py
+        language: system
+        files: ^(README\.md|pyproject\.toml|\.github/workflows/ci\.yml)$
+        pass_filenames: false
+
       - id: zizmor
         name: zizmor
         entry: uv run --group dev zizmor --no-progress --fix=all
