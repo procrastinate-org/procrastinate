@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795389411966,
+  "lastUpdate": 1795389703890,
   "repoUrl": "https://github.com/procrastinate-org/procrastinate",
   "entries": {
     "Procrastinate Benchmarks": [
@@ -17484,6 +17484,86 @@ window.BENCHMARK_DATA = {
             "unit": "iter/sec",
             "range": "stddev: 0.08023202688887122",
             "extra": "mean: 3.056149880000004 sec\nrounds: 5"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "ewjoachim@gmail.com",
+            "name": "Joachim Jablon",
+            "username": "ewjoachim"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "68481fdc7c7baa8ce9318497ce3a9c0552ada758",
+          "message": "Merge pull request #1690 from procrastinate-org/ci-postgres-versions\n\nTest PostgreSQL 19 in CI + ensure py & pg versions stay consistent",
+          "timestamp": "2026-11-23T00:18:19+01:00",
+          "tree_id": "2ee58ffcc9355ac36745819a8a451da0d985031c",
+          "url": "https://github.com/procrastinate-org/procrastinate/commit/68481fdc7c7baa8ce9318497ce3a9c0552ada758"
+        },
+        "date": 1795389702717,
+        "tool": "pytest",
+        "benches": [
+          {
+            "name": "tests/benchmarks/test_benchmark_async.py::test_benchmark_1000_async_jobs[psycopg_connector]",
+            "value": 0.29835417684254395,
+            "unit": "iter/sec",
+            "range": "stddev: 0.12824491765185714",
+            "extra": "mean: 3.351721134200004 sec\nrounds: 5"
+          },
+          {
+            "name": "tests/benchmarks/test_benchmark_async.py::test_benchmark_1000_async_jobs[aiopg_connector]",
+            "value": 0.49622664539724487,
+            "unit": "iter/sec",
+            "range": "stddev: 0.027919482796140326",
+            "extra": "mean: 2.015208190200002 sec\nrounds: 5"
+          },
+          {
+            "name": "tests/benchmarks/test_benchmark_async.py::test_benchmark_1000_async_batch_jobs[psycopg_connector]",
+            "value": 0.3768240006732861,
+            "unit": "iter/sec",
+            "range": "stddev: 0.1508069326678137",
+            "extra": "mean: 2.6537587792000012 sec\nrounds: 5"
+          },
+          {
+            "name": "tests/benchmarks/test_benchmark_async.py::test_benchmark_1000_async_batch_jobs[aiopg_connector]",
+            "value": 0.6388095250353987,
+            "unit": "iter/sec",
+            "range": "stddev: 0.15800601097896605",
+            "extra": "mean: 1.5654118494000016 sec\nrounds: 5"
+          },
+          {
+            "name": "tests/benchmarks/test_benchmark_sync.py::test_benchmark_1000_sync_jobs[sync_psycopg_connector]",
+            "value": 0.23016247072047807,
+            "unit": "iter/sec",
+            "range": "stddev: 0.1773466653962577",
+            "extra": "mean: 4.344756974800009 sec\nrounds: 5"
+          },
+          {
+            "name": "tests/benchmarks/test_benchmark_sync.py::test_benchmark_1000_sync_jobs[psycopg2_connector]",
+            "value": 0.25236236186121214,
+            "unit": "iter/sec",
+            "range": "stddev: 0.10726758260678483",
+            "extra": "mean: 3.962556035 sec\nrounds: 5"
+          },
+          {
+            "name": "tests/benchmarks/test_benchmark_sync.py::test_benchmark_1000_sync_batch_jobs[sync_psycopg_connector]",
+            "value": 0.3152056228413461,
+            "unit": "iter/sec",
+            "range": "stddev: 0.19186896627888986",
+            "extra": "mean: 3.1725322378000045 sec\nrounds: 5"
+          },
+          {
+            "name": "tests/benchmarks/test_benchmark_sync.py::test_benchmark_1000_sync_batch_jobs[psycopg2_connector]",
+            "value": 0.3476776479740398,
+            "unit": "iter/sec",
+            "range": "stddev: 0.1652972347996624",
+            "extra": "mean: 2.8762274648000017 sec\nrounds: 5"
           }
         ]
       }
