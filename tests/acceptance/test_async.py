@@ -371,6 +371,41 @@ async def test_stop_worker(async_app: app_module.App):
         assert status == Status.SUCCEEDED
 
 
+async def test_abort_notification_received_during_graceful_shutdown(
+    async_app: app_module.App, caplog
+):
+    caplog.set_level("INFO")
+
+    @async_app.task(queue="default", name="task1")
+    async def task1():
+        await asyncio.sleep(3)
+
+    job_id = await task1.defer_async()
+
+    # The polling interval is far beyond the wait_or_fail timeout below, so the
+    # abort can only arrive through the notification.
+    run_task = asyncio.create_task(
+        async_app.run_worker_async(abort_job_polling_interval=30)
+    )
+    await wait_for_job_status(async_app, job_id, Status.DOING)
+
+    async def draining():
+        while not any(
+            "Waiting for job to finish" in record.message for record in caplog.records
+        ):
+            await asyncio.sleep(0.01)
+
+    run_task.cancel()
+    await wait_or_fail(draining(), timeout=1)
+    await async_app.job_manager.cancel_job_by_id_async(job_id, abort=True)
+
+    with pytest.raises(asyncio.CancelledError):
+        await wait_or_fail(run_task, timeout=1)
+
+    status = await async_app.job_manager.get_job_status_async(job_id)
+    assert status == Status.ABORTED
+
+
 async def test_stop_worker_aborts_async_jobs_past_shutdown_graceful_timeout(
     async_app: app_module.App,
 ):
