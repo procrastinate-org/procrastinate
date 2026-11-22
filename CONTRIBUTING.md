@@ -352,7 +352,7 @@ Run the automated tests:
 $ docker compose run --rm procrastinate pytest
 ```
 
-Docker Compose is configured (in `docker compose.yml`) to mount the local directory on
+Docker Compose is configured (in `docker-compose.yml`) to mount the local directory on
 the host system onto `/src` in the container. This means that local
 changes made to the Procrastinate code are visible in Procrastinate containers.
 
@@ -361,7 +361,7 @@ container to be run with the current user id and group id. If not set or exporte
 Procrastinate container will run as root, and files owned by root may be created in the
 developer's working directory.
 
-In the definition of the `procrastinate` service in `docker compose.yml` the
+In the definition of the `procrastinate` service in `docker-compose.yml` the
 `PROCRASTINATE_APP` variable is set to `procrastinate_demo.app.app` (the
 Procrastinate demo application). So `procrastinate` commands run in Procrastinate
 containers are always run as if they were passed `--app procrastinate_demo.app.app`.
