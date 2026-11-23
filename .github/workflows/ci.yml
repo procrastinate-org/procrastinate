@@ -144,7 +144,7 @@ jobs:
           enable-cache: false
 
       - name: Install deps
-        run: uv sync --all-groups
+        run: uv sync
 
       - name: Run prek
         run: uv run --group dev prek run --all-files

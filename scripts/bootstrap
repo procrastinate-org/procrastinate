@@ -19,4 +19,4 @@ if ! which uv || ! which pre-commit; then
 fi
 
 pre-commit install
-uv sync --all-extras --all-groups
+uv sync --all-extras

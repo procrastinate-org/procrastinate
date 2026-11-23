@@ -1216,7 +1216,7 @@ wheels = [
 [[package]]
 name = "procrastinate"
 source = { editable = "." }
-default-groups = ["docs", "lint-format", "pg-implem", "release", "test"]
+default-groups = ["dev", "docs", "lint-format", "migration-test", "pg-implem", "release", "test", "types"]
 dependencies = [
     { name = "asgiref" },
     { name = "attrs" },

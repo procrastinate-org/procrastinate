@@ -308,10 +308,7 @@ a specific version of Python. You can do it by setting `PIN_PYTHON` in noxfile.p
 Install nox and dependencies with
 
 ```console
-$ # Minimally:
-$ uv sync --group migration_test
-$ # Maximally:
-$ uv sync --all-extras --all-groups
+$ uv sync --all-extras
 ```
 
 Run nox tests with:
