@@ -809,6 +809,41 @@ async def test_finish_job_wrong_end_status(
     )
 
 
+async def test_defer_periodic_job_after_its_job_is_deleted(
+    get_all, pg_job_manager, job_factory, worker_id
+):
+    task_name = "periodic_task"
+
+    async def defer(timestamp):
+        job = job_factory(
+            id=None, task_name=task_name, task_kwargs={"timestamp": timestamp}
+        )
+        return await pg_job_manager.defer_periodic_job(
+            job=job, periodic_id="", defer_timestamp=timestamp
+        )
+
+    job_id = await defer(1000)
+    assert job_id is not None
+
+    job = await pg_job_manager.fetch_job(queues=None, worker_id=worker_id)
+    assert job.id == job_id
+    await pg_job_manager.finish_job(
+        job=job, status=jobs.Status.SUCCEEDED, delete_job=True
+    )
+
+    expected = [{"defer_timestamp": 1000, "job_id": None}]
+    assert (
+        await get_all("procrastinate_periodic_defers", "defer_timestamp", "job_id")
+        == expected
+    )
+
+    assert await defer(1000) is None
+
+    assert await defer(1001) is not None
+    expected = [{"defer_timestamp": 1001}]
+    assert await get_all("procrastinate_periodic_defers", "defer_timestamp") == expected
+
+
 async def test_retry_job(pg_job_manager, fetched_job_factory, worker_id):
     job1 = await fetched_job_factory(queue="queue_a")
 
