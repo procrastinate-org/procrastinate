@@ -1313,7 +1313,7 @@ requires-dist = [
     { name = "asgiref" },
     { name = "attrs" },
     { name = "croniter", specifier = ">=6.1" },
-    { name = "django", marker = "extra == 'django'", specifier = ">=2.2" },
+    { name = "django", marker = "extra == 'django'" },
     { name = "packaging" },
     { name = "psycopg", extras = ["pool"] },
     { name = "psycopg2-binary", marker = "extra == 'aiopg'" },
@@ -1335,7 +1335,7 @@ dev = [
     { name = "zizmor" },
 ]
 docs = [
-    { name = "django", specifier = ">=2.2" },
+    { name = "django" },
     { name = "furo" },
     { name = "myst-parser" },
     { name = "sphinx" },

@@ -35,7 +35,7 @@ dependencies = [
 
 [project.optional-dependencies]
 alembic = ["alembic"]
-django = ["django>=2.2"]
+django = ["django"]
 sqlalchemy = ["sqlalchemy~=2.0"]
 aiopg = ["aiopg", "psycopg2-binary"]
 psycopg2 = ["psycopg2-binary"]
@@ -69,7 +69,7 @@ test = [
 ]
 migration_test = ["nox", "httpx", "nox-uv"]
 docs = [
-    "django>=2.2",
+    "django",
     "furo",
     "Sphinx",
     "sphinx-copybutton",
@@ -111,7 +111,6 @@ testpaths = [
 # https://code.djangoproject.com/ticket/36056
 filterwarnings = """
     error
-    ignore:.+django.core.management.base.OutputWrapper:pytest.PytestUnraisableExceptionWarning
     ignore:unclosed.+:ResourceWarning
     ignore:pkg_resources is deprecated as an API:UserWarning
 """
