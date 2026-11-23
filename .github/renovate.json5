@@ -7,6 +7,7 @@
   schedule: [
     'before 4am on Saturday',
   ],
+  minimumReleaseAge: '3 days',
   labels: [
     'PR type: dependencies 🤖',
   ],
