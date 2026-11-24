@@ -14,4 +14,3 @@ docs/superpowers
 htmlcov
 VERSION.txt
 .benchmarks
-.python-version

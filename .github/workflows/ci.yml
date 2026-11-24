@@ -16,23 +16,30 @@ permissions:
   contents: read
 
 jobs:
+  versions:
+    name: Supported versions
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.versions.outputs.matrix }}
+      postgres: ${{ steps.versions.outputs.postgres }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
+        with:
+          enable-cache: false
+
+      - name: Compute the test matrix
+        id: versions
+        run: uv run --script .github/supported_versions.py github-outputs >> "$GITHUB_OUTPUT"
+
   tests:
+    needs: [versions]
     strategy:
-      matrix:
-        # Instead of testing every combination of Python and Postgres, we pair versions
-        # from oldest to newest. This avoids combinatory explosion, and still tests
-        # every supported version at least once.
-        include:
-          - python-version: "3.11"
-            postgres-version: "15"
-          - python-version: "3.12"
-            postgres-version: "16"
-          - python-version: "3.13"
-            postgres-version: "17"
-          - python-version: "3.14"
-            postgres-version: "18"
-          - python-version: "3.15"
-            postgres-version: "19"
+      matrix: ${{ fromJSON(needs.versions.outputs.matrix) }}
 
     name: "py${{ matrix.python-version }}"
     runs-on: ubuntu-latest
@@ -64,8 +71,9 @@ jobs:
           enable-cache: false
 
       - name: Run tests
-        run: uv run pytest --cov=procrastinate --cov-branch
+        run: uv run --no-group docs $TEST_GROUPS pytest --cov=procrastinate --cov-branch
         env:
+          TEST_GROUPS: ${{ matrix.groups }}
           COVERAGE_FILE: ".coverage.${{ matrix.python-version }}"
           PGHOST: localhost
           PGUSER: postgres
@@ -79,6 +87,18 @@ jobs:
           path: .coverage.${{ matrix.python-version }}
           include-hidden-files: true
 
+  # The required check: the test jobs' names change with the supported versions.
+  tests-passed:
+    name: Tests passed
+    if: always()
+    needs: [tests]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check the test jobs' result
+        run: test "$RESULT" = success
+        env:
+          RESULT: ${{ needs.tests.result }}
+
   acceptance-tests:
     strategy:
       matrix:
@@ -87,12 +107,13 @@ jobs:
           - "stable_version_without_post_migration"
 
     name: "e2e ${{ matrix.mode }}"
+    needs: [versions]
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
     services:
       postgres:
-        image: postgres:19
+        image: postgres:${{ needs.versions.outputs.postgres }}
         # Set health checks to wait until postgres has started
         env:
           POSTGRES_PASSWORD: postgres
@@ -111,7 +132,6 @@ jobs:
       - name: Install the latest version of uv
         uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
         with:
-          python-version: "3.14"
           enable-cache: false
 
       - name: Get latest tag
@@ -140,11 +160,10 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
         with:
-          python-version: "3.14"
           enable-cache: false
 
       - name: Install deps
-        run: uv sync --all-groups
+        run: uv sync
 
       - name: Run prek
         run: uv run --group dev prek run --all-files
@@ -183,6 +202,7 @@ jobs:
 
   benchmark:
     name: Benchmark
+    needs: [versions]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -191,7 +211,7 @@ jobs:
 
     services:
       postgres:
-        image: postgres:19
+        image: postgres:${{ needs.versions.outputs.postgres }}
         # Set health checks to wait until postgres has started
         env:
           POSTGRES_PASSWORD: postgres
@@ -210,7 +230,6 @@ jobs:
       - name: Install the latest version of uv
         uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
         with:
-          python-version: "3.14"
           enable-cache: false
 
       - name: Run benchmarks

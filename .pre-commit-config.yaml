@@ -36,6 +36,13 @@ repos:
         types_or: [python, pyi, markdown]
         require_serial: true
 
+      - id: supported-versions
+        name: supported versions
+        entry: uv run --script .github/supported_versions.py update
+        language: system
+        always_run: true
+        pass_filenames: false
+
       - id: uv-lock
         name: uv-lock
         entry: env UV_FROZEN=false uv lock
@@ -45,7 +52,7 @@ repos:
 
       - id: basedpyright
         name: basedpyright
-        entry: uv run --all-groups basedpyright
+        entry: uv run basedpyright
         language: system
         types_or: [python, pyi]
         require_serial: true
@@ -63,13 +70,6 @@ repos:
         language: system
         types: [python]
         require_serial: true
-
-      - id: supported-versions
-        name: supported versions
-        entry: uv run --script scripts/check_supported_versions.py
-        language: system
-        files: ^(README\.md|pyproject\.toml|\.github/workflows/ci\.yml)$
-        pass_filenames: false
 
       - id: zizmor
         name: zizmor

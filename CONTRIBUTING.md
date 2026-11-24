@@ -308,10 +308,7 @@ a specific version of Python. You can do it by setting `PIN_PYTHON` in noxfile.p
 Install nox and dependencies with
 
 ```console
-$ # Minimally:
-$ uv sync --group migration_test
-$ # Maximally:
-$ uv sync --all-extras --all-groups
+$ uv sync --all-extras
 ```
 
 Run nox tests with:
@@ -441,17 +438,39 @@ them, everyone is happy.
 
 Dependencies for the development environment are kept in
 [`uv.lock`](https://github.com/procrastinate-org/procrastinate/blob/main/uv.lock).
-Those are updated regularily by [Renovate](https://docs.renovatebot.com/) which
+Those are updated regularly by [Renovate](https://docs.renovatebot.com/) which
 merges their own PRs.
-The versions in `pre-commit-config.yaml` are kept in sync with `uv.lock`
-by a local `pre-commit` hook
-[script](https://github.com/procrastinate-org/procrastinate/blob/main/scripts/sync-pre-commit.py).
+`pre-commit-config.yaml` contains as few versions as possible, by design, so that we don't need shenanigans to keep it in sync with `uv.lock`.
 
 If you need to recompute the lockfile in your PR, you can use:
 
 ```console
 $ uv lock
 ```
+
+### Special dependencies: Python, Postgres, Django, SQLAlchemy
+
+Procrastinate is a library, so we avoid restrictive version bounds on our dependencies:
+projects that use it should be free to pick their own versions. That said, we need to
+test that we run on our dependencies' supported versions.
+
+For most dependencies we have, there's no specific support scheme, and their maintainers
+only support the latest release, so it makes sense to only test those.
+
+It's not the case for Python, Postgres, Django and SQLAlchemy, which support multiple
+releases, so we need to make sure that all upstream supported versions are tested at
+least once in the CI.
+
+This is done through `.github/supported_versions.py`, which contains the latest versions
+of all four, is kept up to date by Renovate, and is used to maintain multiple
+destinations:
+- `ci.yml` uses it to get the matrix of tests
+- `prek` uses it to update `.python-version`, `README.md`, `pyproject.toml` (and
+  `uv.lock`) and the dev container.
+
+Whenever a new version is out, once Renovate picks it up, it will update the script, and
+`autofix` will then adjust all files. That Renovate PR will be marked with a special
+label that ensures it will appear in the changelog for the next release.
 
 ## Core contributor additional documentation
 
