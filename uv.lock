@@ -1,12 +1,20 @@
 version = 1
 revision = 5
-requires-python = ">=3.11.5"
+requires-python = ">=3.11"
 resolution-markers = [
     "python_full_version >= '3.15'",
     "python_full_version >= '3.13' and python_full_version < '3.15'",
     "python_full_version == '3.12.*'",
     "python_full_version < '3.12'",
 ]
+conflicts = [[
+    { package = "procrastinate", group = "django-5-2" },
+    { package = "procrastinate", group = "django-6-0" },
+    { package = "procrastinate", group = "django-6-1" },
+], [
+    { package = "procrastinate", group = "sqlalchemy-2-0" },
+    { package = "procrastinate", group = "sqlalchemy-2-1" },
+]]
 
 [[package]]
 name = "accessible-pygments"
@@ -48,7 +56,8 @@ version = "1.20.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "mako" },
-    { name = "sqlalchemy" },
+    { name = "sqlalchemy", version = "2.0.58", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-13-procrastinate-sqlalchemy-2-0' or (extra == 'group-13-procrastinate-django-5-2' and extra == 'group-13-procrastinate-django-6-0') or (extra == 'group-13-procrastinate-django-5-2' and extra == 'group-13-procrastinate-django-6-1') or (extra == 'group-13-procrastinate-django-6-0' and extra == 'group-13-procrastinate-django-6-1')" },
+    { name = "sqlalchemy", version = "2.1.9", source = { registry = "https://pypi.org/simple" }, marker = "extra != 'group-13-procrastinate-sqlalchemy-2-0' or extra == 'group-13-procrastinate-sqlalchemy-2-1' or (extra == 'group-13-procrastinate-django-5-2' and extra == 'group-13-procrastinate-django-6-0') or (extra == 'group-13-procrastinate-django-5-2' and extra == 'group-13-procrastinate-django-6-1') or (extra == 'group-13-procrastinate-django-6-0' and extra == 'group-13-procrastinate-django-6-1')" },
     { name = "typing-extensions" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/93/1c/00909e0fbebad2121d916fdcab044cae988146680e9ee4387ba25fef8747/alembic-1.20.1.tar.gz", hash = "sha256:83490def1f723413db5096591f7609ac52544805be93849170088ed04f5a2e0b", size = 2103576, upload-time = "2026-10-22T03:24:35.93Z" }
@@ -560,16 +569,38 @@ name = "django"
 version = "5.2.19"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
+    "python_full_version >= '3.15'",
+    "python_full_version >= '3.13' and python_full_version < '3.15'",
+    "python_full_version == '3.12.*'",
     "python_full_version < '3.12'",
 ]
 dependencies = [
-    { name = "asgiref" },
-    { name = "sqlparse" },
-    { name = "tzdata", marker = "sys_platform == 'win32'" },
+    { name = "asgiref", marker = "python_full_version < '3.12' or extra == 'group-13-procrastinate-django-5-2' or (extra == 'group-13-procrastinate-django-6-0' and extra == 'group-13-procrastinate-django-6-1') or (extra == 'group-13-procrastinate-sqlalchemy-2-0' and extra == 'group-13-procrastinate-sqlalchemy-2-1')" },
+    { name = "sqlparse", marker = "python_full_version < '3.12' or extra == 'group-13-procrastinate-django-5-2' or (extra == 'group-13-procrastinate-django-6-0' and extra == 'group-13-procrastinate-django-6-1') or (extra == 'group-13-procrastinate-sqlalchemy-2-0' and extra == 'group-13-procrastinate-sqlalchemy-2-1')" },
+    { name = "tzdata", marker = "(python_full_version < '3.12' and sys_platform == 'win32') or (sys_platform == 'win32' and extra == 'group-13-procrastinate-django-5-2') or (extra == 'group-13-procrastinate-django-5-2' and extra == 'group-13-procrastinate-django-6-0') or (extra == 'group-13-procrastinate-django-5-2' and extra == 'group-13-procrastinate-django-6-1') or (extra == 'group-13-procrastinate-django-6-0' and extra == 'group-13-procrastinate-django-6-1') or (extra == 'group-13-procrastinate-sqlalchemy-2-0' and extra == 'group-13-procrastinate-sqlalchemy-2-1')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/02/29/a487a108caa76430c8b616aa90a6d09cf431306112c14093e6f0a7454e17/django-5.2.19.tar.gz", hash = "sha256:ad03d8abc51dbff95ebf34b27123cf0c26a3b62db7ba0cd520783686362533d1", size = 10969285, upload-time = "2026-11-03T15:22:09.468Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/3c/fb/65b4e897d1268288a46457493d9aec6541be8be08e0093a93cc101c03ab2/django-5.2.19-py3-none-any.whl", hash = "sha256:5965d974a5218a2b68a11dd1276434707f23886525c23f0598eccedaf4f4ca00", size = 8319631, upload-time = "2026-11-03T15:22:03.67Z" },
+]
+
+[[package]]
+name = "django"
+version = "6.0.10"
+source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "python_full_version >= '3.15'",
+    "python_full_version >= '3.13' and python_full_version < '3.15'",
+    "python_full_version == '3.12.*'",
+]
+dependencies = [
+    { name = "asgiref", marker = "(python_full_version >= '3.12' and extra == 'group-13-procrastinate-django-6-0') or (extra == 'group-13-procrastinate-django-5-2' and extra == 'group-13-procrastinate-django-6-0') or (extra == 'group-13-procrastinate-django-5-2' and extra == 'group-13-procrastinate-django-6-1') or (extra == 'group-13-procrastinate-django-6-0' and extra == 'group-13-procrastinate-django-6-1') or (extra == 'group-13-procrastinate-sqlalchemy-2-0' and extra == 'group-13-procrastinate-sqlalchemy-2-1')" },
+    { name = "sqlparse", marker = "(python_full_version >= '3.12' and extra == 'group-13-procrastinate-django-6-0') or (extra == 'group-13-procrastinate-django-5-2' and extra == 'group-13-procrastinate-django-6-0') or (extra == 'group-13-procrastinate-django-5-2' and extra == 'group-13-procrastinate-django-6-1') or (extra == 'group-13-procrastinate-django-6-0' and extra == 'group-13-procrastinate-django-6-1') or (extra == 'group-13-procrastinate-sqlalchemy-2-0' and extra == 'group-13-procrastinate-sqlalchemy-2-1')" },
+    { name = "tzdata", marker = "(python_full_version >= '3.12' and sys_platform == 'win32' and extra == 'group-13-procrastinate-django-6-0') or (extra == 'group-13-procrastinate-django-5-2' and extra == 'group-13-procrastinate-django-6-0') or (extra == 'group-13-procrastinate-django-5-2' and extra == 'group-13-procrastinate-django-6-1') or (extra == 'group-13-procrastinate-django-6-0' and extra == 'group-13-procrastinate-django-6-1') or (extra == 'group-13-procrastinate-sqlalchemy-2-0' and extra == 'group-13-procrastinate-sqlalchemy-2-1')" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/fb/6a/9dd67bd0d1e3c610faf3d1fab5b233adca77735397807c7e4f438201a140/django-6.0.10.tar.gz", hash = "sha256:6005d030df924f85088454c18bd35dcf082b058aa355ad3df520d8de9aef9f41", size = 11007536, upload-time = "2026-11-03T15:21:49.768Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/fc/55/ee40b1865bd0ba5fc4e2d747a1a753c1122047137a17b852667287c057a6/django-6.0.10-py3-none-any.whl", hash = "sha256:2a6fe22f319d71fd0ea1e70cded76c6449225cb9903234f8992ee3d21eded5e8", size = 8380913, upload-time = "2026-11-03T15:21:43.691Z" },
 ]
 
 [[package]]
@@ -582,9 +613,9 @@ resolution-markers = [
     "python_full_version == '3.12.*'",
 ]
 dependencies = [
-    { name = "asgiref" },
-    { name = "sqlparse" },
-    { name = "tzdata", marker = "sys_platform == 'win32'" },
+    { name = "asgiref", marker = "(python_full_version >= '3.12' and extra != 'group-13-procrastinate-django-5-2' and extra != 'group-13-procrastinate-django-6-0') or (extra == 'group-13-procrastinate-django-5-2' and extra == 'group-13-procrastinate-django-6-0') or (extra == 'group-13-procrastinate-django-5-2' and extra == 'group-13-procrastinate-django-6-1') or (extra == 'group-13-procrastinate-django-6-0' and extra == 'group-13-procrastinate-django-6-1') or (extra == 'group-13-procrastinate-sqlalchemy-2-0' and extra == 'group-13-procrastinate-sqlalchemy-2-1')" },
+    { name = "sqlparse", marker = "(python_full_version >= '3.12' and extra != 'group-13-procrastinate-django-5-2' and extra != 'group-13-procrastinate-django-6-0') or (extra == 'group-13-procrastinate-django-5-2' and extra == 'group-13-procrastinate-django-6-0') or (extra == 'group-13-procrastinate-django-5-2' and extra == 'group-13-procrastinate-django-6-1') or (extra == 'group-13-procrastinate-django-6-0' and extra == 'group-13-procrastinate-django-6-1') or (extra == 'group-13-procrastinate-sqlalchemy-2-0' and extra == 'group-13-procrastinate-sqlalchemy-2-1')" },
+    { name = "tzdata", marker = "(python_full_version >= '3.12' and sys_platform == 'win32' and extra != 'group-13-procrastinate-django-5-2' and extra != 'group-13-procrastinate-django-6-0') or (extra == 'group-13-procrastinate-django-5-2' and extra == 'group-13-procrastinate-django-6-0') or (extra == 'group-13-procrastinate-django-5-2' and extra == 'group-13-procrastinate-django-6-1') or (extra == 'group-13-procrastinate-django-6-0' and extra == 'group-13-procrastinate-django-6-1') or (extra == 'group-13-procrastinate-sqlalchemy-2-0' and extra == 'group-13-procrastinate-sqlalchemy-2-1')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/55/79/49a609ea76ec51404b482932e33f1e6858946b920232c11b11a25bea3032/django-6.1.3.tar.gz", hash = "sha256:b5d2d9e35295065d13b1927b3f19a59bd119f737aa6299def14ccca1ae3c8c0d", size = 11306257, upload-time = "2026-11-03T15:21:26.142Z" }
 wheels = [
@@ -596,8 +627,9 @@ name = "django-stubs"
 version = "6.1.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "django", version = "5.2.19", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
-    { name = "django", version = "6.1.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
+    { name = "django", version = "5.2.19", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12' or extra == 'group-13-procrastinate-django-5-2' or (extra == 'group-13-procrastinate-django-6-0' and extra == 'group-13-procrastinate-django-6-1') or (extra == 'group-13-procrastinate-sqlalchemy-2-0' and extra == 'group-13-procrastinate-sqlalchemy-2-1')" },
+    { name = "django", version = "6.0.10", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.12' and extra == 'group-13-procrastinate-django-6-0') or (extra == 'group-13-procrastinate-django-5-2' and extra == 'group-13-procrastinate-django-6-0') or (extra == 'group-13-procrastinate-django-5-2' and extra == 'group-13-procrastinate-django-6-1') or (extra == 'group-13-procrastinate-django-6-0' and extra == 'group-13-procrastinate-django-6-1') or (extra == 'group-13-procrastinate-sqlalchemy-2-0' and extra == 'group-13-procrastinate-sqlalchemy-2-1')" },
+    { name = "django", version = "6.1.3", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.12' and extra != 'group-13-procrastinate-django-5-2' and extra != 'group-13-procrastinate-django-6-0') or (extra == 'group-13-procrastinate-django-5-2' and extra == 'group-13-procrastinate-django-6-0') or (extra == 'group-13-procrastinate-django-5-2' and extra == 'group-13-procrastinate-django-6-1') or (extra == 'group-13-procrastinate-django-6-0' and extra == 'group-13-procrastinate-django-6-1') or (extra == 'group-13-procrastinate-sqlalchemy-2-0' and extra == 'group-13-procrastinate-sqlalchemy-2-1')" },
     { name = "django-stubs-ext" },
     { name = "types-pyyaml" },
     { name = "typing-extensions" },
@@ -612,8 +644,9 @@ name = "django-stubs-ext"
 version = "6.1.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "django", version = "5.2.19", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
-    { name = "django", version = "6.1.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
+    { name = "django", version = "5.2.19", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12' or extra == 'group-13-procrastinate-django-5-2' or (extra == 'group-13-procrastinate-django-6-0' and extra == 'group-13-procrastinate-django-6-1') or (extra == 'group-13-procrastinate-sqlalchemy-2-0' and extra == 'group-13-procrastinate-sqlalchemy-2-1')" },
+    { name = "django", version = "6.0.10", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.12' and extra == 'group-13-procrastinate-django-6-0') or (extra == 'group-13-procrastinate-django-5-2' and extra == 'group-13-procrastinate-django-6-0') or (extra == 'group-13-procrastinate-django-5-2' and extra == 'group-13-procrastinate-django-6-1') or (extra == 'group-13-procrastinate-django-6-0' and extra == 'group-13-procrastinate-django-6-1') or (extra == 'group-13-procrastinate-sqlalchemy-2-0' and extra == 'group-13-procrastinate-sqlalchemy-2-1')" },
+    { name = "django", version = "6.1.3", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.12' and extra != 'group-13-procrastinate-django-5-2' and extra != 'group-13-procrastinate-django-6-0') or (extra == 'group-13-procrastinate-django-5-2' and extra == 'group-13-procrastinate-django-6-0') or (extra == 'group-13-procrastinate-django-5-2' and extra == 'group-13-procrastinate-django-6-1') or (extra == 'group-13-procrastinate-django-6-0' and extra == 'group-13-procrastinate-django-6-1') or (extra == 'group-13-procrastinate-sqlalchemy-2-0' and extra == 'group-13-procrastinate-sqlalchemy-2-1')" },
     { name = "typing-extensions" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/d9/62/de532d58736d671b9ac0c0467909a9429758ae579d636e868ce74519566b/django_stubs_ext-6.1.2.tar.gz", hash = "sha256:2142da7fffbbe897ccecf9b4c97e09ea1a2e9291760b0a824b4c402b375ce6f9", size = 7221, upload-time = "2026-10-05T06:46:43.717Z" }
@@ -686,9 +719,7 @@ dependencies = [
     { name = "accessible-pygments" },
     { name = "beautifulsoup4" },
     { name = "pygments" },
-    { name = "sphinx", version = "9.0.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
-    { name = "sphinx", version = "9.1.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.12.*'" },
-    { name = "sphinx", version = "9.2.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.13'" },
+    { name = "sphinx", version = "9.2.0", source = { registry = "https://pypi.org/simple" } },
     { name = "sphinx-basic-ng" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/ec/20/5f5ad4da6a5a27c80f2ed2ee9aee3f9e36c66e56e21c00fde467b2f8f88f/furo-2025.12.19.tar.gz", hash = "sha256:188d1f942037d8b37cd3985b955839fea62baa1730087dc29d157677c857e2a7", size = 1661473, upload-time = "2025-12-19T17:34:40.889Z" }
@@ -1041,9 +1072,7 @@ dependencies = [
     { name = "markdown-it-py" },
     { name = "mdit-py-plugins" },
     { name = "pyyaml" },
-    { name = "sphinx", version = "9.0.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
-    { name = "sphinx", version = "9.1.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.12.*'" },
-    { name = "sphinx", version = "9.2.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.13'" },
+    { name = "sphinx", version = "9.2.0", source = { registry = "https://pypi.org/simple" } },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/11/51/82c2dff56e171db778dc68bf8d7902fcc8ea1687b67f716baf1abb94cd6a/myst_parser-5.2.0.tar.gz", hash = "sha256:749cc02793f2be6b984b0b59b1fe33b6ed61d77644499b85db436d0d20117fa4", size = 92240, upload-time = "2026-11-10T19:52:29.176Z" }
 wheels = [
@@ -1237,8 +1266,9 @@ alembic = [
     { name = "alembic" },
 ]
 django = [
-    { name = "django", version = "5.2.19", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
-    { name = "django", version = "6.1.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
+    { name = "django", version = "5.2.19", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12' or extra == 'group-13-procrastinate-django-5-2' or (extra == 'group-13-procrastinate-django-6-0' and extra == 'group-13-procrastinate-django-6-1') or (extra == 'group-13-procrastinate-sqlalchemy-2-0' and extra == 'group-13-procrastinate-sqlalchemy-2-1')" },
+    { name = "django", version = "6.0.10", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.12' and extra == 'group-13-procrastinate-django-6-0') or (extra == 'group-13-procrastinate-django-5-2' and extra == 'group-13-procrastinate-django-6-0') or (extra == 'group-13-procrastinate-django-5-2' and extra == 'group-13-procrastinate-django-6-1') or (extra == 'group-13-procrastinate-django-6-0' and extra == 'group-13-procrastinate-django-6-1') or (extra == 'group-13-procrastinate-sqlalchemy-2-0' and extra == 'group-13-procrastinate-sqlalchemy-2-1')" },
+    { name = "django", version = "6.1.3", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.12' and extra != 'group-13-procrastinate-django-5-2' and extra != 'group-13-procrastinate-django-6-0') or (extra == 'group-13-procrastinate-django-5-2' and extra == 'group-13-procrastinate-django-6-0') or (extra == 'group-13-procrastinate-django-5-2' and extra == 'group-13-procrastinate-django-6-1') or (extra == 'group-13-procrastinate-django-6-0' and extra == 'group-13-procrastinate-django-6-1') or (extra == 'group-13-procrastinate-sqlalchemy-2-0' and extra == 'group-13-procrastinate-sqlalchemy-2-1')" },
 ]
 psycopg2 = [
     { name = "psycopg2-binary" },
@@ -1249,7 +1279,8 @@ sphinx = [
     { name = "sphinx", version = "9.2.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.13'" },
 ]
 sqlalchemy = [
-    { name = "sqlalchemy" },
+    { name = "sqlalchemy", version = "2.0.58", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-13-procrastinate-sqlalchemy-2-0' or (extra == 'group-13-procrastinate-django-5-2' and extra == 'group-13-procrastinate-django-6-0') or (extra == 'group-13-procrastinate-django-5-2' and extra == 'group-13-procrastinate-django-6-1') or (extra == 'group-13-procrastinate-django-6-0' and extra == 'group-13-procrastinate-django-6-1')" },
+    { name = "sqlalchemy", version = "2.1.9", source = { registry = "https://pypi.org/simple" }, marker = "extra != 'group-13-procrastinate-sqlalchemy-2-0' or extra == 'group-13-procrastinate-sqlalchemy-2-1' or (extra == 'group-13-procrastinate-django-5-2' and extra == 'group-13-procrastinate-django-6-0') or (extra == 'group-13-procrastinate-django-5-2' and extra == 'group-13-procrastinate-django-6-1') or (extra == 'group-13-procrastinate-django-6-0' and extra == 'group-13-procrastinate-django-6-1')" },
 ]
 
 [package.dev-dependencies]
@@ -1260,18 +1291,26 @@ dev = [
     { name = "ruff" },
     { name = "zizmor" },
 ]
+django-5-2 = [
+    { name = "django", version = "5.2.19", source = { registry = "https://pypi.org/simple" } },
+]
+django-6-0 = [
+    { name = "django", version = "6.0.10", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12' or (extra == 'group-13-procrastinate-sqlalchemy-2-0' and extra == 'group-13-procrastinate-sqlalchemy-2-1')" },
+]
+django-6-1 = [
+    { name = "django", version = "6.1.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12' or (extra == 'group-13-procrastinate-sqlalchemy-2-0' and extra == 'group-13-procrastinate-sqlalchemy-2-1')" },
+]
 docs = [
-    { name = "django", version = "5.2.19", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
-    { name = "django", version = "6.1.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
-    { name = "furo" },
-    { name = "myst-parser" },
-    { name = "sphinx", version = "9.0.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
-    { name = "sphinx", version = "9.1.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.12.*'" },
-    { name = "sphinx", version = "9.2.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.13'" },
-    { name = "sphinx-copybutton" },
-    { name = "sphinx-github-changelog" },
-    { name = "sphinxcontrib-mermaid" },
-    { name = "sphinxcontrib-programoutput" },
+    { name = "django", version = "5.2.19", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.15' and extra == 'group-13-procrastinate-django-5-2') or (extra == 'group-13-procrastinate-django-5-2' and extra == 'group-13-procrastinate-django-6-0') or (extra == 'group-13-procrastinate-django-5-2' and extra == 'group-13-procrastinate-django-6-1') or (extra == 'group-13-procrastinate-django-6-0' and extra == 'group-13-procrastinate-django-6-1') or (extra == 'group-13-procrastinate-sqlalchemy-2-0' and extra == 'group-13-procrastinate-sqlalchemy-2-1')" },
+    { name = "django", version = "6.0.10", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.15' and extra == 'group-13-procrastinate-django-6-0') or (extra == 'group-13-procrastinate-django-5-2' and extra == 'group-13-procrastinate-django-6-0') or (extra == 'group-13-procrastinate-django-5-2' and extra == 'group-13-procrastinate-django-6-1') or (extra == 'group-13-procrastinate-django-6-0' and extra == 'group-13-procrastinate-django-6-1') or (extra == 'group-13-procrastinate-sqlalchemy-2-0' and extra == 'group-13-procrastinate-sqlalchemy-2-1')" },
+    { name = "django", version = "6.1.3", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.15' and extra != 'group-13-procrastinate-django-5-2' and extra != 'group-13-procrastinate-django-6-0') or (extra == 'group-13-procrastinate-django-5-2' and extra == 'group-13-procrastinate-django-6-0') or (extra == 'group-13-procrastinate-django-5-2' and extra == 'group-13-procrastinate-django-6-1') or (extra == 'group-13-procrastinate-django-6-0' and extra == 'group-13-procrastinate-django-6-1') or (extra == 'group-13-procrastinate-sqlalchemy-2-0' and extra == 'group-13-procrastinate-sqlalchemy-2-1')" },
+    { name = "furo", marker = "python_full_version >= '3.15'" },
+    { name = "myst-parser", marker = "python_full_version >= '3.15'" },
+    { name = "sphinx", version = "9.2.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.15'" },
+    { name = "sphinx-copybutton", marker = "python_full_version >= '3.15'" },
+    { name = "sphinx-github-changelog", marker = "python_full_version >= '3.15'" },
+    { name = "sphinxcontrib-mermaid", marker = "python_full_version >= '3.15'" },
+    { name = "sphinxcontrib-programoutput", marker = "python_full_version >= '3.15'" },
 ]
 lint-format = [
     { name = "django-upgrade" },
@@ -1286,10 +1325,17 @@ pg-implem = [
     { name = "aiopg" },
     { name = "psycopg", extra = ["binary", "pool"] },
     { name = "psycopg2-binary" },
-    { name = "sqlalchemy" },
+    { name = "sqlalchemy", version = "2.0.58", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'group-13-procrastinate-sqlalchemy-2-0' or (extra == 'group-13-procrastinate-django-5-2' and extra == 'group-13-procrastinate-django-6-0') or (extra == 'group-13-procrastinate-django-5-2' and extra == 'group-13-procrastinate-django-6-1') or (extra == 'group-13-procrastinate-django-6-0' and extra == 'group-13-procrastinate-django-6-1')" },
+    { name = "sqlalchemy", version = "2.1.9", source = { registry = "https://pypi.org/simple" }, marker = "extra != 'group-13-procrastinate-sqlalchemy-2-0' or extra == 'group-13-procrastinate-sqlalchemy-2-1' or (extra == 'group-13-procrastinate-django-5-2' and extra == 'group-13-procrastinate-django-6-0') or (extra == 'group-13-procrastinate-django-5-2' and extra == 'group-13-procrastinate-django-6-1') or (extra == 'group-13-procrastinate-django-6-0' and extra == 'group-13-procrastinate-django-6-1')" },
 ]
 release = [
     { name = "dunamai" },
+]
+sqlalchemy-2-0 = [
+    { name = "sqlalchemy", version = "2.0.58", source = { registry = "https://pypi.org/simple" }, extra = ["asyncio"], marker = "extra == 'group-13-procrastinate-sqlalchemy-2-0' or (extra == 'group-13-procrastinate-django-5-2' and extra == 'group-13-procrastinate-django-6-0') or (extra == 'group-13-procrastinate-django-5-2' and extra == 'group-13-procrastinate-django-6-1') or (extra == 'group-13-procrastinate-django-6-0' and extra == 'group-13-procrastinate-django-6-1')" },
+]
+sqlalchemy-2-1 = [
+    { name = "sqlalchemy", version = "2.1.9", source = { registry = "https://pypi.org/simple" }, extra = ["asyncio"], marker = "extra == 'group-13-procrastinate-sqlalchemy-2-1' or (extra == 'group-13-procrastinate-django-5-2' and extra == 'group-13-procrastinate-django-6-0') or (extra == 'group-13-procrastinate-django-5-2' and extra == 'group-13-procrastinate-django-6-1') or (extra == 'group-13-procrastinate-django-6-0' and extra == 'group-13-procrastinate-django-6-1')" },
 ]
 test = [
     { name = "alembic" },
@@ -1300,11 +1346,18 @@ test = [
     { name = "pytest-django" },
     { name = "pytest-mock" },
     { name = "results" },
-    { name = "sqlalchemy", extra = ["asyncio"] },
+    { name = "sphinx", version = "9.0.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
+    { name = "sphinx", version = "9.1.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.12.*'" },
+    { name = "sphinx", version = "9.2.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.13'" },
+    { name = "sqlalchemy", version = "2.0.58", source = { registry = "https://pypi.org/simple" }, extra = ["asyncio"], marker = "extra == 'group-13-procrastinate-sqlalchemy-2-0' or (extra == 'group-13-procrastinate-django-5-2' and extra == 'group-13-procrastinate-django-6-0') or (extra == 'group-13-procrastinate-django-5-2' and extra == 'group-13-procrastinate-django-6-1') or (extra == 'group-13-procrastinate-django-6-0' and extra == 'group-13-procrastinate-django-6-1')" },
+    { name = "sqlalchemy", version = "2.1.9", source = { registry = "https://pypi.org/simple" }, extra = ["asyncio"], marker = "extra != 'group-13-procrastinate-sqlalchemy-2-0' or extra == 'group-13-procrastinate-sqlalchemy-2-1' or (extra == 'group-13-procrastinate-django-5-2' and extra == 'group-13-procrastinate-django-6-0') or (extra == 'group-13-procrastinate-django-5-2' and extra == 'group-13-procrastinate-django-6-1') or (extra == 'group-13-procrastinate-django-6-0' and extra == 'group-13-procrastinate-django-6-1')" },
 ]
 types = [
     { name = "django-stubs" },
 ]
+
+[package.group-requires-python]
+docs = ">=3.15"
 
 [package.metadata]
 requires-dist = [
@@ -1334,15 +1387,18 @@ dev = [
     { name = "ruff" },
     { name = "zizmor" },
 ]
+django-5-2 = [{ name = "django", specifier = "==5.2.*" }]
+django-6-0 = [{ name = "django", marker = "python_full_version >= '3.12'", specifier = "==6.0.*" }]
+django-6-1 = [{ name = "django", marker = "python_full_version >= '3.12'", specifier = "==6.1.*" }]
 docs = [
-    { name = "django" },
-    { name = "furo" },
-    { name = "myst-parser" },
-    { name = "sphinx" },
-    { name = "sphinx-copybutton" },
-    { name = "sphinx-github-changelog" },
-    { name = "sphinxcontrib-mermaid" },
-    { name = "sphinxcontrib-programoutput" },
+    { name = "django", marker = "python_full_version >= '3.15'" },
+    { name = "furo", marker = "python_full_version >= '3.15'" },
+    { name = "myst-parser", marker = "python_full_version >= '3.15'" },
+    { name = "sphinx", marker = "python_full_version >= '3.15'" },
+    { name = "sphinx-copybutton", marker = "python_full_version >= '3.15'" },
+    { name = "sphinx-github-changelog", marker = "python_full_version >= '3.15'" },
+    { name = "sphinxcontrib-mermaid", marker = "python_full_version >= '3.15'" },
+    { name = "sphinxcontrib-programoutput", marker = "python_full_version >= '3.15'" },
 ]
 lint-format = [
     { name = "django-upgrade" },
@@ -1360,6 +1416,8 @@ pg-implem = [
     { name = "sqlalchemy" },
 ]
 release = [{ name = "dunamai" }]
+sqlalchemy-2-0 = [{ name = "sqlalchemy", extras = ["asyncio"], specifier = "==2.0.*" }]
+sqlalchemy-2-1 = [{ name = "sqlalchemy", extras = ["asyncio"], specifier = "==2.1.*" }]
 test = [
     { name = "alembic" },
     { name = "asyncpg" },
@@ -1369,6 +1427,7 @@ test = [
     { name = "pytest-django" },
     { name = "pytest-mock" },
     { name = "results" },
+    { name = "sphinx" },
     { name = "sqlalchemy", extras = ["asyncio"] },
 ]
 types = [{ name = "django-stubs" }]
@@ -1918,9 +1977,7 @@ name = "sphinx-basic-ng"
 version = "1.0.0b2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "sphinx", version = "9.0.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
-    { name = "sphinx", version = "9.1.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.12.*'" },
-    { name = "sphinx", version = "9.2.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.13'" },
+    { name = "sphinx", version = "9.2.0", source = { registry = "https://pypi.org/simple" } },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/98/0b/a866924ded68efec7a1759587a4e478aec7559d8165fac8b2ad1c0e774d6/sphinx_basic_ng-1.0.0b2.tar.gz", hash = "sha256:9ec55a47c90c8c002b5960c57492ec3021f5193cb26cebc2dc4ea226848651c9", size = 20736, upload-time = "2023-07-08T18:40:54.166Z" }
 wheels = [
@@ -1932,9 +1989,7 @@ name = "sphinx-copybutton"
 version = "0.5.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "sphinx", version = "9.0.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
-    { name = "sphinx", version = "9.1.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.12.*'" },
-    { name = "sphinx", version = "9.2.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.13'" },
+    { name = "sphinx", version = "9.2.0", source = { registry = "https://pypi.org/simple" } },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/fc/2b/a964715e7f5295f77509e59309959f4125122d648f86b4fe7d70ca1d882c/sphinx-copybutton-0.5.2.tar.gz", hash = "sha256:4cf17c82fb9646d1bc9ca92ac280813a3b605d8c421225fd9913154103ee1fbd", size = 23039, upload-time = "2023-04-14T08:10:22.998Z" }
 wheels = [
@@ -1949,9 +2004,7 @@ dependencies = [
     { name = "docutils" },
     { name = "httpx" },
     { name = "myst-parser" },
-    { name = "sphinx", version = "9.0.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
-    { name = "sphinx", version = "9.1.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.12.*'" },
-    { name = "sphinx", version = "9.2.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.13'" },
+    { name = "sphinx", version = "9.2.0", source = { registry = "https://pypi.org/simple" } },
     { name = "tenacity" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/40/06/afa67f8ac5669e37cd108fabb42b333dcda631d7566b00ae35c0addfa555/sphinx_github_changelog-2.3.1.tar.gz", hash = "sha256:525b228370bc9aae702359db7a4954c74792009098ee26d4349a57e614df5436", size = 104507, upload-time = "2026-11-18T23:26:05.094Z" }
@@ -2002,9 +2055,7 @@ source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "jinja2" },
     { name = "pyyaml" },
-    { name = "sphinx", version = "9.0.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
-    { name = "sphinx", version = "9.1.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.12.*'" },
-    { name = "sphinx", version = "9.2.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.13'" },
+    { name = "sphinx", version = "9.2.0", source = { registry = "https://pypi.org/simple" } },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/8c/87/06537dff20aa57df2d0f2afa87edff4afa85dec6f57f03f7acc24f83ff88/sphinxcontrib_mermaid-2.1.1.tar.gz", hash = "sha256:f8d7f1b2f0ad69b7ebdd5cbf532fb4ee107893b5373bc2d0e9634089c0b2cfee", size = 22353, upload-time = "2026-09-01T16:10:23.671Z" }
 wheels = [
@@ -2017,9 +2068,7 @@ version = "0.20"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "docutils" },
-    { name = "sphinx", version = "9.0.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
-    { name = "sphinx", version = "9.1.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.12.*'" },
-    { name = "sphinx", version = "9.2.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.13'" },
+    { name = "sphinx", version = "9.2.0", source = { registry = "https://pypi.org/simple" } },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/1b/e5/0549d81b4144a1cc8464d368bd2d7a3482fd185399d9430c548978f13036/sphinxcontrib_programoutput-0.20.tar.gz", hash = "sha256:5c4282c1c7fc9b5a23febe16ae038b6392d7ce068d186ad4870ba22e74db0711", size = 28235, upload-time = "2026-06-16T15:55:52.243Z" }
 wheels = [
@@ -2046,10 +2095,75 @@ wheels = [
 
 [[package]]
 name = "sqlalchemy"
+version = "2.0.58"
+source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "python_full_version >= '3.15'",
+    "python_full_version >= '3.13' and python_full_version < '3.15'",
+    "python_full_version == '3.12.*'",
+    "python_full_version < '3.12'",
+]
+dependencies = [
+    { name = "greenlet", marker = "(platform_machine == 'AMD64' and extra == 'group-13-procrastinate-sqlalchemy-2-0') or (platform_machine == 'WIN32' and extra == 'group-13-procrastinate-sqlalchemy-2-0') or (platform_machine == 'aarch64' and extra == 'group-13-procrastinate-sqlalchemy-2-0') or (platform_machine == 'amd64' and extra == 'group-13-procrastinate-sqlalchemy-2-0') or (platform_machine == 'ppc64le' and extra == 'group-13-procrastinate-sqlalchemy-2-0') or (platform_machine == 'win32' and extra == 'group-13-procrastinate-sqlalchemy-2-0') or (platform_machine == 'x86_64' and extra == 'group-13-procrastinate-sqlalchemy-2-0') or (extra == 'group-13-procrastinate-django-5-2' and extra == 'group-13-procrastinate-django-6-0') or (extra == 'group-13-procrastinate-django-5-2' and extra == 'group-13-procrastinate-django-6-1') or (extra == 'group-13-procrastinate-django-6-0' and extra == 'group-13-procrastinate-django-6-1') or (extra == 'group-13-procrastinate-sqlalchemy-2-0' and extra == 'group-13-procrastinate-sqlalchemy-2-1')" },
+    { name = "typing-extensions", marker = "extra == 'group-13-procrastinate-sqlalchemy-2-0' or (extra == 'group-13-procrastinate-django-5-2' and extra == 'group-13-procrastinate-django-6-0') or (extra == 'group-13-procrastinate-django-5-2' and extra == 'group-13-procrastinate-django-6-1') or (extra == 'group-13-procrastinate-django-6-0' and extra == 'group-13-procrastinate-django-6-1')" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/74/9a/8d798711d1e56fa5f51152c228c2e0a8f03c95f3d59c969dd720ed492b83/sqlalchemy-2.0.58.tar.gz", hash = "sha256:2acdcec9836b7c1514a9ad426e7731669a1186d96481a2e82c50bf2aebb49061", size = 10031998, upload-time = "2026-11-16T20:40:44.535Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/6d/58/c32d1f92729e9eac59029d0fc6cb98f5f359bc30682e9df3b358ec766b83/sqlalchemy-2.0.58-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:213bb891991c71286c7149df147c8dfbce2e228e1b2f5177bf2b67435a33db13", size = 2199394, upload-time = "2026-11-16T20:58:55.958Z" },
+    { url = "https://files.pythonhosted.org/packages/12/ec/735003c6d2cfcae34892c1faf0ebe5b159b18c15063148db4458387f3032/sqlalchemy-2.0.58-cp311-cp311-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:ec4785da1b73083bd36046af672bca430a739d13bbd359e5b0a0c42e76df9896", size = 3442427, upload-time = "2026-11-16T21:03:33.668Z" },
+    { url = "https://files.pythonhosted.org/packages/3f/97/0e8ab2e98f4d9a2e3e65cc08dedd10470b2e149629f3736fbcfc5818e0d0/sqlalchemy-2.0.58-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:3be707b48a7aa68f987ed82b219dff32de67677402a0c05356a631ec0ed86e4d", size = 3440588, upload-time = "2026-11-16T20:57:25.025Z" },
+    { url = "https://files.pythonhosted.org/packages/67/0d/81032d86dbfd50a3621a2b3be32aa3eb414e0d492ac941514974f697d2c1/sqlalchemy-2.0.58-cp311-cp311-musllinux_1_2_aarch64.whl", hash = "sha256:cdf2c956130bc3570dd2312d81d93259976716d8e9fa002dd4952be05180c328", size = 3394221, upload-time = "2026-11-16T21:03:35.456Z" },
+    { url = "https://files.pythonhosted.org/packages/55/bf/162e30005a60af95d55cabab9aabee71c076da122a6c9bbaba062e7132ad/sqlalchemy-2.0.58-cp311-cp311-musllinux_1_2_x86_64.whl", hash = "sha256:9d73d70d1ad20f54064c6f0473d365c850b5abe51bce4846656799b9a7759064", size = 3417618, upload-time = "2026-11-16T20:57:26.739Z" },
+    { url = "https://files.pythonhosted.org/packages/fa/8e/0ba7a4e2bfd52c00ac1ac92fcbb47cba20558a6399dfc910ad6fbea02f51/sqlalchemy-2.0.58-cp311-cp311-win32.whl", hash = "sha256:7c1f254be594c32a3ccf45f5ff630191faf79fd1e847c3a37ce4588e7f1329d9", size = 2154185, upload-time = "2026-11-16T21:07:07.55Z" },
+    { url = "https://files.pythonhosted.org/packages/39/ad/25ac6d3d63816937d733e8f4f6c214275ee4afbf3ed2ead746fee7a7ff7a/sqlalchemy-2.0.58-cp311-cp311-win_amd64.whl", hash = "sha256:372e4cbf8b189ade90f8d88440f1c1f934fb99d20416dc562a35d7e628756467", size = 2180944, upload-time = "2026-11-16T21:07:09.248Z" },
+    { url = "https://files.pythonhosted.org/packages/4a/5e/34422c5ae9d572c8a61b77ac13a64d8963c4acad72653c3551a18e2f5904/sqlalchemy-2.0.58-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:852b9ead092376348d3f2e7600b8f4d388fef7d4d1c37b15d56456393c657f00", size = 2199184, upload-time = "2026-11-16T20:58:57.582Z" },
+    { url = "https://files.pythonhosted.org/packages/68/6e/7b37ebcf7ba994f5d1c3d4bb963d4105a02de3831b9279ee34576b19b6ab/sqlalchemy-2.0.58-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:653c936876b581098c65b60a627706ce9566cbdf46d30ca0e3f839e88990a933", size = 3463395, upload-time = "2026-11-16T21:03:37.258Z" },
+    { url = "https://files.pythonhosted.org/packages/cd/b8/85f6ee0ee2c9075f20ea2d9c698ab5bc734336ae89105026e153d07d12e3/sqlalchemy-2.0.58-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:301f32a68df64c66226ade47a520e360595177ee77986fcc4e62abfe6e002b97", size = 3480085, upload-time = "2026-11-16T20:57:28.403Z" },
+    { url = "https://files.pythonhosted.org/packages/a2/cc/c03a9c6a36447fe0f4aa98be82caf3db2b4707d995bed801c6b76267d364/sqlalchemy-2.0.58-cp312-cp312-musllinux_1_2_aarch64.whl", hash = "sha256:4e2a03aeee8eee6bb9b375628f64cac6ac13251fa985e2d062178fa8e9373705", size = 3414855, upload-time = "2026-11-16T21:03:39.593Z" },
+    { url = "https://files.pythonhosted.org/packages/14/e7/0063a07b5820c850fe77e944f5d6a0fc9d3689ddd44009f14f03c9e6e126/sqlalchemy-2.0.58-cp312-cp312-musllinux_1_2_x86_64.whl", hash = "sha256:c85243a35a10c977732ce164d96ff85558a79dd2f9547c9659dd438c3a42ad45", size = 3446091, upload-time = "2026-11-16T20:57:30.08Z" },
+    { url = "https://files.pythonhosted.org/packages/aa/03/b3819d8a0e4935e5e630e53e03c35b80117d7f5a9041b302660eecccaea6/sqlalchemy-2.0.58-cp312-cp312-win32.whl", hash = "sha256:50d3b6cdfa8c32ebe308be885467d983bb3d4b7b01785049a94b179852ee4981", size = 2152509, upload-time = "2026-11-16T21:07:10.686Z" },
+    { url = "https://files.pythonhosted.org/packages/b5/cf/95becaaa2690a8c5a92238337590948323da9af5644d903422266b473db4/sqlalchemy-2.0.58-cp312-cp312-win_amd64.whl", hash = "sha256:1b1c331969dd007459569baa1030550875dc106da2a2b60dd159406e9f59f366", size = 2181885, upload-time = "2026-11-16T21:07:12.413Z" },
+    { url = "https://files.pythonhosted.org/packages/79/d0/d232d4d3797d6903330e19768b1b38ccec5a770cc2395a51d76ad1b779a6/sqlalchemy-2.0.58-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:4a57e2c3251c9888957138dadda6d51e54b150d549e97410b0b4df49accefe07", size = 2195829, upload-time = "2026-11-16T20:57:43.473Z" },
+    { url = "https://files.pythonhosted.org/packages/c2/9e/e5e403afe39fb434f21467b82e9a5fdfbb7b18a43aa09347e3c027fd73b6/sqlalchemy-2.0.58-cp313-cp313-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:950220a3e9ff4645e27b98a329c2513a2232803e16c11d751efe152925c62511", size = 3413448, upload-time = "2026-11-16T20:55:32.643Z" },
+    { url = "https://files.pythonhosted.org/packages/5c/5b/cb84f21b67aebf16b3f6d2d9921f23f032906ed2435db6bd3a4207551605/sqlalchemy-2.0.58-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:3590f4448b85c79c71d133de3f5dcc412cbad1c43c31576b0db123ff26e3e611", size = 3431756, upload-time = "2026-11-16T21:13:42.545Z" },
+    { url = "https://files.pythonhosted.org/packages/33/38/0b815e7777c18df5e68f8000732625ccf7c5a7fd536fa36cdead4afdd9ed/sqlalchemy-2.0.58-cp313-cp313-musllinux_1_2_aarch64.whl", hash = "sha256:5db9d449fc2053a9993ea5a8aa9632f89bceb28fe7bcdd6e99ccbc0bf234d655", size = 3362880, upload-time = "2026-11-16T20:55:34.609Z" },
+    { url = "https://files.pythonhosted.org/packages/86/bf/30e408ebd15ec67c9f0429783c2b8f673794c2d31d24bc6b1de8eaba25b5/sqlalchemy-2.0.58-cp313-cp313-musllinux_1_2_x86_64.whl", hash = "sha256:0f403c8f2e6c9739c70e122c18d4f4ea244f6477d7a76dc57f83ecb599c4b0e6", size = 3398060, upload-time = "2026-11-16T21:13:44.472Z" },
+    { url = "https://files.pythonhosted.org/packages/f0/8b/7119194ab277d4d783401e0fc4c8950679922db57b88d37acae3b3073084/sqlalchemy-2.0.58-cp313-cp313-win32.whl", hash = "sha256:e7e161ddb7be8cb941991d5c9057bd70715cd71e0bc25ea68daf08361f85eb6b", size = 2150659, upload-time = "2026-11-16T20:57:58.38Z" },
+    { url = "https://files.pythonhosted.org/packages/21/41/729351f0b66e9d6d43380d504cfaa3a807704a62b62f6c3b2b327d211046/sqlalchemy-2.0.58-cp313-cp313-win_amd64.whl", hash = "sha256:d789a5f5a8a1e062f9deb59c7736e32c2d6c9532a358919083a234cdf720cbf3", size = 2178361, upload-time = "2026-11-16T20:58:00.11Z" },
+    { url = "https://files.pythonhosted.org/packages/cf/e2/d62aeaf8ab3fb9d232c3fb7e92a785e44590786b7d28e8a9244f78f7f7c8/sqlalchemy-2.0.58-cp314-cp314-macosx_11_0_arm64.whl", hash = "sha256:4c8be3acd308171a252399801bba6c4fbabe6c596d9adbd4ea8d698bb9248325", size = 2197405, upload-time = "2026-11-16T20:57:45.047Z" },
+    { url = "https://files.pythonhosted.org/packages/c2/fd/1d85b9f9cff8a564e4e9b6ed515900a9a7bad0b67560d66e18a2a3c85f89/sqlalchemy-2.0.58-cp314-cp314-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:fde99c943328a004227abb5c72c45d072d6c4d877f2a4e560a6f743bfcb6f215", size = 3409360, upload-time = "2026-11-16T20:55:36.217Z" },
+    { url = "https://files.pythonhosted.org/packages/22/a6/d2cb9911cfae073381235c7cf31d7bcac5d6e919a768fcd3932ba12fdca2/sqlalchemy-2.0.58-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:b08475f3bcbf5f6c10654874601c8a8ef5b50e2c8c944d8cbf6a4d81618c2ba1", size = 3417154, upload-time = "2026-11-16T21:13:46.448Z" },
+    { url = "https://files.pythonhosted.org/packages/1a/67/c93cdce7c0fb7d6f0b78c5321ce36514ded95a5b329a30a498b9d34da950/sqlalchemy-2.0.58-cp314-cp314-musllinux_1_2_aarch64.whl", hash = "sha256:824259061cabbc0e1a3c413667411a7f8b256e921a19bf8557cd26b427fd95b7", size = 3357286, upload-time = "2026-11-16T20:55:37.811Z" },
+    { url = "https://files.pythonhosted.org/packages/22/f7/03dcdb19543e40cc4b33caa7af663085ee8a82ce78be673132cc32fcccff/sqlalchemy-2.0.58-cp314-cp314-musllinux_1_2_x86_64.whl", hash = "sha256:affe34a87f54ea099f6be8739c1b1b61b47f01abd2e04b72abcce946e1be5540", size = 3387980, upload-time = "2026-11-16T21:13:48.293Z" },
+    { url = "https://files.pythonhosted.org/packages/c0/60/175e494bf82dd0d82af37fb63297b41545c0026acb6e1ad18fec7d151de0/sqlalchemy-2.0.58-cp314-cp314-win32.whl", hash = "sha256:2fbe18e6597f4853d49928f3e6faef549283863249bc53bf63b3fedb0165f3c9", size = 2153873, upload-time = "2026-11-16T20:58:01.611Z" },
+    { url = "https://files.pythonhosted.org/packages/10/22/2ba5feac1f52ff0697ab6ca4d4ce850f322f2a41809e79cd5231b3c03eaa/sqlalchemy-2.0.58-cp314-cp314-win_amd64.whl", hash = "sha256:004b0953665695f00e9c7f4f5c4a42e778477979ef5571a9321bfdd020dbce1a", size = 2181155, upload-time = "2026-11-16T20:58:03.102Z" },
+    { url = "https://files.pythonhosted.org/packages/8b/98/b1b8bd5862fead65baec875040a416c4f2f17f3b9832e1b2e1c4d7e7a829/sqlalchemy-2.0.58-cp314-cp314t-macosx_11_0_arm64.whl", hash = "sha256:a3ce7d6725cbc6e08bcb0930ec8f8f633a23f2cbbe116742606896cfb28e6660", size = 2220432, upload-time = "2026-11-16T21:04:35.004Z" },
+    { url = "https://files.pythonhosted.org/packages/23/88/88c3b788c525b53aadc83d3a91d22ee48f29a190b4bc8e6108b6c696143c/sqlalchemy-2.0.58-cp314-cp314t-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:da339dd11c63f7cd4c008eb559dfe5b62d649d552f9e682492da0566758dfcf1", size = 3673138, upload-time = "2026-11-16T21:04:16.794Z" },
+    { url = "https://files.pythonhosted.org/packages/44/68/747a84a0d7989a3972a88a483f7b0f27b781843bcfc480dac56cecefca76/sqlalchemy-2.0.58-cp314-cp314t-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:580ab42500e9aee41e59ea0ab345876a2ba5d51998646d647b8de19882c7fb3f", size = 3636128, upload-time = "2026-11-16T20:56:21.215Z" },
+    { url = "https://files.pythonhosted.org/packages/4e/87/70ed21d2e8f80213247d5ccf25092e7a9fef0f17c0a26de4a44f64f8f334/sqlalchemy-2.0.58-cp314-cp314t-musllinux_1_2_aarch64.whl", hash = "sha256:fa33ecb306f0c7e03e318e373f75dc8960627dc1e05238fae4a702d14524bee5", size = 3576029, upload-time = "2026-11-16T21:04:18.575Z" },
+    { url = "https://files.pythonhosted.org/packages/d1/33/694e022f776af76fc353918581351bb80c2280966004352f908fc2a6f773/sqlalchemy-2.0.58-cp314-cp314t-musllinux_1_2_x86_64.whl", hash = "sha256:a54cec4e1ca0cf64e57bc7ef07a23a578114bd9d4db65bc7b15c5e80904e5b32", size = 3588380, upload-time = "2026-11-16T20:56:22.836Z" },
+    { url = "https://files.pythonhosted.org/packages/cf/07/a521b2d5f8b9f02ed761ca7fa092d9f4132c2da90a07690e9fe032d68104/sqlalchemy-2.0.58-cp314-cp314t-win32.whl", hash = "sha256:8f35a02df719004e833d5ae98b30fd383932c45266bd3b41f7a629ba42d0ad4f", size = 2186782, upload-time = "2026-11-16T20:57:51.74Z" },
+    { url = "https://files.pythonhosted.org/packages/38/6d/05d4df782be86de6586644eebe22bdbe976b556b92995474057a6d54eb48/sqlalchemy-2.0.58-cp314-cp314t-win_amd64.whl", hash = "sha256:a2b57ca913808beb9c0217819e0189950f019ad5c704e250c850adc9bfc6edb1", size = 2224171, upload-time = "2026-11-16T20:57:53.541Z" },
+    { url = "https://files.pythonhosted.org/packages/61/4a/32a002e26025be40cbbd979e77bcc27b6e3de37b26277eade76e82cc1e8b/sqlalchemy-2.0.58-py3-none-any.whl", hash = "sha256:cc1b78ba0ed1f32156d1582f94ca4aca74633e4dcdde3eb1562dd4742493f594", size = 1969678, upload-time = "2026-11-16T20:56:55.932Z" },
+]
+
+[package.optional-dependencies]
+asyncio = [
+    { name = "greenlet", marker = "extra == 'group-13-procrastinate-sqlalchemy-2-0' or (extra == 'group-13-procrastinate-django-5-2' and extra == 'group-13-procrastinate-django-6-0') or (extra == 'group-13-procrastinate-django-5-2' and extra == 'group-13-procrastinate-django-6-1') or (extra == 'group-13-procrastinate-django-6-0' and extra == 'group-13-procrastinate-django-6-1')" },
+]
+
+[[package]]
+name = "sqlalchemy"
 version = "2.1.9"
 source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "python_full_version >= '3.15'",
+    "python_full_version >= '3.13' and python_full_version < '3.15'",
+    "python_full_version == '3.12.*'",
+    "python_full_version < '3.12'",
+]
 dependencies = [
-    { name = "typing-extensions" },
+    { name = "typing-extensions", marker = "extra != 'group-13-procrastinate-sqlalchemy-2-0' or extra == 'group-13-procrastinate-sqlalchemy-2-1' or (extra == 'group-13-procrastinate-django-5-2' and extra == 'group-13-procrastinate-django-6-0') or (extra == 'group-13-procrastinate-django-5-2' and extra == 'group-13-procrastinate-django-6-1') or (extra == 'group-13-procrastinate-django-6-0' and extra == 'group-13-procrastinate-django-6-1')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/3f/69/b87a540f6888ebc1f63a6e6138e8dc0827331a9be7c5eb15e3bd40a76281/sqlalchemy-2.1.9.tar.gz", hash = "sha256:d700a8b2edfb26282a470333d6bc4a454c4acda4d201a3bea7b72fa76c217d28", size = 10657094, upload-time = "2026-11-16T21:01:00.284Z" }
 wheels = [
@@ -2128,7 +2242,7 @@ wheels = [
 
 [package.optional-dependencies]
 asyncio = [
-    { name = "greenlet" },
+    { name = "greenlet", marker = "extra != 'group-13-procrastinate-sqlalchemy-2-0' or extra == 'group-13-procrastinate-sqlalchemy-2-1' or (extra == 'group-13-procrastinate-django-5-2' and extra == 'group-13-procrastinate-django-6-0') or (extra == 'group-13-procrastinate-django-5-2' and extra == 'group-13-procrastinate-django-6-1') or (extra == 'group-13-procrastinate-django-6-0' and extra == 'group-13-procrastinate-django-6-1')" },
 ]
 
 [[package]]
