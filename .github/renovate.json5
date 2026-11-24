@@ -14,6 +14,22 @@
     enabled: true,
     automerge: true,
   },
+  // autofix.ci completes the supported-versions PRs: its commits must not stop
+  // Renovate from automerging them.
+  gitIgnoredAuthors: [
+    '114827586+autofix-ci[bot]@users.noreply.github.com',
+  ],
+  customManagers: [
+    {
+      customType: 'regex',
+      managerFilePatterns: [
+        '/^\\.github/supported_versions\\.py$/',
+      ],
+      matchStrings: [
+        '# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)\\n\\w+ = "(?<currentValue>[^"]+)"',
+      ],
+    },
+  ],
   packageRules: [
     {
       groupName: 'all dependencies',
@@ -21,6 +37,67 @@
       matchPackageNames: [
         '*',
       ],
+    },
+    {
+      // Written by .github/supported_versions.py, from its LATEST_* constants.
+      matchManagers: [
+        'pep621',
+      ],
+      matchPackageNames: [
+        'django',
+        'sqlalchemy',
+      ],
+      matchCurrentValue: '/^==\\d+(\\.\\d+)?\\.\\*$/',
+      enabled: false,
+    },
+    {
+      matchManagers: [
+        'pyenv',
+      ],
+      enabled: false,
+    },
+    {
+      matchFileNames: [
+        '.devcontainer/**',
+      ],
+      matchPackageNames: [
+        'postgres',
+        'mcr.microsoft.com/devcontainers/python',
+      ],
+      enabled: false,
+    },
+    {
+      // Latest feature releases of the supported versions, in their own PR:
+      // autofix.ci then updates what depends on them.
+      matchManagers: [
+        'custom.regex',
+      ],
+      groupName: null,
+      labels: [
+        'PR type: supported versions 🧪',
+      ],
+    },
+    {
+      // X.Y, or YYYY for Django from 2028
+      matchManagers: [
+        'custom.regex',
+      ],
+      matchPackageNames: [
+        'python',
+        'django',
+        'sqlalchemy',
+      ],
+      extractVersion: '^(?<version>\\d{4}|\\d+\\.\\d+)(\\.0)?$',
+      versioning: 'pep440',
+    },
+    {
+      matchManagers: [
+        'custom.regex',
+      ],
+      matchPackageNames: [
+        'postgres',
+      ],
+      extractVersion: '^(?<version>\\d+)$',
     },
   ],
   automerge: true,

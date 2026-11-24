@@ -1,7 +1,6 @@
 changelog:
   exclude:
     authors:
-      - renovate[bot]
       - dependabot[bot]
   categories:
     - title: "Breaking changes"
@@ -10,11 +9,17 @@ changelog:
       labels: ["PR type: feature ⭐️"]
     - title: "Bug Fixes"
       labels: ["PR type: bugfix 🕵️"]
+    - title: "Supported versions"
+      labels: ["PR type: supported versions 🧪"]
     - title: "Miscellaneous"
       labels: ["PR type: miscellaneous 👾"]
     - title: "Documentation"
       labels: ["PR type: documentation 📚"]
     - title: "Dependencies"
       labels: ["PR type: dependencies 🤖"]
+      exclude:
+        authors: ["renovate[bot]"]
     - title: "Uncategorized"
       labels: ["*"]
+      exclude:
+        authors: ["renovate[bot]"]
