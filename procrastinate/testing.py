@@ -518,7 +518,7 @@ class InMemoryConnector(connector.BaseAsyncConnector):
     async def list_locks_all(self, **kwargs: Any):
         result: list[dict[str, Any]] = []
         jobs = list(await self.list_jobs_all(**kwargs))
-        locks = sorted({job["lock"] for job in jobs})
+        locks = sorted({job["lock"] for job in jobs if job["lock"] is not None})
         for lock in locks:
             lock_jobs = [job for job in jobs if job["lock"] == lock]
             stats = Counter(job["status"] for job in lock_jobs)
