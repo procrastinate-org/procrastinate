@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795564936383,
+  "lastUpdate": 1795565543483,
   "repoUrl": "https://github.com/procrastinate-org/procrastinate",
   "entries": {
     "Procrastinate Benchmarks": [
@@ -17884,6 +17884,86 @@ window.BENCHMARK_DATA = {
             "unit": "iter/sec",
             "range": "stddev: 0.09606975369348977",
             "extra": "mean: 3.366165351400002 sec\nrounds: 5"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "ewjoachim@gmail.com",
+            "name": "Joachim Jablon",
+            "username": "ewjoachim"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "dcdfd1392abc3416c04818853235cce890b78710",
+          "message": "Merge pull request #1685 from SnakeO/fix-1495-periodic-after-restart\n\nExplain periodic restarts and the seconds column",
+          "timestamp": "2026-11-25T01:09:28+01:00",
+          "tree_id": "02d1f0b9b0496bf255a9c5142dbbd3a7f2ddecea",
+          "url": "https://github.com/procrastinate-org/procrastinate/commit/dcdfd1392abc3416c04818853235cce890b78710"
+        },
+        "date": 1795565542379,
+        "tool": "pytest",
+        "benches": [
+          {
+            "name": "tests/benchmarks/test_benchmark_async.py::test_benchmark_1000_async_jobs[psycopg_connector]",
+            "value": 0.42597491626292994,
+            "unit": "iter/sec",
+            "range": "stddev: 0.5464182261099543",
+            "extra": "mean: 2.3475560691999933 sec\nrounds: 5"
+          },
+          {
+            "name": "tests/benchmarks/test_benchmark_async.py::test_benchmark_1000_async_jobs[aiopg_connector]",
+            "value": 0.7952386319848073,
+            "unit": "iter/sec",
+            "range": "stddev: 0.034113440414517915",
+            "extra": "mean: 1.2574841811999704 sec\nrounds: 5"
+          },
+          {
+            "name": "tests/benchmarks/test_benchmark_async.py::test_benchmark_1000_async_batch_jobs[psycopg_connector]",
+            "value": 0.5466513073553236,
+            "unit": "iter/sec",
+            "range": "stddev: 0.9703656575457053",
+            "extra": "mean: 1.8293196897999906 sec\nrounds: 5"
+          },
+          {
+            "name": "tests/benchmarks/test_benchmark_async.py::test_benchmark_1000_async_batch_jobs[aiopg_connector]",
+            "value": 0.9373774097237816,
+            "unit": "iter/sec",
+            "range": "stddev: 0.19914684622573478",
+            "extra": "mean: 1.0668061653999872 sec\nrounds: 5"
+          },
+          {
+            "name": "tests/benchmarks/test_benchmark_sync.py::test_benchmark_1000_sync_jobs[sync_psycopg_connector]",
+            "value": 0.3887687604995633,
+            "unit": "iter/sec",
+            "range": "stddev: 0.36182269454145405",
+            "extra": "mean: 2.5722231351999882 sec\nrounds: 5"
+          },
+          {
+            "name": "tests/benchmarks/test_benchmark_sync.py::test_benchmark_1000_sync_jobs[psycopg2_connector]",
+            "value": 0.4386982161856174,
+            "unit": "iter/sec",
+            "range": "stddev: 0.10379909249015833",
+            "extra": "mean: 2.279471315599994 sec\nrounds: 5"
+          },
+          {
+            "name": "tests/benchmarks/test_benchmark_sync.py::test_benchmark_1000_sync_batch_jobs[sync_psycopg_connector]",
+            "value": 0.5060430332694229,
+            "unit": "iter/sec",
+            "range": "stddev: 0.1483679388235108",
+            "extra": "mean: 1.976116524200006 sec\nrounds: 5"
+          },
+          {
+            "name": "tests/benchmarks/test_benchmark_sync.py::test_benchmark_1000_sync_batch_jobs[psycopg2_connector]",
+            "value": 0.512212508167774,
+            "unit": "iter/sec",
+            "range": "stddev: 0.19001321225621148",
+            "extra": "mean: 1.9523146820000192 sec\nrounds: 5"
           }
         ]
       }
