@@ -758,6 +758,13 @@ async def test_list_locks_async(job_manager, job_factory):
     ]
 
 
+async def test_list_locks_async_ignores_jobs_without_lock(job_manager, job_factory):
+    await job_manager.defer_job_async(job=job_factory(lock=None))
+    await job_manager.defer_job_async(job=job_factory(lock="foo"))
+
+    assert [row["name"] for row in await job_manager.list_locks_async()] == ["foo"]
+
+
 def test_list_locks(job_manager, job_factory):
     job_manager.defer_job(job=job_factory(lock="foo"))
 
