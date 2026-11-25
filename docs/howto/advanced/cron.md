@@ -22,9 +22,20 @@ in time, and the database is responsible for making sure deferring only happens 
 period, even with multiple workers. This means that you can have high availability
 periodic scheduling: as long as at least one worker is up, the tasks will be deferred.
 
-The cron syntax is on 5 columns (minute, hour, day, month, day of week). Here, an
-optional 6th column is supported for seconds with the same syntax, allowing you to make
-a periodic task as frequent as "1 per second".
+Procrastinate's cron syntax is compatible with the 5-column standard
+(`minute, hour, day, month, day of week`) with optional additions: we use
+[`croniter`](https://github.com/pallets-eco/croniter), which includes a variety of
+subtle variations from the standard crons, so feel free to have a look at their
+documentation.
+
+:::{note}
+If we change the cron processing library in the future to one that supports a
+different syntax, it will be considered a breaking change worth a major release.
+:::
+
+As an example of useful additions from `croniter`: at the right end of the 5 standard
+columns, you may add a 6th one that represents seconds (be mindful in this case:
+seconds are the last column, the first column still represents minutes).
 
 ## Timezone
 
@@ -54,9 +65,11 @@ When using periodic tasks there are a few things to know:
 - Workers are responsible for deferring periodic tasks. If there is no worker running,
   then periodic tasks will not get scheduled. On the other hand, even if you have
   multiple workers, periodic tasks will only be deferred once per period.
-- When a worker starts, it will defer periodic tasks that have not been deferred yet
-  but a task that is more than 10 minutes late will not be deferred. This value is
-  configurable in the {py:class}`App`.
+- When a worker starts, for each periodic task that has one or more missed jobs, the
+  worker will defer only the latest one, provided it is less than 10 minutes late (this
+  value is configurable in the {py:class}`App`).
+- The deletion of a periodic job doesn't impact the ability of the workers to know that
+  it had successfully been deferred.
 
 ## Timestamp argument
 
