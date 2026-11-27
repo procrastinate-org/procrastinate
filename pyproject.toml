@@ -53,7 +53,7 @@ release = ["dunamai"]
 lint_format = ["ruff", "django-upgrade"]
 pg_implem = ["aiopg", "sqlalchemy", "psycopg2-binary", "psycopg[binary,pool]"]
 test = [
-    # Needs Python 3.12+: tests/integration/contrib/django/due_work is skipped without it.
+    # The lifecycle contracts require Python 3.12 or newer.
     "due-work-harness>=0.2.0; python_version >= '3.12'",
     "pytest-asyncio",
     "pytest-benchmark",
